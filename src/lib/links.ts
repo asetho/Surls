@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { generateAlias, validateAlias } from "./alias";
+import { fetchPageTitle } from "./page-title";
 import { parseSafeHttpUrl } from "./url-safety";
 import { prisma } from "./prisma";
 
@@ -38,12 +39,14 @@ export async function createShortLink(input: CreateShortLinkInput) {
   const aliasError = validateAlias(code);
   if (aliasError) throw new Error(aliasError);
 
+  const title = input.title?.trim() || (await fetchPageTitle(safeUrl.url));
+
   try {
     const link = await prisma.shortLink.create({
       data: {
         code,
         destinationUrl: safeUrl.url,
-        title: input.title?.trim() || null,
+        title,
         description: input.description?.trim() || null,
         notes: input.notes?.trim() || null,
         enabled: input.enabled ?? true,

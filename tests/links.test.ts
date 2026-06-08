@@ -1,0 +1,53 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const shortLink = vi.hoisted(() => ({
+  create: vi.fn(),
+  findUnique: vi.fn()
+}));
+
+const pageTitle = vi.hoisted(() => ({
+  fetchPageTitle: vi.fn()
+}));
+
+vi.mock("@/lib/prisma", () => ({
+  prisma: { shortLink }
+}));
+
+vi.mock("@/lib/page-title", () => pageTitle);
+
+import { createShortLink } from "@/lib/links";
+
+describe("short link creation", () => {
+  beforeEach(() => {
+    shortLink.create.mockReset();
+    shortLink.findUnique.mockReset();
+    pageTitle.fetchPageTitle.mockReset();
+    shortLink.create.mockImplementation(async ({ data }) => ({ id: "link_1", ...data, tags: [] }));
+  });
+
+  it("fills a blank title from the destination page", async () => {
+    pageTitle.fetchPageTitle.mockResolvedValue("Fetched Page Title");
+
+    const link = await createShortLink({
+      destinationUrl: "https://example.com/article",
+      code: "news",
+      title: null
+    });
+
+    expect(pageTitle.fetchPageTitle).toHaveBeenCalledWith("https://example.com/article");
+    expect(shortLink.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ title: "Fetched Page Title" }) }));
+    expect(link.title).toBe("Fetched Page Title");
+  });
+
+  it("keeps manually provided titles", async () => {
+    const link = await createShortLink({
+      destinationUrl: "https://example.com/article",
+      code: "news",
+      title: "  Manual Title  "
+    });
+
+    expect(pageTitle.fetchPageTitle).not.toHaveBeenCalled();
+    expect(shortLink.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ title: "Manual Title" }) }));
+    expect(link.title).toBe("Manual Title");
+  });
+});

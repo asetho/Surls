@@ -37,7 +37,10 @@ export async function POST(request: NextRequest) {
       entityId: link.id,
       details: { code: link.code, via: apiToken ? "api" : "session" }
     });
-    return NextResponse.json({ id: link.id, code: link.code, shortUrl: shortUrl(appBaseUrl(), link.code) }, { status: 201 });
+    return NextResponse.json(
+      { id: link.id, code: link.code, shortUrl: shortUrl(appBaseUrl(), link.code), title: link.title },
+      { status: 201 }
+    );
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Could not create link" }, { status: 400 });
   }
