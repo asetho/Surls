@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-surls}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${POSTGRES_DB:-surls}"
+    volumes:
+      - surls-postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-surls} -d ${POSTGRES_DB:-surls}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    image: ${SURLS_IMAGE:-ghcr.io/aaronwhippo/surls:latest}
+    build:
+      context: ../..
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-surls}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-surls}?schema=public"
+      BASE_URL: "${BASE_URL:?Set BASE_URL}"
+      APP_NAME: "${APP_NAME:-Surls}"
+      AUTH_SECRET: "${AUTH_SECRET:?Set AUTH_SECRET}"
+      SESSION_DAYS: "${SESSION_DAYS:-14}"
+      ALLOW_PRIVATE_DESTINATIONS: "${ALLOW_PRIVATE_DESTINATIONS:-false}"
+      TRUST_PROXY: "${TRUST_PROXY:-true}"
+      WEBAUTHN_RP_ID: "${WEBAUTHN_RP_ID:?Set WEBAUTHN_RP_ID}"
+      WEBAUTHN_ORIGIN: "${WEBAUTHN_ORIGIN:?Set WEBAUTHN_ORIGIN}"
+      INITIAL_ADMIN_EMAIL: "${INITIAL_ADMIN_EMAIL:-}"
+      INITIAL_ADMIN_NAME: "${INITIAL_ADMIN_NAME:-Surls Admin}"
+      INITIAL_ADMIN_PASSWORD: "${INITIAL_ADMIN_PASSWORD:-}"
+      SURLS_RUN_MIGRATIONS: "${SURLS_RUN_MIGRATIONS:-true}"
+      SURLS_RUN_BOOTSTRAP: "${SURLS_RUN_BOOTSTRAP:-true}"
+    ports:
+      - "${SURLS_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+volumes:
+  surls-postgres:

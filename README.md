@@ -19,7 +19,8 @@ It is inspired by the product shape of personal URL shorteners such as YOURLS an
 - Tools page with bookmarklet, API token generation/revocation, CSV import preview/import, exports, SSRF-aware link checker, UTM builder, cleanup summaries, API docs, and system info.
 - Light, Dark, and Auto theme modes. Auto follows the operating system preference.
 - Prisma PostgreSQL schema and initial migration.
-- Dockerfile and `docker-compose.yml`.
+- Dockerfile, production entrypoint, `docker-compose.yml`, and 1Panel deployment files.
+- GitHub Actions for linting, typechecking, tests, production build, Docker smoke testing, and GHCR image publishing.
 
 ## Stack
 
@@ -28,7 +29,7 @@ It is inspired by the product shape of personal URL shorteners such as YOURLS an
 - React 19
 - TypeScript
 - PostgreSQL
-- Prisma 6
+- Prisma 7
 - Vitest
 - Docker Compose
 
@@ -81,15 +82,34 @@ It is inspired by the product shape of personal URL shorteners such as YOURLS an
 
 ## Docker Compose
 
-For a local containerized run:
+For a local containerized run, copy the environment template and set at least `POSTGRES_PASSWORD` and `AUTH_SECRET`:
 
 ```bash
+cp .env.example .env
+openssl rand -hex 24
+openssl rand -base64 32
 docker compose up --build
-docker compose exec app npm run prisma:deploy
-docker compose exec app npm run setup:admin
 ```
 
-Change `AUTH_SECRET`, database credentials, `BASE_URL`, and WebAuthn values before production.
+The container runs Prisma migrations and seeds missing settings on startup. To create the first admin automatically, set `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` before first boot. After the first login, remove `INITIAL_ADMIN_PASSWORD` from `.env` and recreate the app container.
+
+Change `AUTH_SECRET`, database credentials, `BASE_URL`, and WebAuthn values before production. Use a URL-safe PostgreSQL password, such as `openssl rand -hex 24`, because the compose file embeds it in `DATABASE_URL`.
+
+## 1Panel Install
+
+Use the production compose files in `deploy/1panel`:
+
+```bash
+cp deploy/1panel/.env.example deploy/1panel/.env
+```
+
+Edit `deploy/1panel/.env`, then create a 1Panel Compose project from:
+
+```text
+/opt/surls/deploy/1panel/compose.yml
+```
+
+See `deploy/1panel/README.md` for the exact 1Panel steps, including the reverse proxy and first-admin cleanup.
 
 ## Docker Image
 
@@ -110,6 +130,19 @@ docker run --rm -p 3000:3000 \
 ```
 
 The Docker build uses Next.js standalone output and a `.dockerignore` file to keep the runtime image focused on production server files.
+
+The production image starts through `scripts/docker-entrypoint.mjs`, which:
+
+- checks required production environment values;
+- runs `prisma migrate deploy` unless `SURLS_RUN_MIGRATIONS=false`;
+- creates missing default settings and optionally the first admin unless `SURLS_RUN_BOOTSTRAP=false`;
+- starts the Next.js standalone server.
+
+Images are published by GitHub Actions to:
+
+```text
+ghcr.io/aaronwhippo/surls:latest
+```
 
 ## Admin Click Tracking
 
@@ -179,8 +212,8 @@ Leave “Confirm import” unchecked to preview validation without creating link
 - Set `NODE_ENV=production`.
 - Run behind HTTPS and keep HSTS enabled.
 - Rotate default database credentials.
-- Run `npm run prisma:deploy` during deployment.
-- Create the first admin through a secure shell.
+- Keep automatic migrations enabled unless your deployment system runs them separately.
+- Create the first admin with temporary `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD`, then remove `INITIAL_ADMIN_PASSWORD` after first login.
 - Enable TOTP and generate backup codes.
 - Keep `ALLOW_PRIVATE_DESTINATIONS=false` unless you understand the SSRF risk.
 - Put PostgreSQL backups in place.

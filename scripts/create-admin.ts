@@ -1,9 +1,7 @@
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
-import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "../src/lib/password";
-
-const prisma = new PrismaClient();
+import { prisma } from "../src/lib/prisma";
 
 async function promptAdmin() {
   const rl = createInterface({ input, output });
