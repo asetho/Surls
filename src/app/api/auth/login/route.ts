@@ -9,9 +9,10 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { requestIp, requestIpHash } from "@/lib/request";
 import { auditLog } from "@/lib/audit";
 import { validateCsrf } from "@/lib/csrf";
+import { appBaseUrl } from "@/lib/env";
 
-function loginRedirect(request: NextRequest, error: string, extras?: Record<string, string>) {
-  const url = new URL("/login", request.url);
+function loginRedirect(error: string, extras?: Record<string, string>) {
+  const url = new URL("/login", appBaseUrl());
   url.searchParams.set("error", error);
   for (const [key, value] of Object.entries(extras ?? {})) {
     url.searchParams.set(key, value);
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
   try {
     validateCsrf(formData);
   } catch {
-    return loginRedirect(request, "The login form expired. Please try again.");
+    return loginRedirect("The login form expired. Please try again.");
   }
 
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
 
   const rate = checkRateLimit(`login:${requestIp(request)}:${email}`, 8, 15 * 60 * 1000);
   if (!rate.allowed) {
-    return loginRedirect(request, "Too many login attempts. Please wait and try again.");
+    return loginRedirect("Too many login attempts. Please wait and try again.");
   }
 
   const user = await prisma.user.findUnique({
@@ -50,12 +51,12 @@ export async function POST(request: NextRequest) {
       userAgent: request.headers.get("user-agent"),
       details: { email }
     });
-    return loginRedirect(request, "Invalid email or password.");
+    return loginRedirect("Invalid email or password.");
   }
 
   if (user.totpCredential?.enabled) {
     if (!secondFactor) {
-      return loginRedirect(request, "Enter your 2FA code to continue.", { twoFactor: "1", email });
+      return loginRedirect("Enter your 2FA code to continue.", { twoFactor: "1", email });
     }
 
     let secondFactorOk = await verifyTotpCode(user.totpCredential.secretEncrypted, secondFactor);
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
         userAgent: request.headers.get("user-agent"),
         details: { email, secondFactor: true }
       });
-      return loginRedirect(request, "Invalid 2FA or backup code.", { twoFactor: "1", email });
+      return loginRedirect("Invalid 2FA or backup code.", { twoFactor: "1", email });
     }
     if (usedBackupCodeId) {
       await prisma.backupCode.update({ where: { id: usedBackupCodeId }, data: { usedAt: new Date() } });
@@ -94,7 +95,7 @@ export async function POST(request: NextRequest) {
   });
 
   const destination = nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/admin";
-  const response = NextResponse.redirect(new URL(destination, request.url), 303);
+  const response = NextResponse.redirect(new URL(destination, appBaseUrl()), 303);
   setSessionCookie(response, token, expiresAt);
   return response;
 }
