@@ -1,0 +1,39 @@
+import type { Metadata } from "next";
+import { PublicHeader } from "../layout";
+
+export const metadata: Metadata = {
+  title: "Cookie Notice"
+};
+
+export default function CookiesPage() {
+  return (
+    <>
+      <PublicHeader />
+      <main className="section">
+        <div className="container">
+          <div className="surface" style={{ padding: "1.25rem" }}>
+            <h1>Surls cookie notice</h1>
+            <p>Surls uses essential cookies for admin login sessions, CSRF protection, and cookie consent storage.</p>
+            <h2>Essential cookies</h2>
+            <ul>
+              <li>
+                <strong>surls_session:</strong> HttpOnly secure admin session cookie.
+              </li>
+              <li>
+                <strong>surls_csrf:</strong> HttpOnly CSRF token cookie for admin form protection.
+              </li>
+              <li>
+                <strong>surls_cookie_consent:</strong> Stores your consent choice.
+              </li>
+            </ul>
+            <h2>Analytics cookies</h2>
+            <p>
+              Surls does not require third-party analytics cookies. Non-essential analytics should only run after the
+              banner choice allows analytics.
+            </p>
+          </div>
+        </div>
+      </main>
+    </>
+  );
+}

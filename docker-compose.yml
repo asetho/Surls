@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: surls
+      POSTGRES_PASSWORD: surls
+      POSTGRES_DB: surls
+    volumes:
+      - surls-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U surls -d surls"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://surls:surls@db:5432/surls?schema=public
+      BASE_URL: http://localhost:3000
+      APP_NAME: Surls
+      AUTH_SECRET: change-this-before-production
+      SESSION_DAYS: 14
+      ALLOW_PRIVATE_DESTINATIONS: "false"
+      TRUST_PROXY: "true"
+      WEBAUTHN_RP_ID: localhost
+      WEBAUTHN_ORIGIN: http://localhost:3000
+    ports:
+      - "3000:3000"
+    labels:
+      org.opencontainers.image.title: "Surls"
+      org.opencontainers.image.description: "Personal short URL system"
+
+volumes:
+  surls-postgres:
