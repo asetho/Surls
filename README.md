@@ -90,6 +90,26 @@ docker compose exec app npm run setup:admin
 
 Change `AUTH_SECRET`, database credentials, `BASE_URL`, and WebAuthn values before production.
 
+## Docker Image
+
+Build a production image locally:
+
+```bash
+docker build -t surls:latest .
+```
+
+Run the image against a PostgreSQL database:
+
+```bash
+docker run --rm -p 3000:3000 \
+  -e DATABASE_URL="postgresql://surls:surls@host.docker.internal:5432/surls?schema=public" \
+  -e BASE_URL="http://localhost:3000" \
+  -e AUTH_SECRET="replace-with-at-least-32-random-bytes" \
+  surls:latest
+```
+
+The Docker build uses Next.js standalone output and a `.dockerignore` file to keep the runtime image focused on production server files.
+
 ## Admin Click Tracking
 
 Authenticated admin redirects are ignored by default. When “Track admin clicks” is disabled, Surls does not store a click event and does not increment totals, unique-ish counts, top-link rankings, recent activity, referrer stats, browser/device stats, or location stats. Admin redirects include `X-ShortURL-Admin-Click: ignored` when a click is skipped.

@@ -1,0 +1,13 @@
+.git
+.next
+node_modules
+coverage
+dist
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+tsconfig.tsbuildinfo
+surls-home-*.png
+README.local.md
