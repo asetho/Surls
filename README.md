@@ -23,6 +23,7 @@ It is inspired by the product shape of personal URL shorteners such as YOURLS an
 
 ## Stack
 
+- Node.js 25+
 - Next.js 16 App Router
 - React 19
 - TypeScript
