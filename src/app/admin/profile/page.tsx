@@ -4,6 +4,7 @@ import { BackupCodesForm } from "@/components/BackupCodesForm";
 import { getCsrfToken } from "@/lib/csrf";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getSiteName } from "@/lib/settings";
 import { getTotpSecret, totpOtpAuthUrl } from "@/lib/totp";
 import { disableTotpAction, enableTotpAction, startTotpAction } from "./actions";
 
@@ -15,14 +16,17 @@ export default async function ProfilePage() {
   const admin = await requireAdmin();
   if (!admin) return null;
   const csrf = getCsrfToken();
-  const [credential, backupCount, passkeys] = await Promise.all([
+  const [credential, backupCount, passkeys, siteName] = await Promise.all([
     prisma.totpCredential.findUnique({ where: { userId: admin.id } }),
     prisma.backupCode.count({ where: { userId: admin.id, usedAt: null } }),
-    prisma.passkey.findMany({ where: { userId: admin.id }, orderBy: { createdAt: "desc" } })
+    prisma.passkey.findMany({ where: { userId: admin.id }, orderBy: { createdAt: "desc" } }),
+    getSiteName()
   ]);
 
   const pendingSecret = credential && !credential.enabled ? getTotpSecret(credential.secretEncrypted) : null;
-  const qr = pendingSecret ? await QRCode.toDataURL(totpOtpAuthUrl(admin.email, pendingSecret), { margin: 1 }) : null;
+  const qr = pendingSecret
+    ? await QRCode.toDataURL(totpOtpAuthUrl(admin.email, pendingSecret, siteName), { margin: 1 })
+    : null;
 
   return (
     <main className="admin-content">

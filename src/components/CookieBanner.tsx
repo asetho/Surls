@@ -5,7 +5,7 @@ import Link from "next/link";
 
 type Consent = "essential" | "analytics";
 
-export function CookieBanner() {
+export function CookieBanner({ siteName }: { siteName: string }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -31,7 +31,7 @@ export function CookieBanner() {
   return (
     <aside className="cookie-banner" aria-label="Cookie notice">
       <div>
-        <strong>Surls uses essential cookies for secure admin sessions.</strong>
+        <strong>{siteName} uses essential cookies for secure admin sessions.</strong>
         <p className="muted small">
           Privacy-respecting analytics only run after consent. Short-link click statistics are collected as described in
           the cookie notice.

@@ -3,7 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import { createTokenAction, checkDestinationAction, importCsvAction } from "@/app/admin/tools/actions";
 
-export function ApiTokenForm({ csrf }: { csrf: string }) {
+export function ApiTokenForm({ csrf, siteName }: { csrf: string; siteName: string }) {
   const [state, action, pending] = useActionState(createTokenAction, null);
   return (
     <div className="form-stack">
@@ -11,7 +11,7 @@ export function ApiTokenForm({ csrf }: { csrf: string }) {
         <input type="hidden" name="csrf" value={csrf} />
         <label>
           Token name
-          <input name="name" defaultValue="Surls API token" />
+          <input name="name" defaultValue={`${siteName} API token`} />
         </label>
         <button type="submit" disabled={pending}>Generate API token</button>
       </form>

@@ -3,7 +3,15 @@
 import { Copy, Mail, Share2 } from "lucide-react";
 import { useState } from "react";
 
-export function CopyShareButtons({ url, title }: { url: string; title?: string | null }) {
+export function CopyShareButtons({
+  url,
+  title,
+  defaultTitle = "Short link"
+}: {
+  url: string;
+  title?: string | null;
+  defaultTitle?: string;
+}) {
   const [toast, setToast] = useState("");
 
   async function copy() {
@@ -22,7 +30,7 @@ export function CopyShareButtons({ url, title }: { url: string; title?: string |
   }
 
   async function share() {
-    const text = title || "Surls short link";
+    const text = title || defaultTitle;
     if (navigator.share) {
       await navigator.share({ title: text, text, url }).catch(() => null);
       return;
@@ -32,7 +40,7 @@ export function CopyShareButtons({ url, title }: { url: string; title?: string |
   }
 
   const encoded = encodeURIComponent(url);
-  const shareTitle = encodeURIComponent(title || "Surls short link");
+  const shareTitle = encodeURIComponent(title || defaultTitle);
 
   return (
     <>

@@ -10,6 +10,7 @@ import { appBaseUrl } from "@/lib/env";
 import { clickStats } from "@/lib/clicks";
 import { shortUrl } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
+import { getSiteName } from "@/lib/settings";
 import { archiveLinkAction, updateLinkAction } from "../actions";
 
 export const metadata: Metadata = {
@@ -112,10 +113,13 @@ function CountBars({ rows, emptyLabel }: { rows: Array<{ label: string; count: n
 
 export default async function LinkDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const link = await prisma.shortLink.findUnique({
-    where: { id },
-    include: { tags: { include: { tag: true } } }
-  });
+  const [link, siteName] = await Promise.all([
+    prisma.shortLink.findUnique({
+      where: { id },
+      include: { tags: { include: { tag: true } } }
+    }),
+    getSiteName()
+  ]);
   if (!link) notFound();
   const csrf = getCsrfToken();
   const stats = await clickStats(link.id, link.createdAt);
@@ -130,9 +134,9 @@ export default async function LinkDetailPage({ params }: PageProps) {
       <div className="content-header">
         <div>
           <h1>/{link.code}</h1>
-          <p className="muted">{link.title || "Untitled Surls link"}</p>
+          <p className="muted">{link.title || `Untitled ${siteName} link`}</p>
         </div>
-        <CopyShareButtons url={url} title={link.title} />
+        <CopyShareButtons url={url} title={link.title} defaultTitle={`${siteName} short link`} />
       </div>
 
       <section className="grid-3">
@@ -338,7 +342,7 @@ export default async function LinkDetailPage({ params }: PageProps) {
         <form action={archiveLinkAction}>
           <input type="hidden" name="csrf" value={csrf} />
           <input type="hidden" name="id" value={link.id} />
-          <ConfirmButton className="danger" type="submit" message="Archive this Surls link?">
+          <ConfirmButton className="danger" type="submit" message={`Archive this ${siteName} link?`}>
             <Archive size={16} aria-hidden />
             Archive link
           </ConfirmButton>

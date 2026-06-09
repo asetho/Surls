@@ -27,7 +27,8 @@ describe("auth helpers", () => {
   });
 
   it("verifies TOTP codes generated from encrypted secrets", async () => {
-    const setup = createTotpSecret("admin@example.com");
+    const setup = createTotpSecret("admin@example.com", "Test Links");
+    expect(decodeURIComponent(setup.otpauthUrl)).toContain("issuer=Test Links");
     const token = await generate({ secret: getTotpSecret(setup.encryptedSecret), period: 30, digits: 6 });
     await expect(verifyTotpCode(setup.encryptedSecret, token)).resolves.toBe(true);
   });

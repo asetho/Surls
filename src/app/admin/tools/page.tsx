@@ -35,7 +35,7 @@ export default async function ToolsPage() {
     <main className="admin-content">
       <div className="content-header">
         <div>
-          <h1>Surls tools</h1>
+          <h1>{settings.siteName} tools</h1>
           <p className="muted">Bookmarklet, API tokens, import/export, link checks, UTM builder, cleanup, and system info.</p>
         </div>
       </div>
@@ -44,7 +44,7 @@ export default async function ToolsPage() {
         <div className="surface" style={{ padding: "1rem" }}>
           <h2>Bookmarklet</h2>
           <p className="muted small">Create a short URL from the current page when you are logged in.</p>
-          <a className="button" href={bookmarklet}>Shorten with Surls</a>
+          <a className="button" href={bookmarklet}>Shorten with {settings.siteName}</a>
           <code style={{ display: "block", overflowWrap: "anywhere", marginTop: "0.75rem" }}>{bookmarklet}</code>
         </div>
         <div className="surface" style={{ padding: "1rem" }}>
@@ -67,7 +67,7 @@ export default async function ToolsPage() {
       <section className="grid-3">
         <div className="surface" style={{ padding: "1rem" }}>
           <h2>API token</h2>
-          <ApiTokenForm csrf={csrf} />
+          <ApiTokenForm csrf={csrf} siteName={settings.siteName} />
           <div className="table-wrap">
             <table>
               <thead>

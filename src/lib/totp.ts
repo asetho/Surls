@@ -1,10 +1,9 @@
 import { generateSecret, generateURI, verify } from "otplib";
 import { encryptSecret, decryptSecret } from "./crypto";
-import { env } from "./env";
 
-export function createTotpSecret(email: string) {
+export function createTotpSecret(email: string, issuer: string) {
   const secret = generateSecret();
-  const otpauthUrl = totpOtpAuthUrl(email, secret);
+  const otpauthUrl = totpOtpAuthUrl(email, secret, issuer);
   return {
     secret,
     encryptedSecret: encryptSecret(secret),
@@ -12,9 +11,9 @@ export function createTotpSecret(email: string) {
   };
 }
 
-export function totpOtpAuthUrl(email: string, secret: string) {
+export function totpOtpAuthUrl(email: string, secret: string, issuer: string) {
   return generateURI({
-    issuer: env.APP_NAME,
+    issuer,
     label: email,
     secret,
     period: 30,

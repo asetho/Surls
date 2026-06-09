@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PublicHeader } from "../layout";
 import { getCsrfToken } from "@/lib/csrf";
+import { getSiteName } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "Admin Login"
@@ -16,6 +17,7 @@ type SearchParams = Promise<{
 export default async function LoginPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const csrf = getCsrfToken();
+  const siteName = await getSiteName();
   const needsSecondFactor = params.twoFactor === "1";
 
   return (
@@ -25,7 +27,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
         <div className="container">
           <form className="surface login-card form-stack" action="/api/auth/login" method="post">
             <div>
-              <h1>Surls admin login</h1>
+              <h1>{siteName} admin login</h1>
               <p className="muted">Sign in to manage private links, redirects, and click statistics.</p>
             </div>
             {params.error ? <div className="alert">{params.error}</div> : null}

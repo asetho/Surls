@@ -7,6 +7,7 @@ import { createApiToken } from "@/lib/api-tokens";
 import { requireAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
 import { prisma } from "@/lib/prisma";
+import { getSiteName } from "@/lib/settings";
 import { assertNoPrivateResolution, parseSafeHttpUrl } from "@/lib/url-safety";
 import { createShortLink } from "@/lib/links";
 
@@ -14,7 +15,8 @@ export async function createTokenAction(_state: { token?: string; error?: string
   validateCsrf(formData);
   const admin = await requireAdmin();
   if (!admin) return { error: "Unauthorized" };
-  const name = String(formData.get("name") ?? "Surls API token").trim() || "Surls API token";
+  const fallbackName = `${await getSiteName()} API token`;
+  const name = String(formData.get("name") ?? "").trim() || fallbackName;
   const { row, token } = await createApiToken(admin.id, name);
   await auditLog({
     userId: admin.id,

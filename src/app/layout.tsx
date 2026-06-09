@@ -5,16 +5,19 @@ import "./globals.css";
 import { CookieBanner } from "@/components/CookieBanner";
 import { ThemeScript } from "@/components/ThemeScript";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { env } from "@/lib/env";
+import { getSiteName } from "@/lib/settings";
 
-export const metadata: Metadata = {
-  title: {
-    default: "Surls",
-    template: "%s | Surls"
-  },
-  description: "Surls is a personal short URL system for managing private links, redirects, and click statistics.",
-  applicationName: "Surls"
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const siteName = await getSiteName();
+  return {
+    title: {
+      default: siteName,
+      template: `%s | ${siteName}`
+    },
+    description: `${siteName} is a personal short URL system for managing private links, redirects, and click statistics.`,
+    applicationName: siteName
+  };
+}
 
 type ThemeChoice = "light" | "dark" | "auto";
 
@@ -29,7 +32,7 @@ async function savedThemeChoice() {
 }
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const themeChoice = await savedThemeChoice();
+  const [themeChoice, siteName] = await Promise.all([savedThemeChoice(), getSiteName()]);
   const initialTheme = themeChoice === "dark" ? "dark" : "light";
 
   return (
@@ -39,21 +42,22 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       </head>
       <body>
         {children}
-        <CookieBanner />
+        <CookieBanner siteName={siteName} />
       </body>
     </html>
   );
 }
 
 export async function PublicHeader() {
-  const themeChoice = await savedThemeChoice();
+  const [themeChoice, siteName] = await Promise.all([savedThemeChoice(), getSiteName()]);
+  const brandInitial = siteName.slice(0, 1).toUpperCase() || "S";
 
   return (
     <header className="site-header">
       <div className="container site-header-inner">
         <Link className="brand" href="/">
-          <span className="brand-mark">S</span>
-          <span>{env.APP_NAME}</span>
+          <span className="brand-mark">{brandInitial}</span>
+          <span>{siteName}</span>
         </Link>
         <nav className="nav-actions" aria-label="Primary">
           <Link href="/privacy">Privacy</Link>

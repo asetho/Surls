@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { appBaseUrl } from "@/lib/env";
 import { shortUrl } from "@/lib/links";
 import { CopyShareButtons } from "@/components/CopyShareButtons";
+import { getSiteName } from "@/lib/settings";
 
 export default async function AdminDashboard() {
   const now = new Date();
@@ -23,7 +24,8 @@ export default async function AdminDashboard() {
     topLinks,
     recentLinks,
     recentClicks,
-    attentionLinks
+    attentionLinks,
+    siteName
   ] = await Promise.all([
     prisma.shortLink.count({ where: { archivedAt: null } }),
     prisma.clickEvent.count(),
@@ -52,14 +54,15 @@ export default async function AdminDashboard() {
       },
       orderBy: { updatedAt: "desc" },
       take: 6
-    })
+    }),
+    getSiteName()
   ]);
 
   return (
     <main className="admin-content">
       <div className="content-header">
         <div>
-          <h1>Surls dashboard</h1>
+          <h1>{siteName} dashboard</h1>
           <p className="muted">Overview of private short URLs and privacy-respecting click activity.</p>
         </div>
         <Link className="button" href="/admin/links">
@@ -116,14 +119,14 @@ export default async function AdminDashboard() {
                       <td className="small">{link.destinationUrl}</td>
                       <td>{link.clickCount}</td>
                       <td>
-                        <CopyShareButtons url={url} title={link.title} />
+                        <CopyShareButtons url={url} title={link.title} defaultTitle={`${siteName} short link`} />
                       </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={4}>No links yet. Create your first Surls short URL.</td>
+                  <td colSpan={4}>No links yet. Create your first {siteName} short URL.</td>
                 </tr>
               )}
             </tbody>

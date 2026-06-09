@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { BarChart3, Link2, LogOut, Settings, ShieldCheck, Wrench } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { requireAdmin } from "@/lib/auth";
+import { getSiteName } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -14,10 +15,11 @@ function isThemeChoice(value: string | undefined): value is ThemeChoice {
 }
 
 export default async function AdminLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const [user, cookieStore] = await Promise.all([requireAdmin(), cookies()]);
+  const [user, cookieStore, siteName] = await Promise.all([requireAdmin(), cookies(), getSiteName()]);
   if (!user) redirect("/login?next=/admin");
   const cookieChoice = cookieStore.get("surls-theme")?.value;
   const themeChoice = isThemeChoice(cookieChoice) ? cookieChoice : "auto";
+  const brandInitial = siteName.slice(0, 1).toUpperCase() || "S";
 
   const nav = [
     { href: "/admin", label: "Dashboard", icon: BarChart3 },
@@ -31,8 +33,8 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
     <div className="admin-shell">
       <aside className="admin-sidebar">
         <Link className="brand" href="/admin" style={{ color: "#fff", marginBottom: "1rem" }}>
-          <span className="brand-mark" style={{ background: "var(--teal)" }}>S</span>
-          <span>Surls</span>
+          <span className="brand-mark" style={{ background: "var(--teal)" }}>{brandInitial}</span>
+          <span>{siteName}</span>
         </Link>
         <nav aria-label="Admin">
           {nav.map((item) => {
@@ -50,7 +52,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
         <header className="admin-topbar">
           <div>
             <strong>{user.name || user.email}</strong>
-            <div className="muted small">Private Surls admin</div>
+            <div className="muted small">Private {siteName} admin</div>
           </div>
           <div className="nav-actions">
             <ThemeToggle initialChoice={themeChoice} />

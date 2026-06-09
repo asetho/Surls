@@ -7,7 +7,7 @@ const prisma = new PrismaClient({
 });
 
 const DEFAULT_SETTINGS = {
-  siteName: "Surls",
+  siteName: process.env.APP_NAME?.trim() || "Surls",
   trackAdminClicks: false,
   preserveRedirectQuery: false,
   enablePasswordProtectedLinks: true,

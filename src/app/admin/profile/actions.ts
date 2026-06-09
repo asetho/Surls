@@ -7,13 +7,14 @@ import { requireAdmin } from "@/lib/auth";
 import { generateBackupCodes, hashBackupCode } from "@/lib/backup-codes";
 import { validateCsrf } from "@/lib/csrf";
 import { prisma } from "@/lib/prisma";
+import { getSiteName } from "@/lib/settings";
 import { createTotpSecret, verifyTotpCode } from "@/lib/totp";
 
 export async function startTotpAction(formData: FormData) {
   validateCsrf(formData);
   const admin = await requireAdmin();
   if (!admin) throw new Error("Unauthorized");
-  const secret = createTotpSecret(admin.email);
+  const secret = createTotpSecret(admin.email, await getSiteName());
   await prisma.totpCredential.upsert({
     where: { userId: admin.id },
     update: { secretEncrypted: secret.encryptedSecret, enabled: false, enabledAt: null },

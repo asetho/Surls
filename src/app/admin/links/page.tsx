@@ -6,6 +6,7 @@ import { getCsrfToken } from "@/lib/csrf";
 import { appBaseUrl } from "@/lib/env";
 import { shortUrl } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
+import { getSiteName } from "@/lib/settings";
 import { createLinkAction } from "./actions";
 
 export const metadata: Metadata = {
@@ -18,30 +19,33 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
   const params = await searchParams;
   const q = params.q?.trim();
   const csrf = getCsrfToken();
-  const links = await prisma.shortLink.findMany({
-    where: {
-      archivedAt: null,
-      ...(q
-        ? {
-            OR: [
-              { code: { contains: q, mode: "insensitive" } },
-              { title: { contains: q, mode: "insensitive" } },
-              { destinationUrl: { contains: q, mode: "insensitive" } }
-            ]
-          }
-        : {})
-    },
-    orderBy: params.sort === "clicks" ? [{ clickCount: "desc" }] : [{ createdAt: "desc" }],
-    include: { tags: { include: { tag: true } } },
-    take: 100
-  });
+  const [links, siteName] = await Promise.all([
+    prisma.shortLink.findMany({
+      where: {
+        archivedAt: null,
+        ...(q
+          ? {
+              OR: [
+                { code: { contains: q, mode: "insensitive" } },
+                { title: { contains: q, mode: "insensitive" } },
+                { destinationUrl: { contains: q, mode: "insensitive" } }
+              ]
+            }
+          : {})
+      },
+      orderBy: params.sort === "clicks" ? [{ clickCount: "desc" }] : [{ createdAt: "desc" }],
+      include: { tags: { include: { tag: true } } },
+      take: 100
+    }),
+    getSiteName()
+  ]);
 
   return (
     <main className="admin-content">
       <div className="content-header">
         <div>
           <h1>Link management</h1>
-          <p className="muted">Create, search, copy, share, edit, disable, archive, and inspect Surls links.</p>
+          <p className="muted">Create, search, copy, share, edit, disable, archive, and inspect {siteName} links.</p>
         </div>
       </div>
 
@@ -85,7 +89,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
             Internal notes
             <textarea name="notes" />
           </label>
-          <button type="submit">Create Surls link</button>
+          <button type="submit">Create {siteName} link</button>
         </form>
         <TitleAutoFill />
       </section>
@@ -138,7 +142,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
                       </td>
                       <td>{link.clickCount}</td>
                       <td>
-                        <CopyShareButtons url={url} title={link.title} />
+                        <CopyShareButtons url={url} title={link.title} defaultTitle={`${siteName} short link`} />
                       </td>
                     </tr>
                   );

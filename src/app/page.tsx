@@ -1,8 +1,11 @@
 import { BarChart3, LockKeyhole, QrCode, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { PublicHeader } from "./layout";
+import { getSiteName } from "@/lib/settings";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const siteName = await getSiteName();
+
   return (
     <>
       <PublicHeader />
@@ -10,9 +13,9 @@ export default function HomePage() {
         <section className="hero">
           <div className="container hero-grid">
             <div>
-              <h1>Surls</h1>
+              <h1>{siteName}</h1>
               <p>
-                Surls is a personal short URL system for managing private links, redirects, and click statistics.
+                {siteName} is a personal short URL system for managing private links, redirects, and click statistics.
               </p>
               <div className="row-actions">
                 <Link className="button" href="/login">
@@ -23,7 +26,7 @@ export default function HomePage() {
                 </Link>
               </div>
             </div>
-            <div className="hero-panel" aria-label="Surls dashboard preview">
+            <div className="hero-panel" aria-label={`${siteName} dashboard preview`}>
               <div className="hero-panel-header">
                 <strong>Recent links</strong>
                 <span className="badge">Private admin</span>
@@ -51,7 +54,9 @@ export default function HomePage() {
             <div className="metric">
               <ShieldCheck aria-hidden />
               <h2>Safe destinations</h2>
-              <p className="muted">Surls blocks unsafe protocols, localhost, private networks, and internal services by default.</p>
+              <p className="muted">
+                {siteName} blocks unsafe protocols, localhost, private networks, and internal services by default.
+              </p>
             </div>
             <div className="metric">
               <LockKeyhole aria-hidden />

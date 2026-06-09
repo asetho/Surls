@@ -16,7 +16,7 @@ export default async function SettingsPage() {
     <main className="admin-content">
       <div className="content-header">
         <div>
-          <h1>Surls settings</h1>
+          <h1>{settings.siteName} settings</h1>
           <p className="muted">Control privacy, redirect behavior, branding, and UI defaults.</p>
         </div>
       </div>
