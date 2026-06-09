@@ -24,7 +24,7 @@ async function copyToClipboard(value: string) {
   textarea.remove();
 }
 
-export function BookmarkletPopupActions({ url }: { url: string }) {
+export function BookmarkletPopupActions({ detailsHref, url }: { detailsHref: string; url: string }) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -33,16 +33,31 @@ export function BookmarkletPopupActions({ url }: { url: string }) {
     window.setTimeout(() => setCopied(false), 1600);
   }
 
+  function closeAfterOpenDetails() {
+    window.setTimeout(() => window.close(), 150);
+  }
+
   return (
-    <div className="row-actions bookmarklet-popup-actions">
-      <button type="button" onClick={copy}>
-        {copied ? <Check size={16} aria-hidden /> : <Copy size={16} aria-hidden />}
-        {copied ? "Copied" : "Copy short URL"}
-      </button>
-      <button type="button" className="secondary" onClick={() => window.close()}>
-        <X size={16} aria-hidden />
-        Close
-      </button>
-    </div>
+    <>
+      <label className="bookmarklet-short-url-field">
+        <span>Short URL</span>
+        <div className="bookmarklet-copy-field">
+          <input readOnly value={url} onFocus={(event) => event.currentTarget.select()} />
+          <button type="button" className="secondary icon-button" onClick={copy} aria-label="Copy short URL">
+            {copied ? <Check size={16} aria-hidden /> : <Copy size={16} aria-hidden />}
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
+      </label>
+      <div className="row-actions bookmarklet-popup-actions">
+        <button type="button" className="secondary" onClick={() => window.close()}>
+          <X size={16} aria-hidden />
+          Close
+        </button>
+        <a className="button secondary" href={detailsHref} target="_blank" rel="noreferrer" onClick={closeAfterOpenDetails}>
+          Open details
+        </a>
+      </div>
+    </>
   );
 }

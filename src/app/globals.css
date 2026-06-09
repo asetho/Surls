@@ -135,6 +135,20 @@ button.danger:hover {
   background: #a91820;
 }
 
+.button.danger-outline,
+button.danger-outline {
+  background: #fff;
+  border-color: var(--color-red);
+  color: var(--color-red);
+}
+
+.button.danger-outline:hover,
+button.danger-outline:hover {
+  background: color-mix(in srgb, var(--color-red), white 92%);
+  border-color: var(--color-red);
+  color: var(--color-red);
+}
+
 .container {
   margin: 0 auto;
   max-width: 1180px;
@@ -409,6 +423,28 @@ button.danger:hover {
   align-items: center;
   display: inline-flex;
   gap: 0.22rem;
+}
+
+.bookmarklet-short-url-field {
+  gap: 0.35rem;
+}
+
+.bookmarklet-short-url-field > span {
+  font-weight: 700;
+}
+
+.bookmarklet-copy-field {
+  align-items: stretch;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.bookmarklet-copy-field input {
+  min-width: 0;
+}
+
+.bookmarklet-copy-field button {
+  flex: 0 0 auto;
 }
 
 .bookmarklet-popup-actions {
@@ -1023,6 +1059,13 @@ th {
 .icon-button {
   min-height: 2rem;
   padding: 0.38rem 0.5rem;
+}
+
+.link-lifecycle-actions > button,
+.link-lifecycle-actions > form > button {
+  min-height: 2.3rem;
+  min-width: 6.5rem;
+  padding: 0.48rem 0.72rem;
 }
 
 .icon-button.icon-only-action,
@@ -1656,6 +1699,72 @@ th {
   text-transform: uppercase;
 }
 
+.legend-with-help {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.3rem;
+}
+
+.info-tooltip {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--muted);
+  cursor: help;
+  display: inline-flex;
+  justify-content: center;
+  margin: 0;
+  min-height: 1rem;
+  outline: 0;
+  padding: 0;
+  position: relative;
+}
+
+.info-tooltip::after {
+  background: #fff;
+  border: 1px solid #d0d3d6;
+  border-radius: 4px;
+  box-shadow: 0 8px 20px rgb(0 0 0 / 16%);
+  color: #050505;
+  content: attr(data-tooltip);
+  font-size: 0.78rem;
+  font-weight: 650;
+  left: 50%;
+  line-height: 1.35;
+  opacity: 0;
+  padding: 0.55rem 0.65rem;
+  pointer-events: none;
+  position: absolute;
+  text-transform: none;
+  top: calc(100% + 0.45rem);
+  transform: translateX(-50%) translateY(-0.15rem);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+  visibility: hidden;
+  white-space: normal;
+  width: min(18rem, 72vw);
+  z-index: 50;
+}
+
+.info-tooltip:hover,
+.info-tooltip:focus,
+.info-tooltip:focus-visible {
+  color: var(--color-teal);
+}
+
+.info-tooltip:hover::after,
+.info-tooltip:focus::after,
+.info-tooltip:focus-visible::after,
+.info-tooltip[aria-expanded="true"]::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  visibility: visible;
+}
+
+.info-tooltip:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
 .segmented-control {
   align-items: center;
   background: var(--surface-strong);
@@ -1758,6 +1867,23 @@ th {
 
 .modal-header h2 {
   margin: 0;
+}
+
+.delete-modal-panel {
+  max-width: 36rem;
+}
+
+.delete-confirm-target {
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.75rem;
+}
+
+.delete-confirm-target strong {
+  overflow-wrap: anywhere;
 }
 
 .qr-modal-panel {

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Archive, Download, ExternalLink, RotateCcw, Trash2 } from "lucide-react";
+import { Archive, Download, ExternalLink, RotateCcw } from "lucide-react";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { CopyShortUrlButton, ShareButton } from "@/components/CopyShareButtons";
+import { DeleteLinkModal } from "@/components/DeleteLinkModal";
 import { BrowserDeviceCharts, SourcesCharts } from "@/components/DistributionCharts";
 import { EditLinkModal } from "@/components/EditLinkModal";
 import { HistoricalClicksPanel } from "@/components/HistoricalClicksPanel";
@@ -23,7 +24,7 @@ import {
 import { shortUrl } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
-import { archiveLinkAction, deleteLinkAction, restoreLinkAction } from "../actions";
+import { archiveLinkAction, restoreLinkAction } from "../actions";
 
 export const metadata: Metadata = {
   title: "Link Stats"
@@ -296,7 +297,7 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
             This link is archived, hidden from active lists, and no longer redirects. Restore it to make it active again,
             or permanently delete it and its click history.
           </p>
-          <div className="row-actions">
+          <div className="row-actions link-lifecycle-actions">
             <form action={restoreLinkAction}>
               <input type="hidden" name="csrf" value={csrf} />
               <input type="hidden" name="id" value={link.id} />
@@ -306,25 +307,7 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
               </ConfirmButton>
             </form>
             {canDeleteLinks ? (
-              <form className="row-actions" action={deleteLinkAction}>
-                <input type="hidden" name="csrf" value={csrf} />
-                <input type="hidden" name="id" value={link.id} />
-                <input
-                  className="inline-confirm-input"
-                  name="confirmCode"
-                  placeholder={`Type ${link.code}`}
-                  aria-label={`Type ${link.code} to delete permanently`}
-                  required
-                />
-                <ConfirmButton
-                  className="danger icon-button"
-                  type="submit"
-                  message={`Permanently delete /${link.code} and its click history?`}
-                >
-                  <Trash2 size={16} aria-hidden />
-                  Delete
-                </ConfirmButton>
-              </form>
+              <DeleteLinkModal csrf={csrf} id={link.id} code={link.code} shortUrl={url} returnTo="/admin/links?view=archived" />
             ) : (
               <span className="muted small">Permanent delete is admin-only.</span>
             )}
@@ -334,14 +317,19 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
         <section className="surface surface-panel">
           <h2>Archive/Delete</h2>
           <p className="muted">Archived links stop redirecting and are hidden from normal dashboard lists.</p>
-          <form action={archiveLinkAction}>
-            <input type="hidden" name="csrf" value={csrf} />
-            <input type="hidden" name="id" value={link.id} />
-            <ConfirmButton className="danger" type="submit" message={`Archive this ${siteName} link?`}>
-              <Archive size={16} aria-hidden />
-              Archive
-            </ConfirmButton>
-          </form>
+          <div className="row-actions link-lifecycle-actions">
+            <form action={archiveLinkAction}>
+              <input type="hidden" name="csrf" value={csrf} />
+              <input type="hidden" name="id" value={link.id} />
+              <ConfirmButton className="danger" type="submit" message={`Archive this ${siteName} link?`}>
+                <Archive size={16} aria-hidden />
+                Archive
+              </ConfirmButton>
+            </form>
+            {canDeleteLinks ? (
+              <DeleteLinkModal csrf={csrf} id={link.id} code={link.code} shortUrl={url} returnTo="/admin/links" />
+            ) : null}
+          </div>
         </section>
       )}
     </main>

@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { auditLog } from "@/lib/audit";
 import { isAdminUser, requireAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
-import { archiveShortLink, deleteArchivedShortLink, restoreShortLink } from "@/lib/link-lifecycle";
+import { archiveShortLink, deleteShortLink, restoreShortLink } from "@/lib/link-lifecycle";
 import { createShortLink } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
 import { parseSafeHttpUrl } from "@/lib/url-safety";
@@ -26,6 +26,11 @@ function tagList(value: FormDataEntryValue | null) {
     .split(",")
     .map((tag) => tag.trim())
     .filter(Boolean);
+}
+
+function safeInternalPath(value: FormDataEntryValue | string | null, fallback: string) {
+  const path = String(value ?? "");
+  return path.startsWith("/") && !path.startsWith("//") ? path : fallback;
 }
 
 export async function createLinkAction(formData: FormData) {
@@ -134,7 +139,8 @@ export async function deleteLinkAction(formData: FormData) {
   if (!admin) redirect("/login");
   if (!isAdminUser(admin)) throw new Error("Only admins can permanently delete links.");
   const id = String(formData.get("id") ?? "");
-  const link = await deleteArchivedShortLink(id, formData.get("confirmCode"));
+  const returnTo = safeInternalPath(formData.get("returnTo"), "/admin/links");
+  const link = await deleteShortLink(id, formData.get("confirmCode"));
   await auditLog({
     userId: admin.id,
     action: AuditAction.SHORT_LINK_DELETED,
@@ -144,5 +150,6 @@ export async function deleteLinkAction(formData: FormData) {
   });
   revalidatePath("/admin");
   revalidatePath("/admin/links");
-  redirect("/admin/links?view=archived");
+  revalidatePath(`/admin/links/${id}`);
+  redirect(returnTo);
 }

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ExternalLink, RotateCcw, Trash2 } from "lucide-react";
+import { ExternalLink, RotateCcw } from "lucide-react";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { CopyShortUrlButton, ShareButton } from "@/components/CopyShareButtons";
+import { DeleteLinkModal } from "@/components/DeleteLinkModal";
 import { EditLinkModal } from "@/components/EditLinkModal";
 import { QrCodeModal } from "@/components/QrCodeModal";
 import { isAdminUser, requireAdmin } from "@/lib/auth";
@@ -22,7 +23,7 @@ import {
 import { shortUrl } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
 import { getSiteName } from "@/lib/settings";
-import { deleteLinkAction, restoreLinkAction } from "./actions";
+import { restoreLinkAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "Links"
@@ -264,25 +265,13 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
                               </ConfirmButton>
                             </form>
                             {canDeleteLinks ? (
-                              <form className="row-actions" action={deleteLinkAction}>
-                                <input type="hidden" name="csrf" value={csrf} />
-                                <input type="hidden" name="id" value={link.id} />
-                                <input
-                                  className="inline-confirm-input"
-                                  name="confirmCode"
-                                  placeholder={link.code}
-                                  aria-label={`Type ${link.code} to delete permanently`}
-                                  required
-                                />
-                                <ConfirmButton
-                                  className="danger icon-button"
-                                  type="submit"
-                                  message={`Permanently delete /${link.code} and its click history?`}
-                                >
-                                  <Trash2 size={16} aria-hidden />
-                                  Delete
-                                </ConfirmButton>
-                              </form>
+                              <DeleteLinkModal
+                                csrf={csrf}
+                                id={link.id}
+                                code={link.code}
+                                shortUrl={url}
+                                returnTo={listHref({})}
+                              />
                             ) : null}
                           </div>
                         ) : (

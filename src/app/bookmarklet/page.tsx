@@ -19,6 +19,7 @@ export const metadata: Metadata = {
 };
 
 type SearchParams = Promise<{
+  createError?: string;
   created?: string;
   email?: string;
   error?: string;
@@ -109,10 +110,7 @@ export default async function BookmarkletPage({ searchParams }: { searchParams: 
                 <p className="muted small">/{createdLink.code}</p>
               </div>
             </div>
-            <label>
-              Short URL
-              <input readOnly value={createdUrl} />
-            </label>
+            <BookmarkletPopupActions detailsHref={`/admin/links/${createdLink.id}`} url={createdUrl} />
             <dl className="bookmarklet-summary">
               <div>
                 <dt>Destination</dt>
@@ -127,10 +125,6 @@ export default async function BookmarkletPage({ searchParams }: { searchParams: 
                 <dd>{createdLink.title || "Untitled"}</dd>
               </div>
             </dl>
-            <BookmarkletPopupActions url={createdUrl} />
-            <Link className="button secondary" href={`/admin/links/${createdLink.id}`} target="_blank">
-              Open details
-            </Link>
           </div>
         ) : (
           <form className="surface bookmarklet-card form-stack" action={createBookmarkletLinkAction} data-title-autofill="true">
@@ -141,6 +135,7 @@ export default async function BookmarkletPage({ searchParams }: { searchParams: 
                 <p className="muted small">Signed in as {user.name || user.email}</p>
               </div>
             </div>
+            {params.createError ? <div className="alert">{params.createError}</div> : null}
             <input type="hidden" name="csrf" value={csrf} />
             <input type="hidden" name="returnTo" value={nextPath} />
             <label>
@@ -170,8 +165,8 @@ export default async function BookmarkletPage({ searchParams }: { searchParams: 
             </div>
             <div className="row-actions bookmarklet-popup-actions">
               <button type="submit">Create short URL</button>
-              <Link className="button secondary" href="/admin/links" target="_blank">
-                Open admin
+              <Link className="button secondary" href="/admin" target="_blank">
+                Open dashboard
               </Link>
             </div>
           </form>

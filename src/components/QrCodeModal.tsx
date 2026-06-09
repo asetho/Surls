@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, Download, ExternalLink, QrCode, X } from "lucide-react";
+import { Copy, Download, ExternalLink, Info, QrCode, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import {
   QR_ERROR_CORRECTION_LEVELS,
@@ -17,6 +17,9 @@ const formatLabels: Record<QrFormat, string> = {
   svg: "SVG image",
   eps: "EPS image"
 };
+
+const qrErrorCorrectionHelp =
+  "QR error correction keeps a code scannable if part of it is damaged or covered. L is smallest, M is balanced, Q and H add more recovery but make the QR denser.";
 
 function formatUrl(baseUrl: string, path: string) {
   return `${baseUrl.replace(/\/$/, "")}${path}`;
@@ -39,6 +42,7 @@ export function QrCodeModal({
   const [size, setSize] = useState<QrSize>(300);
   const [level, setLevel] = useState<QrErrorCorrectionLevel>("M");
   const [copied, setCopied] = useState<QrFormat | null>(null);
+  const [isErrorHelpOpen, setIsErrorHelpOpen] = useState(false);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -66,6 +70,7 @@ export function QrCodeModal({
       }
     }
     setIsOpen(false);
+    setIsErrorHelpOpen(false);
   }
 
   function directUrl(format: QrFormat) {
@@ -117,7 +122,25 @@ export function QrCodeModal({
 
             <div className="qr-controls">
               <fieldset className="segmented-field">
-                <legend>Error correction</legend>
+                <legend>
+                  <span className="legend-with-help">
+                    Error correction
+                    <button
+                      type="button"
+                      className="info-tooltip"
+                      aria-label={qrErrorCorrectionHelp}
+                      aria-expanded={isErrorHelpOpen}
+                      data-tooltip={qrErrorCorrectionHelp}
+                      onBlur={() => setIsErrorHelpOpen(false)}
+                      onClick={() => setIsErrorHelpOpen(true)}
+                      onFocus={() => setIsErrorHelpOpen(true)}
+                      onMouseEnter={() => setIsErrorHelpOpen(true)}
+                      onMouseLeave={() => setIsErrorHelpOpen(false)}
+                    >
+                      <Info size={13} aria-hidden />
+                    </button>
+                  </span>
+                </legend>
                 <div className="segmented-control">
                   {QR_ERROR_CORRECTION_LEVELS.map((option) => (
                     <button
