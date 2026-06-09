@@ -31,7 +31,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
     <div className="admin-shell">
       <aside className="admin-sidebar">
         <Link className="brand" href="/admin" style={{ color: "#fff", marginBottom: "1rem" }}>
-          <span className="brand-mark" style={{ background: "#087e8b" }}>S</span>
+          <span className="brand-mark" style={{ background: "var(--teal)" }}>S</span>
           <span>Surls</span>
         </Link>
         <nav aria-label="Admin">
