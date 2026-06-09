@@ -302,6 +302,15 @@ button.danger:hover {
   padding: 0.8rem;
 }
 
+.surface-panel > h2:first-child {
+  line-height: 1.15;
+  margin: 0.12rem 0 0.65rem;
+}
+
+.surface-panel > .content-header:first-child {
+  padding-top: 0.12rem;
+}
+
 .bookmarklet-control {
   align-items: center;
   display: flex;
@@ -324,6 +333,86 @@ button.danger:hover {
   overflow: auto;
   overflow-wrap: anywhere;
   padding: 0.6rem;
+}
+
+.bookmarklet-shell {
+  align-items: center;
+  display: grid;
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+.bookmarklet-mini {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0 auto;
+  max-width: 620px;
+  width: 100%;
+}
+
+.bookmarklet-mini-brand {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.6rem;
+}
+
+.bookmarklet-mini-brand > div {
+  display: grid;
+  line-height: 1.2;
+}
+
+.bookmarklet-card {
+  padding: 1rem;
+}
+
+.bookmarklet-card-header {
+  align-items: center;
+  display: flex;
+  gap: 0.65rem;
+}
+
+.bookmarklet-card-header h1 {
+  font-size: 1.45rem;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.bookmarklet-card-header p {
+  margin: 0.18rem 0 0;
+}
+
+.bookmarklet-summary {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+}
+
+.bookmarklet-summary div {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.bookmarklet-summary dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bookmarklet-summary dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.bookmarklet-summary a {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.22rem;
+}
+
+.bookmarklet-popup-actions {
+  justify-content: flex-start;
 }
 
 .section {
@@ -803,7 +892,7 @@ th {
   align-items: center;
   display: flex;
   gap: 0.35rem;
-  margin: 0 0 0.65rem;
+  margin: 0.12rem 0 0.65rem;
 }
 
 .dashboard-panel > p {

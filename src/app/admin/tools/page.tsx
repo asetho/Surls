@@ -31,7 +31,7 @@ export default async function ToolsPage() {
       take: 10
     })
   ]);
-  const bookmarklet = `javascript:(()=>{const u=encodeURIComponent(location.href);const t=encodeURIComponent(document.title);location.href='${appBaseUrl()}/admin/links?url='+u+'&title='+t})()`;
+  const bookmarklet = `javascript:(()=>{const u=encodeURIComponent(location.href);const t=encodeURIComponent(document.title);const target='${appBaseUrl()}/bookmarklet?url='+u+'&title='+t;const w=window.open(target,'surls_create','popup=yes,width=620,height=720,resizable=yes,scrollbars=yes');if(w){try{w.opener=null}catch{}w.focus()}else{location.href=target}})()`;
 
   return (
     <main className="admin-content">

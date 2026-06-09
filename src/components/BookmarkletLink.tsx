@@ -3,9 +3,14 @@
 import { Bookmark, Check, Copy } from "lucide-react";
 import { type DragEvent, type MouseEvent, useEffect, useRef, useState } from "react";
 
-function copyToClipboard(value: string) {
+async function copyToClipboard(value: string) {
   if (navigator.clipboard?.writeText) {
-    return navigator.clipboard.writeText(value);
+    try {
+      await navigator.clipboard.writeText(value);
+      return;
+    } catch {
+      // Fall through to the textarea copy path when the browser denies clipboard writes.
+    }
   }
 
   const textarea = document.createElement("textarea");
@@ -17,7 +22,6 @@ function copyToClipboard(value: string) {
   textarea.select();
   document.execCommand("copy");
   textarea.remove();
-  return Promise.resolve();
 }
 
 export function BookmarkletLink({ bookmarklet, label }: { bookmarklet: string; label: string }) {

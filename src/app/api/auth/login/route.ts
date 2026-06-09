@@ -11,8 +11,12 @@ import { auditLog } from "@/lib/audit";
 import { validateCsrf } from "@/lib/csrf";
 import { appBaseUrl } from "@/lib/env";
 
-function loginRedirect(error: string, extras?: Record<string, string>) {
-  const url = new URL("/login", appBaseUrl());
+function safeInternalPath(value: string, fallback: string) {
+  return value.startsWith("/") && !value.startsWith("//") ? value : fallback;
+}
+
+function loginRedirect(error: string, extras?: Record<string, string>, returnPath = "/login") {
+  const url = new URL(safeInternalPath(returnPath, "/login"), appBaseUrl());
   url.searchParams.set("error", error);
   for (const [key, value] of Object.entries(extras ?? {})) {
     url.searchParams.set(key, value);
@@ -22,20 +26,25 @@ function loginRedirect(error: string, extras?: Record<string, string>) {
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
+  const nextPath = String(formData.get("next") ?? "/admin");
+  const loginContext = String(formData.get("loginContext") ?? "");
+  const failurePath = loginContext === "bookmarklet" ? safeInternalPath(nextPath, "/bookmarklet") : "/login";
+  const failureExtras: Record<string, string> =
+    loginContext === "bookmarklet" ? {} : { next: safeInternalPath(nextPath, "/admin") };
+
   try {
     validateCsrf(formData);
   } catch {
-    return loginRedirect("The login form expired. Please try again.");
+    return loginRedirect("The login form expired. Please try again.", failureExtras, failurePath);
   }
 
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
   const secondFactor = String(formData.get("secondFactor") ?? "").trim();
-  const nextPath = String(formData.get("next") ?? "/admin");
 
   const rate = checkRateLimit(`login:${requestIp(request)}:${email}`, 8, 15 * 60 * 1000);
   if (!rate.allowed) {
-    return loginRedirect("Too many login attempts. Please wait and try again.");
+    return loginRedirect("Too many login attempts. Please wait and try again.", failureExtras, failurePath);
   }
 
   const user = await prisma.user.findUnique({
@@ -51,12 +60,12 @@ export async function POST(request: NextRequest) {
       userAgent: request.headers.get("user-agent"),
       details: { email }
     });
-    return loginRedirect("Invalid email or password.");
+    return loginRedirect("Invalid email or password.", failureExtras, failurePath);
   }
 
   if (user.totpCredential?.enabled) {
     if (!secondFactor) {
-      return loginRedirect("Enter your 2FA code to continue.", { twoFactor: "1", email });
+      return loginRedirect("Enter your 2FA code to continue.", { ...failureExtras, twoFactor: "1", email }, failurePath);
     }
 
     let secondFactorOk = await verifyTotpCode(user.totpCredential.secretEncrypted, secondFactor);
@@ -78,7 +87,7 @@ export async function POST(request: NextRequest) {
         userAgent: request.headers.get("user-agent"),
         details: { email, secondFactor: true }
       });
-      return loginRedirect("Invalid 2FA or backup code.", { twoFactor: "1", email });
+      return loginRedirect("Invalid 2FA or backup code.", { ...failureExtras, twoFactor: "1", email }, failurePath);
     }
     if (usedBackupCodeId) {
       await prisma.backupCode.update({ where: { id: usedBackupCodeId }, data: { usedAt: new Date() } });
@@ -94,7 +103,7 @@ export async function POST(request: NextRequest) {
     userAgent: request.headers.get("user-agent")
   });
 
-  const destination = nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/admin";
+  const destination = safeInternalPath(nextPath, "/admin");
   const response = NextResponse.redirect(new URL(destination, appBaseUrl()), 303);
   setSessionCookie(response, token, expiresAt);
   return response;
