@@ -10,7 +10,7 @@ describe("display timezone helpers", () => {
 
   it("formats admin timestamps in the configured timezone", () => {
     expect(formatDateTime(new Date("2026-06-10T00:42:00.000Z"), "America/New_York")).toBe(
-      "Jun 9, 2026 8:42 PM"
+      "06/09/26 8:42:00 PM"
     );
   });
 

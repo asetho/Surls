@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { hash } from "argon2";
 
@@ -13,7 +13,9 @@ const DEFAULT_SETTINGS = {
   preserveRedirectQuery: false,
   enablePasswordProtectedLinks: true,
   enableQrCodes: true,
-  themeDefault: "auto"
+  themeDefault: "auto",
+  customIndexPage: null,
+  customNotFoundPage: null
 };
 
 function getInitialAdminCredentials() {
@@ -44,7 +46,7 @@ async function seedMissingSettings() {
   const existingKeys = new Set(existingRows.map((row) => row.key));
   const missingSettings = Object.entries(DEFAULT_SETTINGS)
     .filter(([key]) => !existingKeys.has(key))
-    .map(([key, value]) => ({ key, value }));
+    .map(([key, value]) => ({ key, value: value === null ? Prisma.JsonNull : value }));
 
   if (missingSettings.length === 0) {
     console.log("Bootstrap: settings already exist.");

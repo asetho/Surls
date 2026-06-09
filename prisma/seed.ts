@@ -1,6 +1,6 @@
 import { hashPassword } from "../src/lib/password";
 import { prisma } from "../src/lib/prisma";
-import { DEFAULT_SETTINGS } from "../src/lib/settings";
+import { DEFAULT_SETTINGS, settingJsonValue } from "../src/lib/settings";
 
 async function main() {
   const email = process.env.ADMIN_EMAIL;
@@ -9,7 +9,7 @@ async function main() {
   const existingSettingKeys = new Set(existingSettings.map((setting) => setting.key));
   const missingSettings = Object.entries(DEFAULT_SETTINGS)
     .filter(([key]) => !existingSettingKeys.has(key))
-    .map(([key, value]) => ({ key, value }));
+    .map(([key, value]) => ({ key, value: settingJsonValue(value) }));
 
   if (missingSettings.length > 0) {
     await prisma.appSetting.createMany({

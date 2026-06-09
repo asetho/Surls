@@ -1,18 +1,39 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { env } from "./env";
 import { DEFAULT_DISPLAY_TIME_ZONE, normalizeDisplayTimeZone } from "./dates";
+import { normalizeCustomHtmlPage } from "./custom-pages";
 
-export const DEFAULT_SETTINGS = {
+export type CustomHtmlPage = {
+  fileName: string;
+  html: string;
+  size: number;
+  updatedAt: string;
+};
+
+export type AppSettings = {
+  siteName: string;
+  displayTimeZone: string;
+  trackAdminClicks: boolean;
+  preserveRedirectQuery: boolean;
+  enablePasswordProtectedLinks: boolean;
+  enableQrCodes: boolean;
+  themeDefault: "auto" | "light" | "dark";
+  customIndexPage: CustomHtmlPage | null;
+  customNotFoundPage: CustomHtmlPage | null;
+};
+
+export const DEFAULT_SETTINGS: AppSettings = {
   siteName: env.APP_NAME,
   displayTimeZone: DEFAULT_DISPLAY_TIME_ZONE,
   trackAdminClicks: false,
   preserveRedirectQuery: false,
   enablePasswordProtectedLinks: true,
   enableQrCodes: true,
-  themeDefault: "auto"
-} satisfies Record<string, unknown>;
-
-export type AppSettings = typeof DEFAULT_SETTINGS;
+  themeDefault: "auto",
+  customIndexPage: null,
+  customNotFoundPage: null
+};
 
 export function normalizeSiteName(value: unknown) {
   const name = typeof value === "string" ? value.trim() : "";
@@ -49,14 +70,21 @@ export async function getSettings(): Promise<AppSettings> {
   return {
     ...settings,
     siteName: normalizeSiteName(settings.siteName),
-    displayTimeZone: normalizeDisplayTimeZone(settings.displayTimeZone)
+    displayTimeZone: normalizeDisplayTimeZone(settings.displayTimeZone),
+    customIndexPage: normalizeCustomHtmlPage(settings.customIndexPage),
+    customNotFoundPage: normalizeCustomHtmlPage(settings.customNotFoundPage)
   };
 }
 
+export function settingJsonValue(value: AppSettings[keyof AppSettings]) {
+  return value === null ? Prisma.JsonNull : (value as Prisma.InputJsonValue);
+}
+
 export async function setSetting<K extends keyof AppSettings>(key: K, value: AppSettings[K]) {
+  const jsonValue = settingJsonValue(value);
   return prisma.appSetting.upsert({
     where: { key },
-    update: { value },
-    create: { key, value }
+    update: { value: jsonValue },
+    create: { key, value: jsonValue }
   });
 }

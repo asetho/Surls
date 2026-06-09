@@ -10,11 +10,27 @@ export function NewShortUrlModal({ csrf, siteName }: { csrf: string; siteName: s
   const titleId = useId();
 
   function openDialog() {
-    dialogRef.current?.showModal();
+    const dialog = dialogRef.current;
+    if (!dialog || dialog.open) {
+      return;
+    }
+    if (typeof dialog.showModal === "function") {
+      dialog.showModal();
+    } else {
+      dialog.setAttribute("open", "");
+    }
   }
 
   function closeDialog() {
-    dialogRef.current?.close();
+    const dialog = dialogRef.current;
+    if (!dialog) {
+      return;
+    }
+    if (typeof dialog.close === "function") {
+      dialog.close();
+    } else {
+      dialog.removeAttribute("open");
+    }
   }
 
   return (

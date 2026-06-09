@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { generateQrEps, normalizeQrErrorCorrectionLevel, normalizeQrFormat, normalizeQrSize, qrAssetPath } from "@/lib/qr";
+import {
+  apiQrAssetPath,
+  generateQrEps,
+  normalizeQrErrorCorrectionLevel,
+  normalizeQrFormat,
+  normalizeQrSize,
+  qrAssetPath
+} from "@/lib/qr";
 
 describe("QR helpers", () => {
   it("normalizes size, format, and error correction values", () => {
@@ -11,11 +18,23 @@ describe("QR helpers", () => {
     expect(normalizeQrFormat("pdf")).toBeNull();
   });
 
-  it("builds direct and download QR asset paths", () => {
-    expect(qrAssetPath({ linkId: "link_1", format: "png", size: 150, level: "Q" })).toBe(
+  it("builds direct and download vanity QR asset paths", () => {
+    expect(qrAssetPath({ code: "surls", format: "png", size: 150, level: "Q" })).toBe(
+      "/surls/qr/png?size=150&level=Q"
+    );
+    expect(qrAssetPath({ code: "team-tags", format: "eps", size: 500, level: "H", download: true })).toBe(
+      "/team-tags/qr/eps?size=500&level=H&download=1"
+    );
+    expect(qrAssetPath({ code: "team tags", format: "svg", size: 300, level: "M" })).toBe(
+      "/team%20tags/qr/svg?size=300&level=M"
+    );
+  });
+
+  it("keeps legacy API QR asset paths available", () => {
+    expect(apiQrAssetPath({ linkId: "link_1", format: "png", size: 150, level: "Q" })).toBe(
       "/api/links/link_1/qr/png?size=150&level=Q"
     );
-    expect(qrAssetPath({ linkId: "link_1", format: "eps", size: 500, level: "H", download: true })).toBe(
+    expect(apiQrAssetPath({ linkId: "link_1", format: "eps", size: 500, level: "H", download: true })).toBe(
       "/api/links/link_1/qr/eps?size=500&level=H&download=1"
     );
   });

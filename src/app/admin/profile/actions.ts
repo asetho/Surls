@@ -48,6 +48,24 @@ export async function disableTotpAction(formData: FormData) {
   revalidatePath("/admin/profile");
 }
 
+export async function removePasskeyAction(formData: FormData) {
+  validateCsrf(formData);
+  const admin = await requireAdmin();
+  if (!admin) throw new Error("Unauthorized");
+  const id = String(formData.get("id") ?? "");
+  const passkey = await prisma.passkey.findFirst({ where: { id, userId: admin.id } });
+  if (!passkey) throw new Error("Passkey not found.");
+  await prisma.passkey.delete({ where: { id } });
+  await auditLog({
+    userId: admin.id,
+    action: AuditAction.PASSKEY_REMOVED,
+    entityType: "Passkey",
+    entityId: id,
+    details: { name: passkey.name }
+  });
+  revalidatePath("/admin/profile");
+}
+
 export async function regenerateBackupCodesAction(_state: { codes: string[] } | null, formData: FormData) {
   validateCsrf(formData);
   const admin = await requireAdmin();

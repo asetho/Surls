@@ -41,13 +41,13 @@ export default async function ToolsPage() {
       </div>
 
       <section className="grid-3">
-        <div className="surface" style={{ padding: "1rem" }}>
+        <div className="surface surface-panel">
           <h2>Bookmarklet</h2>
           <p className="muted small">Create a short URL from the current page when you are logged in.</p>
           <a className="button" href={bookmarklet}>Shorten with {settings.siteName}</a>
           <code style={{ display: "block", overflowWrap: "anywhere", marginTop: "0.75rem" }}>{bookmarklet}</code>
         </div>
-        <div className="surface" style={{ padding: "1rem" }}>
+        <div className="surface surface-panel">
           <h2>Exports</h2>
           <div className="row-actions">
             <Link className="button secondary" href="/api/links/export?format=csv">Links CSV</Link>
@@ -55,7 +55,7 @@ export default async function ToolsPage() {
           </div>
           <p className="muted small">Stats CSV is available from each link details page.</p>
         </div>
-        <div className="surface" style={{ padding: "1rem" }}>
+        <div className="surface surface-panel">
           <h2>Cleanup</h2>
           <p>Disabled links: {disabled}</p>
           <p>Expired links: {expired}</p>
@@ -65,7 +65,7 @@ export default async function ToolsPage() {
       </section>
 
       <section className="grid-3">
-        <div className="surface" style={{ padding: "1rem" }}>
+        <div className="surface surface-panel">
           <h2>API token</h2>
           <ApiTokenForm csrf={csrf} siteName={settings.siteName} />
           <div className="table-wrap">
@@ -101,22 +101,22 @@ export default async function ToolsPage() {
             </table>
           </div>
         </div>
-        <div className="surface" style={{ padding: "1rem" }}>
+        <div className="surface surface-panel">
           <h2>Bulk import</h2>
           <ImportCsvForm csrf={csrf} />
         </div>
-        <div className="surface" style={{ padding: "1rem" }}>
+        <div className="surface surface-panel">
           <h2>Link checker</h2>
           <LinkCheckerForm csrf={csrf} />
         </div>
       </section>
 
       <section className="grid-3">
-        <div className="surface" style={{ padding: "1rem" }}>
+        <div className="surface surface-panel">
           <h2>UTM builder</h2>
           <UtmBuilder />
         </div>
-        <div className="surface" style={{ padding: "1rem" }}>
+        <div className="surface surface-panel">
           <h2>API docs</h2>
           <p className="muted small">Create a short URL with a bearer token:</p>
           <pre style={{ overflowX: "auto" }}>{`curl -X POST ${appBaseUrl()}/api/links \\
@@ -124,7 +124,7 @@ export default async function ToolsPage() {
   -H "Content-Type: application/json" \\
   -d '{"destinationUrl":"https://example.com","code":"example"}'`}</pre>
         </div>
-        <div className="surface" style={{ padding: "1rem" }}>
+        <div className="surface surface-panel">
           <h2>System info</h2>
           <dl>
             <dt>App version</dt>

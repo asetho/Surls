@@ -70,28 +70,33 @@ export default async function AdminDashboard() {
 
       <section className="grid-3" aria-label="Dashboard metrics">
         <div className="metric">
-          <Link2 aria-hidden />
-          <span className="muted">Total short URLs</span>
+          <span className="metric-label">
+            <Link2 size={18} aria-hidden />
+            <span className="muted">Total short URLs</span>
+          </span>
           <strong>{totalLinks}</strong>
         </div>
         <div className="metric">
-          <MousePointerClick aria-hidden />
-          <span className="muted">Total clicks</span>
+          <span className="metric-label">
+            <MousePointerClick size={18} aria-hidden />
+            <span className="muted">Total clicks</span>
+          </span>
           <strong>{totalClicks}</strong>
         </div>
         <div className="metric">
-          <CalendarClock aria-hidden />
-          <span className="muted">Today / week / month</span>
+          <span className="metric-label">
+            <CalendarClock size={18} aria-hidden />
+            <span className="muted">Today / week / month</span>
+          </span>
           <strong>
             {clicksToday} / {clicksWeek} / {clicksMonth}
           </strong>
         </div>
       </section>
 
-      <section className="surface" style={{ padding: "1rem" }}>
+      <section className="surface surface-panel">
         <div className="content-header">
           <h2>Top links</h2>
-          <span className="muted small">Admin clicks excluded unless enabled in settings.</span>
         </div>
         <div className="table-wrap">
           <table>
@@ -132,21 +137,21 @@ export default async function AdminDashboard() {
       </section>
 
       <section className="grid-3">
-        <div className="surface" style={{ padding: "1rem" }}>
+        <div className="surface surface-panel">
           <h2>Recently created</h2>
           {recentLinks.length ? (
             recentLinks.map((link) => (
               <p key={link.id}>
                 <a href={`/admin/links/${link.id}`}>/{link.code}</a>
                 <br />
-                <span className="muted small">{formatDateTime(link.createdAt, displayTimeZone)}</span>
+                <span className="muted small timestamp">{formatDateTime(link.createdAt, displayTimeZone)}</span>
               </p>
             ))
           ) : (
             <p className="muted">No links have been created yet.</p>
           )}
         </div>
-        <div className="surface" style={{ padding: "1rem" }}>
+        <div className="surface surface-panel">
           <h2>Recent clicks</h2>
           {recentClicks.length ? (
             recentClicks.map((click) => (
@@ -155,7 +160,7 @@ export default async function AdminDashboard() {
                 <br />
                 <span className="muted small">
                   {click.browser || "Unknown"} on {click.device || "Unknown"} ·{" "}
-                  {formatDateTime(click.occurredAt, displayTimeZone)}
+                  <span className="timestamp">{formatDateTime(click.occurredAt, displayTimeZone)}</span>
                 </span>
               </p>
             ))
@@ -163,16 +168,15 @@ export default async function AdminDashboard() {
             <p className="muted">No click activity yet.</p>
           )}
         </div>
-        <div className="surface" style={{ padding: "1rem" }}>
+        <div className="surface surface-panel">
           <h2>
             <AlertTriangle size={18} aria-hidden /> Needs attention
           </h2>
           {attentionLinks.length ? (
             attentionLinks.map((link) => (
-              <p key={link.id}>
-                <a href={`/admin/links/${link.id}`}>/{link.code}</a>
-                <br />
+              <p className="attention-row" key={link.id}>
                 <span className="badge warning">{link.enabled ? "Expired" : "Disabled"}</span>
+                <a href={`/admin/links/${link.id}`}>/{link.code}</a>
               </p>
             ))
           ) : (

@@ -1,14 +1,23 @@
 import { BackButton } from "@/components/BackButton";
+import { CustomHtmlPage } from "@/components/CustomHtmlPage";
 import { PublicHeader } from "./layout";
 import Link from "next/link";
+import { getSetting } from "@/lib/settings";
 
-export default function NotFound() {
+export const dynamic = "force-dynamic";
+
+export default async function NotFound() {
+  const customPage = await getSetting("customNotFoundPage");
+  if (customPage) {
+    return <CustomHtmlPage html={customPage.html} />;
+  }
+
   return (
     <>
       <PublicHeader />
       <main className="section">
         <div className="container">
-          <div className="surface" style={{ padding: "1.25rem", maxWidth: "680px" }}>
+          <div className="surface surface-panel" style={{ maxWidth: "680px" }}>
             <h1>That short URL was not found.</h1>
             <p className="muted">The link may have been removed, mistyped, disabled, or never created.</p>
             <div className="row-actions">

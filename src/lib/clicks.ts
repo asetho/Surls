@@ -5,6 +5,22 @@ import { prisma } from "./prisma";
 import { requestCountry, requestIp, requestIpHash, requestRegion, userAgentSummary } from "./request";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+export const DEFAULT_RECENT_CLICK_PAGE_SIZE = 20;
+export const MAX_RECENT_CLICK_PAGE_SIZE = 500;
+
+function normalizePositiveInteger(value: unknown, fallback: number, max: number) {
+  const parsed = typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  return Math.min(max, Math.floor(parsed));
+}
+
+export function normalizeRecentClickPage(value: unknown) {
+  return normalizePositiveInteger(value, 1, Number.MAX_SAFE_INTEGER);
+}
+
+export function normalizeRecentClickPageSize(value: unknown) {
+  return normalizePositiveInteger(value, DEFAULT_RECENT_CLICK_PAGE_SIZE, MAX_RECENT_CLICK_PAGE_SIZE);
+}
 
 function displayReferrer(referrer: string | null) {
   if (!referrer) return "Direct";
@@ -84,22 +100,28 @@ export async function recordClick(input: {
 export async function clickStats(
   shortLinkId: string,
   createdAt: Date | null = null,
-  timeZone = DEFAULT_DISPLAY_TIME_ZONE
+  timeZone = DEFAULT_DISPLAY_TIME_ZONE,
+  recentOptions: { page?: number; pageSize?: number } = {}
 ) {
-  const [total, unique, recent, allClicks] = await Promise.all([
+  const recentPageSize = normalizeRecentClickPageSize(recentOptions.pageSize);
+  const requestedRecentPage = normalizeRecentClickPage(recentOptions.page);
+  const [total, unique, allClicks] = await Promise.all([
     prisma.clickEvent.count({ where: { shortLinkId } }),
     prisma.clickEvent.groupBy({ by: ["visitorHash"], where: { shortLinkId } }),
-    prisma.clickEvent.findMany({
-      where: { shortLinkId },
-      orderBy: { occurredAt: "desc" },
-      take: 100
-    }),
     prisma.clickEvent.findMany({
       where: { shortLinkId },
       orderBy: { occurredAt: "asc" },
       select: { occurredAt: true, country: true, referrer: true, browser: true, device: true }
     })
   ]);
+  const recentPageCount = Math.max(1, Math.ceil(total / recentPageSize));
+  const recentPage = Math.min(requestedRecentPage, recentPageCount);
+  const recent = await prisma.clickEvent.findMany({
+    where: { shortLinkId },
+    orderBy: { occurredAt: "desc" },
+    skip: (recentPage - 1) * recentPageSize,
+    take: recentPageSize
+  });
 
   const now = new Date();
   const dailyHistory = buildDailyHistory(createdAt, allClicks, timeZone, now);
@@ -118,6 +140,12 @@ export async function clickStats(
     total,
     unique: unique.length,
     recent,
+    recentPagination: {
+      page: recentPage,
+      pageCount: recentPageCount,
+      pageSize: recentPageSize,
+      total
+    },
     byBrowser: browserCounts,
     byDevice: deviceCounts,
     dailyHistory,

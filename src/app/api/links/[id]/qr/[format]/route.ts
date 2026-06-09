@@ -1,33 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { requireAdmin } from "@/lib/auth";
 import { appBaseUrl } from "@/lib/env";
 import { shortUrl } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
 import {
-  generateQrEps,
-  generateQrPng,
-  generateQrSvg,
+  generateQrAssetBody,
   normalizeQrErrorCorrectionLevel,
   normalizeQrFormat,
-  normalizeQrSize
+  normalizeQrSize,
+  QR_CONTENT_TYPES,
+  qrAssetFilename
 } from "@/lib/qr";
 
 type Params = {
   params: Promise<{ id: string; format: string }>;
 };
 
-const contentTypes = {
-  png: "image/png",
-  svg: "image/svg+xml; charset=utf-8",
-  eps: "application/postscript; charset=utf-8"
-} as const;
-
 export async function GET(request: NextRequest, { params }: Params) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { id, format: formatParam } = await params;
   const format = normalizeQrFormat(formatParam);
   if (!format) {
@@ -43,21 +31,16 @@ export async function GET(request: NextRequest, { params }: Params) {
   }
 
   const url = shortUrl(appBaseUrl(), link.code);
-  const body =
-    format === "png"
-      ? await generateQrPng(url, size, level)
-      : format === "svg"
-        ? await generateQrSvg(url, size, level)
-        : generateQrEps(url, size, level);
-  const filename = `${link.code}-qr-${size}-${level}.${format}`;
+  const body = await generateQrAssetBody(format, url, size, level);
+  const filename = qrAssetFilename({ code: link.code, format, size, level });
   const disposition = searchParams.get("download") === "1" ? "attachment" : "inline";
   const responseBody = typeof body === "string" ? body : new Uint8Array(body);
 
   return new Response(responseBody, {
     headers: {
-      "Cache-Control": "private, no-store",
+      "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
       "Content-Disposition": `${disposition}; filename="${filename}"`,
-      "Content-Type": contentTypes[format]
+      "Content-Type": QR_CONTENT_TYPES[format]
     }
   });
 }

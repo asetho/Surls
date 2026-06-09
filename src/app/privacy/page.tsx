@@ -14,7 +14,7 @@ export default async function PrivacyPage() {
       <PublicHeader />
       <main className="section">
         <div className="container">
-          <div className="surface" style={{ padding: "1.25rem" }}>
+          <div className="surface surface-panel">
             <h1>{siteName} privacy notice</h1>
             <p>
               {siteName} is designed for a personal, self-hosted short URL site. It keeps analytics focused on short-link

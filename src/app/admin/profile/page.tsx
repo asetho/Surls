@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import QRCode from "qrcode";
 import { BackupCodesForm } from "@/components/BackupCodesForm";
+import { PasskeyManager } from "@/components/PasskeyManager";
 import { getCsrfToken } from "@/lib/csrf";
 import { requireAdmin } from "@/lib/auth";
+import { formatDateTime } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
-import { getSiteName } from "@/lib/settings";
+import { getSetting, getSiteName } from "@/lib/settings";
 import { getTotpSecret, totpOtpAuthUrl } from "@/lib/totp";
 import { disableTotpAction, enableTotpAction, startTotpAction } from "./actions";
 
@@ -16,11 +18,12 @@ export default async function ProfilePage() {
   const admin = await requireAdmin();
   if (!admin) return null;
   const csrf = getCsrfToken();
-  const [credential, backupCount, passkeys, siteName] = await Promise.all([
+  const [credential, backupCount, passkeys, siteName, displayTimeZone] = await Promise.all([
     prisma.totpCredential.findUnique({ where: { userId: admin.id } }),
     prisma.backupCode.count({ where: { userId: admin.id, usedAt: null } }),
     prisma.passkey.findMany({ where: { userId: admin.id }, orderBy: { createdAt: "desc" } }),
-    getSiteName()
+    getSiteName(),
+    getSetting("displayTimeZone")
   ]);
 
   const pendingSecret = credential && !credential.enabled ? getTotpSecret(credential.secretEncrypted) : null;
@@ -37,7 +40,7 @@ export default async function ProfilePage() {
         </div>
       </div>
 
-      <section className="surface" style={{ padding: "1rem" }}>
+      <section className="surface surface-panel">
         <h2>TOTP 2FA</h2>
         {credential?.enabled ? (
           <div className="form-stack">
@@ -76,7 +79,7 @@ export default async function ProfilePage() {
         )}
       </section>
 
-      <section className="surface" style={{ padding: "1rem" }}>
+      <section className="surface surface-panel">
         <h2>Backup codes</h2>
         <p className="muted">
           You currently have {backupCount} unused backup {backupCount === 1 ? "code" : "codes"}. Codes are stored only
@@ -85,21 +88,21 @@ export default async function ProfilePage() {
         <BackupCodesForm csrf={csrf} />
       </section>
 
-      <section className="surface" style={{ padding: "1rem" }}>
+      <section className="surface surface-panel">
         <h2>Passkeys</h2>
         <p className="muted">
-          The database model is ready for WebAuthn passkeys. Full browser registration and assertion endpoints are listed
-          as a recommended follow-up for this initial build.
+          Add a passkey to sign in with device biometrics, a platform authenticator, or a hardware security key.
         </p>
-        {passkeys.length ? (
-          <ul>
-            {passkeys.map((passkey) => (
-              <li key={passkey.id}>{passkey.name}</li>
-            ))}
-          </ul>
-        ) : (
-          <p className="muted">No passkeys registered.</p>
-        )}
+        <PasskeyManager
+          csrf={csrf}
+          passkeys={passkeys.map((passkey) => ({
+            id: passkey.id,
+            name: passkey.name,
+            backedUp: passkey.backedUp,
+            createdAt: formatDateTime(passkey.createdAt, displayTimeZone),
+            lastUsedAt: passkey.lastUsedAt ? formatDateTime(passkey.lastUsedAt, displayTimeZone) : null
+          }))}
+        />
       </section>
     </main>
   );

@@ -1,10 +1,18 @@
 import { BarChart3, LockKeyhole, QrCode, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { CustomHtmlPage } from "@/components/CustomHtmlPage";
 import { PublicHeader } from "./layout";
-import { getSiteName } from "@/lib/settings";
+import { getSettings } from "@/lib/settings";
+
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const siteName = await getSiteName();
+  const settings = await getSettings();
+  if (settings.customIndexPage) {
+    return <CustomHtmlPage html={settings.customIndexPage.html} />;
+  }
+
+  const siteName = settings.siteName;
 
   return (
     <>

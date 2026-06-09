@@ -43,16 +43,17 @@ export function formatDateTime(date: Date, timeZone = DEFAULT_DISPLAY_TIME_ZONE)
   const parts = partMap(
     new Intl.DateTimeFormat("en-US", {
       timeZone: normalizeDisplayTimeZone(timeZone),
-      month: "short",
-      day: "numeric",
-      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      year: "2-digit",
       hour: "numeric",
       minute: "2-digit",
+      second: "2-digit",
       hour12: true
     }).formatToParts(date)
   );
 
-  return `${parts.month} ${parts.day}, ${parts.year} ${parts.hour}:${parts.minute} ${parts.dayPeriod}`;
+  return `${parts.month}/${parts.day}/${parts.year} ${parts.hour}:${parts.minute}:${parts.second} ${parts.dayPeriod}`;
 }
 
 export function dateKeyForTimeZone(date: Date, timeZone = DEFAULT_DISPLAY_TIME_ZONE) {

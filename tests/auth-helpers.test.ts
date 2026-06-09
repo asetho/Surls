@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { generateBackupCode, hashBackupCode, verifyBackupCode } from "@/lib/backup-codes";
 import { createPlainApiToken } from "@/lib/api-tokens";
+import { decodePasskeyChallenge, encodePasskeyChallenge } from "@/lib/passkeys";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { createTotpSecret, verifyTotpCode } from "@/lib/totp";
 import { generate } from "otplib";
@@ -24,6 +25,16 @@ describe("auth helpers", () => {
 
   it("creates API tokens with the Surls prefix", () => {
     expect(createPlainApiToken()).toMatch(/^surls_/);
+  });
+
+  it("signs short-lived passkey challenges by purpose", () => {
+    const signed = encodePasskeyChallenge({ challenge: "abc123", purpose: "authentication" });
+    expect(decodePasskeyChallenge(signed, "authentication")).toMatchObject({
+      challenge: "abc123",
+      purpose: "authentication"
+    });
+    expect(decodePasskeyChallenge(signed, "registration")).toBeNull();
+    expect(decodePasskeyChallenge(`${signed}x`, "authentication")).toBeNull();
   });
 
   it("verifies TOTP codes generated from encrypted secrets", async () => {

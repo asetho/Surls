@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { BarChart3, Link2, LogOut, Settings, ShieldCheck, Wrench } from "lucide-react";
+import { BarChart3, Link2, LogOut, Settings, ShieldCheck, Users, Wrench } from "lucide-react";
 import { NewShortUrlModal } from "@/components/NewShortUrlModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { requireAdmin } from "@/lib/auth";
@@ -28,6 +28,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
     { href: "/admin", label: "Dashboard", icon: BarChart3 },
     { href: "/admin/links", label: "Links", icon: Link2 },
     { href: "/admin/tools", label: "Tools", icon: Wrench },
+    { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/settings", label: "Settings", icon: Settings },
     { href: "/admin/profile", label: "Security", icon: ShieldCheck }
   ];
@@ -50,6 +51,9 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
             );
           })}
         </nav>
+        <div className="admin-sidebar-theme">
+          <ThemeToggle initialChoice={themeChoice} iconOnly />
+        </div>
       </aside>
       <div className="admin-main">
         <header className="admin-topbar">
@@ -59,10 +63,6 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
           </div>
           <div className="nav-actions">
             <NewShortUrlModal csrf={csrf} siteName={siteName} />
-            <ThemeToggle initialChoice={themeChoice} />
-            <a className="button secondary" href="/" target="_blank">
-              Public site
-            </a>
             <form action="/api/auth/logout" method="post">
               <button className="secondary" type="submit">
                 <LogOut size={16} aria-hidden />

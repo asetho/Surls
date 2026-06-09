@@ -64,7 +64,13 @@ function applyTheme(choice: ThemeChoice) {
   notifyThemeListeners();
 }
 
-export function ThemeToggle({ initialChoice = "auto" }: { initialChoice?: ThemeChoice }) {
+export function ThemeToggle({
+  iconOnly = false,
+  initialChoice = "auto"
+}: {
+  iconOnly?: boolean;
+  initialChoice?: ThemeChoice;
+}) {
   const choice = useSyncExternalStore(
     subscribeTheme,
     () => readThemeChoice(initialChoice),
@@ -77,11 +83,12 @@ export function ThemeToggle({ initialChoice = "auto" }: { initialChoice?: ThemeC
   ];
 
   return (
-    <div className="theme-toggle" aria-label="Theme">
+    <div className={iconOnly ? "theme-toggle icon-only" : "theme-toggle"} aria-label="Theme">
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
+          aria-label={`${option.label} theme`}
           aria-pressed={choice === option.value}
           title={`${option.label} theme`}
           onClick={() => {
@@ -89,7 +96,7 @@ export function ThemeToggle({ initialChoice = "auto" }: { initialChoice?: ThemeC
           }}
         >
           {option.icon}
-          <span>{option.label}</span>
+          {iconOnly ? null : <span>{option.label}</span>}
         </button>
       ))}
     </div>

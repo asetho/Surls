@@ -7,7 +7,10 @@ export function getCsrfToken() {
 }
 
 export function validateCsrf(formData: FormData) {
-  const submitted = String(formData.get("csrf") ?? "");
+  validateCsrfValue(String(formData.get("csrf") ?? ""));
+}
+
+export function validateCsrfValue(submitted: string) {
   const value = verifySignedValue(submitted);
   const issuedAt = value ? Number(value.split(".")[0]) : Number.NaN;
   if (!value || Number.isNaN(issuedAt) || Date.now() - issuedAt > CSRF_MAX_AGE_MS) {

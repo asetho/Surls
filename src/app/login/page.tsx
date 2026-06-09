@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PasskeyLoginButton } from "@/components/PasskeyLoginButton";
 import { PublicHeader } from "../layout";
 import { getCsrfToken } from "@/lib/csrf";
 import { getSiteName } from "@/lib/settings";
@@ -54,6 +55,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
               />
             </label>
             <button type="submit">Log in</button>
+            <div className="login-divider">
+              <span>or</span>
+            </div>
+            <PasskeyLoginButton nextPath={params.next ?? "/admin"} />
           </form>
         </div>
       </main>

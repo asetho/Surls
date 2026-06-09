@@ -14,7 +14,7 @@ export default async function CookiesPage() {
       <PublicHeader />
       <main className="section">
         <div className="container">
-          <div className="surface" style={{ padding: "1.25rem" }}>
+          <div className="surface surface-panel">
             <h1>{siteName} cookie notice</h1>
             <p>{siteName} uses essential cookies for admin login sessions, CSRF protection, and cookie consent storage.</p>
             <h2>Essential cookies</h2>

@@ -3,6 +3,11 @@ import QRCode, { type QRCodeErrorCorrectionLevel } from "qrcode";
 export const QR_SIZES = [150, 300, 500] as const;
 export const QR_ERROR_CORRECTION_LEVELS = ["L", "M", "Q", "H"] as const;
 export const QR_FORMATS = ["png", "svg", "eps"] as const;
+export const QR_CONTENT_TYPES = {
+  png: "image/png",
+  svg: "image/svg+xml; charset=utf-8",
+  eps: "application/postscript; charset=utf-8"
+} as const;
 
 export type QrSize = (typeof QR_SIZES)[number];
 export type QrErrorCorrectionLevel = (typeof QR_ERROR_CORRECTION_LEVELS)[number];
@@ -26,6 +31,18 @@ export function normalizeQrFormat(value: string | null): QrFormat | null {
 }
 
 export function qrAssetPath(input: {
+  code: string;
+  format: QrFormat;
+  size: QrSize;
+  level: QrErrorCorrectionLevel;
+  download?: boolean;
+}) {
+  const params = new URLSearchParams({ size: String(input.size), level: input.level });
+  if (input.download) params.set("download", "1");
+  return `/${encodeURIComponent(input.code)}/qr/${input.format}?${params.toString()}`;
+}
+
+export function apiQrAssetPath(input: {
   linkId: string;
   format: QrFormat;
   size: QrSize;
@@ -35,6 +52,15 @@ export function qrAssetPath(input: {
   const params = new URLSearchParams({ size: String(input.size), level: input.level });
   if (input.download) params.set("download", "1");
   return `/api/links/${input.linkId}/qr/${input.format}?${params.toString()}`;
+}
+
+export function qrAssetFilename(input: {
+  code: string;
+  format: QrFormat;
+  size: QrSize;
+  level: QrErrorCorrectionLevel;
+}) {
+  return `${input.code}-qr-${input.size}-${input.level}.${input.format}`;
 }
 
 function qrRenderOptions(size: QrSize, level: QrErrorCorrectionLevel) {
@@ -51,6 +77,19 @@ export async function generateQrPng(text: string, size: QrSize, level: QrErrorCo
 
 export async function generateQrSvg(text: string, size: QrSize, level: QrErrorCorrectionLevel) {
   return QRCode.toString(text, { ...qrRenderOptions(size, level), type: "svg" });
+}
+
+export async function generateQrAssetBody(
+  format: QrFormat,
+  text: string,
+  size: QrSize,
+  level: QrErrorCorrectionLevel
+) {
+  return format === "png"
+    ? await generateQrPng(text, size, level)
+    : format === "svg"
+      ? await generateQrSvg(text, size, level)
+      : generateQrEps(text, size, level);
 }
 
 export function generateQrEps(text: string, size: QrSize, level: QrErrorCorrectionLevel) {

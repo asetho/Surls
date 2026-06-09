@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ExternalLink, RotateCcw, Trash2 } from "lucide-react";
 import { ConfirmButton } from "@/components/ConfirmButton";
-import { CopyShareButtons } from "@/components/CopyShareButtons";
+import { CopyShortUrlButton, ShareButton } from "@/components/CopyShareButtons";
+import { EditLinkModal } from "@/components/EditLinkModal";
+import { QrCodeModal } from "@/components/QrCodeModal";
 import { getCsrfToken } from "@/lib/csrf";
 import { appBaseUrl } from "@/lib/env";
 import { normalizeLinkListView, shortLinkListWhere } from "@/lib/link-lifecycle";
@@ -39,6 +41,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
     }),
     getSiteName()
   ]);
+  const baseUrl = appBaseUrl();
 
   return (
     <main className="admin-content">
@@ -57,7 +60,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
         </div>
       </div>
 
-      <section className="surface" style={{ padding: "1rem" }}>
+      <section className="surface surface-panel">
         <div className="content-header">
           <h2>{view === "archived" ? "Archived links" : "Active links"}</h2>
           <form className="row-actions">
@@ -84,11 +87,27 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
             <tbody>
               {links.length ? (
                 links.map((link) => {
-                  const url = shortUrl(appBaseUrl(), link.code);
+                  const url = shortUrl(baseUrl, link.code);
+                  const editableLink = {
+                    id: link.id,
+                    code: link.code,
+                    destinationUrl: link.destinationUrl,
+                    title: link.title ?? "",
+                    expiresAt: link.expiresAt ? link.expiresAt.toISOString().slice(0, 16) : "",
+                    maxClicks: link.maxClicks,
+                    enabled: link.enabled,
+                    description: link.description ?? "",
+                    notes: link.notes ?? ""
+                  };
                   return (
                     <tr key={link.id}>
                       <td>
-                        <a href={`/admin/links/${link.id}`}>/{link.code}</a>
+                        <div className="link-list-short-row">
+                          <a href={`/admin/links/${link.id}`}>/{link.code}</a>
+                          {view === "active" ? (
+                            <QrCodeModal baseUrl={baseUrl} code={link.code} compact shortUrl={url} />
+                          ) : null}
+                        </div>
                         <div className="muted small">{link.title || "Untitled"}</div>
                         <div className="row-actions small">
                           {link.tags.map(({ tag }) => (
@@ -143,7 +162,11 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
                             </form>
                           </div>
                         ) : (
-                          <CopyShareButtons url={url} title={link.title} defaultTitle={`${siteName} short link`} />
+                          <div className="row-actions">
+                            <EditLinkModal csrf={csrf} link={editableLink} compact />
+                            <ShareButton url={url} title={link.title} defaultTitle={`${siteName} short link`} compact />
+                            <CopyShortUrlButton url={url} compact />
+                          </div>
                         )}
                       </td>
                     </tr>

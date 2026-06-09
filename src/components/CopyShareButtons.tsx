@@ -64,29 +64,8 @@ function loadAddToAny() {
   return window.__surlsAddToAnyScript;
 }
 
-export function CopyShareButtons({
-  url,
-  title,
-  defaultTitle = "Short link"
-}: {
-  url: string;
-  title?: string | null;
-  defaultTitle?: string;
-}) {
+export function CopyShortUrlButton({ compact = false, url }: { compact?: boolean; url: string }) {
   const [toast, setToast] = useState("");
-  const shareTitle = title || defaultTitle;
-
-  useEffect(() => {
-    let cancelled = false;
-    loadAddToAny()
-      .then(() => {
-        if (!cancelled) window.a2a?.init_all?.();
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [shareTitle, url]);
 
   async function copy() {
     try {
@@ -105,28 +84,76 @@ export function CopyShareButtons({
 
   return (
     <>
-      <div className="row-actions">
-        <button type="button" className="icon-button secondary" onClick={copy} title="Copy short URL">
-          <Copy size={16} aria-hidden />
-          Copy
-        </button>
-        <div
-          className="a2a_kit a2a_default_style addtoany-share"
-          data-a2a-url={url}
-          data-a2a-title={shareTitle}
-        >
-          <a
-            className="a2a_dd button secondary icon-button addtoany-share-button"
-            href="https://www.addtoany.com/share"
-            aria-label="Share short URL"
-            title="Share short URL"
-          >
-            <Share2 size={16} aria-hidden />
-            <span className="share-button-label">Share</span>
-          </a>
-        </div>
-      </div>
+      <button
+        type="button"
+        className={`icon-button secondary${compact ? " icon-only-action" : ""}`}
+        onClick={copy}
+        aria-label={compact ? "Copy short URL" : undefined}
+        title="Copy short URL"
+      >
+        <Copy size={16} aria-hidden />
+        {compact ? null : "Copy"}
+      </button>
       {toast ? <div className="toast" role="status">{toast}</div> : null}
+    </>
+  );
+}
+
+export function ShareButton({
+  compact = false,
+  url,
+  title,
+  defaultTitle = "Short link"
+}: {
+  compact?: boolean;
+  url: string;
+  title?: string | null;
+  defaultTitle?: string;
+}) {
+  const shareTitle = title || defaultTitle;
+
+  useEffect(() => {
+    let cancelled = false;
+    loadAddToAny()
+      .then(() => {
+        if (!cancelled) window.a2a?.init_all?.();
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [shareTitle, url]);
+
+  return (
+    <div className="a2a_kit a2a_default_style addtoany-share" data-a2a-url={url} data-a2a-title={shareTitle}>
+      <a
+        className={`a2a_dd button secondary icon-button addtoany-share-button${compact ? " icon-only-action" : ""}`}
+        href="https://www.addtoany.com/share"
+        aria-label="Share short URL"
+        title="Share short URL"
+      >
+        <Share2 size={16} aria-hidden />
+        {compact ? null : <span className="share-button-label">Share</span>}
+      </a>
+    </div>
+  );
+}
+
+export function CopyShareButtons({
+  url,
+  title,
+  defaultTitle = "Short link"
+}: {
+  url: string;
+  title?: string | null;
+  defaultTitle?: string;
+}) {
+  return (
+    <>
+      <div className="row-actions">
+        <CopyShortUrlButton url={url} />
+        <ShareButton url={url} title={title} defaultTitle={defaultTitle} />
+      </div>
     </>
   );
 }
