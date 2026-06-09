@@ -513,6 +513,114 @@ th {
   height: 100%;
 }
 
+.stats-panel,
+.stats-card {
+  padding: 1rem;
+}
+
+.stats-history-grid {
+  align-items: start;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
+}
+
+.history-chart {
+  background: color-mix(in srgb, var(--surface), var(--surface-strong) 36%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  padding: 0.7rem;
+}
+
+.history-chart svg {
+  display: block;
+  height: auto;
+  width: 100%;
+}
+
+.history-chart line {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.history-chart text {
+  fill: var(--muted);
+  font-size: 0.78rem;
+}
+
+.history-chart polygon {
+  fill: color-mix(in srgb, var(--color-ice), transparent 58%);
+}
+
+.history-chart polyline {
+  fill: none;
+  stroke: var(--color-teal);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.history-chart circle {
+  fill: var(--color-teal);
+}
+
+.chart-axis-labels {
+  color: var(--muted);
+  display: flex;
+  font-size: 0.78rem;
+  justify-content: space-between;
+  padding: 0.25rem 0.2rem 0;
+}
+
+.stats-summary {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.stats-summary > div,
+.source-split {
+  background: color-mix(in srgb, var(--surface-strong), transparent 36%);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.62rem 0.75rem;
+}
+
+.source-split {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 0.8rem;
+}
+
+.source-split > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.best-day {
+  margin-top: 0.5rem;
+}
+
+.click-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.78rem;
+  max-width: 14rem;
+  overflow-wrap: anywhere;
+}
+
+.ip-cell {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.82rem;
+  min-width: 10rem;
+}
+
+.user-agent-cell {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 24rem;
+  overflow-wrap: anywhere;
+}
+
 .cookie-banner {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -553,6 +661,7 @@ th {
   .hero-grid,
   .grid-3,
   .form-grid,
+  .stats-history-grid,
   .admin-shell {
     grid-template-columns: 1fr;
   }

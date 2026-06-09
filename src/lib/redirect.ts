@@ -5,9 +5,27 @@ import { prisma } from "./prisma";
 import { linkUnavailableReason } from "./links";
 import { recordClick } from "./clicks";
 import { appendForwardedQuery } from "./url-safety";
+import { appBaseUrl } from "./env";
 
-export function shouldRecordRedirectClick(input: { isHead: boolean; isAdminClick: boolean; trackAdminClicks: boolean }) {
-  return !input.isHead && (!input.isAdminClick || input.trackAdminClicks);
+export function isAdminReferrer(referrer: string | null, baseUrl = appBaseUrl()) {
+  if (!referrer) return false;
+  try {
+    const referrerUrl = new URL(referrer);
+    const appUrl = new URL(baseUrl);
+    return referrerUrl.origin === appUrl.origin && referrerUrl.pathname.startsWith("/admin");
+  } catch {
+    return false;
+  }
+}
+
+export function shouldRecordRedirectClick(input: {
+  isHead: boolean;
+  isAdminClick: boolean;
+  isAdminReferrer?: boolean;
+  trackAdminClicks: boolean;
+}) {
+  const adminOriginated = input.isAdminClick || Boolean(input.isAdminReferrer);
+  return !input.isHead && (!adminOriginated || input.trackAdminClicks);
 }
 
 export async function handleShortRedirect(request: NextRequest, code: string, isHead = false) {
@@ -39,7 +57,8 @@ export async function handleShortRedirect(request: NextRequest, code: string, is
     getSetting("preserveRedirectQuery")
   ]);
   const isAdminClick = Boolean(session);
-  const shouldRecord = shouldRecordRedirectClick({ isHead, isAdminClick, trackAdminClicks });
+  const adminReferrer = isAdminReferrer(request.headers.get("referer"));
+  const shouldRecord = shouldRecordRedirectClick({ isHead, isAdminClick, isAdminReferrer: adminReferrer, trackAdminClicks });
 
   if (shouldRecord) {
     await recordClick({ shortLinkId: link.id, request });
@@ -49,7 +68,7 @@ export async function handleShortRedirect(request: NextRequest, code: string, is
     ? appendForwardedQuery(link.destinationUrl, request.nextUrl.searchParams.toString())
     : link.destinationUrl;
   const response = NextResponse.redirect(destination, 302);
-  if (isAdminClick && !trackAdminClicks) {
+  if ((isAdminClick || adminReferrer) && !trackAdminClicks) {
     response.headers.set("X-ShortURL-Admin-Click", "ignored");
   }
   return response;

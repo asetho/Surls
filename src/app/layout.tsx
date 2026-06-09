@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import "./globals.css";
 import { CookieBanner } from "@/components/CookieBanner";
 import { ThemeScript } from "@/components/ThemeScript";
@@ -15,9 +16,24 @@ export const metadata: Metadata = {
   applicationName: "Surls"
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+type ThemeChoice = "light" | "dark" | "auto";
+
+function isThemeChoice(value: string | undefined): value is ThemeChoice {
+  return value === "light" || value === "dark" || value === "auto";
+}
+
+async function savedThemeChoice() {
+  const cookieStore = await cookies();
+  const cookieChoice = cookieStore.get("surls-theme")?.value;
+  return isThemeChoice(cookieChoice) ? cookieChoice : "auto";
+}
+
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const themeChoice = await savedThemeChoice();
+  const initialTheme = themeChoice === "dark" ? "dark" : "light";
+
   return (
-    <html lang="en" data-theme="light" data-theme-choice="auto" suppressHydrationWarning>
+    <html lang="en" data-theme={initialTheme} data-theme-choice={themeChoice} suppressHydrationWarning>
       <head>
         <ThemeScript />
       </head>
@@ -29,7 +45,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   );
 }
 
-export function PublicHeader() {
+export async function PublicHeader() {
+  const themeChoice = await savedThemeChoice();
+
   return (
     <header className="site-header">
       <div className="container site-header-inner">
@@ -40,7 +58,7 @@ export function PublicHeader() {
         <nav className="nav-actions" aria-label="Primary">
           <Link href="/privacy">Privacy</Link>
           <Link href="/cookies">Cookies</Link>
-          <ThemeToggle />
+          <ThemeToggle initialChoice={themeChoice} />
           <Link className="button" href="/login">
             Admin login
           </Link>

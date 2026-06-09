@@ -136,12 +136,14 @@ model ClickEvent {
   device      String?
   country     String?
   region      String?
+  ipAddress   String?
   ipHash      String?
   visitorHash String?
   shortLink   ShortLink @relation(fields: [shortLinkId], references: [id], onDelete: Cascade)
 
   @@index([shortLinkId, occurredAt])
   @@index([occurredAt])
+  @@index([country])
 }
 
 model Tag {

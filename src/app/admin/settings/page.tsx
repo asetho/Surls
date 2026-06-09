@@ -60,7 +60,7 @@ export default async function SettingsPage() {
           </label>
           <div className="success">
             The Light, Dark, and Auto theme selector is available in the header and admin toolbar. Each browser stores its
-            own choice locally; Auto follows the operating-system preference.
+            own choice locally and in a first-party cookie; Auto follows the operating-system preference.
           </div>
           <button type="submit">Save settings</button>
         </form>

@@ -16,8 +16,18 @@ export async function GET(_request: NextRequest, { params }: Params) {
     orderBy: { occurredAt: "desc" }
   });
   const csv = toCsv([
-    ["occurredAt", "referrer", "browser", "device", "country", "region"],
-    ...rows.map((row) => [row.occurredAt.toISOString(), row.referrer, row.browser, row.device, row.country, row.region])
+    ["timestamp", "id", "country", "ipAddress", "userAgent", "referrer", "browser", "device", "region"],
+    ...rows.map((row) => [
+      row.occurredAt.toISOString(),
+      row.id,
+      row.country,
+      row.ipAddress,
+      row.userAgent,
+      row.referrer,
+      row.browser,
+      row.device,
+      row.region
+    ])
   ]);
   return new NextResponse(csv, {
     headers: {

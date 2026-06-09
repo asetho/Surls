@@ -1,10 +1,18 @@
-import Script from "next/script";
-
 export function ThemeScript() {
   const script = `
     (() => {
       const key = "surls-theme";
-      const stored = localStorage.getItem(key) || "auto";
+      const valid = (value) => value === "light" || value === "dark" || value === "auto";
+      const storedChoice = () => {
+        try {
+          const value = localStorage.getItem(key);
+          if (valid(value)) return value;
+        } catch {}
+        return null;
+      };
+      const cookie = document.cookie.match(/(?:^|;\\s*)surls-theme=([^;]+)/);
+      const cookieChoice = cookie ? decodeURIComponent(cookie[1]) : null;
+      const stored = storedChoice() || (valid(cookieChoice) ? cookieChoice : "auto");
       const media = window.matchMedia("(prefers-color-scheme: dark)");
       const apply = (choice) => {
         const resolved = choice === "auto" ? (media.matches ? "dark" : "light") : choice;
@@ -13,10 +21,10 @@ export function ThemeScript() {
       };
       apply(stored);
       media.addEventListener?.("change", () => {
-        if ((localStorage.getItem(key) || "auto") === "auto") apply("auto");
+        if ((storedChoice() || cookieChoice || "auto") === "auto") apply("auto");
       });
     })();
   `;
 
-  return <Script id="surls-theme-script" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: script }} />;
+  return <script id="surls-theme-script" dangerouslySetInnerHTML={{ __html: script }} />;
 }

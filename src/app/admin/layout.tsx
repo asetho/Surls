@@ -1,14 +1,23 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { BarChart3, Link2, LogOut, Settings, ShieldCheck, Wrench } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
+type ThemeChoice = "light" | "dark" | "auto";
+
+function isThemeChoice(value: string | undefined): value is ThemeChoice {
+  return value === "light" || value === "dark" || value === "auto";
+}
+
 export default async function AdminLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const user = await requireAdmin();
+  const [user, cookieStore] = await Promise.all([requireAdmin(), cookies()]);
   if (!user) redirect("/login?next=/admin");
+  const cookieChoice = cookieStore.get("surls-theme")?.value;
+  const themeChoice = isThemeChoice(cookieChoice) ? cookieChoice : "auto";
 
   const nav = [
     { href: "/admin", label: "Dashboard", icon: BarChart3 },
@@ -44,7 +53,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
             <div className="muted small">Private Surls admin</div>
           </div>
           <div className="nav-actions">
-            <ThemeToggle />
+            <ThemeToggle initialChoice={themeChoice} />
             <a className="button secondary" href="/" target="_blank">
               Public site
             </a>

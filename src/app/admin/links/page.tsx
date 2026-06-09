@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ExternalLink, Plus } from "lucide-react";
 import { CopyShareButtons } from "@/components/CopyShareButtons";
+import { TitleAutoFill } from "@/components/TitleAutoFill";
 import { getCsrfToken } from "@/lib/csrf";
 import { appBaseUrl } from "@/lib/env";
 import { shortUrl } from "@/lib/links";
@@ -48,7 +49,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
         <h2>
           <Plus size={18} aria-hidden /> Create short URL
         </h2>
-        <form className="form-stack" action={createLinkAction}>
+        <form className="form-stack" action={createLinkAction} data-title-autofill="true">
           <input type="hidden" name="csrf" value={csrf} />
           <div className="form-grid">
             <label>
@@ -86,6 +87,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
           </label>
           <button type="submit">Create Surls link</button>
         </form>
+        <TitleAutoFill />
       </section>
 
       <section className="surface" style={{ padding: "1rem" }}>

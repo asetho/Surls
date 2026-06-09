@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shouldRecordRedirectClick } from "@/lib/redirect";
+import { isAdminReferrer, shouldRecordRedirectClick } from "@/lib/redirect";
 import { linkUnavailableReason } from "@/lib/links";
 
 describe("redirect behavior", () => {
@@ -7,8 +7,20 @@ describe("redirect behavior", () => {
     expect(shouldRecordRedirectClick({ isHead: false, isAdminClick: true, trackAdminClicks: false })).toBe(false);
   });
 
+  it("does not record admin-referrer clicks by default", () => {
+    expect(
+      shouldRecordRedirectClick({
+        isHead: false,
+        isAdminClick: false,
+        isAdminReferrer: true,
+        trackAdminClicks: false
+      })
+    ).toBe(false);
+  });
+
   it("records admin clicks only when explicitly enabled", () => {
     expect(shouldRecordRedirectClick({ isHead: false, isAdminClick: true, trackAdminClicks: true })).toBe(true);
+    expect(shouldRecordRedirectClick({ isHead: false, isAdminClick: false, isAdminReferrer: true, trackAdminClicks: true })).toBe(true);
   });
 
   it("records normal visitor clicks and skips HEAD probes", () => {
@@ -23,5 +35,11 @@ describe("redirect behavior", () => {
     expect(linkUnavailableReason({ ...base, archivedAt: new Date() })).toMatch(/archived/i);
     expect(linkUnavailableReason({ ...base, expiresAt: new Date(Date.now() - 1000) })).toMatch(/expired/i);
     expect(linkUnavailableReason({ ...base, maxClicks: 3, clickCount: 3 })).toMatch(/click limit/i);
+  });
+
+  it("detects same-origin admin referrers", () => {
+    expect(isAdminReferrer("https://asetho.link/admin/links", "https://asetho.link")).toBe(true);
+    expect(isAdminReferrer("https://asetho.link/privacy", "https://asetho.link")).toBe(false);
+    expect(isAdminReferrer("https://example.com/admin", "https://asetho.link")).toBe(false);
   });
 });

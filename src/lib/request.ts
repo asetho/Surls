@@ -14,6 +14,24 @@ export function requestIpHash(request: NextRequest) {
   return hashPrivacyValue(requestIp(request));
 }
 
+function firstHeaderValue(request: NextRequest, names: string[]) {
+  for (const name of names) {
+    const value = request.headers.get(name)?.split(",")[0]?.trim();
+    if (value) return value;
+  }
+  return null;
+}
+
+export function requestCountry(request: NextRequest) {
+  const country = firstHeaderValue(request, ["cf-ipcountry", "x-vercel-ip-country", "x-country-code", "x-geo-country"]);
+  if (!country || country === "XX") return null;
+  return country.toUpperCase();
+}
+
+export function requestRegion(request: NextRequest) {
+  return firstHeaderValue(request, ["cf-region", "x-vercel-ip-country-region", "x-region-code", "x-geo-region"]);
+}
+
 export function userAgentSummary(userAgent: string | null) {
   const ua = userAgent ?? "";
   const browser = /Edg\//.test(ua)

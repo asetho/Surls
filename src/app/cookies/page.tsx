@@ -25,6 +25,9 @@ export default function CookiesPage() {
               <li>
                 <strong>surls_cookie_consent:</strong> Stores your consent choice.
               </li>
+              <li>
+                <strong>surls-theme:</strong> Stores your Light, Dark, or Auto display preference.
+              </li>
             </ul>
             <h2>Analytics cookies</h2>
             <p>
