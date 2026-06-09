@@ -1,21 +1,23 @@
 import type { Metadata } from "next";
+import { UserRole } from "@prisma/client";
+import { redirect } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { CreateUserForm } from "@/components/CreateUserForm";
-import { requireAdmin } from "@/lib/auth";
+import { requireSiteAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { formatDateTime } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
-import { deleteUserAction } from "./actions";
+import { deleteUserAction, updateUserRoleAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "Users"
 };
 
 export default async function UsersPage() {
-  const admin = await requireAdmin();
-  if (!admin) return null;
+  const admin = await requireSiteAdmin();
+  if (!admin) redirect("/admin");
 
   const csrf = getCsrfToken();
   const [users, displayTimeZone] = await Promise.all([
@@ -40,7 +42,7 @@ export default async function UsersPage() {
       <div className="content-header">
         <div>
           <h1>Admin users</h1>
-          <p className="muted">Create and manage admin accounts that can sign in to this Surls instance.</p>
+          <p className="muted">Create users and admins that can sign in to this Surls instance.</p>
         </div>
       </div>
 
@@ -56,6 +58,7 @@ export default async function UsersPage() {
             <thead>
               <tr>
                 <th>User</th>
+                <th>Role</th>
                 <th>Security</th>
                 <th>Links</th>
                 <th>Sessions</th>
@@ -72,6 +75,21 @@ export default async function UsersPage() {
                     <div className="muted small">Created {formatDateTime(user.createdAt, displayTimeZone)}</div>
                   </td>
                   <td>
+                    {user.id === admin.id ? (
+                      <span className="badge">Admin</span>
+                    ) : (
+                      <form className="role-form" action={updateUserRoleAction}>
+                        <input type="hidden" name="csrf" value={csrf} />
+                        <input type="hidden" name="id" value={user.id} />
+                        <select name="role" defaultValue={user.role}>
+                          <option value={UserRole.USER}>User</option>
+                          <option value={UserRole.ADMIN}>Admin</option>
+                        </select>
+                        <button className="secondary" type="submit">Save</button>
+                      </form>
+                    )}
+                  </td>
+                  <td>
                     <div className="row-actions small">
                       <span className={user.totpCredential?.enabled ? "badge" : "badge warning"}>
                         TOTP {user.totpCredential?.enabled ? "on" : "off"}
@@ -86,7 +104,7 @@ export default async function UsersPage() {
                   <td>{user.lastLoginAt ? formatDateTime(user.lastLoginAt, displayTimeZone) : "Never"}</td>
                   <td>
                     {user.id === admin.id ? (
-                      <span className="muted small">Current user</span>
+                      <span className="muted small">Current admin</span>
                     ) : (
                       <form action={deleteUserAction}>
                         <input type="hidden" name="csrf" value={csrf} />

@@ -1,4 +1,5 @@
 import { hashPassword } from "../src/lib/password";
+import { UserRole } from "@prisma/client";
 import { prisma } from "../src/lib/prisma";
 import { DEFAULT_SETTINGS, settingJsonValue } from "../src/lib/settings";
 
@@ -31,7 +32,8 @@ async function main() {
       create: {
         email: email.toLowerCase(),
         name: "Surls Admin",
-        passwordHash: await hashPassword(password)
+        passwordHash: await hashPassword(password),
+        role: UserRole.ADMIN
       }
     });
     console.log(`Admin user ready: ${email.toLowerCase()}`);

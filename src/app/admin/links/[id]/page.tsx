@@ -9,6 +9,7 @@ import { HistoricalClicksPanel } from "@/components/HistoricalClicksPanel";
 import { LocationCharts } from "@/components/LocationCharts";
 import { QrCodeModal } from "@/components/QrCodeModal";
 import { StatsTabs } from "@/components/StatsTabs";
+import { isAdminUser, requireAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { formatDateTime } from "@/lib/dates";
 import { appBaseUrl } from "@/lib/env";
@@ -45,14 +46,16 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const recentPage = normalizeRecentClickPage(query.clickPage);
   const recentPageSize = normalizeRecentClickPageSize(query.clickPageSize);
-  const [link, settings] = await Promise.all([
+  const [link, settings, currentUser] = await Promise.all([
     prisma.shortLink.findUnique({
       where: { id },
       include: { tags: { include: { tag: true } } }
     }),
-    getSettings()
+    getSettings(),
+    requireAdmin()
   ]);
   if (!link) notFound();
+  const canDeleteLinks = isAdminUser(currentUser);
   const { displayTimeZone, siteName } = settings;
   const csrf = getCsrfToken();
   const baseUrl = appBaseUrl();
@@ -302,25 +305,29 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
                 Restore
               </ConfirmButton>
             </form>
-            <form className="row-actions" action={deleteLinkAction}>
-              <input type="hidden" name="csrf" value={csrf} />
-              <input type="hidden" name="id" value={link.id} />
-              <input
-                className="inline-confirm-input"
-                name="confirmCode"
-                placeholder={`Type ${link.code}`}
-                aria-label={`Type ${link.code} to delete permanently`}
-                required
-              />
-              <ConfirmButton
-                className="danger icon-button"
-                type="submit"
-                message={`Permanently delete /${link.code} and its click history?`}
-              >
-                <Trash2 size={16} aria-hidden />
-                Delete
-              </ConfirmButton>
-            </form>
+            {canDeleteLinks ? (
+              <form className="row-actions" action={deleteLinkAction}>
+                <input type="hidden" name="csrf" value={csrf} />
+                <input type="hidden" name="id" value={link.id} />
+                <input
+                  className="inline-confirm-input"
+                  name="confirmCode"
+                  placeholder={`Type ${link.code}`}
+                  aria-label={`Type ${link.code} to delete permanently`}
+                  required
+                />
+                <ConfirmButton
+                  className="danger icon-button"
+                  type="submit"
+                  message={`Permanently delete /${link.code} and its click history?`}
+                >
+                  <Trash2 size={16} aria-hidden />
+                  Delete
+                </ConfirmButton>
+              </form>
+            ) : (
+              <span className="muted small">Permanent delete is admin-only.</span>
+            )}
           </div>
         </section>
       ) : (

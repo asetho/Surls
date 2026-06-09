@@ -1,5 +1,6 @@
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { UserRole } from "@prisma/client";
 import { hashPassword } from "../src/lib/password";
 import { prisma } from "../src/lib/prisma";
 
@@ -23,7 +24,8 @@ async function promptAdmin() {
     create: {
       email,
       name,
-      passwordHash: await hashPassword(password)
+      passwordHash: await hashPassword(password),
+      role: UserRole.ADMIN
     }
   });
 

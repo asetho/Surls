@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { UserRole } from "@prisma/client";
 import { generateBackupCode, hashBackupCode, verifyBackupCode } from "@/lib/backup-codes";
 import { createPlainApiToken } from "@/lib/api-tokens";
+import { isAdminUser } from "@/lib/auth";
 import { decodePasskeyChallenge, encodePasskeyChallenge } from "@/lib/passkeys";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { createTotpSecret, verifyTotpCode } from "@/lib/totp";
@@ -25,6 +27,11 @@ describe("auth helpers", () => {
 
   it("creates API tokens with the Surls prefix", () => {
     expect(createPlainApiToken()).toMatch(/^surls_/);
+  });
+
+  it("distinguishes admin and user roles", () => {
+    expect(isAdminUser({ role: UserRole.ADMIN })).toBe(true);
+    expect(isAdminUser({ role: UserRole.USER })).toBe(false);
   });
 
   it("signs short-lived passkey challenges by purpose", () => {

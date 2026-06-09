@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { BarChart3, Link2, LogOut, Settings, ShieldCheck, Users, Wrench } from "lucide-react";
 import { NewShortUrlModal } from "@/components/NewShortUrlModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { requireAdmin } from "@/lib/auth";
+import { isAdminUser, requireAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { getSiteName } from "@/lib/settings";
 
@@ -28,7 +28,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
     { href: "/admin", label: "Dashboard", icon: BarChart3 },
     { href: "/admin/links", label: "Links", icon: Link2 },
     { href: "/admin/tools", label: "Tools", icon: Wrench },
-    { href: "/admin/users", label: "Users", icon: Users },
+    ...(isAdminUser(user) ? [{ href: "/admin/users", label: "Users", icon: Users }] : []),
     { href: "/admin/settings", label: "Settings", icon: Settings },
     { href: "/admin/profile", label: "Security", icon: ShieldCheck }
   ];
@@ -59,7 +59,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
         <header className="admin-topbar">
           <div>
             <strong>{user.name || user.email}</strong>
-            <div className="muted small">Private {siteName} admin</div>
+            <div className="muted small">Private {siteName} {isAdminUser(user) ? "admin" : "user"}</div>
           </div>
           <div className="nav-actions">
             <NewShortUrlModal csrf={csrf} siteName={siteName} />

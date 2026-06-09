@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient, UserRole } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { hash } from "argon2";
 
@@ -77,7 +77,8 @@ async function createInitialAdmin() {
     data: {
       email: credentials.email,
       name: credentials.name,
-      passwordHash: await hash(credentials.password)
+      passwordHash: await hash(credentials.password),
+      role: UserRole.ADMIN
     }
   });
 

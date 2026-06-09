@@ -64,7 +64,6 @@ export default async function AdminDashboard() {
       <div className="content-header">
         <div>
           <h1>{siteName} dashboard</h1>
-          <p className="muted">Overview of private short URLs and privacy-respecting click activity.</p>
         </div>
       </div>
 
@@ -137,7 +136,7 @@ export default async function AdminDashboard() {
       </section>
 
       <section className="grid-3">
-        <div className="surface surface-panel">
+        <div className="surface surface-panel dashboard-panel">
           <h2>Recently created</h2>
           {recentLinks.length ? (
             recentLinks.map((link) => (
@@ -151,7 +150,7 @@ export default async function AdminDashboard() {
             <p className="muted">No links have been created yet.</p>
           )}
         </div>
-        <div className="surface surface-panel">
+        <div className="surface surface-panel dashboard-panel">
           <h2>Recent clicks</h2>
           {recentClicks.length ? (
             recentClicks.map((click) => (
@@ -168,17 +167,19 @@ export default async function AdminDashboard() {
             <p className="muted">No click activity yet.</p>
           )}
         </div>
-        <div className="surface surface-panel">
+        <div className="surface surface-panel dashboard-panel">
           <h2>
             <AlertTriangle size={18} aria-hidden /> Needs attention
           </h2>
           {attentionLinks.length ? (
-            attentionLinks.map((link) => (
-              <p className="attention-row" key={link.id}>
-                <span className="badge warning">{link.enabled ? "Expired" : "Disabled"}</span>
-                <a href={`/admin/links/${link.id}`}>/{link.code}</a>
-              </p>
-            ))
+            <div className="dashboard-attention-list">
+              {attentionLinks.map((link) => (
+                <p className="attention-row" key={link.id}>
+                  <span className="badge warning">{link.enabled ? "Expired" : "Disabled"}</span>
+                  <a href={`/admin/links/${link.id}`}>/{link.code}</a>
+                </p>
+              ))}
+            </div>
           ) : (
             <p className="muted">No disabled or expired links need attention.</p>
           )}

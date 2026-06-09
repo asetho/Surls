@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { UserRole } from "@prisma/client";
 import { prisma } from "./prisma";
 import { hashToken, randomToken } from "./crypto";
 import { env, isProduction } from "./env";
@@ -84,6 +85,16 @@ export async function getCurrentSession() {
 export async function requireAdmin() {
   const session = await getCurrentSession();
   if (!session) return null;
+  return session.user;
+}
+
+export function isAdminUser(user: { role: UserRole | string } | null | undefined) {
+  return user?.role === UserRole.ADMIN;
+}
+
+export async function requireSiteAdmin() {
+  const session = await getCurrentSession();
+  if (!session || !isAdminUser(session.user)) return null;
   return session.user;
 }
 

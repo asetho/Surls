@@ -302,6 +302,30 @@ button.danger:hover {
   padding: 0.8rem;
 }
 
+.bookmarklet-control {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.bookmarklet-button {
+  user-select: none;
+}
+
+.bookmarklet-code {
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: block;
+  font-size: 0.82rem;
+  margin-top: 0.75rem;
+  max-height: 7rem;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  padding: 0.6rem;
+}
+
 .section {
   padding: 2.25rem 0;
 }
@@ -684,6 +708,114 @@ th {
   gap: 0.45rem;
 }
 
+.link-filter-form {
+  flex: 1 1 40rem;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  max-width: 48rem;
+}
+
+.link-filter-form input[name="q"] {
+  flex: 1 1 18rem;
+  min-width: 14rem;
+  width: auto;
+}
+
+.link-filter-form select {
+  flex: 0 0 12rem;
+  width: auto;
+}
+
+.inline-field {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 800;
+  gap: 0.35rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.inline-field input {
+  flex: 0 0 5rem;
+  min-height: 2.3rem;
+  width: 5rem;
+}
+
+.active-filter-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.55rem 0 0;
+}
+
+.compact-button {
+  font-size: 0.82rem;
+  min-height: 1.9rem;
+  padding: 0.28rem 0.52rem;
+}
+
+.sort-link {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  gap: 0.35rem;
+  text-decoration: none;
+}
+
+.sort-link:hover {
+  color: var(--color-teal);
+}
+
+.sort-badge {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.08rem 0.32rem;
+  text-transform: none;
+}
+
+.tag-link {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.tag-link:hover {
+  background: color-mix(in srgb, var(--color-teal), transparent 74%);
+  color: var(--text);
+}
+
+.role-form {
+  align-items: center;
+  display: flex;
+  gap: 0.45rem;
+}
+
+.role-form select {
+  min-width: 7rem;
+}
+
+.dashboard-panel h2 {
+  align-items: center;
+  display: flex;
+  gap: 0.35rem;
+  margin: 0 0 0.65rem;
+}
+
+.dashboard-panel > p {
+  margin: 0.48rem 0;
+}
+
+.dashboard-attention-list {
+  display: grid;
+  gap: 0.52rem;
+  margin-top: 0.12rem;
+}
+
 .field-action {
   align-items: end;
   display: flex;
@@ -708,8 +840,8 @@ th {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
-  margin: 0.55rem 0;
+  gap: 0.58rem;
+  margin: 0;
 }
 
 .icon-only-action {
@@ -1667,6 +1799,20 @@ th {
 
   .content-header {
     display: grid;
+  }
+
+  .link-filter-form {
+    flex-wrap: wrap;
+    justify-content: stretch;
+    max-width: 100%;
+  }
+
+  .link-filter-form input[name="q"],
+  .link-filter-form select,
+  .inline-field,
+  .inline-field input {
+    flex: 1 1 100%;
+    width: 100%;
   }
 
   .site-header-inner,

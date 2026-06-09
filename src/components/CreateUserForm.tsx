@@ -21,6 +21,13 @@ export function CreateUserForm({ csrf }: { csrf: string }) {
         </label>
       </div>
       <label>
+        Role
+        <select name="role" defaultValue="USER">
+          <option value="USER">User</option>
+          <option value="ADMIN">Admin</option>
+        </select>
+      </label>
+      <label>
         Temporary password
         <input name="password" type="password" autoComplete="new-password" minLength={12} required />
       </label>

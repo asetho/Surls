@@ -4,7 +4,7 @@ import { AuditAction } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auditLog } from "@/lib/audit";
-import { requireAdmin } from "@/lib/auth";
+import { isAdminUser, requireAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
 import { archiveShortLink, deleteArchivedShortLink, restoreShortLink } from "@/lib/link-lifecycle";
 import { createShortLink } from "@/lib/links";
@@ -132,6 +132,7 @@ export async function deleteLinkAction(formData: FormData) {
   validateCsrf(formData);
   const admin = await requireAdmin();
   if (!admin) redirect("/login");
+  if (!isAdminUser(admin)) throw new Error("Only admins can permanently delete links.");
   const id = String(formData.get("id") ?? "");
   const link = await deleteArchivedShortLink(id, formData.get("confirmCode"));
   await auditLog({

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import packageJson from "../../../../package.json";
 import { revokeTokenAction } from "./actions";
+import { BookmarkletLink } from "@/components/BookmarkletLink";
 import { ApiTokenForm, ImportCsvForm, LinkCheckerForm, UtmBuilder } from "@/components/ToolsForms";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { getCsrfToken } from "@/lib/csrf";
@@ -44,8 +46,8 @@ export default async function ToolsPage() {
         <div className="surface surface-panel">
           <h2>Bookmarklet</h2>
           <p className="muted small">Create a short URL from the current page when you are logged in.</p>
-          <a className="button" href={bookmarklet}>Shorten with {settings.siteName}</a>
-          <code style={{ display: "block", overflowWrap: "anywhere", marginTop: "0.75rem" }}>{bookmarklet}</code>
+          <BookmarkletLink bookmarklet={bookmarklet} label={`Shorten with ${settings.siteName}`} />
+          <code className="bookmarklet-code">{bookmarklet}</code>
         </div>
         <div className="surface surface-panel">
           <h2>Exports</h2>
@@ -128,7 +130,7 @@ export default async function ToolsPage() {
           <h2>System info</h2>
           <dl>
             <dt>App version</dt>
-            <dd>0.1.0</dd>
+            <dd>{packageJson.version}</dd>
             <dt>Environment</dt>
             <dd>{env.NODE_ENV}</dd>
             <dt>Base URL</dt>

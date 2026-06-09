@@ -11,9 +11,15 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import {
+  DEFAULT_LINK_PAGE_SIZE,
   archiveShortLink,
   deleteArchivedShortLink,
+  normalizeLinkListPage,
+  normalizeLinkListPageSize,
+  normalizeLinkListSort,
+  normalizeLinkListTag,
   restoreShortLink,
+  shortLinkListOrderBy,
   shortLinkListWhere
 } from "@/lib/link-lifecycle";
 
@@ -27,6 +33,45 @@ describe("link lifecycle helpers", () => {
   it("uses active and archived list filters", () => {
     expect(shortLinkListWhere("active")).toEqual({ archivedAt: null });
     expect(shortLinkListWhere("archived")).toEqual({ archivedAt: { not: null } });
+  });
+
+  it("searches link fields and tag fields", () => {
+    expect(shortLinkListWhere("active", "demo")).toEqual({
+      archivedAt: null,
+      OR: [
+        { code: { contains: "demo", mode: "insensitive" } },
+        { title: { contains: "demo", mode: "insensitive" } },
+        { destinationUrl: { contains: "demo", mode: "insensitive" } },
+        { tags: { some: { tag: { name: { contains: "demo", mode: "insensitive" } } } } },
+        { tags: { some: { tag: { slug: { contains: "demo", mode: "insensitive" } } } } }
+      ]
+    });
+  });
+
+  it("filters links by tag slug", () => {
+    expect(shortLinkListWhere("active", undefined, "product")).toEqual({
+      archivedAt: null,
+      tags: { some: { tag: { slug: "product" } } }
+    });
+  });
+
+  it("normalizes list sort and returns matching order clauses", () => {
+    expect(normalizeLinkListSort("clicks")).toBe("clicks_desc");
+    expect(normalizeLinkListSort("url_asc")).toBe("url_asc");
+    expect(normalizeLinkListSort("unknown")).toBe("newest");
+    expect(shortLinkListOrderBy("url_asc")).toEqual([{ code: "asc" }, { createdAt: "desc" }]);
+    expect(shortLinkListOrderBy("clicks_desc")).toEqual([{ clickCount: "desc" }, { createdAt: "desc" }]);
+    expect(shortLinkListOrderBy("status_desc")).toEqual([{ enabled: "desc" }, { code: "asc" }]);
+  });
+
+  it("normalizes list pagination and tag filters", () => {
+    expect(normalizeLinkListPage("3")).toBe(3);
+    expect(normalizeLinkListPage("-2")).toBe(1);
+    expect(normalizeLinkListPageSize("50")).toBe(50);
+    expect(normalizeLinkListPageSize("500")).toBe(200);
+    expect(normalizeLinkListPageSize("nope")).toBe(DEFAULT_LINK_PAGE_SIZE);
+    expect(normalizeLinkListTag(" demo ")).toBe("demo");
+    expect(normalizeLinkListTag(" ")).toBeUndefined();
   });
 
   it("archives links by disabling and timestamping them", async () => {

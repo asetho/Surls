@@ -5,9 +5,20 @@ import { ConfirmButton } from "@/components/ConfirmButton";
 import { CopyShortUrlButton, ShareButton } from "@/components/CopyShareButtons";
 import { EditLinkModal } from "@/components/EditLinkModal";
 import { QrCodeModal } from "@/components/QrCodeModal";
+import { isAdminUser, requireAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { appBaseUrl } from "@/lib/env";
-import { normalizeLinkListView, shortLinkListWhere } from "@/lib/link-lifecycle";
+import {
+  DEFAULT_LINK_PAGE_SIZE,
+  type LinkListSort,
+  normalizeLinkListPage,
+  normalizeLinkListPageSize,
+  normalizeLinkListSort,
+  normalizeLinkListTag,
+  normalizeLinkListView,
+  shortLinkListOrderBy,
+  shortLinkListWhere
+} from "@/lib/link-lifecycle";
 import { shortUrl } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
 import { getSiteName } from "@/lib/settings";
@@ -17,31 +28,105 @@ export const metadata: Metadata = {
   title: "Links"
 };
 
-type SearchParams = Promise<{ q?: string; sort?: string; view?: string }>;
+type SearchParams = Promise<{ page?: string; pageSize?: string; q?: string; sort?: string; tag?: string; view?: string }>;
+
+function nextSortFor(column: "clicks" | "status" | "url", sort: LinkListSort) {
+  if (column === "url") return sort === "url_asc" ? "url_desc" : "url_asc";
+  if (column === "clicks") return sort === "clicks_desc" ? "clicks_asc" : "clicks_desc";
+  return sort === "status_desc" ? "status_asc" : "status_desc";
+}
+
+function ariaSortFor(column: "clicks" | "status" | "url", sort: LinkListSort) {
+  if (column === "url" && sort === "url_asc") return "ascending" as const;
+  if (column === "url" && sort === "url_desc") return "descending" as const;
+  if (column === "clicks" && sort === "clicks_asc") return "ascending" as const;
+  if (column === "clicks" && sort === "clicks_desc") return "descending" as const;
+  if (column === "status" && sort === "status_asc") return "ascending" as const;
+  if (column === "status" && sort === "status_desc") return "descending" as const;
+  return "none" as const;
+}
+
+function sortBadge(column: "clicks" | "status" | "url", sort: LinkListSort) {
+  if (column === "url" && sort === "url_asc") return "A-Z";
+  if (column === "url" && sort === "url_desc") return "Z-A";
+  if (column === "clicks" && sort === "clicks_asc") return "Low";
+  if (column === "clicks" && sort === "clicks_desc") return "High";
+  if (column === "status" && sort === "status_asc") return "Disabled";
+  if (column === "status" && sort === "status_desc") return "Active";
+  return null;
+}
 
 export default async function LinksPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const q = params.q?.trim();
   const view = normalizeLinkListView(params.view);
+  const sort = normalizeLinkListSort(params.sort);
+  const tag = normalizeLinkListTag(params.tag);
+  const requestedPage = normalizeLinkListPage(params.page);
+  const pageSize = normalizeLinkListPageSize(params.pageSize);
   const csrf = getCsrfToken();
-  const viewHref = (nextView: "active" | "archived") => {
+  const listHref = (overrides: Partial<{
+    page: number;
+    pageSize: number;
+    q: string | undefined;
+    sort: LinkListSort;
+    tag: string | undefined;
+    view: "active" | "archived";
+  }> = {}) => {
+    const nextView = Object.hasOwn(overrides, "view") ? overrides.view : view;
+    const nextQ = Object.hasOwn(overrides, "q") ? overrides.q : q;
+    const nextSort = Object.hasOwn(overrides, "sort") ? overrides.sort : sort;
+    const nextTag = Object.hasOwn(overrides, "tag") ? overrides.tag : tag;
+    const nextPage = Object.hasOwn(overrides, "page") ? overrides.page : requestedPage;
+    const nextPageSize = Object.hasOwn(overrides, "pageSize") ? overrides.pageSize : pageSize;
     const urlParams = new URLSearchParams();
     if (nextView === "archived") urlParams.set("view", "archived");
-    if (q) urlParams.set("q", q);
-    if (params.sort) urlParams.set("sort", params.sort);
+    if (nextQ) urlParams.set("q", nextQ);
+    if (nextTag) urlParams.set("tag", nextTag);
+    if (nextSort && nextSort !== "newest") urlParams.set("sort", nextSort);
+    if (nextPage && nextPage > 1) urlParams.set("page", String(nextPage));
+    if (nextPageSize && nextPageSize !== DEFAULT_LINK_PAGE_SIZE) {
+      urlParams.set("pageSize", String(nextPageSize));
+    }
     const query = urlParams.toString();
     return query ? `/admin/links?${query}` : "/admin/links";
   };
-  const [links, siteName] = await Promise.all([
+  const viewHref = (nextView: "active" | "archived") => {
+    return listHref({ page: 1, view: nextView });
+  };
+  const where = shortLinkListWhere(view, q, tag);
+  const [totalLinks, siteName, currentUser, activeTag] = await Promise.all([
+    prisma.shortLink.count({ where }),
+    getSiteName(),
+    requireAdmin(),
+    tag ? prisma.tag.findUnique({ where: { slug: tag }, select: { name: true, slug: true } }) : Promise.resolve(null)
+  ]);
+  const totalPages = Math.max(1, Math.ceil(totalLinks / pageSize));
+  const currentPage = Math.min(requestedPage, totalPages);
+  const [links] = await Promise.all([
     prisma.shortLink.findMany({
-      where: shortLinkListWhere(view, q),
-      orderBy: params.sort === "clicks" ? [{ clickCount: "desc" }] : [{ createdAt: "desc" }],
+      where,
+      orderBy: shortLinkListOrderBy(sort),
       include: { tags: { include: { tag: true } } },
-      take: 100
-    }),
-    getSiteName()
+      skip: (currentPage - 1) * pageSize,
+      take: pageSize
+    })
   ]);
   const baseUrl = appBaseUrl();
+  const canDeleteLinks = isAdminUser(currentUser);
+  const firstRow = totalLinks === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const lastRow = Math.min(totalLinks, currentPage * pageSize);
+  const tagLabel = activeTag?.name ?? tag;
+  const sortHref = (column: "clicks" | "status" | "url") => listHref({ page: 1, sort: nextSortFor(column, sort) });
+  const sortableHeader = (column: "clicks" | "status" | "url", label: string) => {
+    const badge = sortBadge(column, sort);
+    return (
+      <Link className="sort-link" href={sortHref(column)}>
+        <span>{label}</span>
+        {badge ? <span className="sort-badge">{badge}</span> : <span className="sort-badge muted">Sort</span>}
+      </Link>
+    );
+  };
 
   return (
     <main className="admin-content">
@@ -62,25 +147,55 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
 
       <section className="surface surface-panel">
         <div className="content-header">
-          <h2>{view === "archived" ? "Archived links" : "Active links"}</h2>
-          <form className="row-actions">
+          <div>
+            <h2>{view === "archived" ? "Archived links" : "Active links"}</h2>
+            <p className="muted small">
+              Showing {firstRow}-{lastRow} of {totalLinks} {totalLinks === 1 ? "link" : "links"}.
+            </p>
+          </div>
+          <form className="row-actions link-filter-form" key={`${view}-${q ?? ""}-${tag ?? ""}-${sort}-${pageSize}`}>
             {view === "archived" ? <input type="hidden" name="view" value="archived" /> : null}
-            <input name="q" placeholder="Search links" defaultValue={q ?? ""} />
-            <select name="sort" defaultValue={params.sort ?? "newest"}>
+            {tag ? <input type="hidden" name="tag" value={tag} /> : null}
+            <input name="q" placeholder="Search links or tags" defaultValue={q ?? ""} />
+            <select name="sort" defaultValue={sort} aria-label="Sort links">
               <option value="newest">Newest</option>
-              <option value="clicks">Most clicks</option>
+              <option value="url_asc">Short URL A-Z</option>
+              <option value="url_desc">Short URL Z-A</option>
+              <option value="clicks_desc">Most clicks</option>
+              <option value="clicks_asc">Fewest clicks</option>
+              <option value="status_desc">Active first</option>
+              <option value="status_asc">Disabled first</option>
             </select>
+            <label className="inline-field">
+              Rows
+              <input
+                inputMode="numeric"
+                min={1}
+                name="pageSize"
+                type="number"
+                defaultValue={pageSize}
+                aria-label="Rows per page"
+              />
+            </label>
             <button type="submit" className="secondary">Filter</button>
           </form>
         </div>
+        {tag ? (
+          <div className="active-filter-row">
+            <span className="badge">Tag: {tagLabel}</span>
+            <Link className="button secondary compact-button" href={listHref({ page: 1, tag: undefined })}>
+              Clear tag
+            </Link>
+          </div>
+        ) : null}
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Short URL</th>
+                <th aria-sort={ariaSortFor("url", sort)}>{sortableHeader("url", "Short URL")}</th>
                 <th>Destination</th>
-                <th>Status</th>
-                <th>Clicks</th>
+                <th aria-sort={ariaSortFor("status", sort)}>{sortableHeader("status", "Status")}</th>
+                <th aria-sort={ariaSortFor("clicks", sort)}>{sortableHeader("clicks", "Clicks")}</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -111,7 +226,14 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
                         <div className="muted small">{link.title || "Untitled"}</div>
                         <div className="row-actions small">
                           {link.tags.map(({ tag }) => (
-                            <span className="badge" key={tag.id}>{tag.name}</span>
+                            <Link
+                              className="badge tag-link"
+                              href={listHref({ page: 1, tag: tag.slug })}
+                              key={tag.id}
+                              title={`Show links tagged ${tag.name}`}
+                            >
+                              {tag.name}
+                            </Link>
                           ))}
                         </div>
                       </td>
@@ -141,25 +263,27 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
                                 Restore
                               </ConfirmButton>
                             </form>
-                            <form className="row-actions" action={deleteLinkAction}>
-                              <input type="hidden" name="csrf" value={csrf} />
-                              <input type="hidden" name="id" value={link.id} />
-                              <input
-                                className="inline-confirm-input"
-                                name="confirmCode"
-                                placeholder={link.code}
-                                aria-label={`Type ${link.code} to delete permanently`}
-                                required
-                              />
-                              <ConfirmButton
-                                className="danger icon-button"
-                                type="submit"
-                                message={`Permanently delete /${link.code} and its click history?`}
-                              >
-                                <Trash2 size={16} aria-hidden />
-                                Delete
-                              </ConfirmButton>
-                            </form>
+                            {canDeleteLinks ? (
+                              <form className="row-actions" action={deleteLinkAction}>
+                                <input type="hidden" name="csrf" value={csrf} />
+                                <input type="hidden" name="id" value={link.id} />
+                                <input
+                                  className="inline-confirm-input"
+                                  name="confirmCode"
+                                  placeholder={link.code}
+                                  aria-label={`Type ${link.code} to delete permanently`}
+                                  required
+                                />
+                                <ConfirmButton
+                                  className="danger icon-button"
+                                  type="submit"
+                                  message={`Permanently delete /${link.code} and its click history?`}
+                                >
+                                  <Trash2 size={16} aria-hidden />
+                                  Delete
+                                </ConfirmButton>
+                              </form>
+                            ) : null}
                           </div>
                         ) : (
                           <div className="row-actions">
@@ -180,6 +304,23 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
             </tbody>
           </table>
         </div>
+        <nav className="pagination" aria-label="Links pagination">
+          <Link
+            aria-disabled={currentPage <= 1}
+            className="button secondary"
+            href={currentPage <= 1 ? listHref({ page: 1 }) : listHref({ page: currentPage - 1 })}
+          >
+            Previous
+          </Link>
+          <span className="muted small">Page {currentPage} of {totalPages}</span>
+          <Link
+            aria-disabled={currentPage >= totalPages}
+            className="button secondary"
+            href={currentPage >= totalPages ? listHref({ page: totalPages }) : listHref({ page: currentPage + 1 })}
+          >
+            Next
+          </Link>
+        </nav>
       </section>
     </main>
   );
