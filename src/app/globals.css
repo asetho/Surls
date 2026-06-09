@@ -473,6 +473,19 @@ th {
   gap: 0.45rem;
 }
 
+.addtoany-share {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.18rem;
+  min-height: 2rem;
+}
+
+.inline-confirm-input {
+  max-width: 9rem;
+  min-height: 2rem;
+  padding: 0.34rem 0.5rem;
+}
+
 .icon-button {
   min-height: 2rem;
   padding: 0.38rem 0.5rem;
@@ -518,9 +531,39 @@ th {
   height: 100%;
 }
 
+.stats-tabs {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.tab-list {
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.tab-button {
+  background: transparent;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  color: var(--muted);
+  min-height: 2.5rem;
+  padding: 0.55rem 0.75rem;
+}
+
+.tab-button[aria-selected="true"] {
+  border-bottom-color: var(--color-teal);
+  color: var(--text);
+}
+
 .stats-panel,
 .stats-card {
-  padding: 1rem;
+  display: grid;
+  gap: 1rem;
 }
 
 .stats-history-grid {
@@ -597,6 +640,12 @@ th {
   margin-bottom: 0.8rem;
 }
 
+.stats-split-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .source-split > div {
   display: grid;
   gap: 0.2rem;
@@ -667,6 +716,7 @@ th {
   .grid-3,
   .form-grid,
   .stats-history-grid,
+  .stats-split-grid,
   .admin-shell {
     grid-template-columns: 1fr;
   }

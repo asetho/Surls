@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getCsrfToken } from "@/lib/csrf";
+import { COMMON_DISPLAY_TIME_ZONES } from "@/lib/dates";
 import { appBaseUrl } from "@/lib/env";
 import { getSettings } from "@/lib/settings";
 import { updateSettingsAction } from "./actions";
@@ -27,6 +28,16 @@ export default async function SettingsPage() {
           <label>
             Site name
             <input name="siteName" defaultValue={settings.siteName} />
+          </label>
+          <label>
+            Display timezone
+            <input name="displayTimeZone" list="display-time-zones" defaultValue={settings.displayTimeZone} />
+            <datalist id="display-time-zones">
+              {COMMON_DISPLAY_TIME_ZONES.map((timeZone) => (
+                <option value={timeZone} key={timeZone} />
+              ))}
+            </datalist>
+            <span className="muted small">Used for admin timestamps and historical click day buckets.</span>
           </label>
           <label>
             <span>
@@ -75,6 +86,8 @@ export default async function SettingsPage() {
           <dd>{settings.trackAdminClicks ? "Enabled" : "Disabled"}</dd>
           <dt>Preserve redirect query</dt>
           <dd>{settings.preserveRedirectQuery ? "Enabled" : "Disabled"}</dd>
+          <dt>Display timezone</dt>
+          <dd>{settings.displayTimeZone}</dd>
         </dl>
       </section>
     </main>

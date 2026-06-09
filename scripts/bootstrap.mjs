@@ -8,6 +8,7 @@ const prisma = new PrismaClient({
 
 const DEFAULT_SETTINGS = {
   siteName: process.env.APP_NAME?.trim() || "Surls",
+  displayTimeZone: "America/New_York",
   trackAdminClicks: false,
   preserveRedirectQuery: false,
   enablePasswordProtectedLinks: true,

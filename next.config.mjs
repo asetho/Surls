@@ -4,7 +4,9 @@ const nextConfig = {
   poweredByHeader: false,
   async headers() {
     const isProd = process.env.NODE_ENV === "production";
-    const scriptSrc = ["script-src 'self' 'unsafe-inline'", isProd ? "" : "'unsafe-eval'"].filter(Boolean).join(" ");
+    const scriptSrc = ["script-src 'self' 'unsafe-inline' https://static.addtoany.com", isProd ? "" : "'unsafe-eval'"]
+      .filter(Boolean)
+      .join(" ");
 
     return [
       {
@@ -18,10 +20,11 @@ const nextConfig = {
               "form-action 'self'",
               "frame-ancestors 'none'",
               "object-src 'none'",
-              "img-src 'self' data:",
+              "img-src 'self' data: https://static.addtoany.com",
               scriptSrc,
-              "style-src 'self' 'unsafe-inline'",
-              "connect-src 'self'",
+              "style-src 'self' 'unsafe-inline' https://static.addtoany.com",
+              "connect-src 'self' https://static.addtoany.com https://www.addtoany.com",
+              "frame-src 'self' https://www.addtoany.com",
               "font-src 'self'",
               "upgrade-insecure-requests"
             ].join("; ")

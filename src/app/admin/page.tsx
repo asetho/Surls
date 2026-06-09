@@ -2,9 +2,10 @@ import { AlertTriangle, CalendarClock, Link2, MousePointerClick } from "lucide-r
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { appBaseUrl } from "@/lib/env";
+import { formatDateTime } from "@/lib/dates";
 import { shortUrl } from "@/lib/links";
 import { CopyShareButtons } from "@/components/CopyShareButtons";
-import { getSiteName } from "@/lib/settings";
+import { getSettings } from "@/lib/settings";
 
 export default async function AdminDashboard() {
   const now = new Date();
@@ -25,7 +26,7 @@ export default async function AdminDashboard() {
     recentLinks,
     recentClicks,
     attentionLinks,
-    siteName
+    settings
   ] = await Promise.all([
     prisma.shortLink.count({ where: { archivedAt: null } }),
     prisma.clickEvent.count(),
@@ -55,8 +56,9 @@ export default async function AdminDashboard() {
       orderBy: { updatedAt: "desc" },
       take: 6
     }),
-    getSiteName()
+    getSettings()
   ]);
+  const { displayTimeZone, siteName } = settings;
 
   return (
     <main className="admin-content">
@@ -142,7 +144,7 @@ export default async function AdminDashboard() {
               <p key={link.id}>
                 <a href={`/admin/links/${link.id}`}>/{link.code}</a>
                 <br />
-                <span className="muted small">{link.createdAt.toLocaleString()}</span>
+                <span className="muted small">{formatDateTime(link.createdAt, displayTimeZone)}</span>
               </p>
             ))
           ) : (
@@ -157,7 +159,8 @@ export default async function AdminDashboard() {
                 <a href={`/admin/links/${click.shortLinkId}`}>/{click.shortLink.code}</a>
                 <br />
                 <span className="muted small">
-                  {click.browser || "Unknown"} on {click.device || "Unknown"} · {click.occurredAt.toLocaleString()}
+                  {click.browser || "Unknown"} on {click.device || "Unknown"} ·{" "}
+                  {formatDateTime(click.occurredAt, displayTimeZone)}
                 </span>
               </p>
             ))

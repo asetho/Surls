@@ -1,7 +1,41 @@
 "use client";
 
-import { Copy, Mail, Share2 } from "lucide-react";
-import { useState } from "react";
+import { Copy } from "lucide-react";
+import { useEffect, useState } from "react";
+
+const ADDTOANY_SRC = "https://static.addtoany.com/menu/page.js";
+
+declare global {
+  interface Window {
+    a2a?: { init_all?: () => void };
+    __surlsAddToAnyScript?: Promise<void>;
+  }
+}
+
+function loadAddToAny() {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (window.a2a?.init_all) return Promise.resolve();
+  if (window.__surlsAddToAnyScript) return window.__surlsAddToAnyScript;
+
+  window.__surlsAddToAnyScript = new Promise((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>(`script[src="${ADDTOANY_SRC}"]`);
+    if (existing) {
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error("AddToAny failed to load.")), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = ADDTOANY_SRC;
+    script.async = true;
+    script.defer = true;
+    script.addEventListener("load", () => resolve(), { once: true });
+    script.addEventListener("error", () => reject(new Error("AddToAny failed to load.")), { once: true });
+    document.body.appendChild(script);
+  });
+
+  return window.__surlsAddToAnyScript;
+}
 
 export function CopyShareButtons({
   url,
@@ -13,6 +47,19 @@ export function CopyShareButtons({
   defaultTitle?: string;
 }) {
   const [toast, setToast] = useState("");
+  const shareTitle = title || defaultTitle;
+
+  useEffect(() => {
+    let cancelled = false;
+    loadAddToAny()
+      .then(() => {
+        if (!cancelled) window.a2a?.init_all?.();
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [shareTitle, url]);
 
   async function copy() {
     try {
@@ -29,19 +76,6 @@ export function CopyShareButtons({
     window.setTimeout(() => setToast(""), 1600);
   }
 
-  async function share() {
-    const text = title || defaultTitle;
-    if (navigator.share) {
-      await navigator.share({ title: text, text, url }).catch(() => null);
-      return;
-    }
-    const params = new URLSearchParams({ subject: text, body: url });
-    window.location.href = `mailto:?${params.toString()}`;
-  }
-
-  const encoded = encodeURIComponent(url);
-  const shareTitle = encodeURIComponent(title || defaultTitle);
-
   return (
     <>
       <div className="row-actions">
@@ -49,24 +83,22 @@ export function CopyShareButtons({
           <Copy size={16} aria-hidden />
           Copy
         </button>
-        <button type="button" className="icon-button secondary" onClick={share} title="Share short URL">
-          <Share2 size={16} aria-hidden />
-          Share
-        </button>
-        <a className="button icon-button secondary" href={`mailto:?subject=${shareTitle}&body=${encoded}`} title="Share by email">
-          <Mail size={16} aria-hidden />
-          Email
-        </a>
-      </div>
-      <div className="row-actions small" aria-label="Fallback share targets">
-        <a href={`sms:?&body=${encoded}`}>SMS</a>
-        <a href={`https://www.facebook.com/sharer/sharer.php?u=${encoded}`}>Facebook</a>
-        <a href={`https://twitter.com/intent/tweet?url=${encoded}&text=${shareTitle}`}>X/Twitter</a>
-        <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encoded}`}>LinkedIn</a>
-        <a href={`https://reddit.com/submit?url=${encoded}&title=${shareTitle}`}>Reddit</a>
-        <a href={`https://wa.me/?text=${shareTitle}%20${encoded}`}>WhatsApp</a>
-        <a href={`https://t.me/share/url?url=${encoded}&text=${shareTitle}`}>Telegram</a>
-        <a href={`https://bsky.app/intent/compose?text=${shareTitle}%20${encoded}`}>Bluesky</a>
+        <div
+          className="a2a_kit a2a_kit_size_32 a2a_default_style addtoany-share"
+          data-a2a-url={url}
+          data-a2a-title={shareTitle}
+        >
+          <a className="a2a_button_email" aria-label="Share by email" />
+          <a className="a2a_button_sms" aria-label="Share by SMS" />
+          <a className="a2a_button_facebook" aria-label="Share on Facebook" />
+          <a className="a2a_button_x" aria-label="Share on X" />
+          <a className="a2a_button_linkedin" aria-label="Share on LinkedIn" />
+          <a className="a2a_button_reddit" aria-label="Share on Reddit" />
+          <a className="a2a_button_whatsapp" aria-label="Share on WhatsApp" />
+          <a className="a2a_button_telegram" aria-label="Share on Telegram" />
+          <a className="a2a_button_bluesky" aria-label="Share on Bluesky" />
+          <a className="a2a_dd" href="https://www.addtoany.com/share" aria-label="More share options" />
+        </div>
       </div>
       {toast ? <div className="toast" role="status">{toast}</div> : null}
     </>

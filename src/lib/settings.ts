@@ -1,8 +1,10 @@
 import { prisma } from "./prisma";
 import { env } from "./env";
+import { DEFAULT_DISPLAY_TIME_ZONE, normalizeDisplayTimeZone } from "./dates";
 
 export const DEFAULT_SETTINGS = {
   siteName: env.APP_NAME,
+  displayTimeZone: DEFAULT_DISPLAY_TIME_ZONE,
   trackAdminClicks: false,
   preserveRedirectQuery: false,
   enablePasswordProtectedLinks: true,
@@ -30,6 +32,14 @@ export async function getSiteName() {
   }
 }
 
+export async function getDisplayTimeZone() {
+  try {
+    return normalizeDisplayTimeZone(await getSetting("displayTimeZone"));
+  } catch {
+    return DEFAULT_DISPLAY_TIME_ZONE;
+  }
+}
+
 export async function getSettings(): Promise<AppSettings> {
   const rows = await prisma.appSetting.findMany();
   const values = new Map(rows.map((row) => [row.key, row.value]));
@@ -38,7 +48,8 @@ export async function getSettings(): Promise<AppSettings> {
   ) as AppSettings;
   return {
     ...settings,
-    siteName: normalizeSiteName(settings.siteName)
+    siteName: normalizeSiteName(settings.siteName),
+    displayTimeZone: normalizeDisplayTimeZone(settings.displayTimeZone)
   };
 }
 

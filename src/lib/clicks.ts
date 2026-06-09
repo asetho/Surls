@@ -1,17 +1,10 @@
 import type { NextRequest } from "next/server";
 import { hashPrivacyValue } from "./crypto";
+import { DEFAULT_DISPLAY_TIME_ZONE, dateKeyForTimeZone, enumerateDateKeys } from "./dates";
 import { prisma } from "./prisma";
 import { requestCountry, requestIp, requestIpHash, requestRegion, userAgentSummary } from "./request";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-function startOfUtcDay(date: Date) {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-}
-
-function dayKey(date: Date) {
-  return startOfUtcDay(date).toISOString().slice(0, 10);
-}
 
 function displayReferrer(referrer: string | null) {
   if (!referrer) return "Direct";
@@ -22,28 +15,22 @@ function displayReferrer(referrer: string | null) {
   }
 }
 
-function daysBetween(start: Date, end: Date) {
-  return Math.max(0, Math.round((startOfUtcDay(end).getTime() - startOfUtcDay(start).getTime()) / DAY_MS));
-}
-
-function buildDailyHistory(createdAt: Date | null, clicks: Array<{ occurredAt: Date }>) {
-  const now = new Date();
+export function buildDailyHistory(
+  createdAt: Date | null,
+  clicks: Array<{ occurredAt: Date }>,
+  timeZone = DEFAULT_DISPLAY_TIME_ZONE,
+  now = new Date()
+) {
   const counts = new Map<string, number>();
   for (const click of clicks) {
-    const key = dayKey(click.occurredAt);
+    const key = dateKeyForTimeZone(click.occurredAt, timeZone);
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
 
   const firstClickAt = clicks[0]?.occurredAt;
-  const start = startOfUtcDay(createdAt ?? firstClickAt ?? now);
-  const end = startOfUtcDay(now);
-  const totalDays = daysBetween(start, end);
-
-  return Array.from({ length: totalDays + 1 }, (_, index) => {
-    const date = new Date(start.getTime() + index * DAY_MS);
-    const key = date.toISOString().slice(0, 10);
-    return { date: key, count: counts.get(key) ?? 0 };
-  });
+  const startKey = dateKeyForTimeZone(createdAt ?? firstClickAt ?? now, timeZone);
+  const endKey = dateKeyForTimeZone(now, timeZone);
+  return enumerateDateKeys(startKey, endKey).map((date) => ({ date, count: counts.get(date) ?? 0 }));
 }
 
 function countSince(clicks: Array<{ occurredAt: Date }>, since: Date) {
@@ -94,8 +81,12 @@ export async function recordClick(input: {
   ]);
 }
 
-export async function clickStats(shortLinkId: string, createdAt: Date | null = null) {
-  const [total, unique, recent, byReferrer, byBrowser, allClicks] = await Promise.all([
+export async function clickStats(
+  shortLinkId: string,
+  createdAt: Date | null = null,
+  timeZone = DEFAULT_DISPLAY_TIME_ZONE
+) {
+  const [total, unique, recent, allClicks] = await Promise.all([
     prisma.clickEvent.count({ where: { shortLinkId } }),
     prisma.clickEvent.groupBy({ by: ["visitorHash"], where: { shortLinkId } }),
     prisma.clickEvent.findMany({
@@ -103,35 +94,23 @@ export async function clickStats(shortLinkId: string, createdAt: Date | null = n
       orderBy: { occurredAt: "desc" },
       take: 100
     }),
-    prisma.clickEvent.groupBy({
-      by: ["referrer"],
-      where: { shortLinkId },
-      _count: { referrer: true },
-      orderBy: { _count: { referrer: "desc" } },
-      take: 10
-    }),
-    prisma.clickEvent.groupBy({
-      by: ["browser"],
-      where: { shortLinkId },
-      _count: { browser: true },
-      orderBy: { _count: { browser: "desc" } },
-      take: 10
-    }),
     prisma.clickEvent.findMany({
       where: { shortLinkId },
       orderBy: { occurredAt: "asc" },
-      select: { occurredAt: true, country: true, referrer: true }
+      select: { occurredAt: true, country: true, referrer: true, browser: true, device: true }
     })
   ]);
 
   const now = new Date();
-  const dailyHistory = buildDailyHistory(createdAt, allClicks);
+  const dailyHistory = buildDailyHistory(createdAt, allClicks, timeZone, now);
   const bestDay = dailyHistory.reduce(
     (best, day) => (day.count > best.count ? day : best),
-    { date: dailyHistory[0]?.date ?? dayKey(now), count: 0 }
+    { date: dailyHistory[0]?.date ?? dateKeyForTimeZone(now, timeZone), count: 0 }
   );
   const referrerCounts = topCounts(allClicks.flatMap((click) => (click.referrer ? [displayReferrer(click.referrer)] : [])));
   const countryCounts = topCounts(allClicks.map((click) => click.country ?? "Unknown"));
+  const browserCounts = topCounts(allClicks.map((click) => click.browser ?? "Unknown"));
+  const deviceCounts = topCounts(allClicks.map((click) => click.device ?? "Unknown"));
   const directCount = allClicks.filter((click) => !click.referrer).length;
   const referrerCount = Math.max(0, allClicks.length - directCount);
 
@@ -139,8 +118,8 @@ export async function clickStats(shortLinkId: string, createdAt: Date | null = n
     total,
     unique: unique.length,
     recent,
-    byReferrer,
-    byBrowser,
+    byBrowser: browserCounts,
+    byDevice: deviceCounts,
     dailyHistory,
     bestDay,
     periodCounts: {

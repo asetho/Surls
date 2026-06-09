@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import QRCode from "qrcode";
-import { Archive, Download } from "lucide-react";
+import { Archive, Download, RotateCcw, Trash2 } from "lucide-react";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { CopyShareButtons } from "@/components/CopyShareButtons";
+import { StatsTabs } from "@/components/StatsTabs";
 import { TitleAutoFill } from "@/components/TitleAutoFill";
 import { getCsrfToken } from "@/lib/csrf";
+import { formatDateKey, formatDateTime } from "@/lib/dates";
 import { appBaseUrl } from "@/lib/env";
 import { clickStats } from "@/lib/clicks";
 import { shortUrl } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
-import { getSiteName } from "@/lib/settings";
-import { archiveLinkAction, updateLinkAction } from "../actions";
+import { getSettings } from "@/lib/settings";
+import { archiveLinkAction, deleteLinkAction, restoreLinkAction, updateLinkAction } from "../actions";
 
 export const metadata: Metadata = {
   title: "Link Stats"
@@ -20,21 +22,6 @@ export const metadata: Metadata = {
 type PageProps = {
   params: Promise<{ id: string }>;
 };
-
-function formatDateTime(date: Date) {
-  return date.toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short"
-  });
-}
-
-function formatDay(date: string) {
-  return new Date(`${date}T00:00:00.000Z`).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric"
-  });
-}
 
 function HistoryChart({ days }: { days: Array<{ date: string; count: number }> }) {
   const width = 760;
@@ -79,14 +66,14 @@ function HistoryChart({ days }: { days: Array<{ date: string; count: number }> }
         {points.length <= 90
           ? points.map((point) => (
               <circle key={point.date} cx={point.x} cy={point.y} r={3}>
-                <title>{`${formatDay(point.date)}: ${point.count} hit${point.count === 1 ? "" : "s"}`}</title>
+                <title>{`${formatDateKey(point.date)}: ${point.count} hit${point.count === 1 ? "" : "s"}`}</title>
               </circle>
             ))
           : null}
       </svg>
       <div className="chart-axis-labels">
-        <span>{days[0] ? formatDay(days[0].date) : "No clicks"}</span>
-        <span>{days.at(-1) ? formatDay(days.at(-1)!.date) : ""}</span>
+        <span>{days[0] ? formatDateKey(days[0].date) : "No clicks"}</span>
+        <span>{days.at(-1) ? formatDateKey(days.at(-1)!.date) : ""}</span>
       </div>
     </div>
   );
@@ -113,19 +100,19 @@ function CountBars({ rows, emptyLabel }: { rows: Array<{ label: string; count: n
 
 export default async function LinkDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const [link, siteName] = await Promise.all([
+  const [link, settings] = await Promise.all([
     prisma.shortLink.findUnique({
       where: { id },
       include: { tags: { include: { tag: true } } }
     }),
-    getSiteName()
+    getSettings()
   ]);
   if (!link) notFound();
+  const { displayTimeZone, siteName } = settings;
   const csrf = getCsrfToken();
-  const stats = await clickStats(link.id, link.createdAt);
+  const stats = await clickStats(link.id, link.createdAt, displayTimeZone);
   const url = shortUrl(appBaseUrl(), link.code);
   const qr = await QRCode.toDataURL(url, { margin: 1, width: 180 });
-  const maxBrowserCount = Math.max(1, ...stats.byBrowser.map((row) => row._count.browser));
   const activeDays = Math.max(1, stats.dailyHistory.length);
   const allTimeRate = stats.total / activeDays;
 
@@ -134,7 +121,10 @@ export default async function LinkDetailPage({ params }: PageProps) {
       <div className="content-header">
         <div>
           <h1>/{link.code}</h1>
-          <p className="muted">{link.title || `Untitled ${siteName} link`}</p>
+          <p className="muted">
+            {link.title || `Untitled ${siteName} link`}{" "}
+            {link.archivedAt ? <span className="badge warning">Archived</span> : null}
+          </p>
         </div>
         <CopyShareButtons url={url} title={link.title} defaultTitle={`${siteName} short link`} />
       </div>
@@ -150,89 +140,110 @@ export default async function LinkDetailPage({ params }: PageProps) {
         </div>
         <div className="metric">
           <span className="muted">Last clicked</span>
-          <strong style={{ fontSize: "1rem" }}>{link.lastClickedAt?.toLocaleString() ?? "Never"}</strong>
+          <strong style={{ fontSize: "1rem" }}>
+            {link.lastClickedAt ? formatDateTime(link.lastClickedAt, displayTimeZone) : "Never"}
+          </strong>
         </div>
       </section>
 
-      <section className="surface stats-panel">
-        <div>
-          <h2>Historical click count</h2>
-          <p className="muted small">
-            Short URL created on {formatDateTime(link.createdAt)}. Stats exclude admin clicks when Track admin clicks is off.
-          </p>
-        </div>
-        <div className="stats-history-grid">
-          <HistoryChart days={stats.dailyHistory} />
-          <div className="stats-summary">
-            <div>
-              <span>Last 24 hours</span>
-              <strong>{stats.periodCounts.last24Hours} hits</strong>
-            </div>
-            <div>
-              <span>Last 7 days</span>
-              <strong>{stats.periodCounts.last7Days} hits</strong>
-            </div>
-            <div>
-              <span>Last 30 days</span>
-              <strong>{stats.periodCounts.last30Days} hits</strong>
-            </div>
-            <div>
-              <span>All time</span>
-              <strong>
-                {stats.periodCounts.allTime} hits <span className="muted small">{allTimeRate.toFixed(1)} per day</span>
-              </strong>
-            </div>
-            <div className="best-day">
-              <span>Best day</span>
-              <strong>
-                {stats.bestDay.count} hits on {formatDay(stats.bestDay.date)}
-              </strong>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="grid-3">
-        <div className="surface stats-card">
-          <h2>Location</h2>
-          <CountBars rows={stats.countryCounts} emptyLabel="No location data yet." />
-        </div>
-        <div className="surface stats-card">
-          <h2>Sources</h2>
-          <div className="source-split">
-            <div>
-              <span className="muted small">Direct traffic</span>
-              <strong>{stats.sourceCounts.direct} hits</strong>
-            </div>
-            <div>
-              <span className="muted small">Referrer traffic</span>
-              <strong>{stats.sourceCounts.referrer} hits</strong>
-            </div>
-          </div>
-          <CountBars rows={stats.sourceCounts.referrers} emptyLabel="No referrer data yet." />
-        </div>
-        <div className="surface stats-card">
-          <h2>Browser/device</h2>
-          <div className="chart-bars">
-            {stats.byBrowser.length ? (
-              stats.byBrowser.map((row) => (
-                <div className="chart-row" key={row.browser ?? "Unknown"}>
-                  <span>{row.browser ?? "Unknown"}</span>
-                  <span className="bar-track">
-                    <span
-                      className="bar-fill"
-                      style={{ width: `${(row._count.browser / maxBrowserCount) * 100}%`, display: "block" }}
-                    />
-                  </span>
-                  <span>{row._count.browser}</span>
+      <StatsTabs
+        tabs={[
+          {
+            id: "history",
+            label: "Historical clicks",
+            children: (
+              <div className="stats-panel">
+                <div>
+                  <h2>Historical click count</h2>
+                  <p className="muted small">
+                    Short URL created on {formatDateTime(link.createdAt, displayTimeZone)}. Stats exclude admin clicks
+                    when Track admin clicks is off.
+                  </p>
                 </div>
-              ))
-            ) : (
-              <p className="muted">No browser data yet.</p>
-            )}
-          </div>
-        </div>
-      </section>
+                <div className="stats-history-grid">
+                  <HistoryChart days={stats.dailyHistory} />
+                  <div className="stats-summary">
+                    <div>
+                      <span>Last 24 hours</span>
+                      <strong>{stats.periodCounts.last24Hours} hits</strong>
+                    </div>
+                    <div>
+                      <span>Last 7 days</span>
+                      <strong>{stats.periodCounts.last7Days} hits</strong>
+                    </div>
+                    <div>
+                      <span>Last 30 days</span>
+                      <strong>{stats.periodCounts.last30Days} hits</strong>
+                    </div>
+                    <div>
+                      <span>All time</span>
+                      <strong>
+                        {stats.periodCounts.allTime} hits{" "}
+                        <span className="muted small">{allTimeRate.toFixed(1)} per day</span>
+                      </strong>
+                    </div>
+                    <div className="best-day">
+                      <span>Best day</span>
+                      <strong>
+                        {stats.bestDay.count} hits on {formatDateKey(stats.bestDay.date)}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          },
+          {
+            id: "location",
+            label: "Location",
+            children: (
+              <div className="stats-card">
+                <h2>Location</h2>
+                <CountBars rows={stats.countryCounts} emptyLabel="No location data yet." />
+              </div>
+            )
+          },
+          {
+            id: "sources",
+            label: "Sources",
+            children: (
+              <div className="stats-card">
+                <h2>Sources</h2>
+                <div className="source-split">
+                  <div>
+                    <span className="muted small">Direct traffic</span>
+                    <strong>{stats.sourceCounts.direct} hits</strong>
+                  </div>
+                  <div>
+                    <span className="muted small">Referrer traffic</span>
+                    <strong>{stats.sourceCounts.referrer} hits</strong>
+                  </div>
+                </div>
+                <CountBars rows={stats.sourceCounts.referrers} emptyLabel="No referrer data yet." />
+              </div>
+            )
+          },
+          {
+            id: "browser-device",
+            label: "Browser/device",
+            children: (
+              <div className="stats-card">
+                <h2>Browser/device</h2>
+                <div className="stats-split-grid">
+                  <div>
+                    <h3>Browsers</h3>
+                    <CountBars rows={stats.byBrowser} emptyLabel="No browser data yet." />
+                  </div>
+                  <div>
+                    <h3>Devices</h3>
+                    <CountBars rows={stats.byDevice} emptyLabel="No device data yet." />
+                  </div>
+                </div>
+              </div>
+            )
+          }
+        ]}
+      />
 
       <section className="grid-3">
         <div className="surface" style={{ padding: "1rem" }}>
@@ -316,7 +327,7 @@ export default async function LinkDetailPage({ params }: PageProps) {
               {stats.recent.length ? (
                 stats.recent.map((click) => (
                   <tr key={click.id}>
-                    <td>{formatDateTime(click.occurredAt)}</td>
+                    <td>{formatDateTime(click.occurredAt, displayTimeZone)}</td>
                     <td className="click-id">{click.id}</td>
                     <td>{click.country || "Unknown"}</td>
                     <td className="ip-cell">{click.ipAddress || "Unknown"}</td>
@@ -336,18 +347,57 @@ export default async function LinkDetailPage({ params }: PageProps) {
         </div>
       </section>
 
-      <section className="surface" style={{ padding: "1rem" }}>
-        <h2>Archive</h2>
-        <p className="muted">Archived links stop redirecting and are hidden from normal dashboard lists.</p>
-        <form action={archiveLinkAction}>
-          <input type="hidden" name="csrf" value={csrf} />
-          <input type="hidden" name="id" value={link.id} />
-          <ConfirmButton className="danger" type="submit" message={`Archive this ${siteName} link?`}>
-            <Archive size={16} aria-hidden />
-            Archive link
-          </ConfirmButton>
-        </form>
-      </section>
+      {link.archivedAt ? (
+        <section className="surface" style={{ padding: "1rem" }}>
+          <h2>Archived link</h2>
+          <p className="muted">
+            This link is archived, hidden from active lists, and no longer redirects. Restore it to make it active again,
+            or permanently delete it and its click history.
+          </p>
+          <div className="row-actions">
+            <form action={restoreLinkAction}>
+              <input type="hidden" name="csrf" value={csrf} />
+              <input type="hidden" name="id" value={link.id} />
+              <ConfirmButton className="secondary icon-button" type="submit" message={`Restore /${link.code}?`}>
+                <RotateCcw size={16} aria-hidden />
+                Restore link
+              </ConfirmButton>
+            </form>
+            <form className="row-actions" action={deleteLinkAction}>
+              <input type="hidden" name="csrf" value={csrf} />
+              <input type="hidden" name="id" value={link.id} />
+              <input
+                className="inline-confirm-input"
+                name="confirmCode"
+                placeholder={`Type ${link.code}`}
+                aria-label={`Type ${link.code} to delete permanently`}
+                required
+              />
+              <ConfirmButton
+                className="danger icon-button"
+                type="submit"
+                message={`Permanently delete /${link.code} and its click history?`}
+              >
+                <Trash2 size={16} aria-hidden />
+                Delete forever
+              </ConfirmButton>
+            </form>
+          </div>
+        </section>
+      ) : (
+        <section className="surface" style={{ padding: "1rem" }}>
+          <h2>Archive</h2>
+          <p className="muted">Archived links stop redirecting and are hidden from normal dashboard lists.</p>
+          <form action={archiveLinkAction}>
+            <input type="hidden" name="csrf" value={csrf} />
+            <input type="hidden" name="id" value={link.id} />
+            <ConfirmButton className="danger" type="submit" message={`Archive this ${siteName} link?`}>
+              <Archive size={16} aria-hidden />
+              Archive link
+            </ConfirmButton>
+          </form>
+        </section>
+      )}
     </main>
   );
 }

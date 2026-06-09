@@ -1,38 +1,39 @@
 import type { Metadata } from "next";
-import { ExternalLink, Plus } from "lucide-react";
+import Link from "next/link";
+import { ExternalLink, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { ConfirmButton } from "@/components/ConfirmButton";
 import { CopyShareButtons } from "@/components/CopyShareButtons";
 import { TitleAutoFill } from "@/components/TitleAutoFill";
 import { getCsrfToken } from "@/lib/csrf";
 import { appBaseUrl } from "@/lib/env";
+import { normalizeLinkListView, shortLinkListWhere } from "@/lib/link-lifecycle";
 import { shortUrl } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
 import { getSiteName } from "@/lib/settings";
-import { createLinkAction } from "./actions";
+import { createLinkAction, deleteLinkAction, restoreLinkAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "Links"
 };
 
-type SearchParams = Promise<{ q?: string; sort?: string }>;
+type SearchParams = Promise<{ q?: string; sort?: string; view?: string }>;
 
 export default async function LinksPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const q = params.q?.trim();
+  const view = normalizeLinkListView(params.view);
   const csrf = getCsrfToken();
+  const viewHref = (nextView: "active" | "archived") => {
+    const urlParams = new URLSearchParams();
+    if (nextView === "archived") urlParams.set("view", "archived");
+    if (q) urlParams.set("q", q);
+    if (params.sort) urlParams.set("sort", params.sort);
+    const query = urlParams.toString();
+    return query ? `/admin/links?${query}` : "/admin/links";
+  };
   const [links, siteName] = await Promise.all([
     prisma.shortLink.findMany({
-      where: {
-        archivedAt: null,
-        ...(q
-          ? {
-              OR: [
-                { code: { contains: q, mode: "insensitive" } },
-                { title: { contains: q, mode: "insensitive" } },
-                { destinationUrl: { contains: q, mode: "insensitive" } }
-              ]
-            }
-          : {})
-      },
+      where: shortLinkListWhere(view, q),
       orderBy: params.sort === "clicks" ? [{ clickCount: "desc" }] : [{ createdAt: "desc" }],
       include: { tags: { include: { tag: true } } },
       take: 100
@@ -47,57 +48,68 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
           <h1>Link management</h1>
           <p className="muted">Create, search, copy, share, edit, disable, archive, and inspect {siteName} links.</p>
         </div>
+        <div className="row-actions">
+          <Link className={view === "active" ? "button" : "button secondary"} href={viewHref("active")}>
+            Active
+          </Link>
+          <Link className={view === "archived" ? "button" : "button secondary"} href={viewHref("archived")}>
+            Archived
+          </Link>
+        </div>
       </div>
 
-      <section className="surface" style={{ padding: "1rem" }}>
-        <h2>
-          <Plus size={18} aria-hidden /> Create short URL
-        </h2>
-        <form className="form-stack" action={createLinkAction} data-title-autofill="true">
-          <input type="hidden" name="csrf" value={csrf} />
-          <div className="form-grid">
+      {view === "active" ? (
+        <section className="surface" style={{ padding: "1rem" }}>
+          <h2>
+            <Plus size={18} aria-hidden /> Create short URL
+          </h2>
+          <form className="form-stack" action={createLinkAction} data-title-autofill="true">
+            <input type="hidden" name="csrf" value={csrf} />
+            <div className="form-grid">
+              <label>
+                Destination URL
+                <input name="destinationUrl" type="url" placeholder="https://example.com/page" required />
+              </label>
+              <label>
+                Custom alias
+                <input name="code" placeholder="optional-alias" pattern="[A-Za-z0-9_-]{3,64}" />
+              </label>
+              <label>
+                Title
+                <input name="title" />
+              </label>
+              <label>
+                Tags
+                <input name="tags" placeholder="work, docs, client" />
+              </label>
+              <label>
+                Expiration date
+                <input name="expiresAt" type="datetime-local" />
+              </label>
+              <label>
+                Max clicks
+                <input name="maxClicks" type="number" min="1" />
+              </label>
+            </div>
             <label>
-              Destination URL
-              <input name="destinationUrl" type="url" placeholder="https://example.com/page" required />
+              Description
+              <textarea name="description" />
             </label>
             <label>
-              Custom alias
-              <input name="code" placeholder="optional-alias" pattern="[A-Za-z0-9_-]{3,64}" />
+              Internal notes
+              <textarea name="notes" />
             </label>
-            <label>
-              Title
-              <input name="title" />
-            </label>
-            <label>
-              Tags
-              <input name="tags" placeholder="work, docs, client" />
-            </label>
-            <label>
-              Expiration date
-              <input name="expiresAt" type="datetime-local" />
-            </label>
-            <label>
-              Max clicks
-              <input name="maxClicks" type="number" min="1" />
-            </label>
-          </div>
-          <label>
-            Description
-            <textarea name="description" />
-          </label>
-          <label>
-            Internal notes
-            <textarea name="notes" />
-          </label>
-          <button type="submit">Create {siteName} link</button>
-        </form>
-        <TitleAutoFill />
-      </section>
+            <button type="submit">Create {siteName} link</button>
+          </form>
+          <TitleAutoFill />
+        </section>
+      ) : null}
 
       <section className="surface" style={{ padding: "1rem" }}>
         <div className="content-header">
-          <h2>All links</h2>
+          <h2>{view === "archived" ? "Archived links" : "Active links"}</h2>
           <form className="row-actions">
+            {view === "archived" ? <input type="hidden" name="view" value="archived" /> : null}
             <input name="q" placeholder="Search links" defaultValue={q ?? ""} />
             <select name="sort" defaultValue={params.sort ?? "newest"}>
               <option value="newest">Newest</option>
@@ -138,11 +150,49 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
                         </a>
                       </td>
                       <td>
-                        <span className={link.enabled ? "badge" : "badge warning"}>{link.enabled ? "Active" : "Disabled"}</span>
+                        <span className={link.archivedAt || !link.enabled ? "badge warning" : "badge"}>
+                          {link.archivedAt ? "Archived" : link.enabled ? "Active" : "Disabled"}
+                        </span>
                       </td>
                       <td>{link.clickCount}</td>
                       <td>
-                        <CopyShareButtons url={url} title={link.title} defaultTitle={`${siteName} short link`} />
+                        {view === "archived" ? (
+                          <div className="row-actions">
+                            <form action={restoreLinkAction}>
+                              <input type="hidden" name="csrf" value={csrf} />
+                              <input type="hidden" name="id" value={link.id} />
+                              <ConfirmButton
+                                className="secondary icon-button"
+                                type="submit"
+                                message={`Restore /${link.code}?`}
+                              >
+                                <RotateCcw size={16} aria-hidden />
+                                Restore
+                              </ConfirmButton>
+                            </form>
+                            <form className="row-actions" action={deleteLinkAction}>
+                              <input type="hidden" name="csrf" value={csrf} />
+                              <input type="hidden" name="id" value={link.id} />
+                              <input
+                                className="inline-confirm-input"
+                                name="confirmCode"
+                                placeholder={link.code}
+                                aria-label={`Type ${link.code} to delete permanently`}
+                                required
+                              />
+                              <ConfirmButton
+                                className="danger icon-button"
+                                type="submit"
+                                message={`Permanently delete /${link.code} and its click history?`}
+                              >
+                                <Trash2 size={16} aria-hidden />
+                                Delete
+                              </ConfirmButton>
+                            </form>
+                          </div>
+                        ) : (
+                          <CopyShareButtons url={url} title={link.title} defaultTitle={`${siteName} short link`} />
+                        )}
                       </td>
                     </tr>
                   );

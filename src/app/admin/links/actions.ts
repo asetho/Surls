@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { auditLog } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
+import { archiveShortLink, deleteArchivedShortLink, restoreShortLink } from "@/lib/link-lifecycle";
 import { createShortLink } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
 import { parseSafeHttpUrl } from "@/lib/url-safety";
@@ -94,10 +95,7 @@ export async function archiveLinkAction(formData: FormData) {
   const admin = await requireAdmin();
   if (!admin) redirect("/login");
   const id = String(formData.get("id") ?? "");
-  const link = await prisma.shortLink.update({
-    where: { id },
-    data: { archivedAt: new Date(), enabled: false }
-  });
+  const link = await archiveShortLink(id);
   await auditLog({
     userId: admin.id,
     action: AuditAction.SHORT_LINK_ARCHIVED,
@@ -107,5 +105,43 @@ export async function archiveLinkAction(formData: FormData) {
   });
   revalidatePath("/admin");
   revalidatePath("/admin/links");
-  redirect("/admin/links");
+  revalidatePath(`/admin/links/${id}`);
+  redirect("/admin/links?view=archived");
+}
+
+export async function restoreLinkAction(formData: FormData) {
+  validateCsrf(formData);
+  const admin = await requireAdmin();
+  if (!admin) redirect("/login");
+  const id = String(formData.get("id") ?? "");
+  const link = await restoreShortLink(id);
+  await auditLog({
+    userId: admin.id,
+    action: AuditAction.SHORT_LINK_UPDATED,
+    entityType: "ShortLink",
+    entityId: id,
+    details: { code: link.code, restored: true }
+  });
+  revalidatePath("/admin");
+  revalidatePath("/admin/links");
+  revalidatePath(`/admin/links/${id}`);
+  redirect(`/admin/links/${id}`);
+}
+
+export async function deleteLinkAction(formData: FormData) {
+  validateCsrf(formData);
+  const admin = await requireAdmin();
+  if (!admin) redirect("/login");
+  const id = String(formData.get("id") ?? "");
+  const link = await deleteArchivedShortLink(id, formData.get("confirmCode"));
+  await auditLog({
+    userId: admin.id,
+    action: AuditAction.SHORT_LINK_DELETED,
+    entityType: "ShortLink",
+    entityId: id,
+    details: { code: link.code }
+  });
+  revalidatePath("/admin");
+  revalidatePath("/admin/links");
+  redirect("/admin/links?view=archived");
 }
