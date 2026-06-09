@@ -1,5 +1,4 @@
 import { AlertTriangle, CalendarClock, Link2, MousePointerClick } from "lucide-react";
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { appBaseUrl } from "@/lib/env";
 import { formatDateTime } from "@/lib/dates";
@@ -67,10 +66,6 @@ export default async function AdminDashboard() {
           <h1>{siteName} dashboard</h1>
           <p className="muted">Overview of private short URLs and privacy-respecting click activity.</p>
         </div>
-        <Link className="button" href="/admin/links">
-          <Link2 size={16} aria-hidden />
-          New short URL
-        </Link>
       </div>
 
       <section className="grid-3" aria-label="Dashboard metrics">

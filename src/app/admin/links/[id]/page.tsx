@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import QRCode from "qrcode";
 import { Archive, Download, RotateCcw, Trash2 } from "lucide-react";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { CopyShareButtons } from "@/components/CopyShareButtons";
+import { HistoricalClicksPanel } from "@/components/HistoricalClicksPanel";
+import { QrCodeModal } from "@/components/QrCodeModal";
 import { StatsTabs } from "@/components/StatsTabs";
 import { TitleAutoFill } from "@/components/TitleAutoFill";
 import { getCsrfToken } from "@/lib/csrf";
-import { formatDateKey, formatDateTime } from "@/lib/dates";
+import { formatDateTime } from "@/lib/dates";
 import { appBaseUrl } from "@/lib/env";
 import { clickStats } from "@/lib/clicks";
 import { shortUrl } from "@/lib/links";
@@ -22,62 +23,6 @@ export const metadata: Metadata = {
 type PageProps = {
   params: Promise<{ id: string }>;
 };
-
-function HistoryChart({ days }: { days: Array<{ date: string; count: number }> }) {
-  const width = 760;
-  const height = 260;
-  const pad = 34;
-  const max = Math.max(1, ...days.map((day) => day.count));
-  const innerWidth = width - pad * 2;
-  const innerHeight = height - pad * 2;
-  const points = days.map((day, index) => {
-    const x = days.length === 1 ? width / 2 : pad + (index / (days.length - 1)) * innerWidth;
-    const y = height - pad - (day.count / max) * innerHeight;
-    return { ...day, x, y };
-  });
-  const linePoints =
-    points.length === 1
-      ? [
-          { ...points[0], x: pad },
-          { ...points[0], x: width - pad }
-        ]
-      : points;
-  const path = linePoints.map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(" ");
-  const area = linePoints.length
-    ? `${pad},${height - pad} ${path} ${width - pad},${height - pad}`
-    : "";
-  const grid = Array.from({ length: 5 }, (_, index) => {
-    const value = Math.round((max / 4) * index);
-    const y = height - pad - (value / max) * innerHeight;
-    return { value, y };
-  });
-
-  return (
-    <div className="history-chart" aria-label="Historical click count">
-      <svg viewBox={`0 0 ${width} ${height}`} role="img">
-        {grid.map((line, index) => (
-          <g key={`${index}-${line.value}`}>
-            <line x1={pad} x2={width - pad} y1={line.y} y2={line.y} />
-            <text x={8} y={line.y + 4}>{line.value}</text>
-          </g>
-        ))}
-        {area ? <polygon points={area} /> : null}
-        {path ? <polyline points={path} /> : null}
-        {points.length <= 90
-          ? points.map((point) => (
-              <circle key={point.date} cx={point.x} cy={point.y} r={3}>
-                <title>{`${formatDateKey(point.date)}: ${point.count} hit${point.count === 1 ? "" : "s"}`}</title>
-              </circle>
-            ))
-          : null}
-      </svg>
-      <div className="chart-axis-labels">
-        <span>{days[0] ? formatDateKey(days[0].date) : "No clicks"}</span>
-        <span>{days.at(-1) ? formatDateKey(days.at(-1)!.date) : ""}</span>
-      </div>
-    </div>
-  );
-}
 
 function CountBars({ rows, emptyLabel }: { rows: Array<{ label: string; count: number }>; emptyLabel: string }) {
   const max = Math.max(1, ...rows.map((row) => row.count));
@@ -110,9 +55,9 @@ export default async function LinkDetailPage({ params }: PageProps) {
   if (!link) notFound();
   const { displayTimeZone, siteName } = settings;
   const csrf = getCsrfToken();
+  const baseUrl = appBaseUrl();
   const stats = await clickStats(link.id, link.createdAt, displayTimeZone);
-  const url = shortUrl(appBaseUrl(), link.code);
-  const qr = await QRCode.toDataURL(url, { margin: 1, width: 180 });
+  const url = shortUrl(baseUrl, link.code);
   const activeDays = Math.max(1, stats.dailyHistory.length);
   const allTimeRate = stats.total / activeDays;
 
@@ -135,7 +80,7 @@ export default async function LinkDetailPage({ params }: PageProps) {
           <strong>{stats.total}</strong>
         </div>
         <div className="metric">
-          <span className="muted">Unique-ish clicks</span>
+          <span className="muted">Unique visits</span>
           <strong>{stats.unique}</strong>
         </div>
         <div className="metric">
@@ -152,45 +97,12 @@ export default async function LinkDetailPage({ params }: PageProps) {
             id: "history",
             label: "Historical clicks",
             children: (
-              <div className="stats-panel">
-                <div>
-                  <h2>Historical click count</h2>
-                  <p className="muted small">
-                    Short URL created on {formatDateTime(link.createdAt, displayTimeZone)}. Stats exclude admin clicks
-                    when Track admin clicks is off.
-                  </p>
-                </div>
-                <div className="stats-history-grid">
-                  <HistoryChart days={stats.dailyHistory} />
-                  <div className="stats-summary">
-                    <div>
-                      <span>Last 24 hours</span>
-                      <strong>{stats.periodCounts.last24Hours} hits</strong>
-                    </div>
-                    <div>
-                      <span>Last 7 days</span>
-                      <strong>{stats.periodCounts.last7Days} hits</strong>
-                    </div>
-                    <div>
-                      <span>Last 30 days</span>
-                      <strong>{stats.periodCounts.last30Days} hits</strong>
-                    </div>
-                    <div>
-                      <span>All time</span>
-                      <strong>
-                        {stats.periodCounts.allTime} hits{" "}
-                        <span className="muted small">{allTimeRate.toFixed(1)} per day</span>
-                      </strong>
-                    </div>
-                    <div className="best-day">
-                      <span>Best day</span>
-                      <strong>
-                        {stats.bestDay.count} hits on {formatDateKey(stats.bestDay.date)}
-                      </strong>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <HistoricalClicksPanel
+                allTimeRate={allTimeRate}
+                createdAtLabel={formatDateTime(link.createdAt, displayTimeZone)}
+                dailyHistory={stats.dailyHistory}
+                periodCounts={stats.periodCounts}
+              />
             )
           },
           {
@@ -248,11 +160,8 @@ export default async function LinkDetailPage({ params }: PageProps) {
       <section className="grid-3">
         <div className="surface" style={{ padding: "1rem" }}>
           <h2>QR code</h2>
-          <div className="qr-box">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img alt={`QR code for ${url}`} src={qr} width={180} height={180} />
-          </div>
           <p className="small muted">{url}</p>
+          <QrCodeModal baseUrl={baseUrl} linkId={link.id} shortUrl={url} />
         </div>
         <div className="surface" style={{ padding: "1rem" }}>
           <h2>Exports</h2>

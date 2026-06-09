@@ -1,19 +1,46 @@
 "use client";
 
-import { Copy } from "lucide-react";
+import { Copy, Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const ADDTOANY_SRC = "https://static.addtoany.com/menu/page.js";
+const ADDTOANY_SERVICES = [
+  "email",
+  "sms",
+  "facebook",
+  "x",
+  "linkedin",
+  "reddit",
+  "whatsapp",
+  "telegram",
+  "bluesky"
+];
 
 declare global {
   interface Window {
     a2a?: { init_all?: () => void };
+    a2a_config?: {
+      native?: boolean;
+      num_services?: number;
+      onclick?: number | boolean;
+      prioritize?: string[];
+    };
     __surlsAddToAnyScript?: Promise<void>;
   }
 }
 
+function configureAddToAny() {
+  if (typeof window === "undefined") return;
+  window.a2a_config = window.a2a_config || {};
+  window.a2a_config.native = false;
+  window.a2a_config.onclick = 1;
+  window.a2a_config.num_services = 10;
+  window.a2a_config.prioritize = ADDTOANY_SERVICES;
+}
+
 function loadAddToAny() {
   if (typeof window === "undefined") return Promise.resolve();
+  configureAddToAny();
   if (window.a2a?.init_all) return Promise.resolve();
   if (window.__surlsAddToAnyScript) return window.__surlsAddToAnyScript;
 
@@ -84,20 +111,19 @@ export function CopyShareButtons({
           Copy
         </button>
         <div
-          className="a2a_kit a2a_kit_size_32 a2a_default_style addtoany-share"
+          className="a2a_kit a2a_default_style addtoany-share"
           data-a2a-url={url}
           data-a2a-title={shareTitle}
         >
-          <a className="a2a_button_email" aria-label="Share by email" />
-          <a className="a2a_button_sms" aria-label="Share by SMS" />
-          <a className="a2a_button_facebook" aria-label="Share on Facebook" />
-          <a className="a2a_button_x" aria-label="Share on X" />
-          <a className="a2a_button_linkedin" aria-label="Share on LinkedIn" />
-          <a className="a2a_button_reddit" aria-label="Share on Reddit" />
-          <a className="a2a_button_whatsapp" aria-label="Share on WhatsApp" />
-          <a className="a2a_button_telegram" aria-label="Share on Telegram" />
-          <a className="a2a_button_bluesky" aria-label="Share on Bluesky" />
-          <a className="a2a_dd" href="https://www.addtoany.com/share" aria-label="More share options" />
+          <a
+            className="a2a_dd button secondary icon-button addtoany-share-button"
+            href="https://www.addtoany.com/share"
+            aria-label="Share short URL"
+            title="Share short URL"
+          >
+            <Share2 size={16} aria-hidden />
+            <span className="share-button-label">Share</span>
+          </a>
         </div>
       </div>
       {toast ? <div className="toast" role="status">{toast}</div> : null}

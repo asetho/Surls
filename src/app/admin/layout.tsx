@@ -2,8 +2,10 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { BarChart3, Link2, LogOut, Settings, ShieldCheck, Wrench } from "lucide-react";
+import { NewShortUrlModal } from "@/components/NewShortUrlModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { requireAdmin } from "@/lib/auth";
+import { getCsrfToken } from "@/lib/csrf";
 import { getSiteName } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +19,7 @@ function isThemeChoice(value: string | undefined): value is ThemeChoice {
 export default async function AdminLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const [user, cookieStore, siteName] = await Promise.all([requireAdmin(), cookies(), getSiteName()]);
   if (!user) redirect("/login?next=/admin");
+  const csrf = getCsrfToken();
   const cookieChoice = cookieStore.get("surls-theme")?.value;
   const themeChoice = isThemeChoice(cookieChoice) ? cookieChoice : "auto";
   const brandInitial = siteName.slice(0, 1).toUpperCase() || "S";
@@ -55,6 +58,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
             <div className="muted small">Private {siteName} admin</div>
           </div>
           <div className="nav-actions">
+            <NewShortUrlModal csrf={csrf} siteName={siteName} />
             <ThemeToggle initialChoice={themeChoice} />
             <a className="button secondary" href="/" target="_blank">
               Public site

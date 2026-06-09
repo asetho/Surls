@@ -51,7 +51,7 @@ export default async function SettingsPage() {
             </span>
             <span className="muted small">
               Default is off. When disabled, authenticated admin redirects do not increment totals, rankings, recent
-              activity, referrer stats, browser/device stats, or unique-ish counts.
+              activity, referrer stats, browser/device stats, or unique visit counts.
             </span>
           </label>
           <label>

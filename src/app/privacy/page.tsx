@@ -27,7 +27,7 @@ export default async function PrivacyPage() {
               <li>User-agent-derived browser and device category.</li>
               <li>IP address for the detailed click log.</li>
               <li>Approximate country or region only if you later enable a geolocation integration.</li>
-              <li>Salted hashes for IP-derived values and unique-ish visitor counting.</li>
+              <li>Salted hashes for IP-derived values and unique visit counting.</li>
             </ul>
             <h2>Admin clicks</h2>
             <p>

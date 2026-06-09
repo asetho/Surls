@@ -17,9 +17,11 @@ export function TitleAutoFill() {
 
     for (const form of Array.from(document.querySelectorAll<HTMLFormElement>("form[data-title-autofill]"))) {
       if (!isTitleAutoFillForm(form)) continue;
+      if (form.dataset.titleAutofillBound === "true") continue;
       const destinationInput = form.elements.namedItem("destinationUrl");
       const titleInput = form.elements.namedItem("title");
       if (!(destinationInput instanceof HTMLInputElement) || !(titleInput instanceof HTMLInputElement)) continue;
+      form.dataset.titleAutofillBound = "true";
 
       const fill = async () => {
         const destination = destinationInput.value.trim();
@@ -58,6 +60,7 @@ export function TitleAutoFill() {
         destinationInput.removeEventListener("blur", fill);
         destinationInput.removeEventListener("change", fill);
         titleInput.removeEventListener("input", markManualTitle);
+        delete form.dataset.titleAutofillBound;
       });
     }
 

@@ -1,16 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ExternalLink, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { ExternalLink, RotateCcw, Trash2 } from "lucide-react";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { CopyShareButtons } from "@/components/CopyShareButtons";
-import { TitleAutoFill } from "@/components/TitleAutoFill";
 import { getCsrfToken } from "@/lib/csrf";
 import { appBaseUrl } from "@/lib/env";
 import { normalizeLinkListView, shortLinkListWhere } from "@/lib/link-lifecycle";
 import { shortUrl } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
 import { getSiteName } from "@/lib/settings";
-import { createLinkAction, deleteLinkAction, restoreLinkAction } from "./actions";
+import { deleteLinkAction, restoreLinkAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "Links"
@@ -57,53 +56,6 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
           </Link>
         </div>
       </div>
-
-      {view === "active" ? (
-        <section className="surface" style={{ padding: "1rem" }}>
-          <h2>
-            <Plus size={18} aria-hidden /> Create short URL
-          </h2>
-          <form className="form-stack" action={createLinkAction} data-title-autofill="true">
-            <input type="hidden" name="csrf" value={csrf} />
-            <div className="form-grid">
-              <label>
-                Destination URL
-                <input name="destinationUrl" type="url" placeholder="https://example.com/page" required />
-              </label>
-              <label>
-                Custom alias
-                <input name="code" placeholder="optional-alias" pattern="[A-Za-z0-9_-]{3,64}" />
-              </label>
-              <label>
-                Title
-                <input name="title" />
-              </label>
-              <label>
-                Tags
-                <input name="tags" placeholder="work, docs, client" />
-              </label>
-              <label>
-                Expiration date
-                <input name="expiresAt" type="datetime-local" />
-              </label>
-              <label>
-                Max clicks
-                <input name="maxClicks" type="number" min="1" />
-              </label>
-            </div>
-            <label>
-              Description
-              <textarea name="description" />
-            </label>
-            <label>
-              Internal notes
-              <textarea name="notes" />
-            </label>
-            <button type="submit">Create {siteName} link</button>
-          </form>
-          <TitleAutoFill />
-        </section>
-      ) : null}
 
       <section className="surface" style={{ padding: "1rem" }}>
         <div className="content-header">
