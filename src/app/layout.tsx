@@ -38,6 +38,9 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang="en" data-theme={initialTheme} data-theme-choice={themeChoice} suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://use.typekit.net" />
+        <link rel="preconnect" href="https://p.typekit.net" />
+        <link rel="stylesheet" href="https://use.typekit.net/ynp6ech.css" />
         <ThemeScript />
       </head>
       <body>

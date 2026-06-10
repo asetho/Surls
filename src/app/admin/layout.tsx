@@ -23,6 +23,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
   const cookieChoice = cookieStore.get("surls-theme")?.value;
   const themeChoice = isThemeChoice(cookieChoice) ? cookieChoice : "auto";
   const brandInitial = siteName.slice(0, 1).toUpperCase() || "S";
+  const displayName = user.name || user.email;
 
   const nav = [
     { href: "/admin", label: "Dashboard", icon: BarChart3 },
@@ -51,24 +52,25 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
             );
           })}
         </nav>
-        <div className="admin-sidebar-theme">
-          <ThemeToggle initialChoice={themeChoice} iconOnly />
+        <div className="admin-sidebar-account">
+          <div className="admin-sidebar-theme">
+            <ThemeToggle initialChoice={themeChoice} iconOnly />
+          </div>
+          <span className="muted small">Signed in as</span>
+          <strong>{displayName}</strong>
+          {user.name ? <span className="admin-sidebar-email">{user.email}</span> : null}
+          <form action="/api/auth/logout" method="post">
+            <button className="admin-sidebar-logout" type="submit">
+              <LogOut size={16} aria-hidden />
+              Logout
+            </button>
+          </form>
         </div>
       </aside>
       <div className="admin-main">
         <header className="admin-topbar">
-          <div>
-            <strong>{user.name || user.email}</strong>
-            <div className="muted small">Private {siteName} {isAdminUser(user) ? "admin" : "user"}</div>
-          </div>
           <div className="nav-actions">
             <NewShortUrlModal csrf={csrf} siteName={siteName} />
-            <form action="/api/auth/logout" method="post">
-              <button className="secondary" type="submit">
-                <LogOut size={16} aria-hidden />
-                Logout
-              </button>
-            </form>
           </div>
         </header>
         {children}

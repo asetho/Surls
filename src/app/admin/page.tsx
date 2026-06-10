@@ -1,4 +1,4 @@
-import { AlertTriangle, CalendarClock, Link2, MousePointerClick } from "lucide-react";
+import { AlertTriangle, CalendarClock, ExternalLink, Link2, MousePointerClick } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { appBaseUrl } from "@/lib/env";
 import { formatDateTime } from "@/lib/dates";
@@ -63,11 +63,11 @@ export default async function AdminDashboard() {
     <main className="admin-content">
       <div className="content-header">
         <div>
-          <h1>{siteName} dashboard</h1>
+          <h1>Dashboard</h1>
         </div>
       </div>
 
-      <section className="grid-3" aria-label="Dashboard metrics">
+      <section className="grid-3 dashboard-metrics" aria-label="Dashboard metrics">
         <div className="metric">
           <span className="metric-label">
             <Link2 size={18} aria-hidden />
@@ -114,10 +114,14 @@ export default async function AdminDashboard() {
                   return (
                     <tr key={link.id}>
                       <td>
-                        <a href={`/admin/links/${link.id}`}>/{link.code}</a>
-                        <div className="muted small">{link.title || "Untitled"}</div>
+                        <a className="short-url-pill" href={`/admin/links/${link.id}`}>{link.code}</a>
                       </td>
-                      <td className="small">{link.destinationUrl}</td>
+                      <td className="small">
+                        <div className="muted small link-destination-title">{link.title || "Untitled"}</div>
+                        <a href={link.destinationUrl} target="_blank" rel="noreferrer">
+                          <ExternalLink size={13} aria-hidden /> {link.destinationUrl}
+                        </a>
+                      </td>
                       <td>{link.clickCount}</td>
                       <td>
                         <CopyShareButtons url={url} title={link.title} defaultTitle={`${siteName} short link`} />

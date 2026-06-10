@@ -37,7 +37,7 @@ export function NewShortUrlModal({ csrf, siteName }: { csrf: string; siteName: s
     <>
       <button type="button" className="button" onClick={openDialog}>
         <Plus size={16} aria-hidden />
-        New short URL
+        Shorten URL
       </button>
       <dialog
         className="modal-dialog"

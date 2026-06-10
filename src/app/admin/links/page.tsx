@@ -190,7 +190,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
           </div>
         ) : null}
         <div className="table-wrap">
-          <table>
+          <table className="links-table">
             <thead>
               <tr>
                 <th aria-sort={ariaSortFor("url", sort)}>{sortableHeader("url", "Short URL")}</th>
@@ -219,12 +219,11 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
                     <tr key={link.id}>
                       <td>
                         <div className="link-list-short-row">
-                          <a href={`/admin/links/${link.id}`}>/{link.code}</a>
+                          <a className="short-url-pill" href={`/admin/links/${link.id}`}>{link.code}</a>
                           {view === "active" ? (
                             <QrCodeModal baseUrl={baseUrl} code={link.code} compact shortUrl={url} />
                           ) : null}
                         </div>
-                        <div className="muted small">{link.title || "Untitled"}</div>
                         <div className="row-actions small">
                           {link.tags.map(({ tag }) => (
                             <Link
@@ -239,7 +238,8 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
                         </div>
                       </td>
                       <td className="small">
-                        <a href={link.destinationUrl} target="_blank">
+                        <div className="muted small link-destination-title">{link.title || "Untitled"}</div>
+                        <a href={link.destinationUrl} target="_blank" rel="noreferrer">
                           <ExternalLink size={13} aria-hidden /> {link.destinationUrl}
                         </a>
                       </td>
