@@ -1,17 +1,12 @@
 import { describe, expect, it } from "vitest";
-import nextConfig from "../next.config.mjs";
-
-async function cspHeader() {
-  const rules = await nextConfig.headers();
-  const csp = rules.flatMap((rule) => rule.headers).find((header) => header.key === "Content-Security-Policy");
-  return csp?.value ?? "";
-}
+import { buildContentSecurityPolicy } from "@/lib/csp";
 
 describe("content security policy", () => {
-  it("allows public custom page assets used by the deployed pages", async () => {
-    const csp = await cspHeader();
+  it("allows public custom page assets used by the deployed pages", () => {
+    const csp = buildContentSecurityPolicy({ nonce: "test-nonce" });
 
     expect(csp).toContain("img-src 'self' data: https://cdn.asetho.com");
+    expect(csp).toContain("script-src 'self' 'nonce-test-nonce'");
     expect(csp).not.toContain("'unsafe-inline' https://static.addtoany.com");
     expect(csp).not.toContain("script-src 'self' 'unsafe-inline'");
     expect(csp).not.toContain("https://www.addtoany.com");
@@ -21,5 +16,10 @@ describe("content security policy", () => {
     expect(csp).not.toContain("https://www.slant.co");
     expect(csp).toContain("https://static.cloudflareinsights.com");
     expect(csp).toContain("https://cloudflareinsights.com");
+  });
+
+  it("adds unsafe eval only in development", () => {
+    expect(buildContentSecurityPolicy({ isDev: true, nonce: "dev-nonce" })).toContain("'unsafe-eval'");
+    expect(buildContentSecurityPolicy({ isDev: false, nonce: "prod-nonce" })).not.toContain("'unsafe-eval'");
   });
 });

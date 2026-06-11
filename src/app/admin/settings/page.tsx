@@ -2,7 +2,13 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireSiteAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
-import { LOGIN_FORM_PLACEHOLDER, type CustomPageKind } from "@/lib/custom-pages";
+import {
+  LOGIN_FORM_PLACEHOLDER,
+  filesystemCustomPageLocation,
+  pageFromFilesystem,
+  type CustomPageKind,
+  type FilesystemCustomPageKind
+} from "@/lib/custom-pages";
 import { COMMON_DISPLAY_TIME_ZONES } from "@/lib/dates";
 import { appBaseUrl } from "@/lib/env";
 import type { CustomHtmlPage } from "@/lib/settings";
@@ -16,24 +22,40 @@ export const metadata: Metadata = {
 function CustomPageControl({
   csrf,
   description,
+  filesystemKind,
+  filesystemPage,
   kind,
   page,
   title
 }: {
   csrf: string;
   description: string;
+  filesystemKind?: FilesystemCustomPageKind;
+  filesystemPage?: CustomHtmlPage | null;
   kind: CustomPageKind;
   page: CustomHtmlPage | null;
   title: string;
 }) {
+  const hasFilesystemPage = Boolean(filesystemPage && filesystemKind);
+  const fallbackLabel = hasFilesystemPage ? "Uploaded fallback file" : "Current file";
+  const resetLabel = hasFilesystemPage ? "Remove uploaded fallback" : "Use built-in page";
+
   return (
     <div className="surface-panel">
       <h3>{title}</h3>
       <p className="muted small">{description}</p>
+      {hasFilesystemPage && filesystemKind ? (
+        <div className="success small">
+          Filesystem page active from <code>{filesystemCustomPageLocation(filesystemKind)}</code>. Uploaded HTML is kept as a
+          fallback and will be used after that file is removed.
+        </div>
+      ) : null}
       {page ? (
         <p className="small">
-          Current file: <strong>{page.fileName}</strong> ({Math.ceil(page.size / 1024)} KB)
+          {fallbackLabel}: <strong>{page.fileName}</strong> ({Math.ceil(page.size / 1024)} KB)
         </p>
+      ) : hasFilesystemPage ? (
+        <p className="muted small">No uploaded fallback page is saved.</p>
       ) : (
         <p className="muted small">Using the built-in page.</p>
       )}
@@ -50,7 +72,7 @@ function CustomPageControl({
         <form action={resetCustomPageAction}>
           <input type="hidden" name="csrf" value={csrf} />
           <input type="hidden" name="kind" value={kind} />
-          <button className="secondary" type="submit">Use built-in page</button>
+          <button className="secondary" type="submit">{resetLabel}</button>
         </form>
       ) : null}
     </div>
@@ -61,7 +83,11 @@ export default async function SettingsPage() {
   const admin = await requireSiteAdmin();
   if (!admin) redirect("/admin");
 
-  const settings = await getSettings();
+  const [settings, filesystemIndexPage, filesystemNotFoundPage] = await Promise.all([
+    getSettings(),
+    pageFromFilesystem("index"),
+    pageFromFilesystem("notFound")
+  ]);
   const csrf = getCsrfToken();
 
   return (
@@ -131,13 +157,16 @@ export default async function SettingsPage() {
       <section className="surface" style={{ padding: "1rem" }}>
         <h2>Custom pages</h2>
         <p className="muted">
-          Upload small HTML files to customize public pages. Custom login pages must include one{" "}
+          Mount <code>index.html</code> and <code>404.html</code> in the custom pages directory to replace public pages from
+          the filesystem, or upload small HTML files as database-backed fallbacks. Custom login pages must include one{" "}
           <code>{LOGIN_FORM_PLACEHOLDER}</code> placeholder where the secure login form should appear.
         </p>
         <div className="grid-3">
           <CustomPageControl
             csrf={csrf}
             description="Shown at the public home page."
+            filesystemKind="index"
+            filesystemPage={filesystemIndexPage}
             kind="index"
             page={settings.customIndexPage}
             title="Home page"
@@ -145,6 +174,8 @@ export default async function SettingsPage() {
           <CustomPageControl
             csrf={csrf}
             description="Shown when a short link or page is not found."
+            filesystemKind="notFound"
+            filesystemPage={filesystemNotFoundPage}
             kind="notFound"
             page={settings.customNotFoundPage}
             title="Not found page"

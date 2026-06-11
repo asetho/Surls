@@ -2,11 +2,17 @@ import { BackButton } from "@/components/BackButton";
 import { CustomHtmlPage } from "@/components/CustomHtmlPage";
 import { PublicHeader } from "./layout";
 import Link from "next/link";
+import { pageFromFilesystem } from "@/lib/custom-pages";
 import { getSetting } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function NotFound() {
+  const filesystemPage = await pageFromFilesystem("notFound");
+  if (filesystemPage) {
+    return <CustomHtmlPage html={filesystemPage.html} />;
+  }
+
   const customPage = await getSetting("customNotFoundPage");
   if (customPage) {
     return <CustomHtmlPage html={customPage.html} />;

@@ -138,6 +138,22 @@ The production image starts through `scripts/docker-entrypoint.mjs`, which:
 - creates missing default settings, optionally creates the first admin, and purges raw IP addresses older than 30 days unless `SURLS_RUN_BOOTSTRAP=false`;
 - starts the Next.js standalone server.
 
+## Filesystem Custom Pages
+
+The public home and not-found pages can be supplied from a read-only mounted directory. In Docker Compose, set `SURLS_CUSTOM_PAGES_PATH` to the host directory; the container reads it at `/app/custom-pages`.
+
+```env
+SURLS_CUSTOM_PAGES_PATH="./custom-pages"
+```
+
+Supported files:
+
+- `index.html` replaces the public home page.
+- `404.html` replaces the app not-found page.
+- `assets/...` is served at `/assets/...` for CSS, images, fonts, JSON, and text assets.
+
+Filesystem pages take priority over HTML uploaded through `Admin -> Settings`. Uploaded pages remain saved as fallbacks and are used again when the mounted file is removed. HTML files must be 256 KB or smaller; mounted assets must be 5 MB or smaller. JavaScript and arbitrary file types are not served from the mounted assets directory.
+
 ## Health Checks
 
 - `/api/health/live` checks that the Next.js process can answer HTTP requests.
@@ -225,6 +241,7 @@ Leave “Confirm import” unchecked to preview validation without creating link
 - Create the first admin with temporary `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD`, then remove `INITIAL_ADMIN_PASSWORD` after first login.
 - Enable TOTP and generate backup codes.
 - Run database migrations before scaling to multiple app replicas; login, passkey, page-title, and API creation rate limits are shared through PostgreSQL.
+- If you use filesystem custom pages, mount the host directory read-only and keep only static page assets in it.
 - Keep `ALLOW_PRIVATE_DESTINATIONS=false` unless you understand the SSRF risk.
 - Put PostgreSQL backups in place.
 - Review `npm audit` after each dependency update.

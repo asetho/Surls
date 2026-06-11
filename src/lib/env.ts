@@ -30,6 +30,7 @@ const envSchema = z
     APP_NAME: emptyToUndefined(z.string().default("Surls")),
     BASE_URL: emptyToUndefined(z.string().url().default("http://localhost:3000")),
     AUTH_SECRET: emptyToUndefined(z.string().min(32).default("development-secret-change-before-production")),
+    CUSTOM_PAGES_DIR: emptyToUndefined(z.string().default("/app/custom-pages")),
     DATABASE_URL: emptyToUndefined(z.string().optional()),
     SESSION_DAYS: emptyToUndefined(z.coerce.number().int().positive().default(14)),
     ALLOW_PRIVATE_DESTINATIONS: emptyToUndefined(

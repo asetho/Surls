@@ -30,6 +30,7 @@ services:
       SESSION_DAYS: "${SESSION_DAYS:-14}"
       ALLOW_PRIVATE_DESTINATIONS: "${ALLOW_PRIVATE_DESTINATIONS:-false}"
       TRUST_PROXY: "${TRUST_PROXY:-false}"
+      CUSTOM_PAGES_DIR: "/app/custom-pages"
       WEBAUTHN_RP_ID: "${WEBAUTHN_RP_ID:?Set WEBAUTHN_RP_ID}"
       WEBAUTHN_ORIGIN: "${WEBAUTHN_ORIGIN:?Set WEBAUTHN_ORIGIN}"
       INITIAL_ADMIN_EMAIL: "${INITIAL_ADMIN_EMAIL:-}"
@@ -39,6 +40,8 @@ services:
       SURLS_RUN_BOOTSTRAP: "${SURLS_RUN_BOOTSTRAP:-true}"
     ports:
       - "${SURLS_PORT:-3000}:3000"
+    volumes:
+      - "${SURLS_CUSTOM_PAGES_PATH:-/opt/surls/www}:/app/custom-pages:ro"
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health/ready').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s

@@ -1,11 +1,25 @@
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   LOGIN_FORM_PLACEHOLDER,
+  assetFromFilesystem,
   normalizeCustomHtmlPage,
+  pageFromFilesystem,
   pageFromUpload,
   splitLoginFormPlaceholder,
   validateLoginPageTemplate
 } from "@/lib/custom-pages";
+
+async function withTempDir(run: (dir: string) => Promise<void>) {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "surls-custom-pages-"));
+  try {
+    await run(dir);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
 
 describe("custom page uploads", () => {
   it("normalizes stored custom pages", () => {
@@ -62,5 +76,51 @@ describe("custom page uploads", () => {
         requireLoginPlaceholder: true
       })
     ).rejects.toThrow(LOGIN_FORM_PLACEHOLDER);
+  });
+});
+
+describe("filesystem custom pages", () => {
+  it("reads mounted index and not-found pages", async () => {
+    await withTempDir(async (dir) => {
+      await writeFile(path.join(dir, "index.html"), "<h1>Mounted home</h1>");
+      await writeFile(path.join(dir, "404.html"), "<h1>Mounted missing</h1>");
+
+      await expect(pageFromFilesystem("index", dir)).resolves.toMatchObject({
+        fileName: "index.html",
+        html: "<h1>Mounted home</h1>"
+      });
+      await expect(pageFromFilesystem("notFound", dir)).resolves.toMatchObject({
+        fileName: "404.html",
+        html: "<h1>Mounted missing</h1>"
+      });
+    });
+  });
+
+  it("ignores missing, empty, and oversized mounted pages", async () => {
+    await withTempDir(async (dir) => {
+      await expect(pageFromFilesystem("index", dir)).resolves.toBeNull();
+
+      await writeFile(path.join(dir, "index.html"), "   ");
+      await expect(pageFromFilesystem("index", dir)).resolves.toBeNull();
+
+      await writeFile(path.join(dir, "index.html"), "x".repeat(256 * 1024 + 1));
+      await expect(pageFromFilesystem("index", dir)).resolves.toBeNull();
+    });
+  });
+
+  it("serves allowed mounted assets and blocks unsafe asset paths", async () => {
+    await withTempDir(async (dir) => {
+      await mkdir(path.join(dir, "assets"), { recursive: true });
+      await writeFile(path.join(dir, "assets", "site.css"), "body { color: #111; }");
+      await writeFile(path.join(dir, "assets", "app.js"), "alert('nope');");
+
+      await expect(assetFromFilesystem(["site.css"], dir)).resolves.toMatchObject({
+        contentType: "text/css; charset=utf-8",
+        size: 21
+      });
+      await expect(assetFromFilesystem(["app.js"], dir)).resolves.toBeNull();
+      await expect(assetFromFilesystem(["..", "index.html"], dir)).resolves.toBeNull();
+      await expect(assetFromFilesystem([".secret.txt"], dir)).resolves.toBeNull();
+    });
   });
 });

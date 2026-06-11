@@ -12,6 +12,7 @@ sudo chown "$USER:$USER" /opt/surls
 git clone git@github.com:aaronwhippo/Surls.git /opt/surls
 cd /opt/surls
 cp deploy/1panel/.env.example deploy/1panel/.env
+mkdir -p /opt/surls/www/assets
 ```
 
 ## 2. Fill In Production Values
@@ -33,6 +34,7 @@ BASE_URL=https://s.yourdomain.com
 AUTH_SECRET=<base64 secret>
 WEBAUTHN_RP_ID=s.yourdomain.com
 WEBAUTHN_ORIGIN=https://s.yourdomain.com
+SURLS_CUSTOM_PAGES_PATH=/opt/surls/www
 INITIAL_ADMIN_EMAIL=you@example.com
 INITIAL_ADMIN_PASSWORD=<temporary 12+ character password>
 ```
@@ -57,6 +59,16 @@ The first app boot runs migrations, creates missing app settings, purges raw IP 
 The app container healthcheck uses `/api/health/ready`, which verifies both the Surls process and PostgreSQL access.
 
 Keep `TRUST_PROXY=false` unless the app container is reachable only through a trusted reverse proxy that overwrites `X-Forwarded-For` and related geo headers.
+
+## Custom Public Pages
+
+The compose file mounts `SURLS_CUSTOM_PAGES_PATH` into the app container read-only. Put these optional files in that host directory:
+
+- `/opt/surls/www/index.html` replaces the public home page.
+- `/opt/surls/www/404.html` replaces the app not-found page.
+- `/opt/surls/www/assets/...` is served at `/assets/...` for CSS, images, fonts, JSON, and text assets.
+
+Filesystem pages take priority over uploaded custom pages in `Admin -> Settings`; uploaded pages remain as fallbacks. File contents are read at request time, so normal HTML changes do not require a container rebuild.
 
 ## 4. Add HTTPS
 

@@ -16,7 +16,7 @@ export function PasswordLoginForm({
   return (
     <form className="surface login-card form-stack" action="/api/auth/login" method="post">
       <div>
-        <h1>{siteName} admin login</h1>
+        <h1>{siteName} login</h1>
         <p className="muted">Sign in to manage private links, redirects, and click statistics.</p>
       </div>
       {error ? <div className="alert">{error}</div> : null}

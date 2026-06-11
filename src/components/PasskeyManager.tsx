@@ -1,6 +1,6 @@
 "use client";
 
-import { startRegistration } from "@simplewebauthn/browser";
+import { browserSupportsWebAuthn, startRegistration } from "@simplewebauthn/browser";
 import { KeyRound, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -15,11 +15,16 @@ type PasskeyItem = {
   name: string;
 };
 
+function initialPasskeySupport() {
+  return typeof window === "undefined" ? null : browserSupportsWebAuthn();
+}
+
 export function PasskeyManager({ csrf, passkeys }: { csrf: string; passkeys: PasskeyItem[] }) {
   const router = useRouter();
   const [name, setName] = useState("Surls passkey");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [supportsPasskeys] = useState<boolean | null>(initialPasskeySupport);
   const [pending, setPending] = useState(false);
 
   async function registerPasskey() {
@@ -27,6 +32,10 @@ export function PasskeyManager({ csrf, passkeys }: { csrf: string; passkeys: Pas
     setError(null);
     setMessage(null);
     try {
+      if (!browserSupportsWebAuthn()) {
+        throw new Error("This browser does not support passkeys. Use a browser with WebAuthn support to add one.");
+      }
+
       const optionsResponse = await fetch("/api/auth/passkey/register/options", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -61,12 +70,15 @@ export function PasskeyManager({ csrf, passkeys }: { csrf: string; passkeys: Pas
           <input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} />
         </label>
         <div className="field-action">
-          <button type="button" onClick={registerPasskey} disabled={pending}>
+          <button type="button" onClick={registerPasskey} disabled={pending || supportsPasskeys === false}>
             <KeyRound size={16} aria-hidden />
             {pending ? "Waiting..." : "Add passkey"}
           </button>
         </div>
       </div>
+      {supportsPasskeys === false ? (
+        <div className="alert">This browser does not support passkeys. Use a browser with WebAuthn support to add one.</div>
+      ) : null}
       {message ? <div className="success">{message}</div> : null}
       {error ? <div className="alert">{error}</div> : null}
       {passkeys.length ? (

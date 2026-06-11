@@ -2,7 +2,6 @@
 
 import { Plus, X } from "lucide-react";
 import { useId, useRef } from "react";
-import { createLinkAction } from "@/app/admin/links/actions";
 import { TitleAutoFill } from "./TitleAutoFill";
 
 export function NewShortUrlModal({ csrf, siteName }: { csrf: string; siteName: string }) {
@@ -57,7 +56,7 @@ export function NewShortUrlModal({ csrf, siteName }: { csrf: string; siteName: s
               <X size={16} aria-hidden />
             </button>
           </div>
-          <form className="form-stack" action={createLinkAction} data-title-autofill="true">
+          <form className="form-stack" action="/admin/links/create" method="post" data-title-autofill="true">
             <input type="hidden" name="csrf" value={csrf} />
             <div className="form-grid">
               <label>
