@@ -17,7 +17,7 @@ permissions:
 env:
   NEXT_TELEMETRY_DISABLED: "1"
   DATABASE_URL: postgresql://surls:surls-ci-password@localhost:5432/surls?schema=public
-  AUTH_SECRET: ci-auth-secret-with-at-least-32-characters
+  AUTH_SECRET: ci-8Vx2pK7mQ4rT9nL6yB3sW0zF5hD1aC
   BASE_URL: http://localhost:3000
   WEBAUTHN_RP_ID: localhost
   WEBAUTHN_ORIGIN: http://localhost:3000
@@ -78,7 +78,7 @@ jobs:
       POSTGRES_DB: surls
       SURLS_IMAGE: surls:ci
       SURLS_PORT: "3000"
-      AUTH_SECRET: ci-auth-secret-with-at-least-32-characters
+      AUTH_SECRET: ci-8Vx2pK7mQ4rT9nL6yB3sW0zF5hD1aC
       BASE_URL: http://localhost:3000
       WEBAUTHN_RP_ID: localhost
       WEBAUTHN_ORIGIN: http://localhost:3000
