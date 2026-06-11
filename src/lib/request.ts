@@ -2,12 +2,13 @@ import type { NextRequest } from "next/server";
 import { hashPrivacyValue } from "./crypto";
 import { env } from "./env";
 
+export function clientIpFromHeaders(headers: Headers, trustProxy: boolean) {
+  if (!trustProxy) return "unknown";
+  return headers.get("x-forwarded-for")?.split(",")[0]?.trim() || headers.get("x-real-ip")?.trim() || "unknown";
+}
+
 export function requestIp(request: NextRequest) {
-  if (env.TRUST_PROXY) {
-    const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-    if (forwarded) return forwarded;
-  }
-  return request.headers.get("x-real-ip") ?? "unknown";
+  return clientIpFromHeaders(request.headers, env.TRUST_PROXY);
 }
 
 export function requestIpHash(request: NextRequest) {
@@ -15,6 +16,7 @@ export function requestIpHash(request: NextRequest) {
 }
 
 function firstHeaderValue(request: NextRequest, names: string[]) {
+  if (!env.TRUST_PROXY) return null;
   for (const name of names) {
     const value = request.headers.get(name)?.split(",")[0]?.trim();
     if (value) return value;

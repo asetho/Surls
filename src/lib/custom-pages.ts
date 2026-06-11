@@ -1,16 +1,21 @@
 import type { AppSettings, CustomHtmlPage } from "./settings";
 
 export const CUSTOM_PAGE_MAX_BYTES = 256 * 1024;
+export const LOGIN_FORM_PLACEHOLDER = "{{LOGIN_FORM}}";
 
-export type CustomPageKind = "index" | "notFound";
+export type CustomPageKind = "index" | "notFound" | "login";
 
-export const CUSTOM_PAGE_SETTINGS: Record<CustomPageKind, keyof Pick<AppSettings, "customIndexPage" | "customNotFoundPage">> = {
+export const CUSTOM_PAGE_SETTINGS: Record<
+  CustomPageKind,
+  keyof Pick<AppSettings, "customIndexPage" | "customNotFoundPage" | "customLoginPage">
+> = {
   index: "customIndexPage",
-  notFound: "customNotFoundPage"
+  notFound: "customNotFoundPage",
+  login: "customLoginPage"
 };
 
 export function isCustomPageKind(value: unknown): value is CustomPageKind {
-  return value === "index" || value === "notFound";
+  return value === "index" || value === "notFound" || value === "login";
 }
 
 export function normalizeCustomHtmlPage(value: unknown): CustomHtmlPage | null {
@@ -37,7 +42,21 @@ function isFileLike(value: FormDataEntryValue | null): value is File {
   );
 }
 
-export async function pageFromUpload(value: FormDataEntryValue | null): Promise<CustomHtmlPage> {
+export function splitLoginFormPlaceholder(html: string) {
+  const parts = html.split(LOGIN_FORM_PLACEHOLDER);
+  return parts.length === 2 ? { before: parts[0], after: parts[1] } : null;
+}
+
+export function validateLoginPageTemplate(html: string) {
+  if (!splitLoginFormPlaceholder(html)) {
+    throw new Error(`Custom login pages must include exactly one ${LOGIN_FORM_PLACEHOLDER} placeholder.`);
+  }
+}
+
+export async function pageFromUpload(
+  value: FormDataEntryValue | null,
+  options: { requireLoginPlaceholder?: boolean } = {}
+): Promise<CustomHtmlPage> {
   if (!isFileLike(value) || value.size === 0) {
     throw new Error("Upload an HTML file.");
   }
@@ -54,6 +73,9 @@ export async function pageFromUpload(value: FormDataEntryValue | null): Promise<
   const html = new TextDecoder("utf-8").decode(await value.arrayBuffer()).trim();
   if (!html) {
     throw new Error("Uploaded HTML file is empty.");
+  }
+  if (options.requireLoginPlaceholder) {
+    validateLoginPageTemplate(html);
   }
 
   return {

@@ -7,14 +7,14 @@ It is inspired by the product shape of personal URL shorteners such as YOURLS an
 ## What It Includes
 
 - Minimal public Surls home page with no public registration.
-- Secure admin login with Argon2id password hashing, HttpOnly sessions, CSRF-protected admin forms, and login rate limiting.
+- Secure admin login with Argon2id password hashing, HttpOnly sessions, CSRF-protected admin forms, login rate limiting, TOTP, backup codes, and passkey sign-in.
 - TOTP 2FA setup with QR/manual key verification.
 - One-time backup codes stored only as hashes.
 - Admin dashboard with totals, recent activity, top links, and attention states.
 - Link management with generated or custom aliases, safe destination validation, tags, notes, expiration, max-click limits, enable/disable, archive, QR codes, copy/share buttons, and CSV stats export.
 - Redirects at `/:code` and `/s/:code`.
 - Admin clicks excluded from statistics by default, controlled by the Settings page switch “Track admin clicks”.
-- Privacy-respecting click stats: timestamp, referrer, user-agent-derived browser/device, hashed IP-derived values, and no raw IP storage.
+- Privacy-respecting click stats: timestamp, referrer, user-agent-derived browser/device, hashed IP-derived values, and raw IP retention limited to 30 days.
 - Cookie consent banner plus `/privacy` and `/cookies` notices.
 - Tools page with bookmarklet, API token generation/revocation, CSV import preview/import, exports, SSRF-aware link checker, UTM builder, cleanup summaries, API docs, and system info.
 - Light, Dark, and Auto theme modes. Auto follows the operating system preference.
@@ -91,9 +91,9 @@ openssl rand -base64 32
 docker compose up --build
 ```
 
-The container runs Prisma migrations and seeds missing settings on startup. To create the first admin automatically, set `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` before first boot. After the first login, remove `INITIAL_ADMIN_PASSWORD` from `.env` and recreate the app container.
+The container runs Prisma migrations, seeds missing settings, and purges expired raw IP addresses on startup. To create the first admin automatically, set `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` before first boot. After the first login, remove `INITIAL_ADMIN_PASSWORD` from `.env` and recreate the app container.
 
-Change `AUTH_SECRET`, database credentials, `BASE_URL`, and WebAuthn values before production. Use a URL-safe PostgreSQL password, such as `openssl rand -hex 24`, because the compose file embeds it in `DATABASE_URL`.
+Change `AUTH_SECRET`, database credentials, `BASE_URL`, and WebAuthn values before production. Generate `AUTH_SECRET` with a high-entropy command such as `openssl rand -base64 32`; production startup rejects documented placeholder values. Use a URL-safe PostgreSQL password, such as `openssl rand -hex 24`, because the compose file embeds it in `DATABASE_URL`.
 
 ## 1Panel Install
 
@@ -135,8 +135,14 @@ The production image starts through `scripts/docker-entrypoint.mjs`, which:
 
 - checks required production environment values;
 - runs `prisma migrate deploy` unless `SURLS_RUN_MIGRATIONS=false`;
-- creates missing default settings and optionally the first admin unless `SURLS_RUN_BOOTSTRAP=false`;
+- creates missing default settings, optionally creates the first admin, and purges raw IP addresses older than 30 days unless `SURLS_RUN_BOOTSTRAP=false`;
 - starts the Next.js standalone server.
+
+## Health Checks
+
+- `/api/health/live` checks that the Next.js process can answer HTTP requests.
+- `/api/health/ready` checks that the app can reach PostgreSQL and is the endpoint used by Docker and 1Panel healthchecks.
+- `/api/health` remains a liveness alias, and `/health` remains a readiness alias for older monitors.
 
 Images are published by GitHub Actions to:
 
@@ -160,7 +166,9 @@ Open `Admin -> Security` to start TOTP setup. Scan the QR code or enter the manu
 
 ## Passkeys
 
-The database schema includes passkey/WebAuthn credential storage fields. Full browser registration and login endpoints are not wired in this initial implementation. To finish passkeys, add registration/authentication challenge routes using `@simplewebauthn/server`, store only public credential data, and set:
+Open `Admin -> Security` to register and remove WebAuthn passkeys. Registration requires a signed-in account and local user verification such as Face ID, Touch ID, Windows Hello, a PIN, or a security key gesture. The login page can then use a registered resident passkey for passwordless sign-in.
+
+Set these values for the public HTTPS origin before using passkeys in production:
 
 ```env
 WEBAUTHN_RP_ID="your.domain"
@@ -211,10 +219,12 @@ Leave “Confirm import” unchecked to preview validation without creating link
 - Set `BASE_URL` to the public HTTPS origin.
 - Set `NODE_ENV=production`.
 - Run behind HTTPS and keep HSTS enabled.
+- Keep `TRUST_PROXY=false` unless Surls is reachable only through a trusted reverse proxy that overwrites `X-Forwarded-For` and related geo headers.
 - Rotate default database credentials.
 - Keep automatic migrations enabled unless your deployment system runs them separately.
 - Create the first admin with temporary `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD`, then remove `INITIAL_ADMIN_PASSWORD` after first login.
 - Enable TOTP and generate backup codes.
+- Run database migrations before scaling to multiple app replicas; login, passkey, page-title, and API creation rate limits are shared through PostgreSQL.
 - Keep `ALLOW_PRIVATE_DESTINATIONS=false` unless you understand the SSRF risk.
 - Put PostgreSQL backups in place.
 - Review `npm audit` after each dependency update.
@@ -234,7 +244,6 @@ npm run setup:admin
 
 ## Current Known Follow-Ups
 
-- Complete WebAuthn/passkey registration and login.
 - Add database-backed integration tests against a disposable PostgreSQL container.
 - Add geolocation only if needed, and keep it approximate.
 - Add password-protected public-link challenge pages.

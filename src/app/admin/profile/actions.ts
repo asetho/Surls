@@ -48,24 +48,6 @@ export async function disableTotpAction(formData: FormData) {
   revalidatePath("/admin/profile");
 }
 
-export async function removePasskeyAction(formData: FormData) {
-  validateCsrf(formData);
-  const admin = await requireAdmin();
-  if (!admin) throw new Error("Unauthorized");
-  const id = String(formData.get("id") ?? "");
-  const passkey = await prisma.passkey.findFirst({ where: { id, userId: admin.id } });
-  if (!passkey) throw new Error("Passkey not found.");
-  await prisma.passkey.delete({ where: { id } });
-  await auditLog({
-    userId: admin.id,
-    action: AuditAction.PASSKEY_REMOVED,
-    entityType: "Passkey",
-    entityId: id,
-    details: { name: passkey.name }
-  });
-  revalidatePath("/admin/profile");
-}
-
 export async function regenerateBackupCodesAction(_state: { codes: string[] } | null, formData: FormData) {
   validateCsrf(formData);
   const admin = await requireAdmin();
@@ -83,4 +65,16 @@ export async function regenerateBackupCodesAction(_state: { codes: string[] } | 
   await auditLog({ userId: admin.id, action: AuditAction.BACKUP_CODES_REGENERATED });
   revalidatePath("/admin/profile");
   return { codes };
+}
+
+export async function removePasskeyAction(formData: FormData) {
+  validateCsrf(formData);
+  const admin = await requireAdmin();
+  if (!admin) throw new Error("Unauthorized");
+  const id = String(formData.get("id") ?? "");
+  const deleted = await prisma.passkey.deleteMany({ where: { id, userId: admin.id } });
+  if (deleted.count > 0) {
+    await auditLog({ userId: admin.id, action: AuditAction.PASSKEY_REMOVED, entityType: "Passkey", entityId: id });
+  }
+  revalidatePath("/admin/profile");
 }

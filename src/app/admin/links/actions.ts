@@ -4,21 +4,19 @@ import { AuditAction } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auditLog } from "@/lib/audit";
-import { isAdminUser, requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireSiteAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
-import { archiveShortLink, deleteShortLink, restoreShortLink } from "@/lib/link-lifecycle";
-import { createShortLink } from "@/lib/links";
+import { archiveShortLink, deleteArchivedShortLink, restoreShortLink } from "@/lib/link-lifecycle";
+import { createShortLink, normalizeOptionalDate, normalizeOptionalPositiveInt } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
 import { parseSafeHttpUrl } from "@/lib/url-safety";
 
 function optionalDate(value: FormDataEntryValue | null) {
-  const text = String(value ?? "").trim();
-  return text ? new Date(text) : null;
+  return normalizeOptionalDate(value);
 }
 
 function optionalInt(value: FormDataEntryValue | null) {
-  const text = String(value ?? "").trim();
-  return text ? Number.parseInt(text, 10) : null;
+  return normalizeOptionalPositiveInt(value, "Max clicks");
 }
 
 function tagList(value: FormDataEntryValue | null) {
@@ -36,7 +34,7 @@ function safeInternalPath(value: FormDataEntryValue | string | null, fallback: s
 export async function createLinkAction(formData: FormData) {
   validateCsrf(formData);
   const admin = await requireAdmin();
-  if (!admin) redirect("/login?next=/admin/links");
+  if (!admin) redirect("/admin?next=/admin/links");
 
   const link = await createShortLink({
     destinationUrl: String(formData.get("destinationUrl") ?? ""),
@@ -65,7 +63,7 @@ export async function createLinkAction(formData: FormData) {
 export async function updateLinkAction(formData: FormData) {
   validateCsrf(formData);
   const admin = await requireAdmin();
-  if (!admin) redirect("/login");
+  if (!admin) redirect("/admin");
   const id = String(formData.get("id") ?? "");
   const safe = parseSafeHttpUrl(String(formData.get("destinationUrl") ?? ""));
   if (!safe.ok) throw new Error(safe.error);
@@ -98,7 +96,7 @@ export async function updateLinkAction(formData: FormData) {
 export async function archiveLinkAction(formData: FormData) {
   validateCsrf(formData);
   const admin = await requireAdmin();
-  if (!admin) redirect("/login");
+  if (!admin) redirect("/admin");
   const id = String(formData.get("id") ?? "");
   const link = await archiveShortLink(id);
   await auditLog({
@@ -117,7 +115,7 @@ export async function archiveLinkAction(formData: FormData) {
 export async function restoreLinkAction(formData: FormData) {
   validateCsrf(formData);
   const admin = await requireAdmin();
-  if (!admin) redirect("/login");
+  if (!admin) redirect("/admin");
   const id = String(formData.get("id") ?? "");
   const link = await restoreShortLink(id);
   await auditLog({
@@ -135,12 +133,11 @@ export async function restoreLinkAction(formData: FormData) {
 
 export async function deleteLinkAction(formData: FormData) {
   validateCsrf(formData);
-  const admin = await requireAdmin();
-  if (!admin) redirect("/login");
-  if (!isAdminUser(admin)) throw new Error("Only admins can permanently delete links.");
+  const admin = await requireSiteAdmin();
+  if (!admin) throw new Error("Only admins can permanently delete links.");
   const id = String(formData.get("id") ?? "");
   const returnTo = safeInternalPath(formData.get("returnTo"), "/admin/links");
-  const link = await deleteShortLink(id, formData.get("confirmCode"));
+  const link = await deleteArchivedShortLink(id, formData.get("confirmCode"));
   await auditLog({
     userId: admin.id,
     action: AuditAction.SHORT_LINK_DELETED,

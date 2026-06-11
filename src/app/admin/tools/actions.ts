@@ -5,11 +5,15 @@ import { revalidatePath } from "next/cache";
 import { auditLog } from "@/lib/audit";
 import { createApiToken } from "@/lib/api-tokens";
 import { requireAdmin } from "@/lib/auth";
+import { parseCsvRows } from "@/lib/csv";
 import { validateCsrf } from "@/lib/csrf";
 import { prisma } from "@/lib/prisma";
 import { getSiteName } from "@/lib/settings";
 import { assertNoPrivateResolution, parseSafeHttpUrl } from "@/lib/url-safety";
 import { createShortLink } from "@/lib/links";
+import { validateAlias } from "@/lib/alias";
+
+const MAX_IMPORT_ROWS = 200;
 
 export async function createTokenAction(_state: { token?: string; error?: string } | null, formData: FormData) {
   validateCsrf(formData);
@@ -69,22 +73,55 @@ export async function importCsvAction(_state: { imported?: number; errors?: stri
   if (!admin) return { errors: ["Unauthorized"] };
   const text = String(formData.get("csv") ?? "");
   const confirm = formData.get("confirm") === "on";
-  const rows = text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => line.split(",").map((value) => value.trim()));
+  let rows: string[][];
+  try {
+    rows = parseCsvRows(text);
+  } catch (error) {
+    return { imported: 0, errors: [error instanceof Error ? error.message : "Could not parse CSV."] };
+  }
+
   const errors: string[] = [];
+  if (rows.length > MAX_IMPORT_ROWS) {
+    errors.push(`Import at most ${MAX_IMPORT_ROWS} rows at a time.`);
+  }
+
   const valid = rows
     .map(([destinationUrl, code, title], index) => {
+      if (rows[index].length > 3) {
+        errors.push(`Row ${index + 1}: Expected destination URL, optional alias, and optional title.`);
+        return null;
+      }
       const safe = parseSafeHttpUrl(destinationUrl ?? "");
       if (!safe.ok) {
         errors.push(`Row ${index + 1}: ${safe.error}`);
         return null;
       }
-      return { destinationUrl: safe.url, code, title };
+      const cleanCode = code?.trim() || undefined;
+      if (cleanCode) {
+        const aliasError = validateAlias(cleanCode);
+        if (aliasError) {
+          errors.push(`Row ${index + 1}: ${aliasError}`);
+          return null;
+        }
+      }
+      return { destinationUrl: safe.url, code: cleanCode, title: title?.trim() || undefined };
     })
     .filter(Boolean) as Array<{ destinationUrl: string; code?: string; title?: string }>;
+
+  const aliases = valid.flatMap((row) => (row.code ? [row.code] : []));
+  const duplicateAliases = aliases.filter((alias, index) => aliases.indexOf(alias) !== index);
+  for (const alias of Array.from(new Set(duplicateAliases))) {
+    errors.push(`Alias "${alias}" appears more than once in this import.`);
+  }
+  if (aliases.length) {
+    const existingAliases = await prisma.shortLink.findMany({
+      where: { code: { in: aliases } },
+      select: { code: true }
+    });
+    for (const link of existingAliases) {
+      errors.push(`Alias "${link.code}" is already in use.`);
+    }
+  }
 
   if (!confirm) {
     return {
@@ -95,16 +132,28 @@ export async function importCsvAction(_state: { imported?: number; errors?: stri
     };
   }
 
-  let imported = 0;
-  for (const row of valid) {
-    await createShortLink({
-      destinationUrl: row.destinationUrl,
-      code: row.code || null,
-      title: row.title || null,
-      createdById: admin.id
+  if (errors.length) return { imported: 0, errors };
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      for (const row of valid) {
+        await createShortLink(
+          {
+            destinationUrl: row.destinationUrl,
+            code: row.code || null,
+            title: row.title || null,
+            createdById: admin.id,
+            fetchTitle: false
+          },
+          tx
+        );
+      }
     });
-    imported += 1;
+  } catch (error) {
+    return { imported: 0, errors: [error instanceof Error ? error.message : "Import failed. No links were created."] };
   }
+
+  const imported = valid.length;
   await auditLog({
     userId: admin.id,
     action: AuditAction.SHORT_LINK_CREATED,

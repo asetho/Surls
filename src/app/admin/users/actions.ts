@@ -41,7 +41,7 @@ export async function createUserAction(_state: CreateUserState | null, formData:
   }
 
   const admin = await requireSiteAdmin();
-  if (!admin) redirect("/login?next=/admin/users");
+  if (!admin) redirect("/admin?next=/admin/users");
 
   const email = cleanEmail(formData.get("email"));
   const name = cleanName(formData.get("name"));
@@ -70,7 +70,7 @@ export async function createUserAction(_state: CreateUserState | null, formData:
 export async function updateUserRoleAction(formData: FormData) {
   validateCsrf(formData);
   const admin = await requireSiteAdmin();
-  if (!admin) redirect("/login?next=/admin/users");
+  if (!admin) redirect("/admin?next=/admin/users");
 
   const id = String(formData.get("id") ?? "");
   const role = cleanRole(formData.get("role"));
@@ -87,7 +87,7 @@ export async function updateUserRoleAction(formData: FormData) {
 export async function deleteUserAction(formData: FormData) {
   validateCsrf(formData);
   const admin = await requireSiteAdmin();
-  if (!admin) redirect("/login?next=/admin/users");
+  if (!admin) redirect("/admin?next=/admin/users");
 
   const id = String(formData.get("id") ?? "");
   if (id === admin.id) throw new Error("You cannot delete your own account.");

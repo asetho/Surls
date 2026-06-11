@@ -11,19 +11,30 @@ function isEnabled(name, defaultValue = true) {
   return !["0", "false", "no", "off"].includes(value.toLowerCase());
 }
 
+function isInsecureAuthSecret(value) {
+  const secret = value?.trim() ?? "";
+  const insecureSecrets = new Set([
+    "change-this-before-production",
+    "development-secret-change-before-production",
+    "replace-with-at-least-32-random-bytes",
+    "replace-with-at-least-32-random-characters",
+    "test-secret-that-is-long-enough-for-surls"
+  ]);
+
+  if (secret.length < 32) return true;
+  if (insecureSecrets.has(secret)) return true;
+  if (/replace|change|example|placeholder|secret/i.test(secret)) return true;
+  if (new Set(secret).size < 10) return true;
+  return false;
+}
+
 function validateEnvironment() {
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is required.");
   }
 
-  const authSecret = process.env.AUTH_SECRET?.trim();
-  const insecureSecrets = new Set([
-    "change-this-before-production",
-    "replace-with-at-least-32-random-bytes"
-  ]);
-
-  if (!authSecret || authSecret.length < 32 || insecureSecrets.has(authSecret)) {
-    throw new Error("AUTH_SECRET must be changed to a random value of at least 32 characters.");
+  if (isInsecureAuthSecret(process.env.AUTH_SECRET)) {
+    throw new Error("AUTH_SECRET must be changed to a high-entropy random value of at least 32 characters.");
   }
 }
 

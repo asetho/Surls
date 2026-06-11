@@ -1,6 +1,6 @@
 {
   "name": "surls",
-  "version": "0.2.4",
+  "version": "1.4.0",
   "private": true,
   "description": "Surls is a personal short URL system for managing private links, redirects, and click statistics.",
   "scripts": {

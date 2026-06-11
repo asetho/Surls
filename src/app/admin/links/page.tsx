@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ExternalLink, RotateCcw } from "lucide-react";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { CopyShortUrlButton, ShareButton } from "@/components/CopyShareButtons";
@@ -59,6 +60,9 @@ function sortBadge(column: "clicks" | "status" | "url", sort: LinkListSort) {
 
 export default async function LinksPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
+  const currentUser = await requireAdmin();
+  if (!currentUser) redirect("/admin");
+
   const q = params.q?.trim();
   const view = normalizeLinkListView(params.view);
   const sort = normalizeLinkListSort(params.sort);
@@ -96,23 +100,20 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
     return listHref({ page: 1, view: nextView });
   };
   const where = shortLinkListWhere(view, q, tag);
-  const [totalLinks, siteName, currentUser, activeTag] = await Promise.all([
+  const [totalLinks, siteName, activeTag] = await Promise.all([
     prisma.shortLink.count({ where }),
     getSiteName(),
-    requireAdmin(),
     tag ? prisma.tag.findUnique({ where: { slug: tag }, select: { name: true, slug: true } }) : Promise.resolve(null)
   ]);
   const totalPages = Math.max(1, Math.ceil(totalLinks / pageSize));
   const currentPage = Math.min(requestedPage, totalPages);
-  const [links] = await Promise.all([
-    prisma.shortLink.findMany({
-      where,
-      orderBy: shortLinkListOrderBy(sort),
-      include: { tags: { include: { tag: true } } },
-      skip: (currentPage - 1) * pageSize,
-      take: pageSize
-    })
-  ]);
+  const links = await prisma.shortLink.findMany({
+    where,
+    orderBy: shortLinkListOrderBy(sort),
+    include: { tags: { include: { tag: true } } },
+    skip: (currentPage - 1) * pageSize,
+    take: pageSize
+  });
   const baseUrl = appBaseUrl();
   const canDeleteLinks = isAdminUser(currentUser);
   const firstRow = totalLinks === 0 ? 0 : (currentPage - 1) * pageSize + 1;

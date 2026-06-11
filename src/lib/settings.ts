@@ -21,6 +21,7 @@ export type AppSettings = {
   themeDefault: "auto" | "light" | "dark";
   customIndexPage: CustomHtmlPage | null;
   customNotFoundPage: CustomHtmlPage | null;
+  customLoginPage: CustomHtmlPage | null;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -32,7 +33,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   enableQrCodes: true,
   themeDefault: "auto",
   customIndexPage: null,
-  customNotFoundPage: null
+  customNotFoundPage: null,
+  customLoginPage: null
 };
 
 export function normalizeSiteName(value: unknown) {
@@ -72,7 +74,8 @@ export async function getSettings(): Promise<AppSettings> {
     siteName: normalizeSiteName(settings.siteName),
     displayTimeZone: normalizeDisplayTimeZone(settings.displayTimeZone),
     customIndexPage: normalizeCustomHtmlPage(settings.customIndexPage),
-    customNotFoundPage: normalizeCustomHtmlPage(settings.customNotFoundPage)
+    customNotFoundPage: normalizeCustomHtmlPage(settings.customNotFoundPage),
+    customLoginPage: normalizeCustomHtmlPage(settings.customLoginPage)
   };
 }
 

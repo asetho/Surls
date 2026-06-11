@@ -1,32 +1,70 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { toCsv } from "@/lib/csv";
+import { csvLine } from "@/lib/csv";
 import { appBaseUrl } from "@/lib/env";
 import { shortUrl } from "@/lib/links";
+
+const LINK_EXPORT_PAGE_SIZE = 500;
+const JSON_EXPORT_LIMIT = 5000;
 
 export async function GET(request: NextRequest) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const links = await prisma.shortLink.findMany({ where: { archivedAt: null }, orderBy: { createdAt: "desc" } });
   const format = request.nextUrl.searchParams.get("format") ?? "csv";
   if (format === "json") {
-    return NextResponse.json({ links });
+    const links = await prisma.shortLink.findMany({
+      where: { archivedAt: null },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: JSON_EXPORT_LIMIT + 1
+    });
+    return NextResponse.json({ links: links.slice(0, JSON_EXPORT_LIMIT), truncated: links.length > JSON_EXPORT_LIMIT });
   }
-  const csv = toCsv([
-    ["code", "shortUrl", "destinationUrl", "title", "enabled", "clickCount", "createdAt", "expiresAt"],
-    ...links.map((link) => [
-      link.code,
-      shortUrl(appBaseUrl(), link.code),
-      link.destinationUrl,
-      link.title,
-      link.enabled,
-      link.clickCount,
-      link.createdAt.toISOString(),
-      link.expiresAt?.toISOString() ?? ""
-    ])
-  ]);
-  return new NextResponse(csv, {
+
+  let cursor: string | undefined;
+  let sentHeader = false;
+  const encoder = new TextEncoder();
+  const baseUrl = appBaseUrl();
+  const stream = new ReadableStream({
+    async pull(controller) {
+      if (!sentHeader) {
+        controller.enqueue(encoder.encode(csvLine(["code", "shortUrl", "destinationUrl", "title", "enabled", "clickCount", "createdAt", "expiresAt"])));
+        sentHeader = true;
+      }
+
+      const links = await prisma.shortLink.findMany({
+        where: { archivedAt: null },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: LINK_EXPORT_PAGE_SIZE,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {})
+      });
+      if (!links.length) {
+        controller.close();
+        return;
+      }
+      cursor = links.at(-1)?.id;
+      controller.enqueue(
+        encoder.encode(
+          links
+            .map((link) =>
+              csvLine([
+                link.code,
+                shortUrl(baseUrl, link.code),
+                link.destinationUrl,
+                link.title,
+                link.enabled,
+                link.clickCount,
+                link.createdAt.toISOString(),
+                link.expiresAt?.toISOString() ?? ""
+              ])
+            )
+            .join("")
+        )
+      );
+    }
+  });
+
+  return new Response(stream, {
     headers: {
       "content-type": "text/csv; charset=utf-8",
       "content-disposition": 'attachment; filename="surls-links.csv"'

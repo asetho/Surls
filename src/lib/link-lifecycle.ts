@@ -107,24 +107,27 @@ function confirmedCode(value: FormDataEntryValue | string | null) {
   const text = String(value ?? "").trim();
   if (!text) return "";
 
+  let code: string;
   try {
-    return new URL(text).pathname.replace(/^\/+/, "").replace(/\/+$/, "");
+    const url = new URL(text);
+    code = url.pathname.replace(/^\/+/, "");
   } catch {
-    return text.replace(/^\/+/, "").replace(/\/+$/, "");
+    code = text.replace(/^\/+/, "");
   }
+  const trimmed = code.replace(/\/+$/, "");
+  return trimmed.startsWith("s/") ? trimmed.slice(2) : trimmed;
 }
 
-export async function deleteShortLink(id: string, confirmation: FormDataEntryValue | string | null) {
+export async function deleteArchivedShortLink(id: string, confirmation: FormDataEntryValue | string | null) {
   const link = await prisma.shortLink.findUnique({
     where: { id },
-    select: { id: true, code: true }
+    select: { archivedAt: true, code: true, id: true }
   });
 
   if (!link) throw new Error("Short link not found.");
-  if (confirmedCode(confirmation) !== link.code) throw new Error(`Type /${link.code} to permanently delete this link.`);
+  if (!link.archivedAt) throw new Error("Archive this link before deleting it permanently.");
+  if (confirmedCode(confirmation) !== link.code) throw new Error(`Type ${link.code} to permanently delete this link.`);
 
   await prisma.shortLink.delete({ where: { id } });
   return link;
 }
-
-export const deleteArchivedShortLink = deleteShortLink;

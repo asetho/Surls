@@ -15,22 +15,70 @@ export type CreateShortLinkInput = {
   maxClicks?: number | null;
   tags?: string[];
   createdById?: string | null;
+  fetchTitle?: boolean;
 };
+
+type ShortLinkClient = Pick<Prisma.TransactionClient, "shortLink">;
 
 export function shortUrl(baseUrl: string, code: string) {
   return `${baseUrl.replace(/\/$/, "")}/${code}`;
 }
 
-export async function createShortLink(input: CreateShortLinkInput) {
+export function normalizeOptionalDate(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) throw new Error("Enter a valid expiration date.");
+    return value;
+  }
+  const text = String(value).trim();
+  if (!text) return null;
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) throw new Error("Enter a valid expiration date.");
+  return date;
+}
+
+export function normalizeOptionalPositiveInt(value: unknown, label = "Value") {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = typeof value === "number" ? value : Number.parseInt(String(value).trim(), 10);
+  if (!Number.isSafeInteger(parsed) || parsed < 1) throw new Error(`${label} must be a positive whole number.`);
+  return parsed;
+}
+
+function tagSlug(name: string) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+export function normalizeShortLinkTags(tags: string[] | undefined) {
+  const seen = new Set<string>();
+  return (tags ?? [])
+    .map((tagName) => tagName.trim())
+    .filter(Boolean)
+    .map((name) => {
+      const slug = tagSlug(name);
+      if (!slug) throw new Error(`Tag "${name}" must include at least one letter or number.`);
+      if (slug.length > 80) throw new Error(`Tag "${name}" is too long.`);
+      return { name, slug };
+    })
+    .filter((tag) => {
+      if (seen.has(tag.slug)) return false;
+      seen.add(tag.slug);
+      return true;
+    });
+}
+
+export async function createShortLink(input: CreateShortLinkInput, db: ShortLinkClient = prisma) {
   const safeUrl = parseSafeHttpUrl(input.destinationUrl);
   if (!safeUrl.ok) {
     throw new Error(safeUrl.error);
   }
 
+  const expiresAt = normalizeOptionalDate(input.expiresAt);
+  const maxClicks = normalizeOptionalPositiveInt(input.maxClicks, "Max clicks");
+  const tags = normalizeShortLinkTags(input.tags);
   let code = input.code?.trim() || generateAlias();
   let attempts = 0;
   while (!input.code && attempts < 8) {
-    const exists = await prisma.shortLink.findUnique({ where: { code } });
+    const exists = await db.shortLink.findUnique({ where: { code } });
     if (!exists) break;
     code = generateAlias();
     attempts += 1;
@@ -39,10 +87,10 @@ export async function createShortLink(input: CreateShortLinkInput) {
   const aliasError = validateAlias(code);
   if (aliasError) throw new Error(aliasError);
 
-  const title = input.title?.trim() || (await fetchPageTitle(safeUrl.url));
+  const title = input.title?.trim() || (input.fetchTitle === false ? null : await fetchPageTitle(safeUrl.url));
 
   try {
-    const link = await prisma.shortLink.create({
+    const link = await db.shortLink.create({
       data: {
         code,
         destinationUrl: safeUrl.url,
@@ -50,14 +98,12 @@ export async function createShortLink(input: CreateShortLinkInput) {
         description: input.description?.trim() || null,
         notes: input.notes?.trim() || null,
         enabled: input.enabled ?? true,
-        expiresAt: input.expiresAt,
-        maxClicks: input.maxClicks,
+        expiresAt,
+        maxClicks,
         createdById: input.createdById,
-        tags: input.tags?.length
+        tags: tags.length
           ? {
-              create: input.tags.map((tagName) => {
-                const name = tagName.trim();
-                const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+              create: tags.map(({ name, slug }) => {
                 return {
                   tag: {
                     connectOrCreate: {

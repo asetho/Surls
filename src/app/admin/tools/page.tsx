@@ -1,20 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import packageJson from "../../../../package.json";
+import { redirect } from "next/navigation";
 import { revokeTokenAction } from "./actions";
 import { BookmarkletLink } from "@/components/BookmarkletLink";
 import { ApiTokenForm, ImportCsvForm, LinkCheckerForm, UtmBuilder } from "@/components/ToolsForms";
 import { ConfirmButton } from "@/components/ConfirmButton";
+import { requireAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { appBaseUrl, env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
+import packageJson from "../../../../package.json";
 
 export const metadata: Metadata = {
   title: "Tools"
 };
 
 export default async function ToolsPage() {
+  const admin = await requireAdmin();
+  if (!admin) redirect("/admin");
   const csrf = getCsrfToken();
   const [tokens, settings, disabled, expired, zeroClicks, duplicates] = await Promise.all([
     prisma.apiToken.findMany({ orderBy: { createdAt: "desc" }, take: 20 }),
@@ -43,13 +47,13 @@ export default async function ToolsPage() {
       </div>
 
       <section className="grid-3">
-        <div className="surface surface-panel">
+        <div className="surface" style={{ padding: "1rem" }}>
           <h2>Bookmarklet</h2>
           <p className="muted small">Create a short URL from the current page when you are logged in.</p>
           <BookmarkletLink bookmarklet={bookmarklet} label={`Shorten with ${settings.siteName}`} />
           <code className="bookmarklet-code">{bookmarklet}</code>
         </div>
-        <div className="surface surface-panel">
+        <div className="surface" style={{ padding: "1rem" }}>
           <h2>Exports</h2>
           <div className="row-actions">
             <Link className="button secondary" href="/api/links/export?format=csv">Links CSV</Link>
@@ -57,7 +61,7 @@ export default async function ToolsPage() {
           </div>
           <p className="muted small">Stats CSV is available from each link details page.</p>
         </div>
-        <div className="surface surface-panel">
+        <div className="surface" style={{ padding: "1rem" }}>
           <h2>Cleanup</h2>
           <p>Disabled links: {disabled}</p>
           <p>Expired links: {expired}</p>
@@ -67,7 +71,7 @@ export default async function ToolsPage() {
       </section>
 
       <section className="grid-3">
-        <div className="surface surface-panel">
+        <div className="surface" style={{ padding: "1rem" }}>
           <h2>API token</h2>
           <ApiTokenForm csrf={csrf} siteName={settings.siteName} />
           <div className="table-wrap">
@@ -103,22 +107,22 @@ export default async function ToolsPage() {
             </table>
           </div>
         </div>
-        <div className="surface surface-panel">
+        <div className="surface" style={{ padding: "1rem" }}>
           <h2>Bulk import</h2>
           <ImportCsvForm csrf={csrf} />
         </div>
-        <div className="surface surface-panel">
+        <div className="surface" style={{ padding: "1rem" }}>
           <h2>Link checker</h2>
           <LinkCheckerForm csrf={csrf} />
         </div>
       </section>
 
       <section className="grid-3">
-        <div className="surface surface-panel">
+        <div className="surface" style={{ padding: "1rem" }}>
           <h2>UTM builder</h2>
           <UtmBuilder />
         </div>
-        <div className="surface surface-panel">
+        <div className="surface" style={{ padding: "1rem" }}>
           <h2>API docs</h2>
           <p className="muted small">Create a short URL with a bearer token:</p>
           <pre style={{ overflowX: "auto" }}>{`curl -X POST ${appBaseUrl()}/api/links \\
@@ -126,7 +130,7 @@ export default async function ToolsPage() {
   -H "Content-Type: application/json" \\
   -d '{"destinationUrl":"https://example.com","code":"example"}'`}</pre>
         </div>
-        <div className="surface surface-panel">
+        <div className="surface" style={{ padding: "1rem" }}>
           <h2>System info</h2>
           <dl>
             <dt>App version</dt>

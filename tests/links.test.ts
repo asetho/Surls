@@ -15,7 +15,7 @@ vi.mock("@/lib/prisma", () => ({
 
 vi.mock("@/lib/page-title", () => pageTitle);
 
-import { createShortLink } from "@/lib/links";
+import { createShortLink, normalizeOptionalDate, normalizeOptionalPositiveInt, normalizeShortLinkTags } from "@/lib/links";
 
 describe("short link creation", () => {
   beforeEach(() => {
@@ -49,5 +49,11 @@ describe("short link creation", () => {
     expect(pageTitle.fetchPageTitle).not.toHaveBeenCalled();
     expect(shortLink.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ title: "Manual Title" }) }));
     expect(link.title).toBe("Manual Title");
+  });
+
+  it("rejects invalid dates, max-click values, and empty tag slugs", () => {
+    expect(() => normalizeOptionalDate("not a date")).toThrow(/valid expiration/i);
+    expect(() => normalizeOptionalPositiveInt("0", "Max clicks")).toThrow(/positive whole number/i);
+    expect(() => normalizeShortLinkTags(["!!!"])).toThrow(/letter or number/i);
   });
 });

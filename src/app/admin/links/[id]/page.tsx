@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Archive, Download, ExternalLink, RotateCcw } from "lucide-react";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { CopyShortUrlButton, ShareButton } from "@/components/CopyShareButtons";
@@ -44,16 +44,17 @@ function recentClicksHref(linkId: string, page: number, pageSize: number) {
 }
 
 export default async function LinkDetailPage({ params, searchParams }: PageProps) {
-  const [{ id }, query] = await Promise.all([params, searchParams]);
+  const [{ id }, query, currentUser] = await Promise.all([params, searchParams, requireAdmin()]);
+  if (!currentUser) redirect("/admin");
+
   const recentPage = normalizeRecentClickPage(query.clickPage);
   const recentPageSize = normalizeRecentClickPageSize(query.clickPageSize);
-  const [link, settings, currentUser] = await Promise.all([
+  const [link, settings] = await Promise.all([
     prisma.shortLink.findUnique({
       where: { id },
       include: { tags: { include: { tag: true } } }
     }),
-    getSettings(),
-    requireAdmin()
+    getSettings()
   ]);
   if (!link) notFound();
   const canDeleteLinks = isAdminUser(currentUser);
@@ -193,9 +194,7 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
           {
             id: "browser-device",
             label: "Browser/device",
-            children: (
-              <BrowserDeviceCharts browsers={stats.byBrowser} devices={stats.byDevice} />
-            )
+            children: <BrowserDeviceCharts browsers={stats.byBrowser} devices={stats.byDevice} />
           }
         ]}
       />
@@ -315,21 +314,16 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
         </section>
       ) : (
         <section className="surface surface-panel">
-          <h2>Archive/Delete</h2>
+          <h2>Archive</h2>
           <p className="muted">Archived links stop redirecting and are hidden from normal dashboard lists.</p>
-          <div className="row-actions link-lifecycle-actions">
-            <form action={archiveLinkAction}>
-              <input type="hidden" name="csrf" value={csrf} />
-              <input type="hidden" name="id" value={link.id} />
-              <ConfirmButton className="danger" type="submit" message={`Archive this ${siteName} link?`}>
-                <Archive size={16} aria-hidden />
-                Archive
-              </ConfirmButton>
-            </form>
-            {canDeleteLinks ? (
-              <DeleteLinkModal csrf={csrf} id={link.id} code={link.code} shortUrl={url} returnTo="/admin/links" />
-            ) : null}
-          </div>
+          <form action={archiveLinkAction}>
+            <input type="hidden" name="csrf" value={csrf} />
+            <input type="hidden" name="id" value={link.id} />
+            <ConfirmButton className="danger" type="submit" message={`Archive this ${siteName} link?`}>
+              <Archive size={16} aria-hidden />
+              Archive
+            </ConfirmButton>
+          </form>
         </section>
       )}
     </main>

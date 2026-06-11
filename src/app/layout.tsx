@@ -66,7 +66,7 @@ export async function PublicHeader() {
           <Link href="/privacy">Privacy</Link>
           <Link href="/cookies">Cookies</Link>
           <ThemeToggle initialChoice={themeChoice} />
-          <Link className="button" href="/login">
+          <Link className="button" href="/admin">
             Admin login
           </Link>
         </nav>

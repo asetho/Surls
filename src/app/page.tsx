@@ -26,7 +26,7 @@ export default async function HomePage() {
                 {siteName} is a personal short URL system for managing private links, redirects, and click statistics.
               </p>
               <div className="row-actions">
-                <Link className="button" href="/login">
+                <Link className="button" href="/admin">
                   Open admin dashboard
                 </Link>
                 <Link className="button secondary" href="/privacy">
@@ -69,7 +69,7 @@ export default async function HomePage() {
             <div className="metric">
               <LockKeyhole aria-hidden />
               <h2>Private admin</h2>
-              <p className="muted">No public registration. Admin access uses secure sessions, password login, 2FA, and backup codes.</p>
+              <p className="muted">No public registration. Admin access uses secure sessions, password login, passkeys, 2FA, and backup codes.</p>
             </div>
             <div className="metric">
               <BarChart3 aria-hidden />

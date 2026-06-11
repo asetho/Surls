@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import QRCode from "qrcode";
 import { BackupCodesForm } from "@/components/BackupCodesForm";
 import { PasskeyManager } from "@/components/PasskeyManager";
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
 
 export default async function ProfilePage() {
   const admin = await requireAdmin();
-  if (!admin) return null;
+  if (!admin) redirect("/admin");
   const csrf = getCsrfToken();
   const [credential, backupCount, passkeys, siteName, displayTimeZone] = await Promise.all([
     prisma.totpCredential.findUnique({ where: { userId: admin.id } }),
@@ -30,6 +31,13 @@ export default async function ProfilePage() {
   const qr = pendingSecret
     ? await QRCode.toDataURL(totpOtpAuthUrl(admin.email, pendingSecret, siteName), { margin: 1 })
     : null;
+  const passkeyItems = passkeys.map((passkey) => ({
+    id: passkey.id,
+    name: passkey.name,
+    backedUp: passkey.backedUp,
+    createdAt: formatDateTime(passkey.createdAt, displayTimeZone),
+    lastUsedAt: passkey.lastUsedAt ? formatDateTime(passkey.lastUsedAt, displayTimeZone) : null
+  }));
 
   return (
     <main className="admin-content">
@@ -40,7 +48,7 @@ export default async function ProfilePage() {
         </div>
       </div>
 
-      <section className="surface surface-panel">
+      <section className="surface" style={{ padding: "1rem" }}>
         <h2>TOTP 2FA</h2>
         {credential?.enabled ? (
           <div className="form-stack">
@@ -79,7 +87,7 @@ export default async function ProfilePage() {
         )}
       </section>
 
-      <section className="surface surface-panel">
+      <section className="surface" style={{ padding: "1rem" }}>
         <h2>Backup codes</h2>
         <p className="muted">
           You currently have {backupCount} unused backup {backupCount === 1 ? "code" : "codes"}. Codes are stored only
@@ -88,21 +96,13 @@ export default async function ProfilePage() {
         <BackupCodesForm csrf={csrf} />
       </section>
 
-      <section className="surface surface-panel">
+      <section className="surface" style={{ padding: "1rem" }}>
         <h2>Passkeys</h2>
         <p className="muted">
-          Add a passkey to sign in with device biometrics, a platform authenticator, or a hardware security key.
+          Register a device passkey for passwordless sign-in. Passkey sign-in still requires local user verification such
+          as Face ID, Touch ID, Windows Hello, a PIN, or a security key gesture.
         </p>
-        <PasskeyManager
-          csrf={csrf}
-          passkeys={passkeys.map((passkey) => ({
-            id: passkey.id,
-            name: passkey.name,
-            backedUp: passkey.backedUp,
-            createdAt: formatDateTime(passkey.createdAt, displayTimeZone),
-            lastUsedAt: passkey.lastUsedAt ? formatDateTime(passkey.lastUsedAt, displayTimeZone) : null
-          }))}
-        />
+        <PasskeyManager csrf={csrf} passkeys={passkeyItems} />
       </section>
     </main>
   );

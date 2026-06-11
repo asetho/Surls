@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { UserRole } from "@prisma/client";
 import { generateBackupCode, hashBackupCode, verifyBackupCode } from "@/lib/backup-codes";
 import { createPlainApiToken } from "@/lib/api-tokens";
 import { isAdminUser } from "@/lib/auth";
 import { decodePasskeyChallenge, encodePasskeyChallenge } from "@/lib/passkeys";
+import { decodePendingLogin, encodePendingLogin, PENDING_LOGIN_MAX_AGE_SECONDS } from "@/lib/pending-login";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { createTotpSecret, verifyTotpCode } from "@/lib/totp";
 import { generate } from "otplib";
@@ -42,6 +43,30 @@ describe("auth helpers", () => {
     });
     expect(decodePasskeyChallenge(signed, "registration")).toBeNull();
     expect(decodePasskeyChallenge(`${signed}x`, "authentication")).toBeNull();
+  });
+
+  it("signs short-lived pending 2FA login state", () => {
+    const now = new Date("2026-06-11T16:00:00.000Z");
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+    try {
+      const signed = encodePendingLogin({
+        email: "admin@example.com",
+        nextPath: "//evil.example/admin",
+        userId: "user_123"
+      });
+      expect(decodePendingLogin(signed)).toMatchObject({
+        email: "admin@example.com",
+        nextPath: "/admin",
+        userId: "user_123"
+      });
+      expect(decodePendingLogin(`${signed}x`)).toBeNull();
+
+      vi.setSystemTime(new Date(now.getTime() + PENDING_LOGIN_MAX_AGE_SECONDS * 1000 + 1));
+      expect(decodePendingLogin(signed)).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("verifies TOTP codes generated from encrypted secrets", async () => {

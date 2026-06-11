@@ -11,7 +11,10 @@ describe("content security policy", () => {
   it("allows public custom page assets used by the deployed pages", async () => {
     const csp = await cspHeader();
 
-    expect(csp).toContain("img-src 'self' data: https://static.addtoany.com https://cdn.asetho.com");
+    expect(csp).toContain("img-src 'self' data: https://cdn.asetho.com");
+    expect(csp).not.toContain("'unsafe-inline' https://static.addtoany.com");
+    expect(csp).not.toContain("script-src 'self' 'unsafe-inline'");
+    expect(csp).not.toContain("https://www.addtoany.com");
     expect(csp).toContain("https://use.typekit.net");
     expect(csp).toContain("https://p.typekit.net");
     expect(csp).toContain("font-src 'self' https://cdn.asetho.com https://use.typekit.net");

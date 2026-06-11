@@ -14,6 +14,8 @@ const createSchema = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
   notes: z.string().optional(),
+  expiresAt: z.string().datetime().optional(),
+  maxClicks: z.number().int().positive().optional(),
   tags: z.array(z.string()).optional()
 });
 
@@ -22,14 +24,18 @@ export async function POST(request: NextRequest) {
   const admin = apiToken?.user ?? (await requireAdmin());
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rate = checkRateLimit(`api:create:${admin.id}`, 60, 60 * 1000);
+  const rate = await checkRateLimit(`api:create:${admin.id}`, 60, 60 * 1000);
   if (!rate.allowed) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
 
   const parsed = createSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
 
   try {
-    const link = await createShortLink({ ...parsed.data, createdById: admin.id });
+    const link = await createShortLink({
+      ...parsed.data,
+      expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null,
+      createdById: admin.id
+    });
     await auditLog({
       userId: admin.id,
       action: AuditAction.SHORT_LINK_CREATED,

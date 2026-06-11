@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { BarChart3, Link2, LogOut, Settings, ShieldCheck, Users, Wrench } from "lucide-react";
@@ -18,7 +17,7 @@ function isThemeChoice(value: string | undefined): value is ThemeChoice {
 
 export default async function AdminLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const [user, cookieStore, siteName] = await Promise.all([requireAdmin(), cookies(), getSiteName()]);
-  if (!user) redirect("/login?next=/admin");
+  if (!user) return <>{children}</>;
   const csrf = getCsrfToken();
   const cookieChoice = cookieStore.get("surls-theme")?.value;
   const themeChoice = isThemeChoice(cookieChoice) ? cookieChoice : "auto";
@@ -30,7 +29,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
     { href: "/admin/links", label: "Links", icon: Link2 },
     { href: "/admin/tools", label: "Tools", icon: Wrench },
     ...(isAdminUser(user) ? [{ href: "/admin/users", label: "Users", icon: Users }] : []),
-    { href: "/admin/settings", label: "Settings", icon: Settings },
+    ...(isAdminUser(user) ? [{ href: "/admin/settings", label: "Settings", icon: Settings }] : []),
     { href: "/admin/profile", label: "Security", icon: ShieldCheck }
   ];
 
@@ -69,6 +68,10 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
       </aside>
       <div className="admin-main">
         <header className="admin-topbar">
+          <div>
+            <strong>{user.name || user.email}</strong>
+            <div className="muted small">Private {siteName} {isAdminUser(user) ? "admin" : "user"}</div>
+          </div>
           <div className="nav-actions">
             <NewShortUrlModal csrf={csrf} siteName={siteName} />
           </div>

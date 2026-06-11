@@ -4,9 +4,36 @@ import { appBaseUrl } from "@/lib/env";
 import { formatDateTime } from "@/lib/dates";
 import { shortUrl } from "@/lib/links";
 import { CopyShareButtons } from "@/components/CopyShareButtons";
+import { LoginPageShell } from "@/components/LoginPageShell";
+import { PasswordLoginForm } from "@/components/PasswordLoginForm";
+import { requireAdmin, safeRedirectPath } from "@/lib/auth";
+import { getCsrfToken } from "@/lib/csrf";
 import { getSettings } from "@/lib/settings";
 
-export default async function AdminDashboard() {
+type SearchParams = Promise<{
+  email?: string;
+  error?: string;
+  next?: string;
+}>;
+
+export default async function AdminDashboard({ searchParams }: { searchParams: SearchParams }) {
+  const [params, currentUser] = await Promise.all([searchParams, requireAdmin()]);
+  if (!currentUser) {
+    const settings = await getSettings();
+    const nextPath = safeRedirectPath(params.next);
+    return (
+      <LoginPageShell customPage={settings.customLoginPage}>
+        <PasswordLoginForm
+          csrf={getCsrfToken()}
+          email={params.email}
+          error={params.error}
+          nextPath={nextPath}
+          siteName={settings.siteName}
+        />
+      </LoginPageShell>
+    );
+  }
+
   const now = new Date();
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);

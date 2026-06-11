@@ -45,6 +45,17 @@ function escapeHtml(value: string) {
   });
 }
 
+async function unavailableResponse(reason: string) {
+  const siteName = escapeHtml(await getSiteName());
+  return new NextResponse(
+    `<!doctype html><html><head><title>${siteName} link unavailable</title></head><body><h1>Short URL unavailable</h1><p>${escapeHtml(reason)}</p><p><a href="/">Go home</a></p></body></html>`,
+    {
+      status: 410,
+      headers: { "content-type": "text/html; charset=utf-8" }
+    }
+  );
+}
+
 export async function handleShortRedirect(request: NextRequest, code: string, isHead = false) {
   const link = await prisma.shortLink.findUnique({ where: { code } });
   if (!link) {
@@ -68,14 +79,7 @@ export async function handleShortRedirect(request: NextRequest, code: string, is
 
   const reason = linkUnavailableReason(link);
   if (reason) {
-    const siteName = escapeHtml(await getSiteName());
-    return new NextResponse(
-      `<!doctype html><html><head><title>${siteName} link unavailable</title></head><body><h1>Short URL unavailable</h1><p>${escapeHtml(reason)}</p><p><a href="/">Go home</a></p></body></html>`,
-      {
-        status: 410,
-        headers: { "content-type": "text/html; charset=utf-8" }
-      }
-    );
+    return unavailableResponse(reason);
   }
 
   const [session, trackAdminClicks, preserveRedirectQuery] = await Promise.all([
@@ -88,7 +92,10 @@ export async function handleShortRedirect(request: NextRequest, code: string, is
   const shouldRecord = shouldRecordRedirectClick({ isHead, isAdminClick, isAdminReferrer: adminReferrer, trackAdminClicks });
 
   if (shouldRecord) {
-    await recordClick({ shortLinkId: link.id, request });
+    const recorded = await recordClick({ maxClicks: link.maxClicks, shortLinkId: link.id, request });
+    if (!recorded) {
+      return unavailableResponse("This short URL has reached its click limit.");
+    }
   }
 
   const destination = preserveRedirectQuery

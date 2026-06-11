@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rate = checkRateLimit(`title:${admin.id}`, 30, 60 * 1000);
+  const rate = await checkRateLimit(`title:${admin.id}`, 30, 60 * 1000);
   if (!rate.allowed) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
 
   const url = request.nextUrl.searchParams.get("url") ?? "";

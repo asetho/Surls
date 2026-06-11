@@ -25,7 +25,7 @@ export default async function PrivacyPage() {
               <li>Click timestamp.</li>
               <li>Referrer when a browser provides one.</li>
               <li>User-agent-derived browser and device category.</li>
-              <li>IP address for the detailed click log.</li>
+              <li>IP address for the recent detailed click log, retained for 30 days.</li>
               <li>Approximate country or region only if you later enable a geolocation integration.</li>
               <li>Salted hashes for IP-derived values and unique visit counting.</li>
             </ul>
@@ -36,8 +36,8 @@ export default async function PrivacyPage() {
             </p>
             <h2>Raw IP addresses</h2>
             <p>
-              {siteName} stores IP addresses with click events for the per-link statistics table. Audit logs store
-              IP-derived values as salted hashes.
+              {siteName} stores raw IP addresses with recent click events for operational troubleshooting, then clears
+              them after 30 days. Longer-lived analytics use salted IP-derived hashes.
             </p>
           </div>
         </div>

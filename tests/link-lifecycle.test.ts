@@ -13,7 +13,7 @@ vi.mock("@/lib/prisma", () => ({
 import {
   DEFAULT_LINK_PAGE_SIZE,
   archiveShortLink,
-  deleteShortLink,
+  deleteArchivedShortLink,
   normalizeLinkListPage,
   normalizeLinkListPageSize,
   normalizeLinkListSort,
@@ -95,23 +95,37 @@ describe("link lifecycle helpers", () => {
   });
 
   it("permanently deletes links with matching code confirmation", async () => {
-    shortLink.findUnique.mockResolvedValue({ id: "link_1", code: "demo" });
-    await deleteShortLink("link_1", "/demo");
+    shortLink.findUnique.mockResolvedValue({ id: "link_1", code: "demo", archivedAt: new Date() });
+    await deleteArchivedShortLink("link_1", "/demo");
 
     expect(shortLink.delete).toHaveBeenCalledWith({ where: { id: "link_1" } });
   });
 
   it("accepts full short URL confirmation for permanent delete", async () => {
-    shortLink.findUnique.mockResolvedValue({ id: "link_1", code: "demo" });
-    await deleteShortLink("link_1", "http://localhost:3000/demo");
+    shortLink.findUnique.mockResolvedValue({ id: "link_1", code: "demo", archivedAt: new Date() });
+    await deleteArchivedShortLink("link_1", "http://localhost:3000/demo");
 
     expect(shortLink.delete).toHaveBeenCalledWith({ where: { id: "link_1" } });
   });
 
-  it("rejects permanent delete when the confirmation does not match", async () => {
-    shortLink.findUnique.mockResolvedValue({ id: "link_1", code: "demo" });
+  it("accepts /s short URL confirmation for permanent delete", async () => {
+    shortLink.findUnique.mockResolvedValue({ id: "link_1", code: "demo", archivedAt: new Date() });
+    await deleteArchivedShortLink("link_1", "http://localhost:3000/s/demo");
 
-    await expect(deleteShortLink("link_1", "/not-demo")).rejects.toThrow(/type \/demo/i);
+    expect(shortLink.delete).toHaveBeenCalledWith({ where: { id: "link_1" } });
+  });
+
+  it("rejects permanent delete when the link is not archived", async () => {
+    shortLink.findUnique.mockResolvedValue({ id: "link_1", code: "demo", archivedAt: null });
+
+    await expect(deleteArchivedShortLink("link_1", "/demo")).rejects.toThrow(/archive this link/i);
+    expect(shortLink.delete).not.toHaveBeenCalled();
+  });
+
+  it("rejects permanent delete when the confirmation does not match", async () => {
+    shortLink.findUnique.mockResolvedValue({ id: "link_1", code: "demo", archivedAt: new Date() });
+
+    await expect(deleteArchivedShortLink("link_1", "/not-demo")).rejects.toThrow(/type demo/i);
     expect(shortLink.delete).not.toHaveBeenCalled();
   });
 });

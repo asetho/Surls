@@ -15,8 +15,12 @@ const DEFAULT_SETTINGS = {
   enableQrCodes: true,
   themeDefault: "auto",
   customIndexPage: null,
-  customNotFoundPage: null
+  customNotFoundPage: null,
+  customLoginPage: null
 };
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const RAW_IP_RETENTION_DAYS = 30;
 
 function getInitialAdminCredentials() {
   const email = process.env.INITIAL_ADMIN_EMAIL?.trim().toLowerCase();
@@ -85,9 +89,27 @@ async function createInitialAdmin() {
   console.log(`Bootstrap: initial admin created for ${user.email}. Remove INITIAL_ADMIN_PASSWORD after first boot.`);
 }
 
+async function purgeExpiredRawIpAddresses(now = new Date()) {
+  const cutoff = new Date(now.getTime() - RAW_IP_RETENTION_DAYS * DAY_MS);
+  const result = await prisma.clickEvent.updateMany({
+    where: {
+      ipAddress: { not: null },
+      occurredAt: { lt: cutoff }
+    },
+    data: { ipAddress: null }
+  });
+
+  if (result.count > 0) {
+    console.log(`Bootstrap: purged ${result.count} raw IP address(es) older than ${RAW_IP_RETENTION_DAYS} days.`);
+  } else {
+    console.log("Bootstrap: no expired raw IP addresses found.");
+  }
+}
+
 async function main() {
   await seedMissingSettings();
   await createInitialAdmin();
+  await purgeExpiredRawIpAddresses();
 }
 
 main()
