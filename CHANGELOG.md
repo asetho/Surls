@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.5.1 - 2026-06-12
+
+### Changed
+
+* Improved the 2FA login screen with six separate authenticator-code boxes that support typing, paste, and browser one-time-code autofill.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.5.0 - 2026-06-12
 
 ### Added
