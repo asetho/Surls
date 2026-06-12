@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.5.2 - 2026-06-12
+
+### Fixed
+
+* Added mobile browser theme metadata so Safari and other mobile browser chrome can better match Surls pages.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.5.1 - 2026-06-12
 
 ### Changed

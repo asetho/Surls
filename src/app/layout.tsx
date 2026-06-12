@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import "./globals.css";
@@ -6,6 +6,13 @@ import { CookieBanner } from "@/components/CookieBanner";
 import { ThemeScript } from "@/components/ThemeScript";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { getSiteName } from "@/lib/settings";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#1f6a5d"
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const siteName = await getSiteName();
