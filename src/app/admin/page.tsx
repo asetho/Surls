@@ -8,6 +8,7 @@ import { LoginPageShell } from "@/components/LoginPageShell";
 import { PasswordLoginForm } from "@/components/PasswordLoginForm";
 import { requireAdmin, safeRedirectPath } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
+import { pageFromFilesystem } from "@/lib/custom-pages";
 import { getSettings } from "@/lib/settings";
 
 type SearchParams = Promise<{
@@ -19,10 +20,10 @@ type SearchParams = Promise<{
 export default async function AdminDashboard({ searchParams }: { searchParams: SearchParams }) {
   const [params, currentUser] = await Promise.all([searchParams, requireAdmin()]);
   if (!currentUser) {
-    const settings = await getSettings();
+    const [settings, filesystemLoginPage] = await Promise.all([getSettings(), pageFromFilesystem("login")]);
     const nextPath = safeRedirectPath(params.next);
     return (
-      <LoginPageShell customPage={settings.customLoginPage}>
+      <LoginPageShell customPage={filesystemLoginPage ?? settings.customLoginPage}>
         <PasswordLoginForm
           csrf={getCsrfToken()}
           email={params.email}

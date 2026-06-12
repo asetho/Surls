@@ -6,6 +6,7 @@ import { linkUnavailableReason } from "./links";
 import { recordClick } from "./clicks";
 import { appendForwardedQuery } from "./url-safety";
 import { appBaseUrl } from "./env";
+import { pageFromFilesystem } from "./custom-pages";
 
 export function isAdminReferrer(referrer: string | null, baseUrl = appBaseUrl()) {
   if (!referrer) return false;
@@ -59,7 +60,8 @@ async function unavailableResponse(reason: string) {
 export async function handleShortRedirect(request: NextRequest, code: string, isHead = false) {
   const link = await prisma.shortLink.findUnique({ where: { code } });
   if (!link) {
-    const customNotFoundPage = await getSetting("customNotFoundPage");
+    const filesystemNotFoundPage = await pageFromFilesystem("notFound");
+    const customNotFoundPage = filesystemNotFoundPage ?? (await getSetting("customNotFoundPage"));
     if (customNotFoundPage) {
       return new NextResponse(customNotFoundPage.html, {
         status: 404,

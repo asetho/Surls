@@ -8,11 +8,13 @@ export const CUSTOM_PAGE_ASSET_MAX_BYTES = 5 * 1024 * 1024;
 export const LOGIN_FORM_PLACEHOLDER = "{{LOGIN_FORM}}";
 
 export type CustomPageKind = "index" | "notFound" | "login";
-export type FilesystemCustomPageKind = Exclude<CustomPageKind, "login">;
+export type FilesystemCustomPageKind = CustomPageKind;
+type CustomPublicPageSettings = Pick<AppSettings, "customIndexPage" | "customNotFoundPage">;
 
 export const FILESYSTEM_CUSTOM_PAGE_FILES: Record<FilesystemCustomPageKind, string> = {
   index: "index.html",
-  notFound: "404.html"
+  notFound: "404.html",
+  login: "login.html"
 };
 
 const CUSTOM_PAGE_ASSET_CONTENT_TYPES: Record<string, string> = {
@@ -42,6 +44,34 @@ export const CUSTOM_PAGE_SETTINGS: Record<
 
 export function isCustomPageKind(value: unknown): value is CustomPageKind {
   return value === "index" || value === "notFound" || value === "login";
+}
+
+function escapeHtmlAttribute(value: string) {
+  return value.replace(/[&<>"']/g, (char) => {
+    switch (char) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      default:
+        return "&#39;";
+    }
+  });
+}
+
+export function addNonceToCustomPageScripts(html: string, nonce?: string | null) {
+  const trimmedNonce = nonce?.trim();
+  if (!trimmedNonce) return html;
+
+  const nonceAttribute = escapeHtmlAttribute(trimmedNonce);
+  return html.replace(/<script(?=[\s>])([^>]*)>/gi, (match, attributes: string) => {
+    if (/\snonce\s*=/i.test(attributes)) return match;
+    return `<script nonce="${nonceAttribute}"${attributes}>`;
+  });
 }
 
 export function filesystemCustomPageLocation(kind: FilesystemCustomPageKind, rootDir = env.CUSTOM_PAGES_DIR) {
@@ -78,6 +108,7 @@ export async function pageFromFilesystem(
     if (!fileStats) return null;
     const html = (await readFile(/*turbopackIgnore: true*/ filePath, "utf8")).trim();
     if (!html) return null;
+    if (kind === "login" && !splitLoginFormPlaceholder(html)) return null;
     return {
       fileName,
       html,
@@ -89,6 +120,15 @@ export async function pageFromFilesystem(
     if (code === "ENOENT" || code === "ENOTDIR" || code === "EACCES") return null;
     throw error;
   }
+}
+
+export async function hasCustomPublicPages(settings?: CustomPublicPageSettings, rootDir = env.CUSTOM_PAGES_DIR) {
+  if (settings?.customIndexPage || settings?.customNotFoundPage) return true;
+  const [indexPage, notFoundPage] = await Promise.all([
+    pageFromFilesystem("index", rootDir),
+    pageFromFilesystem("notFound", rootDir)
+  ]);
+  return Boolean(indexPage || notFoundPage);
 }
 
 export async function assetFromFilesystem(pathSegments: string[], rootDir = env.CUSTOM_PAGES_DIR) {

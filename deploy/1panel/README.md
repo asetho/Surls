@@ -12,7 +12,6 @@ sudo chown "$USER:$USER" /opt/surls
 git clone git@github.com:aaronwhippo/Surls.git /opt/surls
 cd /opt/surls
 cp deploy/1panel/.env.example deploy/1panel/.env
-mkdir -p /opt/surls/www/assets
 ```
 
 ## 2. Fill In Production Values
@@ -34,7 +33,7 @@ BASE_URL=https://s.yourdomain.com
 AUTH_SECRET=<base64 secret>
 WEBAUTHN_RP_ID=s.yourdomain.com
 WEBAUTHN_ORIGIN=https://s.yourdomain.com
-SURLS_CUSTOM_PAGES_PATH=/opt/surls/www
+SURLS_CUSTOM_PAGES_PATH=/opt/surls/custom-pages
 INITIAL_ADMIN_EMAIL=you@example.com
 INITIAL_ADMIN_PASSWORD=<temporary 12+ character password>
 ```
@@ -62,13 +61,24 @@ Keep `TRUST_PROXY=false` unless the app container is reachable only through a tr
 
 ## Custom Public Pages
 
-The compose file mounts `SURLS_CUSTOM_PAGES_PATH` into the app container read-only. Put these optional files in that host directory:
+The compose file mounts `SURLS_CUSTOM_PAGES_PATH` into the app container read-only. Choose the host path you want, set it in `deploy/1panel/.env`, and create it before starting the compose project:
 
-- `/opt/surls/www/index.html` replaces the public home page.
-- `/opt/surls/www/404.html` replaces the app not-found page.
-- `/opt/surls/www/assets/...` is served at `/assets/...` for CSS, images, fonts, JSON, and text assets.
+```bash
+mkdir -p /opt/surls/custom-pages/assets
+```
 
-Filesystem pages take priority over uploaded custom pages in `Admin -> Settings`; uploaded pages remain as fallbacks. File contents are read at request time, so normal HTML changes do not require a container rebuild.
+Put these optional files in that host directory:
+
+- `index.html` replaces the public home page.
+- `404.html` replaces the app not-found page.
+- `login.html` wraps the app-owned admin login and 2FA forms. It must include exactly one `{{LOGIN_FORM}}` placeholder.
+- `assets/...` is served at `/assets/...` for CSS, images, fonts, JSON, and text assets.
+
+The bind mount uses `create_host_path: false`, so Docker fails fast if the configured directory does not exist instead of auto-creating `/opt/surls/www` or another unintended path.
+
+Filesystem pages take priority over uploaded custom pages in `Admin -> Settings`; uploaded pages remain as fallbacks. Custom pages suppress the built-in cookie banner so the replacement page controls its own public-facing chrome. Public custom pages are isolated in a sandboxed frame; inline scripts can run there for page-local interactions such as hash navigation, but they do not run in the main Surls app context. File contents are read at request time, so normal HTML changes do not require a container rebuild.
+
+When a custom public `index.html` or `404.html` is active, the built-in `/privacy` and `/cookies` pages return 404 so the default public notices do not appear alongside a custom site. Other root HTML files in the custom-pages directory, such as `test.html`, are ignored and are not served at `https://your-domain/test.html`; put supporting CSS, images, fonts, JSON, or text files under `assets/` and reference them as `/assets/...`.
 
 ## 4. Add HTTPS
 

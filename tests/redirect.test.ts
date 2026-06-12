@@ -1,8 +1,44 @@
-import { describe, expect, it } from "vitest";
-import { isAdminReferrer, shouldRecordRedirectClick } from "@/lib/redirect";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { NextRequest } from "next/server";
+import { handleShortRedirect, isAdminReferrer, shouldRecordRedirectClick } from "@/lib/redirect";
 import { linkUnavailableReason } from "@/lib/links";
 
+const redirectMocks = vi.hoisted(() => ({
+  findUnique: vi.fn(),
+  getSetting: vi.fn(),
+  getSiteName: vi.fn(),
+  pageFromFilesystem: vi.fn()
+}));
+
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    shortLink: {
+      findUnique: redirectMocks.findUnique
+    }
+  }
+}));
+
+vi.mock("@/lib/settings", () => ({
+  getSetting: redirectMocks.getSetting,
+  getSiteName: redirectMocks.getSiteName
+}));
+
+vi.mock("@/lib/custom-pages", () => ({
+  pageFromFilesystem: redirectMocks.pageFromFilesystem
+}));
+
+function requestFor(path: string) {
+  return new Request(`http://localhost:3000${path}`) as unknown as NextRequest;
+}
+
 describe("redirect behavior", () => {
+  beforeEach(() => {
+    redirectMocks.findUnique.mockReset();
+    redirectMocks.getSetting.mockReset();
+    redirectMocks.getSiteName.mockReset();
+    redirectMocks.pageFromFilesystem.mockReset();
+  });
+
   it("does not record authenticated admin clicks by default", () => {
     expect(shouldRecordRedirectClick({ isHead: false, isAdminClick: true, trackAdminClicks: false })).toBe(false);
   });
@@ -41,5 +77,46 @@ describe("redirect behavior", () => {
     expect(isAdminReferrer("https://asetho.link/admin/links", "https://asetho.link")).toBe(true);
     expect(isAdminReferrer("https://asetho.link/privacy", "https://asetho.link")).toBe(false);
     expect(isAdminReferrer("https://example.com/admin", "https://asetho.link")).toBe(false);
+  });
+
+  it("serves mounted 404.html for missing short links before uploaded fallback HTML", async () => {
+    redirectMocks.findUnique.mockResolvedValue(null);
+    redirectMocks.pageFromFilesystem.mockResolvedValue({
+      fileName: "404.html",
+      html: "<h1>Mounted 404</h1>",
+      size: 20,
+      updatedAt: "2026-06-11T00:00:00.000Z"
+    });
+    redirectMocks.getSetting.mockResolvedValue({
+      fileName: "uploaded.html",
+      html: "<h1>Uploaded 404</h1>",
+      size: 21,
+      updatedAt: "2026-06-11T00:00:00.000Z"
+    });
+
+    const response = await handleShortRedirect(requestFor("/what"), "what");
+
+    expect(response.status).toBe(404);
+    await expect(response.text()).resolves.toBe("<h1>Mounted 404</h1>");
+    expect(response.headers.get("content-type")).toContain("text/html");
+    expect(redirectMocks.pageFromFilesystem).toHaveBeenCalledWith("notFound");
+    expect(redirectMocks.getSetting).not.toHaveBeenCalled();
+  });
+
+  it("serves uploaded custom 404 HTML for missing short links when no mounted file exists", async () => {
+    redirectMocks.findUnique.mockResolvedValue(null);
+    redirectMocks.pageFromFilesystem.mockResolvedValue(null);
+    redirectMocks.getSetting.mockResolvedValue({
+      fileName: "uploaded.html",
+      html: "<h1>Uploaded 404</h1>",
+      size: 21,
+      updatedAt: "2026-06-11T00:00:00.000Z"
+    });
+
+    const response = await handleShortRedirect(requestFor("/what"), "what");
+
+    expect(response.status).toBe(404);
+    await expect(response.text()).resolves.toBe("<h1>Uploaded 404</h1>");
+    expect(redirectMocks.getSetting).toHaveBeenCalledWith("customNotFoundPage");
   });
 });

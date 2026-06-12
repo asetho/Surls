@@ -23,7 +23,7 @@ export function buildContentSecurityPolicy({ isDev = false, nonce }: CspOptions 
     scriptSources.join(" "),
     "style-src 'self' 'unsafe-inline' https://cdn.asetho.com https://use.typekit.net https://p.typekit.net",
     "connect-src 'self' https://cdn.asetho.com https://p.typekit.net https://cloudflareinsights.com",
-    "frame-src 'self'",
+    "frame-src 'self' about:",
     "font-src 'self' https://cdn.asetho.com https://use.typekit.net",
     "media-src 'self' https://cdn.asetho.com",
     "upgrade-insecure-requests"

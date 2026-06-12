@@ -2,18 +2,24 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 type Consent = "essential" | "analytics";
 
 export function CookieBanner({ siteName }: { siteName: string }) {
   const [visible, setVisible] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
+      if (document.querySelector("[data-surls-custom-page]")) {
+        setVisible(false);
+        return;
+      }
       setVisible(!localStorage.getItem("surls-cookie-consent"));
     }, 0);
     return () => window.clearTimeout(timeout);
-  }, []);
+  }, [pathname]);
 
   function save(choice: Consent) {
     const payload = JSON.stringify({

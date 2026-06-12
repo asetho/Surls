@@ -10,6 +10,7 @@ describe("alias validation", () => {
 
   it("rejects path traversal and confusing aliases", () => {
     expect(validateAlias("../etc")).toMatch(/characters/i);
+    expect(validateAlias("test.html")).toMatch(/letters, numbers, underscores, or hyphens/i);
     expect(validateAlias("ab")).toMatch(/3-64/);
     expect(validateAlias("O0Il")).toMatch(/confusing/i);
   });

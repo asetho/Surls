@@ -7,7 +7,7 @@ export function LoginPageShell({ children, customPage }: { children: ReactNode; 
     const parts = splitLoginFormPlaceholder(customPage.html);
     if (parts) {
       return (
-        <main className="custom-html-page custom-login-page">
+        <main className="custom-html-page custom-login-page" data-surls-custom-page>
           {parts.before ? <div dangerouslySetInnerHTML={{ __html: parts.before }} /> : null}
           {children}
           {parts.after ? <div dangerouslySetInnerHTML={{ __html: parts.after }} /> : null}

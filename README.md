@@ -140,19 +140,24 @@ The production image starts through `scripts/docker-entrypoint.mjs`, which:
 
 ## Filesystem Custom Pages
 
-The public home and not-found pages can be supplied from a read-only mounted directory. In Docker Compose, set `SURLS_CUSTOM_PAGES_PATH` to the host directory; the container reads it at `/app/custom-pages`.
+The public home and not-found pages can be supplied from a read-only mounted directory. In Docker Compose, set `SURLS_CUSTOM_PAGES_PATH` to the host directory you want to use; the container reads it at `/app/custom-pages`.
 
 ```env
 SURLS_CUSTOM_PAGES_PATH="./custom-pages"
 ```
 
+Create that host directory before starting Docker. The compose bind mount uses `create_host_path: false`, so Docker will fail fast instead of silently creating a default directory in the wrong place.
+
 Supported files:
 
 - `index.html` replaces the public home page.
 - `404.html` replaces the app not-found page.
+- `login.html` wraps the app-owned admin login and 2FA forms. It must include exactly one `{{LOGIN_FORM}}` placeholder.
 - `assets/...` is served at `/assets/...` for CSS, images, fonts, JSON, and text assets.
 
-Filesystem pages take priority over HTML uploaded through `Admin -> Settings`. Uploaded pages remain saved as fallbacks and are used again when the mounted file is removed. HTML files must be 256 KB or smaller; mounted assets must be 5 MB or smaller. JavaScript and arbitrary file types are not served from the mounted assets directory.
+Filesystem pages take priority over HTML uploaded through `Admin -> Settings`. Uploaded pages remain saved as fallbacks and are used again when the mounted file is removed. Custom pages suppress the built-in cookie banner so the replacement page controls its own public-facing chrome. Public custom pages are isolated in a sandboxed frame; inline scripts can run there for page-local interactions such as hash navigation, but they do not run in the main Surls app context. HTML files must be 256 KB or smaller; mounted assets must be 5 MB or smaller. JavaScript and arbitrary file types are not served from the mounted assets directory.
+
+When a custom public `index.html` or `404.html` is active, the built-in `/privacy` and `/cookies` pages return 404 so the default public notices do not appear alongside a custom site. Other root HTML files in the custom-pages directory, such as `test.html`, are ignored and are not served at `https://your-domain/test.html`; put supporting CSS, images, fonts, JSON, or text files under `assets/` and reference them as `/assets/...`.
 
 ## Health Checks
 

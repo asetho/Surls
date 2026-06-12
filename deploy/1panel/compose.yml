@@ -41,7 +41,12 @@ services:
     ports:
       - "${SURLS_PORT:-3000}:3000"
     volumes:
-      - "${SURLS_CUSTOM_PAGES_PATH:-/opt/surls/www}:/app/custom-pages:ro"
+      - type: bind
+        source: "${SURLS_CUSTOM_PAGES_PATH:?Set SURLS_CUSTOM_PAGES_PATH to an existing host directory for custom public pages}"
+        target: /app/custom-pages
+        read_only: true
+        bind:
+          create_host_path: false
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health/ready').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s

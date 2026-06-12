@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { PublicHeader } from "../layout";
-import { getSiteName } from "@/lib/settings";
+import { hasCustomPublicPages } from "@/lib/custom-pages";
+import { getSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "Privacy"
 };
 
 export default async function PrivacyPage() {
-  const siteName = await getSiteName();
+  const settings = await getSettings();
+  if (await hasCustomPublicPages(settings)) notFound();
+  const siteName = settings.siteName;
 
   return (
     <>

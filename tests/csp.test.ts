@@ -13,6 +13,7 @@ describe("content security policy", () => {
     expect(csp).toContain("https://use.typekit.net");
     expect(csp).toContain("https://p.typekit.net");
     expect(csp).toContain("font-src 'self' https://cdn.asetho.com https://use.typekit.net");
+    expect(csp).toContain("frame-src 'self' about:");
     expect(csp).not.toContain("https://www.slant.co");
     expect(csp).toContain("https://static.cloudflareinsights.com");
     expect(csp).toContain("https://cloudflareinsights.com");

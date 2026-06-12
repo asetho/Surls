@@ -83,10 +83,11 @@ export default async function SettingsPage() {
   const admin = await requireSiteAdmin();
   if (!admin) redirect("/admin");
 
-  const [settings, filesystemIndexPage, filesystemNotFoundPage] = await Promise.all([
+  const [settings, filesystemIndexPage, filesystemNotFoundPage, filesystemLoginPage] = await Promise.all([
     getSettings(),
     pageFromFilesystem("index"),
-    pageFromFilesystem("notFound")
+    pageFromFilesystem("notFound"),
+    pageFromFilesystem("login")
   ]);
   const csrf = getCsrfToken();
 
@@ -157,9 +158,9 @@ export default async function SettingsPage() {
       <section className="surface" style={{ padding: "1rem" }}>
         <h2>Custom pages</h2>
         <p className="muted">
-          Mount <code>index.html</code> and <code>404.html</code> in the custom pages directory to replace public pages from
-          the filesystem, or upload small HTML files as database-backed fallbacks. Custom login pages must include one{" "}
-          <code>{LOGIN_FORM_PLACEHOLDER}</code> placeholder where the secure login form should appear.
+          Mount <code>index.html</code>, <code>404.html</code>, and <code>login.html</code> in the custom pages directory to
+          replace pages from the filesystem, or upload small HTML files as database-backed fallbacks. Custom login pages
+          must include one <code>{LOGIN_FORM_PLACEHOLDER}</code> placeholder where the secure login form should appear.
         </p>
         <div className="grid-3">
           <CustomPageControl
@@ -183,6 +184,8 @@ export default async function SettingsPage() {
           <CustomPageControl
             csrf={csrf}
             description="Wraps the app-owned admin login and 2FA forms."
+            filesystemKind="login"
+            filesystemPage={filesystemLoginPage}
             kind="login"
             page={settings.customLoginPage}
             title="Login page"
