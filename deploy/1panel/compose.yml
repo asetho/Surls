@@ -43,7 +43,7 @@ services:
       - "${SURLS_PORT:-3000}:3000"
     volumes:
       - type: bind
-        source: "${SURLS_PUBLIC_WEBROOT_PATH:-${SURLS_CUSTOM_PAGES_PATH:?Set SURLS_PUBLIC_WEBROOT_PATH to an existing host directory for the public webroot}}"
+        source: "${SURLS_PUBLIC_WEBROOT_PATH:?Set SURLS_PUBLIC_WEBROOT_PATH to an existing host directory for the public webroot}"
         target: /app/www
         read_only: true
         bind:
