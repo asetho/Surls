@@ -78,6 +78,7 @@ jobs:
       POSTGRES_DB: surls
       SURLS_IMAGE: surls:ci
       SURLS_PORT: "3000"
+      SURLS_CUSTOM_PAGES_PATH: ./custom-pages
       AUTH_SECRET: ci-8Vx2pK7mQ4rT9nL6yB3sW0zF5hD1aC
       BASE_URL: http://localhost:3000
       WEBAUTHN_RP_ID: localhost
@@ -93,6 +94,9 @@ jobs:
 
       - name: Build smoke image
         run: docker build -t surls:ci .
+
+      - name: Create custom pages mount
+        run: mkdir -p custom-pages/assets
 
       - name: Start smoke stack
         run: docker compose up -d --no-build
