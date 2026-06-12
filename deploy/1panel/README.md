@@ -33,7 +33,7 @@ BASE_URL=https://s.yourdomain.com
 AUTH_SECRET=<base64 secret>
 WEBAUTHN_RP_ID=s.yourdomain.com
 WEBAUTHN_ORIGIN=https://s.yourdomain.com
-SURLS_CUSTOM_PAGES_PATH=/opt/surls/custom-pages
+SURLS_PUBLIC_WEBROOT_PATH=/opt/surls/www
 INITIAL_ADMIN_EMAIL=you@example.com
 INITIAL_ADMIN_PASSWORD=<temporary 12+ character password>
 ```
@@ -59,26 +59,28 @@ The app container healthcheck uses `/api/health/ready`, which verifies both the 
 
 Keep `TRUST_PROXY=false` unless the app container is reachable only through a trusted reverse proxy that overwrites `X-Forwarded-For` and related geo headers.
 
-## Custom Public Pages
+## Public Webroot
 
-The compose file mounts `SURLS_CUSTOM_PAGES_PATH` into the app container read-only. Choose the host path you want, set it in `deploy/1panel/.env`, and create it before starting the compose project:
+The compose file mounts `SURLS_PUBLIC_WEBROOT_PATH` into the app container read-only. Choose the host path you want, set it in `deploy/1panel/.env`, and create it before starting the compose project:
 
 ```bash
-mkdir -p /opt/surls/custom-pages/assets
+mkdir -p /opt/surls/www
 ```
 
-Put these optional files in that host directory:
+Put public files in that host directory:
 
-- `index.html` replaces the public home page.
-- `404.html` replaces the app not-found page.
-- `login.html` wraps the app-owned admin login and 2FA forms. It must include exactly one `{{LOGIN_FORM}}` placeholder.
-- `assets/...` is served at `/assets/...` for CSS, images, fonts, JSON, and text assets.
+- `/` serves `index.html` when present.
+- Missing public paths and missing short links serve `404.html` with HTTP 404 when present.
+- Other files and directories are served directly, such as `/test.html`, `/assets/site.css`, or `/docs/index.html`.
+- Exact public files win before short-link redirects, while app-owned paths such as `/admin`, `/api`, `/_next`, `/health`, and `/s/:code` remain reserved.
 
 The bind mount uses `create_host_path: false`, so Docker fails fast if the configured directory does not exist instead of auto-creating `/opt/surls/www` or another unintended path.
 
-Filesystem pages take priority over uploaded custom pages in `Admin -> Settings`; uploaded pages remain as fallbacks. Custom pages suppress the built-in cookie banner so the replacement page controls its own public-facing chrome. Public custom pages are isolated in a sandboxed frame; inline scripts can run there for page-local interactions such as hash navigation, but they do not run in the main Surls app context. File contents are read at request time, so normal HTML changes do not require a container rebuild.
+If you set `PUBLIC_WEBROOT_DIR` or `CUSTOM_PAGES_DIR` directly without Docker Compose, use an absolute path.
 
-When a custom public `index.html` or `404.html` is active, the built-in `/privacy` and `/cookies` pages return 404 so the default public notices do not appear alongside a custom site. Other root HTML files in the custom-pages directory, such as `test.html`, are ignored and are not served at `https://your-domain/test.html`; put supporting CSS, images, fonts, JSON, or text files under `assets/` and reference them as `/assets/...`.
+`login.html` in this directory is reserved for the app-owned admin login template and is not served as a public file. It must include exactly one `{{LOGIN_FORM}}` placeholder where the secure Surls login form should appear. You can also place optional `{{LOGIN_TITLE}}` and `{{LOGIN_TAGLINE}}` placeholders anywhere in the template; Surls replaces them with the current login-step heading text. The inserted form exposes stable styling hooks such as `[data-surls-auth-form]`, `[data-surls-auth-input]`, `[data-surls-auth-submit]`, `[data-surls-auth-secondary]`, and `[data-surls-auth-passkey]`, plus CSS variables like `--surls-login-input-background` and `--surls-login-button-background`.
+
+Public webroot HTML is served as same-origin trusted owner content. Keep this directory writable only by trusted admins. File contents are read at request time, so normal HTML changes do not require a container rebuild.
 
 ## 4. Add HTTPS
 

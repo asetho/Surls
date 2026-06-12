@@ -2,35 +2,26 @@ import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import type { AppSettings, CustomHtmlPage } from "./settings";
 import { env } from "./env";
+import { splitLoginFormPlaceholder, validateLoginPageTemplate } from "./login-template";
+export {
+  LOGIN_FORM_PLACEHOLDER,
+  LOGIN_TAGLINE_PLACEHOLDER,
+  LOGIN_TITLE_PLACEHOLDER,
+  parseLoginTemplate,
+  renderLoginTemplateHtml,
+  splitLoginFormPlaceholder,
+  validateLoginPageTemplate
+} from "./login-template";
 
 export const CUSTOM_PAGE_MAX_BYTES = 256 * 1024;
-export const CUSTOM_PAGE_ASSET_MAX_BYTES = 5 * 1024 * 1024;
-export const LOGIN_FORM_PLACEHOLDER = "{{LOGIN_FORM}}";
 
 export type CustomPageKind = "index" | "notFound" | "login";
 export type FilesystemCustomPageKind = CustomPageKind;
-type CustomPublicPageSettings = Pick<AppSettings, "customIndexPage" | "customNotFoundPage">;
 
 export const FILESYSTEM_CUSTOM_PAGE_FILES: Record<FilesystemCustomPageKind, string> = {
   index: "index.html",
   notFound: "404.html",
   login: "login.html"
-};
-
-const CUSTOM_PAGE_ASSET_CONTENT_TYPES: Record<string, string> = {
-  ".avif": "image/avif",
-  ".css": "text/css; charset=utf-8",
-  ".gif": "image/gif",
-  ".ico": "image/x-icon",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".json": "application/json; charset=utf-8",
-  ".png": "image/png",
-  ".svg": "image/svg+xml; charset=utf-8",
-  ".txt": "text/plain; charset=utf-8",
-  ".webp": "image/webp",
-  ".woff": "font/woff",
-  ".woff2": "font/woff2"
 };
 
 export const CUSTOM_PAGE_SETTINGS: Record<
@@ -122,44 +113,6 @@ export async function pageFromFilesystem(
   }
 }
 
-export async function hasCustomPublicPages(settings?: CustomPublicPageSettings, rootDir = env.CUSTOM_PAGES_DIR) {
-  if (settings?.customIndexPage || settings?.customNotFoundPage) return true;
-  const [indexPage, notFoundPage] = await Promise.all([
-    pageFromFilesystem("index", rootDir),
-    pageFromFilesystem("notFound", rootDir)
-  ]);
-  return Boolean(indexPage || notFoundPage);
-}
-
-export async function assetFromFilesystem(pathSegments: string[], rootDir = env.CUSTOM_PAGES_DIR) {
-  const root = rootDir.trim();
-  if (!root || !pathSegments.length) return null;
-  if (pathSegments.some((segment) => !segment || segment === "." || segment === ".." || segment.startsWith("."))) {
-    return null;
-  }
-
-  const filePath = safePathInside(root, ["assets", ...pathSegments]);
-  if (!filePath) return null;
-
-  const contentType = CUSTOM_PAGE_ASSET_CONTENT_TYPES[path.extname(filePath).toLowerCase()];
-  if (!contentType) return null;
-
-  try {
-    const fileStats = await readFileStats(filePath, CUSTOM_PAGE_ASSET_MAX_BYTES);
-    if (!fileStats) return null;
-    return {
-      body: await readFile(/*turbopackIgnore: true*/ filePath),
-      contentType,
-      size: fileStats.size,
-      updatedAt: fileStats.mtime
-    };
-  } catch (error) {
-    const code = error && typeof error === "object" && "code" in error ? error.code : "";
-    if (code === "ENOENT" || code === "ENOTDIR" || code === "EACCES") return null;
-    throw error;
-  }
-}
-
 export function normalizeCustomHtmlPage(value: unknown): CustomHtmlPage | null {
   if (!value || typeof value !== "object") return null;
   const page = value as Partial<CustomHtmlPage>;
@@ -182,17 +135,6 @@ function isFileLike(value: FormDataEntryValue | null): value is File {
       "name" in value &&
       "size" in value
   );
-}
-
-export function splitLoginFormPlaceholder(html: string) {
-  const parts = html.split(LOGIN_FORM_PLACEHOLDER);
-  return parts.length === 2 ? { before: parts[0], after: parts[1] } : null;
-}
-
-export function validateLoginPageTemplate(html: string) {
-  if (!splitLoginFormPlaceholder(html)) {
-    throw new Error(`Custom login pages must include exactly one ${LOGIN_FORM_PLACEHOLDER} placeholder.`);
-  }
 }
 
 export async function pageFromUpload(

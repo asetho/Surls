@@ -51,6 +51,7 @@ export async function uploadCustomPageAction(formData: FormData) {
 
   const kind = formData.get("kind");
   if (!isCustomPageKind(kind)) throw new Error("Choose a valid custom page type.");
+  if (kind !== "login") throw new Error("Public pages are served from the mounted webroot.");
 
   const page = await pageFromUpload(formData.get("file"), { requireLoginPlaceholder: kind === "login" });
   await setSetting(CUSTOM_PAGE_SETTINGS[kind], page);

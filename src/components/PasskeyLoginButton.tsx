@@ -74,8 +74,14 @@ export function PasskeyLoginButton({ nextPath }: { nextPath: string }) {
   }
 
   return (
-    <div className="form-stack">
-      <button className="secondary" type="button" onClick={signInWithPasskey} disabled={pending}>
+    <div className="form-stack" data-surls-auth-passkey>
+      <button
+        className="secondary"
+        type="button"
+        onClick={signInWithPasskey}
+        disabled={pending}
+        data-surls-auth-secondary
+      >
         <KeyRound size={16} aria-hidden />
         {pending ? "Waiting for passkey..." : "Sign in with passkey"}
       </button>

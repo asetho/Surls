@@ -2,29 +2,41 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireSiteAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
-import {
-  LOGIN_FORM_PLACEHOLDER,
-  filesystemCustomPageLocation,
-  pageFromFilesystem,
-  type CustomPageKind,
-  type FilesystemCustomPageKind
-} from "@/lib/custom-pages";
+import { filesystemCustomPageLocation, pageFromFilesystem, type FilesystemCustomPageKind } from "@/lib/custom-pages";
 import { COMMON_DISPLAY_TIME_ZONES } from "@/lib/dates";
 import { appBaseUrl } from "@/lib/env";
 import type { CustomHtmlPage } from "@/lib/settings";
 import { getSettings } from "@/lib/settings";
+import { publicWebrootFile, publicWebrootLocation, type PublicWebrootFile } from "@/lib/webroot";
 import { resetCustomPageAction, updateSettingsAction, uploadCustomPageAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "Settings"
 };
 
-function CustomPageControl({
+function WebrootFileStatus({ file, label, pathHint }: { file: PublicWebrootFile | null; label: string; pathHint: string }) {
+  return (
+    <div className="surface-panel">
+      <h3>{label}</h3>
+      <p className="muted small">
+        <code>{pathHint}</code>
+      </p>
+      {file ? (
+        <p className="small">
+          Active from <code>{file.filePath}</code> ({Math.ceil(file.size / 1024)} KB)
+        </p>
+      ) : (
+        <p className="muted small">Not present.</p>
+      )}
+    </div>
+  );
+}
+
+function LoginTemplateControl({
   csrf,
   description,
   filesystemKind,
   filesystemPage,
-  kind,
   page,
   title
 }: {
@@ -32,13 +44,12 @@ function CustomPageControl({
   description: string;
   filesystemKind?: FilesystemCustomPageKind;
   filesystemPage?: CustomHtmlPage | null;
-  kind: CustomPageKind;
   page: CustomHtmlPage | null;
   title: string;
 }) {
   const hasFilesystemPage = Boolean(filesystemPage && filesystemKind);
   const fallbackLabel = hasFilesystemPage ? "Uploaded fallback file" : "Current file";
-  const resetLabel = hasFilesystemPage ? "Remove uploaded fallback" : "Use built-in page";
+  const resetLabel = hasFilesystemPage ? "Remove uploaded fallback" : "Use built-in login page";
 
   return (
     <div className="surface-panel">
@@ -61,7 +72,7 @@ function CustomPageControl({
       )}
       <form className="form-stack" action={uploadCustomPageAction} encType="multipart/form-data">
         <input type="hidden" name="csrf" value={csrf} />
-        <input type="hidden" name="kind" value={kind} />
+        <input type="hidden" name="kind" value="login" />
         <label>
           Upload HTML
           <input name="file" type="file" accept=".html,.htm,text/html" required />
@@ -71,7 +82,7 @@ function CustomPageControl({
       {page ? (
         <form action={resetCustomPageAction}>
           <input type="hidden" name="csrf" value={csrf} />
-          <input type="hidden" name="kind" value={kind} />
+          <input type="hidden" name="kind" value="login" />
           <button className="secondary" type="submit">{resetLabel}</button>
         </form>
       ) : null}
@@ -83,11 +94,11 @@ export default async function SettingsPage() {
   const admin = await requireSiteAdmin();
   if (!admin) redirect("/admin");
 
-  const [settings, filesystemIndexPage, filesystemNotFoundPage, filesystemLoginPage] = await Promise.all([
+  const [settings, filesystemLoginPage, webrootIndexPage, webrootNotFoundPage] = await Promise.all([
     getSettings(),
-    pageFromFilesystem("index"),
-    pageFromFilesystem("notFound"),
-    pageFromFilesystem("login")
+    pageFromFilesystem("login"),
+    publicWebrootFile([]),
+    publicWebrootFile(["404.html"], { allowReservedPath: true })
   ]);
   const csrf = getCsrfToken();
 
@@ -156,39 +167,26 @@ export default async function SettingsPage() {
       </section>
 
       <section className="surface" style={{ padding: "1rem" }}>
-        <h2>Custom pages</h2>
+        <h2>Public webroot</h2>
         <p className="muted">
-          Mount <code>index.html</code>, <code>404.html</code>, and <code>login.html</code> in the custom pages directory to
-          replace pages from the filesystem, or upload small HTML files as database-backed fallbacks. Custom login pages
-          must include one <code>{LOGIN_FORM_PLACEHOLDER}</code> placeholder where the secure login form should appear.
+          Public files are served directly from <code>{publicWebrootLocation()}</code>. Use <code>index.html</code> for the
+          public home page, <code>404.html</code> for missing public paths, and normal files or directories for assets and
+          extra pages. App-owned paths such as <code>/admin</code>, <code>/api</code>, <code>/_next</code>, and{" "}
+          <code>/health</code> remain reserved.
         </p>
         <div className="grid-3">
-          <CustomPageControl
+          <WebrootFileStatus file={webrootIndexPage} label="Home page" pathHint="index.html" />
+          <WebrootFileStatus file={webrootNotFoundPage} label="Not found page" pathHint="404.html" />
+          <LoginTemplateControl
             csrf={csrf}
-            description="Shown at the public home page."
-            filesystemKind="index"
-            filesystemPage={filesystemIndexPage}
-            kind="index"
-            page={settings.customIndexPage}
-            title="Home page"
-          />
-          <CustomPageControl
-            csrf={csrf}
-            description="Shown when a short link or page is not found."
-            filesystemKind="notFound"
-            filesystemPage={filesystemNotFoundPage}
-            kind="notFound"
-            page={settings.customNotFoundPage}
-            title="Not found page"
-          />
-          <CustomPageControl
-            csrf={csrf}
-            description="Wraps the app-owned admin login and 2FA forms."
+            description={
+              "Wraps the app-owned admin login and 2FA forms. Use {{LOGIN_FORM}} for the form slot, " +
+              "and optionally {{LOGIN_TITLE}} and {{LOGIN_TAGLINE}} for app-provided text."
+            }
             filesystemKind="login"
             filesystemPage={filesystemLoginPage}
-            kind="login"
             page={settings.customLoginPage}
-            title="Login page"
+            title="Login template"
           />
         </div>
       </section>

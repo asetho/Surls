@@ -27,10 +27,19 @@ export default async function TwoFactorLoginPage({ searchParams }: { searchParam
   if (!pendingLogin) redirect("/admin?error=Sign%20in%20again%20to%20continue.");
 
   const [settings, filesystemLoginPage] = await Promise.all([getSettings(), pageFromFilesystem("login")]);
+  const customLoginPage = filesystemLoginPage ?? settings.customLoginPage;
+  const title = "Enter your 2FA code";
+  const tagline = `Finish signing in to ${settings.siteName} as ${pendingLogin.email}.`;
 
   return (
-    <LoginPageShell customPage={filesystemLoginPage ?? settings.customLoginPage}>
-      <TwoFactorLoginForm csrf={getCsrfToken()} email={pendingLogin.email} error={params.error} siteName={settings.siteName} />
+    <LoginPageShell customPage={customLoginPage} tagline={tagline} title={title}>
+      <TwoFactorLoginForm
+        csrf={getCsrfToken()}
+        embedded={Boolean(customLoginPage)}
+        email={pendingLogin.email}
+        error={params.error}
+        siteName={settings.siteName}
+      />
     </LoginPageShell>
   );
 }

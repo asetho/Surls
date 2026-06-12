@@ -1,15 +1,16 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   LOGIN_FORM_PLACEHOLDER,
+  LOGIN_TAGLINE_PLACEHOLDER,
+  LOGIN_TITLE_PLACEHOLDER,
   addNonceToCustomPageScripts,
-  assetFromFilesystem,
-  hasCustomPublicPages,
   normalizeCustomHtmlPage,
   pageFromFilesystem,
   pageFromUpload,
+  renderLoginTemplateHtml,
   splitLoginFormPlaceholder,
   validateLoginPageTemplate
 } from "@/lib/custom-pages";
@@ -56,22 +57,37 @@ describe("custom page uploads", () => {
   });
 
   it("splits custom login templates around the trusted form placeholder", async () => {
-    const html = `<main><h1>Welcome</h1>${LOGIN_FORM_PLACEHOLDER}<footer>Done</footer></main>`;
+    const html = [
+      `<main><h1>${LOGIN_TITLE_PLACEHOLDER}</h1>`,
+      `<p>${LOGIN_TAGLINE_PLACEHOLDER}</p>`,
+      `${LOGIN_FORM_PLACEHOLDER}<footer>Done</footer></main>`
+    ].join("");
     const page = await pageFromUpload(new File([html], "login.html", { type: "text/html" }), {
       requireLoginPlaceholder: true
     });
 
     expect(page.html).toBe(html);
     expect(splitLoginFormPlaceholder(page.html)).toEqual({
-      before: "<main><h1>Welcome</h1>",
+      before: `<main><h1>${LOGIN_TITLE_PLACEHOLDER}</h1><p>${LOGIN_TAGLINE_PLACEHOLDER}</p>`,
       after: "<footer>Done</footer></main>"
     });
+  });
+
+  it("renders custom login templates with separate title, tagline, and form slots", () => {
+    const html = `<main><h1>${LOGIN_TITLE_PLACEHOLDER}</h1><p>${LOGIN_TAGLINE_PLACEHOLDER}</p>${LOGIN_FORM_PLACEHOLDER}</main>`;
+
+    expect(renderLoginTemplateHtml(html, { tagline: `Use "private" links.`, title: "Asetho <Login>" })).toBe(
+      `<main><h1>Asetho &lt;Login&gt;</h1><p>Use &quot;private&quot; links.</p><div data-surls-login-form-slot></div></main>`
+    );
   });
 
   it("rejects custom login templates without exactly one form placeholder", async () => {
     expect(() => validateLoginPageTemplate("<main>No form here</main>")).toThrow(LOGIN_FORM_PLACEHOLDER);
     expect(() =>
       validateLoginPageTemplate(`${LOGIN_FORM_PLACEHOLDER}<hr>${LOGIN_FORM_PLACEHOLDER}`)
+    ).toThrow(LOGIN_FORM_PLACEHOLDER);
+    expect(() =>
+      validateLoginPageTemplate(`${LOGIN_TITLE_PLACEHOLDER}${LOGIN_TITLE_PLACEHOLDER}${LOGIN_FORM_PLACEHOLDER}`)
     ).toThrow(LOGIN_FORM_PLACEHOLDER);
     await expect(
       pageFromUpload(new File(["<main>No form here</main>"], "login.html", { type: "text/html" }), {
@@ -134,41 +150,6 @@ describe("filesystem custom pages", () => {
 
       await writeFile(path.join(dir, "login.html"), `${LOGIN_FORM_PLACEHOLDER}<hr>${LOGIN_FORM_PLACEHOLDER}`);
       await expect(pageFromFilesystem("login", dir)).resolves.toBeNull();
-    });
-  });
-
-  it("detects custom public pages but ignores login-only custom pages", async () => {
-    await withTempDir(async (dir) => {
-      await expect(hasCustomPublicPages(undefined, dir)).resolves.toBe(false);
-
-      await writeFile(path.join(dir, "login.html"), `<h1>Login</h1>${LOGIN_FORM_PLACEHOLDER}`);
-      await expect(hasCustomPublicPages(undefined, dir)).resolves.toBe(false);
-
-      await writeFile(path.join(dir, "index.html"), "<h1>Mounted home</h1>");
-      await expect(hasCustomPublicPages(undefined, dir)).resolves.toBe(true);
-    });
-
-    expect(
-      await hasCustomPublicPages({
-        customIndexPage: { fileName: "index.html", html: "<h1>Uploaded</h1>", size: 17, updatedAt: new Date(0).toISOString() },
-        customNotFoundPage: null
-      })
-    ).toBe(true);
-  });
-
-  it("serves allowed mounted assets and blocks unsafe asset paths", async () => {
-    await withTempDir(async (dir) => {
-      await mkdir(path.join(dir, "assets"), { recursive: true });
-      await writeFile(path.join(dir, "assets", "site.css"), "body { color: #111; }");
-      await writeFile(path.join(dir, "assets", "app.js"), "alert('nope');");
-
-      await expect(assetFromFilesystem(["site.css"], dir)).resolves.toMatchObject({
-        contentType: "text/css; charset=utf-8",
-        size: 21
-      });
-      await expect(assetFromFilesystem(["app.js"], dir)).resolves.toBeNull();
-      await expect(assetFromFilesystem(["..", "index.html"], dir)).resolves.toBeNull();
-      await expect(assetFromFilesystem([".secret.txt"], dir)).resolves.toBeNull();
     });
   });
 });

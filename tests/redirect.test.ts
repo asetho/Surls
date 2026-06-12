@@ -7,7 +7,7 @@ const redirectMocks = vi.hoisted(() => ({
   findUnique: vi.fn(),
   getSetting: vi.fn(),
   getSiteName: vi.fn(),
-  pageFromFilesystem: vi.fn()
+  publicWebrootNotFoundResponse: vi.fn()
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -23,8 +23,8 @@ vi.mock("@/lib/settings", () => ({
   getSiteName: redirectMocks.getSiteName
 }));
 
-vi.mock("@/lib/custom-pages", () => ({
-  pageFromFilesystem: redirectMocks.pageFromFilesystem
+vi.mock("@/lib/webroot", () => ({
+  publicWebrootNotFoundResponse: redirectMocks.publicWebrootNotFoundResponse
 }));
 
 function requestFor(path: string) {
@@ -36,7 +36,8 @@ describe("redirect behavior", () => {
     redirectMocks.findUnique.mockReset();
     redirectMocks.getSetting.mockReset();
     redirectMocks.getSiteName.mockReset();
-    redirectMocks.pageFromFilesystem.mockReset();
+    redirectMocks.publicWebrootNotFoundResponse.mockReset();
+    redirectMocks.publicWebrootNotFoundResponse.mockResolvedValue(new Response("Not found", { status: 404 }));
   });
 
   it("does not record authenticated admin clicks by default", () => {
@@ -79,44 +80,18 @@ describe("redirect behavior", () => {
     expect(isAdminReferrer("https://example.com/admin", "https://asetho.link")).toBe(false);
   });
 
-  it("serves mounted 404.html for missing short links before uploaded fallback HTML", async () => {
+  it("uses the public webroot 404 response for missing short links", async () => {
     redirectMocks.findUnique.mockResolvedValue(null);
-    redirectMocks.pageFromFilesystem.mockResolvedValue({
-      fileName: "404.html",
-      html: "<h1>Mounted 404</h1>",
-      size: 20,
-      updatedAt: "2026-06-11T00:00:00.000Z"
-    });
-    redirectMocks.getSetting.mockResolvedValue({
-      fileName: "uploaded.html",
-      html: "<h1>Uploaded 404</h1>",
-      size: 21,
-      updatedAt: "2026-06-11T00:00:00.000Z"
-    });
+    redirectMocks.publicWebrootNotFoundResponse.mockResolvedValue(
+      new Response("<h1>Mounted 404</h1>", { headers: { "content-type": "text/html; charset=utf-8" }, status: 404 })
+    );
 
     const response = await handleShortRedirect(requestFor("/what"), "what");
 
     expect(response.status).toBe(404);
     await expect(response.text()).resolves.toBe("<h1>Mounted 404</h1>");
     expect(response.headers.get("content-type")).toContain("text/html");
-    expect(redirectMocks.pageFromFilesystem).toHaveBeenCalledWith("notFound");
+    expect(redirectMocks.publicWebrootNotFoundResponse).toHaveBeenCalledWith({ method: "GET" });
     expect(redirectMocks.getSetting).not.toHaveBeenCalled();
-  });
-
-  it("serves uploaded custom 404 HTML for missing short links when no mounted file exists", async () => {
-    redirectMocks.findUnique.mockResolvedValue(null);
-    redirectMocks.pageFromFilesystem.mockResolvedValue(null);
-    redirectMocks.getSetting.mockResolvedValue({
-      fileName: "uploaded.html",
-      html: "<h1>Uploaded 404</h1>",
-      size: 21,
-      updatedAt: "2026-06-11T00:00:00.000Z"
-    });
-
-    const response = await handleShortRedirect(requestFor("/what"), "what");
-
-    expect(response.status).toBe(404);
-    await expect(response.text()).resolves.toBe("<h1>Uploaded 404</h1>");
-    expect(redirectMocks.getSetting).toHaveBeenCalledWith("customNotFoundPage");
   });
 });

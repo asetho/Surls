@@ -29,7 +29,8 @@ services:
       SESSION_DAYS: "${SESSION_DAYS:-14}"
       ALLOW_PRIVATE_DESTINATIONS: "${ALLOW_PRIVATE_DESTINATIONS:-false}"
       TRUST_PROXY: "${TRUST_PROXY:-false}"
-      CUSTOM_PAGES_DIR: "/app/custom-pages"
+      CUSTOM_PAGES_DIR: "/app/www"
+      PUBLIC_WEBROOT_DIR: "/app/www"
       WEBAUTHN_RP_ID: "${WEBAUTHN_RP_ID:-localhost}"
       WEBAUTHN_ORIGIN: "${WEBAUTHN_ORIGIN:-http://localhost:3000}"
       INITIAL_ADMIN_EMAIL: "${INITIAL_ADMIN_EMAIL:-}"
@@ -41,8 +42,8 @@ services:
       - "${SURLS_PORT:-3000}:3000"
     volumes:
       - type: bind
-        source: "${SURLS_CUSTOM_PAGES_PATH:?Set SURLS_CUSTOM_PAGES_PATH to an existing host directory for custom public pages}"
-        target: /app/custom-pages
+        source: "${SURLS_PUBLIC_WEBROOT_PATH:-${SURLS_CUSTOM_PAGES_PATH:?Set SURLS_PUBLIC_WEBROOT_PATH to an existing host directory for the public webroot}}"
+        target: /app/www
         read_only: true
         bind:
           create_host_path: false

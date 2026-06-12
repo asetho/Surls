@@ -6,7 +6,7 @@ import { linkUnavailableReason } from "./links";
 import { recordClick } from "./clicks";
 import { appendForwardedQuery } from "./url-safety";
 import { appBaseUrl } from "./env";
-import { pageFromFilesystem } from "./custom-pages";
+import { publicWebrootNotFoundResponse } from "./webroot";
 
 export function isAdminReferrer(referrer: string | null, baseUrl = appBaseUrl()) {
   if (!referrer) return false;
@@ -60,23 +60,7 @@ async function unavailableResponse(reason: string) {
 export async function handleShortRedirect(request: NextRequest, code: string, isHead = false) {
   const link = await prisma.shortLink.findUnique({ where: { code } });
   if (!link) {
-    const filesystemNotFoundPage = await pageFromFilesystem("notFound");
-    const customNotFoundPage = filesystemNotFoundPage ?? (await getSetting("customNotFoundPage"));
-    if (customNotFoundPage) {
-      return new NextResponse(customNotFoundPage.html, {
-        status: 404,
-        headers: { "content-type": "text/html; charset=utf-8" }
-      });
-    }
-
-    const siteName = escapeHtml(await getSiteName());
-    return new NextResponse(
-      `<!doctype html><html><head><title>${siteName} short URL not found</title><style>:root{--dark-teal:#0a5c70ff;--teal:#087e8bff;--pacific-blue:#64abbbff;--sky-blue-light:#92c1d3ff;--flag-red:#c81d25ff}body{font-family:system-ui,sans-serif;background:color-mix(in srgb,var(--sky-blue-light),white 84%);color:#0b2636;margin:0;display:grid;place-items:center;min-height:100vh}.card{max-width:680px;background:white;border:1px solid color-mix(in srgb,var(--pacific-blue),white 58%);border-radius:8px;padding:24px;box-shadow:0 18px 50px color-mix(in srgb,var(--dark-teal),transparent 84%)}button,a{border-radius:8px;padding:10px 14px;border:1px solid var(--pacific-blue);background:var(--teal);color:white;text-decoration:none;font-weight:700}a.secondary{background:white;color:#0b2636}</style></head><body><main class="card"><h1>That short URL was not found.</h1><p>The link may have been removed, mistyped, disabled, or never created.</p><p><button onclick="history.back()">Go back</button> <a class="secondary" href="/">Go home</a></p></main></body></html>`,
-      {
-        status: 404,
-        headers: { "content-type": "text/html; charset=utf-8" }
-      }
-    );
+    return publicWebrootNotFoundResponse({ method: isHead ? "HEAD" : "GET" });
   }
 
   const reason = linkUnavailableReason(link);

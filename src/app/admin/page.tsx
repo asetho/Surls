@@ -21,11 +21,15 @@ export default async function AdminDashboard({ searchParams }: { searchParams: S
   const [params, currentUser] = await Promise.all([searchParams, requireAdmin()]);
   if (!currentUser) {
     const [settings, filesystemLoginPage] = await Promise.all([getSettings(), pageFromFilesystem("login")]);
+    const customLoginPage = filesystemLoginPage ?? settings.customLoginPage;
     const nextPath = safeRedirectPath(params.next);
+    const title = `${settings.siteName} login`;
+    const tagline = "Sign in to manage private links, redirects, and click statistics.";
     return (
-      <LoginPageShell customPage={filesystemLoginPage ?? settings.customLoginPage}>
+      <LoginPageShell customPage={customLoginPage} tagline={tagline} title={title}>
         <PasswordLoginForm
           csrf={getCsrfToken()}
+          embedded={Boolean(customLoginPage)}
           email={params.email}
           error={params.error}
           nextPath={nextPath}

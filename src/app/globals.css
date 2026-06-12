@@ -532,6 +532,14 @@ button.danger-outline:hover {
   min-height: 100vh;
 }
 
+.custom-login-page [data-surls-login-form-slot] {
+  width: 100%;
+}
+
+.surls-login-form-host {
+  width: 100%;
+}
+
 .custom-html-page-isolated {
   background: transparent;
   margin: 0;
@@ -592,6 +600,56 @@ textarea {
   max-width: 440px;
   padding: 1rem;
   width: 100%;
+}
+
+.surls-auth-form-embedded {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: inherit;
+  margin: 0;
+  max-width: none;
+  padding: 0;
+  width: 100%;
+}
+
+.surls-auth-form-embedded label {
+  color: inherit;
+}
+
+.surls-auth-form-embedded input {
+  background: var(--surls-login-input-background, var(--surface));
+  border-color: var(--surls-login-input-border, var(--border));
+  color: var(--surls-login-input-color, inherit);
+}
+
+.surls-auth-form-embedded button:not(.secondary) {
+  background: var(--surls-login-button-background, var(--color-teal));
+  color: var(--surls-login-button-color, var(--button-text));
+}
+
+.surls-auth-form-embedded button:not(.secondary):hover {
+  background: var(--surls-login-button-hover-background, var(--color-deep-teal));
+}
+
+.surls-auth-form-embedded button.secondary {
+  background: var(--surls-login-secondary-background, transparent);
+  border-color: var(--surls-login-secondary-border, var(--border));
+  color: var(--surls-login-secondary-color, inherit);
+}
+
+.surls-auth-form-embedded button.secondary:hover {
+  background: var(--surls-login-secondary-hover-background, var(--surface-strong));
+}
+
+.surls-auth-form-embedded .login-divider {
+  color: var(--surls-login-divider-color, currentColor);
+}
+
+.surls-auth-form-embedded .login-divider::before,
+.surls-auth-form-embedded .login-divider::after {
+  background: var(--surls-login-divider-color, currentColor);
+  opacity: 0.35;
 }
 
 .login-divider {

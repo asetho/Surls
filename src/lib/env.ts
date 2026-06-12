@@ -30,7 +30,8 @@ const envSchema = z
     APP_NAME: emptyToUndefined(z.string().default("Surls")),
     BASE_URL: emptyToUndefined(z.string().url().default("http://localhost:3000")),
     AUTH_SECRET: emptyToUndefined(z.string().min(32).default("development-secret-change-before-production")),
-    CUSTOM_PAGES_DIR: emptyToUndefined(z.string().default("/app/custom-pages")),
+    CUSTOM_PAGES_DIR: emptyToUndefined(z.string().default("/app/www")),
+    PUBLIC_WEBROOT_DIR: emptyToUndefined(z.string().optional()),
     DATABASE_URL: emptyToUndefined(z.string().optional()),
     SESSION_DAYS: emptyToUndefined(z.coerce.number().int().positive().default(14)),
     ALLOW_PRIVATE_DESTINATIONS: emptyToUndefined(
@@ -59,7 +60,12 @@ const envSchema = z
     }
   });
 
-export const env = envSchema.parse(process.env);
+const parsedEnv = envSchema.parse(process.env);
+
+export const env = {
+  ...parsedEnv,
+  PUBLIC_WEBROOT_DIR: parsedEnv.PUBLIC_WEBROOT_DIR ?? parsedEnv.CUSTOM_PAGES_DIR
+};
 
 export function appBaseUrl() {
   return env.BASE_URL.replace(/\/$/, "");

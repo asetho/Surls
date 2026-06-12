@@ -1,6 +1,7 @@
-import { assetFromFilesystem } from "@/lib/custom-pages";
+import { publicWebrootResponse } from "@/lib/webroot";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 type RouteContext = {
   params: Promise<{ path: string[] }>;
@@ -8,17 +9,10 @@ type RouteContext = {
 
 export async function GET(_request: Request, { params }: RouteContext) {
   const { path } = await params;
-  const asset = await assetFromFilesystem(path);
-  if (!asset) {
-    return new Response("Not found", { status: 404 });
-  }
+  return (await publicWebrootResponse(["assets", ...path])) ?? new Response("Not found", { status: 404 });
+}
 
-  return new Response(asset.body, {
-    headers: {
-      "Cache-Control": "public, max-age=300",
-      "Content-Length": String(asset.size),
-      "Content-Type": asset.contentType,
-      "Last-Modified": asset.updatedAt.toUTCString()
-    }
-  });
+export async function HEAD(_request: Request, { params }: RouteContext) {
+  const { path } = await params;
+  return (await publicWebrootResponse(["assets", ...path], { method: "HEAD" })) ?? new Response(null, { status: 404 });
 }

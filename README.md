@@ -6,7 +6,7 @@ It is inspired by the product shape of personal URL shorteners such as YOURLS an
 
 ## What It Includes
 
-- Minimal public Surls home page with no public registration.
+- Mounted public webroot for owner-controlled static files, with no built-in public marketing pages.
 - Secure admin login with Argon2id password hashing, HttpOnly sessions, CSRF-protected admin forms, login rate limiting, TOTP, backup codes, and passkey sign-in.
 - TOTP 2FA setup with QR/manual key verification.
 - One-time backup codes stored only as hashes.
@@ -15,7 +15,7 @@ It is inspired by the product shape of personal URL shorteners such as YOURLS an
 - Redirects at `/:code` and `/s/:code`.
 - Admin clicks excluded from statistics by default, controlled by the Settings page switch “Track admin clicks”.
 - Privacy-respecting click stats: timestamp, referrer, user-agent-derived browser/device, hashed IP-derived values, and raw IP retention limited to 30 days.
-- Cookie consent banner plus `/privacy` and `/cookies` notices.
+- Optional owner-provided public pages from the mounted webroot.
 - Tools page with bookmarklet, API token generation/revocation, CSV import preview/import, exports, SSRF-aware link checker, UTM builder, cleanup summaries, API docs, and system info.
 - Light, Dark, and Auto theme modes. Auto follows the operating system preference.
 - Prisma PostgreSQL schema and initial migration.
@@ -138,26 +138,29 @@ The production image starts through `scripts/docker-entrypoint.mjs`, which:
 - creates missing default settings, optionally creates the first admin, and purges raw IP addresses older than 30 days unless `SURLS_RUN_BOOTSTRAP=false`;
 - starts the Next.js standalone server.
 
-## Filesystem Custom Pages
+## Public Webroot
 
-The public home and not-found pages can be supplied from a read-only mounted directory. In Docker Compose, set `SURLS_CUSTOM_PAGES_PATH` to the host directory you want to use; the container reads it at `/app/custom-pages`.
+The public side of Surls is served from a read-only mounted webroot. In Docker Compose, set `SURLS_PUBLIC_WEBROOT_PATH` to the host directory you want to use; the container reads it at `/app/www`.
 
 ```env
-SURLS_CUSTOM_PAGES_PATH="./custom-pages"
+SURLS_PUBLIC_WEBROOT_PATH="./www"
 ```
 
 Create that host directory before starting Docker. The compose bind mount uses `create_host_path: false`, so Docker will fail fast instead of silently creating a default directory in the wrong place.
 
-Supported files:
+If you set `PUBLIC_WEBROOT_DIR` or `CUSTOM_PAGES_DIR` directly without Docker Compose, use an absolute path.
 
-- `index.html` replaces the public home page.
-- `404.html` replaces the app not-found page.
-- `login.html` wraps the app-owned admin login and 2FA forms. It must include exactly one `{{LOGIN_FORM}}` placeholder.
-- `assets/...` is served at `/assets/...` for CSS, images, fonts, JSON, and text assets.
+Public file behavior:
 
-Filesystem pages take priority over HTML uploaded through `Admin -> Settings`. Uploaded pages remain saved as fallbacks and are used again when the mounted file is removed. Custom pages suppress the built-in cookie banner so the replacement page controls its own public-facing chrome. Public custom pages are isolated in a sandboxed frame; inline scripts can run there for page-local interactions such as hash navigation, but they do not run in the main Surls app context. HTML files must be 256 KB or smaller; mounted assets must be 5 MB or smaller. JavaScript and arbitrary file types are not served from the mounted assets directory.
+- `/` serves `index.html` when present.
+- Missing public paths and missing short links serve `404.html` with HTTP 404 when present.
+- Other files and directories are served directly, such as `/test.html`, `/assets/site.css`, or `/docs/index.html`.
+- Exact public files win before short-link redirects, so `/test.html` serves the file if it exists; otherwise one-segment paths can still resolve as short links.
+- App-owned paths such as `/admin`, `/api`, `/_next`, `/health`, and `/s/:code` remain reserved.
 
-When a custom public `index.html` or `404.html` is active, the built-in `/privacy` and `/cookies` pages return 404 so the default public notices do not appear alongside a custom site. Other root HTML files in the custom-pages directory, such as `test.html`, are ignored and are not served at `https://your-domain/test.html`; put supporting CSS, images, fonts, JSON, or text files under `assets/` and reference them as `/assets/...`.
+`login.html` in the webroot is reserved for the app-owned admin login template and is not served as a public file. It must include exactly one `{{LOGIN_FORM}}` placeholder where the secure Surls login form should appear. You can also place optional `{{LOGIN_TITLE}}` and `{{LOGIN_TAGLINE}}` placeholders anywhere in the template; Surls replaces them with the current login-step heading text. The inserted form exposes stable styling hooks such as `[data-surls-auth-form]`, `[data-surls-auth-input]`, `[data-surls-auth-submit]`, `[data-surls-auth-secondary]`, and `[data-surls-auth-passkey]`, plus CSS variables like `--surls-login-input-background` and `--surls-login-button-background`.
+
+Public webroot HTML is served as same-origin trusted owner content. Keep this directory writable only by trusted admins. If you want stronger isolation for arbitrary third-party HTML, serve that content from a separate domain.
 
 ## Health Checks
 
@@ -246,7 +249,7 @@ Leave “Confirm import” unchecked to preview validation without creating link
 - Create the first admin with temporary `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD`, then remove `INITIAL_ADMIN_PASSWORD` after first login.
 - Enable TOTP and generate backup codes.
 - Run database migrations before scaling to multiple app replicas; login, passkey, page-title, and API creation rate limits are shared through PostgreSQL.
-- If you use filesystem custom pages, mount the host directory read-only and keep only static page assets in it.
+- Mount the public webroot read-only and keep write access limited to trusted admins.
 - Keep `ALLOW_PRIVATE_DESTINATIONS=false` unless you understand the SSRF risk.
 - Put PostgreSQL backups in place.
 - Review `npm audit` after each dependency update.
