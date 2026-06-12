@@ -143,6 +143,7 @@ export async function recordClick(input: {
   maxClicks: number | null;
   shortLinkId: string;
   request: NextRequest;
+  storeEvent?: boolean;
 }) {
   const userAgent = input.request.headers.get("user-agent");
   const referrer = input.request.headers.get("referer");
@@ -170,20 +171,22 @@ export async function recordClick(input: {
     });
     if (updated.count !== 1) return false;
 
-    await tx.clickEvent.create({
-      data: {
-        shortLinkId: input.shortLinkId,
-        referrer,
-        userAgent,
-        browser,
-        device,
-        country: requestCountry(input.request),
-        region: requestRegion(input.request),
-        ipAddress,
-        ipHash,
-        visitorHash
-      }
-    });
+    if (input.storeEvent !== false) {
+      await tx.clickEvent.create({
+        data: {
+          shortLinkId: input.shortLinkId,
+          referrer,
+          userAgent,
+          browser,
+          device,
+          country: requestCountry(input.request),
+          region: requestRegion(input.request),
+          ipAddress,
+          ipHash,
+          visitorHash
+        }
+      });
+    }
     return true;
   });
   void purgeExpiredRawIpAddressesOnce().catch(() => null);

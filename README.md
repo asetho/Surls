@@ -11,9 +11,10 @@ It is inspired by the product shape of personal URL shorteners such as YOURLS an
 - TOTP 2FA setup with QR/manual key verification.
 - One-time backup codes stored only as hashes.
 - Admin dashboard with totals, recent activity, top links, and attention states.
-- Link management with generated or custom aliases, safe destination validation, tags, notes, expiration, max-click limits, enable/disable, archive, QR codes, copy/share buttons, and CSV stats export.
+- Link management with generated or custom aliases, safe destination validation, destination warnings, tags, notes, expiration, max-click limits, enable/disable, archive, QR codes, copy/share buttons, and CSV stats export.
 - Redirects at `/:code` and `/s/:code`.
 - Admin clicks excluded from statistics by default, controlled by the Settings page switch “Track admin clicks”.
+- Detailed redirect analytics skip privacy opt-out requests and high-volume click bursts while still sending visitors to the destination.
 - Privacy-respecting click stats: timestamp, referrer, user-agent-derived browser/device, hashed IP-derived values, and raw IP retention limited to 30 days.
 - Optional owner-provided public pages from the mounted webroot.
 - Tools page with bookmarklet, API token generation/revocation, CSV import preview/import, exports, SSRF-aware link checker, UTM builder, cleanup summaries, API docs, and system info.
@@ -179,6 +180,8 @@ ghcr.io/aaronwhippo/surls:latest
 Authenticated admin redirects are ignored by default. When “Track admin clicks” is disabled, Surls does not store a click event and does not increment totals, unique visit counts, top-link rankings, recent activity, referrer stats, browser/device stats, or location stats. Admin redirects include `X-ShortURL-Admin-Click: ignored` when a click is skipped.
 
 Enable the setting only when you explicitly want admin tests to affect statistics.
+
+Redirect responses use no-store cache headers because links can be edited, disabled, archived, expired, or click-limited. If a visitor sends `DNT: 1` or `Sec-GPC: 1`, Surls still redirects them but skips detailed click analytics for that request; aggregate counters may still update so click-limited links keep working. Surls also caps analytics writes for high-volume click bursts per link and visitor source; rate-limited visitors still redirect normally.
 
 ## Theme Modes
 

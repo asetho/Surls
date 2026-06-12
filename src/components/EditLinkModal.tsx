@@ -4,6 +4,7 @@ import { Pencil, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { updateLinkAction } from "@/app/admin/links/actions";
+import { DestinationWarnings } from "./DestinationWarnings";
 import { TitleAutoFill } from "./TitleAutoFill";
 
 type EditableLink = {
@@ -31,6 +32,7 @@ export function EditLinkModal({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const toastTimeoutRef = useRef<number | null>(null);
   const titleId = useId();
+  const [destinationUrl, setDestinationUrl] = useState(link.destinationUrl);
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState("");
@@ -121,8 +123,15 @@ export function EditLinkModal({
               <div className="form-grid">
                 <label>
                   Destination URL
-                  <input name="destinationUrl" type="url" required defaultValue={link.destinationUrl} />
+                  <input
+                    name="destinationUrl"
+                    onChange={(event) => setDestinationUrl(event.target.value)}
+                    required
+                    type="url"
+                    value={destinationUrl}
+                  />
                 </label>
+                <DestinationWarnings value={destinationUrl} />
                 <label>
                   Title
                   <input name="title" defaultValue={link.title} />

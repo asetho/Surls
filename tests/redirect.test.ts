@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
-import { handleShortRedirect, isAdminReferrer, shouldRecordRedirectClick } from "@/lib/redirect";
+import { analyticsOptOutReason, handleShortRedirect, isAdminReferrer, shouldRecordRedirectClick } from "@/lib/redirect";
 import { linkUnavailableReason } from "@/lib/links";
 
 const redirectMocks = vi.hoisted(() => ({
+  checkRateLimit: vi.fn(),
   findUnique: vi.fn(),
   getSetting: vi.fn(),
   getSiteName: vi.fn(),
+  getCurrentSession: vi.fn(),
+  recordClick: vi.fn(),
   publicWebrootNotFoundResponse: vi.fn()
 }));
 
@@ -23,21 +26,46 @@ vi.mock("@/lib/settings", () => ({
   getSiteName: redirectMocks.getSiteName
 }));
 
+vi.mock("@/lib/auth", () => ({
+  getCurrentSession: redirectMocks.getCurrentSession
+}));
+
+vi.mock("@/lib/clicks", () => ({
+  recordClick: redirectMocks.recordClick
+}));
+
+vi.mock("@/lib/rate-limit", () => ({
+  checkRateLimit: redirectMocks.checkRateLimit
+}));
+
 vi.mock("@/lib/webroot", () => ({
   publicWebrootNotFoundResponse: redirectMocks.publicWebrootNotFoundResponse
 }));
 
-function requestFor(path: string) {
-  return new Request(`http://localhost:3000${path}`) as unknown as NextRequest;
+function requestFor(path: string, headers?: HeadersInit) {
+  const request = new Request(`http://localhost:3000${path}`, { headers }) as unknown as NextRequest;
+  Object.defineProperty(request, "nextUrl", { value: new URL(`http://localhost:3000${path}`) });
+  return request;
 }
 
 describe("redirect behavior", () => {
   beforeEach(() => {
+    redirectMocks.checkRateLimit.mockReset();
     redirectMocks.findUnique.mockReset();
     redirectMocks.getSetting.mockReset();
     redirectMocks.getSiteName.mockReset();
+    redirectMocks.getCurrentSession.mockReset();
+    redirectMocks.recordClick.mockReset();
     redirectMocks.publicWebrootNotFoundResponse.mockReset();
+    redirectMocks.checkRateLimit.mockResolvedValue({ allowed: true, remaining: 119, resetAt: new Date("2026-06-11T12:01:00.000Z") });
+    redirectMocks.getCurrentSession.mockResolvedValue(null);
+    redirectMocks.getSetting.mockImplementation((key: string) => {
+      if (key === "trackAdminClicks") return Promise.resolve(false);
+      if (key === "preserveRedirectQuery") return Promise.resolve(false);
+      return Promise.resolve(null);
+    });
     redirectMocks.publicWebrootNotFoundResponse.mockResolvedValue(new Response("Not found", { status: 404 }));
+    redirectMocks.recordClick.mockResolvedValue(true);
   });
 
   it("does not record authenticated admin clicks by default", () => {
@@ -63,6 +91,19 @@ describe("redirect behavior", () => {
   it("records normal visitor clicks and skips HEAD probes", () => {
     expect(shouldRecordRedirectClick({ isHead: false, isAdminClick: false, trackAdminClicks: false })).toBe(true);
     expect(shouldRecordRedirectClick({ isHead: true, isAdminClick: false, trackAdminClicks: true })).toBe(false);
+  });
+
+  it("skips analytics for privacy opt-out headers", () => {
+    expect(analyticsOptOutReason(new Headers({ dnt: "1" }))).toBe("dnt");
+    expect(analyticsOptOutReason(new Headers({ "sec-gpc": "1" }))).toBe("gpc");
+    expect(
+      shouldRecordRedirectClick({
+        analyticsOptOut: true,
+        isHead: false,
+        isAdminClick: false,
+        trackAdminClicks: false
+      })
+    ).toBe(false);
   });
 
   it("handles disabled, expired, archived, and max-click links", () => {
@@ -93,5 +134,97 @@ describe("redirect behavior", () => {
     expect(response.headers.get("content-type")).toContain("text/html");
     expect(redirectMocks.publicWebrootNotFoundResponse).toHaveBeenCalledWith({ method: "GET" });
     expect(redirectMocks.getSetting).not.toHaveBeenCalled();
+  });
+
+  it("redirects with no-store headers and records normal analytics", async () => {
+    redirectMocks.findUnique.mockResolvedValue({
+      id: "link_1",
+      code: "abc",
+      destinationUrl: "https://example.com",
+      enabled: true,
+      archivedAt: null,
+      expiresAt: null,
+      maxClicks: null,
+      clickCount: 0
+    });
+
+    const response = await handleShortRedirect(requestFor("/abc"), "abc");
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("https://example.com/");
+    expect(response.headers.get("cache-control")).toBe("private, no-store, max-age=0");
+    expect(response.headers.get("pragma")).toBe("no-cache");
+    expect(redirectMocks.checkRateLimit).toHaveBeenCalledOnce();
+    expect(redirectMocks.recordClick).toHaveBeenCalledOnce();
+  });
+
+  it("redirects but skips analytics when the visitor opts out", async () => {
+    redirectMocks.findUnique.mockResolvedValue({
+      id: "link_1",
+      code: "abc",
+      destinationUrl: "https://example.com",
+      enabled: true,
+      archivedAt: null,
+      expiresAt: null,
+      maxClicks: null,
+      clickCount: 0
+    });
+
+    const response = await handleShortRedirect(requestFor("/abc", { dnt: "1" }), "abc");
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("x-shorturl-analytics")).toBe("opted-out");
+    expect(redirectMocks.checkRateLimit).toHaveBeenCalledOnce();
+    expect(redirectMocks.recordClick).toHaveBeenCalledWith(
+      expect.objectContaining({
+        shortLinkId: "link_1",
+        storeEvent: false
+      })
+    );
+  });
+
+  it("redirects but skips analytics when click volume is rate limited", async () => {
+    redirectMocks.findUnique.mockResolvedValue({
+      id: "link_1",
+      code: "abc",
+      destinationUrl: "https://example.com",
+      enabled: true,
+      archivedAt: null,
+      expiresAt: null,
+      maxClicks: null,
+      clickCount: 0
+    });
+    redirectMocks.checkRateLimit.mockResolvedValue({ allowed: false, remaining: 0, resetAt: new Date("2026-06-11T12:01:00.000Z") });
+
+    const response = await handleShortRedirect(requestFor("/abc"), "abc");
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("x-shorturl-analytics")).toBe("rate-limited");
+    expect(redirectMocks.recordClick).not.toHaveBeenCalled();
+  });
+
+  it("keeps max-click enforcement when detailed analytics are rate limited", async () => {
+    redirectMocks.findUnique.mockResolvedValue({
+      id: "link_1",
+      code: "abc",
+      destinationUrl: "https://example.com",
+      enabled: true,
+      archivedAt: null,
+      expiresAt: null,
+      maxClicks: 3,
+      clickCount: 1
+    });
+    redirectMocks.checkRateLimit.mockResolvedValue({ allowed: false, remaining: 0, resetAt: new Date("2026-06-11T12:01:00.000Z") });
+
+    const response = await handleShortRedirect(requestFor("/abc"), "abc");
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("x-shorturl-analytics")).toBe("rate-limited");
+    expect(redirectMocks.recordClick).toHaveBeenCalledWith(
+      expect.objectContaining({
+        shortLinkId: "link_1",
+        storeEvent: false
+      })
+    );
   });
 });

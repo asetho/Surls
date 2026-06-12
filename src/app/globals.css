@@ -528,6 +528,21 @@ button.danger-outline:hover {
   padding: 0.85rem;
 }
 
+.destination-warnings {
+  grid-column: 1 / -1;
+}
+
+.destination-warnings-title {
+  align-items: center;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.destination-warnings ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.25rem;
+}
+
 .custom-html-page {
   min-height: 100vh;
 }

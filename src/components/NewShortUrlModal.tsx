@@ -1,12 +1,14 @@
 "use client";
 
 import { Plus, X } from "lucide-react";
-import { useId, useRef } from "react";
+import { useId, useRef, useState } from "react";
+import { DestinationWarnings } from "./DestinationWarnings";
 import { TitleAutoFill } from "./TitleAutoFill";
 
 export function NewShortUrlModal({ csrf, siteName }: { csrf: string; siteName: string }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const [destinationUrl, setDestinationUrl] = useState("");
 
   function openDialog() {
     const dialog = dialogRef.current;
@@ -61,8 +63,16 @@ export function NewShortUrlModal({ csrf, siteName }: { csrf: string; siteName: s
             <div className="form-grid">
               <label>
                 Destination URL
-                <input name="destinationUrl" type="url" placeholder="https://example.com/page" required />
+                <input
+                  name="destinationUrl"
+                  onChange={(event) => setDestinationUrl(event.target.value)}
+                  placeholder="https://example.com/page"
+                  required
+                  type="url"
+                  value={destinationUrl}
+                />
               </label>
+              <DestinationWarnings value={destinationUrl} />
               <label>
                 Custom alias
                 <input name="code" placeholder="optional-alias" pattern="[A-Za-z0-9_-]{3,64}" />

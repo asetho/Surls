@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   await destroySession(token);
   await auditLog({ action: AuditAction.LOGOUT });
-  const response = NextResponse.redirect(new URL("/", appBaseUrl()), 303);
+  const response = NextResponse.redirect(new URL("/admin", appBaseUrl()), 303);
   clearSessionCookie(response);
   return response;
 }
