@@ -4,6 +4,8 @@ import { isReservedAlias, validateAlias } from "@/lib/alias";
 describe("alias validation", () => {
   it("rejects reserved routes", () => {
     expect(isReservedAlias("admin")).toBe(true);
+    expect(isReservedAlias("favicon.svg")).toBe(true);
+    expect(isReservedAlias("site.webmanifest")).toBe(true);
     expect(validateAlias("admin")).toMatch(/reserved/i);
     expect(validateAlias("api")).toMatch(/reserved/i);
   });

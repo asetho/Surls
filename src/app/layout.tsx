@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import "./globals.css";
-import { CookieBanner } from "@/components/CookieBanner";
 import { ThemeScript } from "@/components/ThemeScript";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { FAVICON_MANIFEST_PATH } from "@/lib/favicons";
 import { getSiteName } from "@/lib/settings";
 
 export const viewport: Viewport = {
@@ -22,7 +22,15 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s | ${siteName}`
     },
     description: `${siteName} is a personal short URL system for managing private links, redirects, and click statistics.`,
-    applicationName: siteName
+    applicationName: siteName,
+    icons: {
+      icon: [
+        { url: "/favicon.ico", sizes: "any" },
+        { url: "/favicon.svg", type: "image/svg+xml" }
+      ],
+      apple: [{ url: "/apple-touch-icon.png" }]
+    },
+    manifest: FAVICON_MANIFEST_PATH
   };
 }
 
@@ -39,7 +47,7 @@ async function savedThemeChoice() {
 }
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const [themeChoice, siteName] = await Promise.all([savedThemeChoice(), getSiteName()]);
+  const themeChoice = await savedThemeChoice();
   const initialTheme = themeChoice === "dark" ? "dark" : "light";
 
   return (
@@ -50,10 +58,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <link rel="stylesheet" href="https://use.typekit.net/ynp6ech.css" />
         <ThemeScript />
       </head>
-      <body>
-        {children}
-        <CookieBanner siteName={siteName} />
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

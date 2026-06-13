@@ -333,6 +333,103 @@ button.danger-outline:hover {
   padding-top: 0.12rem;
 }
 
+.settings-status-grid {
+  align-items: start;
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.settings-status-grid > .surface {
+  min-width: 0;
+}
+
+.settings-card-header {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.settings-card-header h2,
+.settings-status-grid h2 {
+  margin: 0;
+}
+
+.settings-status-grid > .surface > .muted {
+  margin-bottom: 0;
+}
+
+.settings-status-list {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0.85rem 0 0;
+}
+
+.settings-status-list > div {
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  padding-top: 0.65rem;
+}
+
+.settings-status-list > div:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.settings-status-list dt {
+  align-items: center;
+  color: var(--text);
+  display: flex;
+  font-weight: 700;
+  gap: 0.5rem;
+  justify-content: space-between;
+  margin: 0;
+  min-width: 0;
+}
+
+.settings-status-list dt > span:first-child {
+  min-width: 0;
+}
+
+.settings-status-list dd {
+  display: grid;
+  gap: 0.18rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.status-pill {
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  flex: 0 0 auto;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 0.16rem 0.48rem;
+}
+
+.status-pill-active {
+  background: color-mix(in srgb, var(--color-teal), #fff 84%);
+  border-color: color-mix(in srgb, var(--color-teal), #fff 55%);
+  color: var(--color-navy);
+}
+
+.settings-favicon-snippet {
+  margin-top: 0.85rem;
+}
+
+.settings-favicon-snippet textarea {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  white-space: pre;
+}
+
 .bookmarklet-control {
   align-items: center;
   display: flex;
@@ -2037,21 +2134,6 @@ th {
   overflow-wrap: anywhere;
 }
 
-.cookie-banner {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  bottom: 1rem;
-  box-shadow: var(--shadow);
-  display: grid;
-  gap: 0.65rem;
-  left: 1rem;
-  max-width: 520px;
-  padding: 0.8rem;
-  position: fixed;
-  z-index: 30;
-}
-
 .toast {
   background: var(--color-navy);
   border-radius: var(--radius);
@@ -2220,6 +2302,7 @@ th {
   .form-grid,
   .location-analytics-grid,
   .qr-output-grid,
+  .settings-status-grid,
   .stats-history-grid,
   .stats-split-grid,
   .admin-shell {

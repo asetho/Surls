@@ -2,91 +2,150 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireSiteAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
-import { filesystemCustomPageLocation, pageFromFilesystem, type FilesystemCustomPageKind } from "@/lib/custom-pages";
+import { filesystemCustomPageLocation, pageFromFilesystem } from "@/lib/custom-pages";
 import { COMMON_DISPLAY_TIME_ZONES } from "@/lib/dates";
 import { appBaseUrl } from "@/lib/env";
-import type { CustomHtmlPage } from "@/lib/settings";
+import { FAVICON_ASSETS, FAVICON_HTML_SNIPPET, type FaviconAssetKey, type StoredFavicons } from "@/lib/favicons";
 import { getSettings } from "@/lib/settings";
 import { publicWebrootFile, publicWebrootLocation, type PublicWebrootFile } from "@/lib/webroot";
-import { resetCustomPageAction, updateSettingsAction, uploadCustomPageAction } from "./actions";
+import { resetFaviconsAction, updateSettingsAction, uploadFaviconsAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "Settings"
 };
 
-function WebrootFileStatus({ file, label, pathHint }: { file: PublicWebrootFile | null; label: string; pathHint: string }) {
+type CustomPageStatus = {
+  active: boolean;
+  detail?: string;
+  label: string;
+  source: string;
+};
+
+function fileSizeLabel(size: number) {
+  return `${Math.max(1, Math.ceil(size / 1024))} KB`;
+}
+
+function CustomPageStatusList({ activeCount, pages }: { activeCount: number; pages: CustomPageStatus[] }) {
   return (
-    <div className="surface-panel">
-      <h3>{label}</h3>
-      <p className="muted small">
-        <code>{pathHint}</code>
+    <>
+      <div className="settings-card-header">
+        <h2>Custom pages</h2>
+        <span className={activeCount > 0 ? "status-pill status-pill-active" : "status-pill"}>
+          {activeCount > 0 ? `${activeCount} active` : "None active"}
+        </span>
+      </div>
+      <p className="muted">
+        Public pages load from <code>{publicWebrootLocation()}</code>. App-owned paths such as <code>/admin</code>,{" "}
+        <code>/api</code>, <code>/_next</code>, and <code>/health</code> remain reserved.
       </p>
-      {file ? (
-        <p className="small">
-          Active from <code>{file.filePath}</code> ({Math.ceil(file.size / 1024)} KB)
-        </p>
-      ) : (
-        <p className="muted small">Not present.</p>
-      )}
-    </div>
+      <dl className="settings-status-list">
+        {pages.map((page) => (
+          <div key={page.label}>
+            <dt>
+              <span>{page.label}</span>
+              <span className={page.active ? "status-pill status-pill-active" : "status-pill"}>
+                {page.active ? "Active" : "Default"}
+              </span>
+            </dt>
+            <dd>
+              <span>{page.source}</span>
+              {page.detail ? <span className="muted small">{page.detail}</span> : null}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </>
   );
 }
 
-function LoginTemplateControl({
+function FaviconsPanel({
   csrf,
-  description,
-  filesystemKind,
-  filesystemPage,
-  page,
-  title
+  favicons,
+  webrootFiles
 }: {
   csrf: string;
-  description: string;
-  filesystemKind?: FilesystemCustomPageKind;
-  filesystemPage?: CustomHtmlPage | null;
-  page: CustomHtmlPage | null;
-  title: string;
+  favicons: StoredFavicons | null;
+  webrootFiles: Partial<Record<FaviconAssetKey | "siteManifest", PublicWebrootFile | null>>;
 }) {
-  const hasFilesystemPage = Boolean(filesystemPage && filesystemKind);
-  const fallbackLabel = hasFilesystemPage ? "Uploaded fallback file" : "Current file";
-  const resetLabel = hasFilesystemPage ? "Remove uploaded fallback" : "Use built-in login page";
+  const activeCount = FAVICON_ASSETS.filter((asset) => {
+    if (asset.key === "siteManifest") return Boolean(favicons?.siteManifest || favicons || webrootFiles.siteManifest);
+    return Boolean(favicons?.assets[asset.key] || webrootFiles[asset.key]);
+  }).length;
 
   return (
-    <div className="surface-panel">
-      <h3>{title}</h3>
-      <p className="muted small">{description}</p>
-      {hasFilesystemPage && filesystemKind ? (
-        <div className="success small">
-          Filesystem page active from <code>{filesystemCustomPageLocation(filesystemKind)}</code>. Uploaded HTML is kept as a
-          fallback and will be used after that file is removed.
-        </div>
-      ) : null}
-      {page ? (
-        <p className="small">
-          {fallbackLabel}: <strong>{page.fileName}</strong> ({Math.ceil(page.size / 1024)} KB)
-        </p>
-      ) : hasFilesystemPage ? (
-        <p className="muted small">No uploaded fallback page is saved.</p>
-      ) : (
-        <p className="muted small">Using the built-in page.</p>
-      )}
-      <form className="form-stack" action={uploadCustomPageAction} encType="multipart/form-data">
-        <input type="hidden" name="csrf" value={csrf} />
-        <input type="hidden" name="kind" value="login" />
+    <section className="surface surface-panel">
+      <div className="settings-card-header">
+        <h2>Favicons</h2>
+        <span className={activeCount > 0 ? "status-pill status-pill-active" : "status-pill"}>
+          {activeCount > 0 ? `${activeCount} hosted` : "None hosted"}
+        </span>
+      </div>
+      <p className="muted">
+        Upload the full favicon package once. Surls hosts these files from standard root URLs so app pages and custom
+        pages can share the same browser icons.
+      </p>
+
+      <dl className="settings-status-list">
+        {FAVICON_ASSETS.map((asset) => {
+          const uploaded = asset.key === "siteManifest" ? favicons?.siteManifest : favicons?.assets[asset.key];
+          const fallback = webrootFiles[asset.key];
+          const generatedManifest = asset.key === "siteManifest" && favicons && !favicons.siteManifest;
+          const status = uploaded ? "Uploaded" : generatedManifest ? "Generated" : fallback ? "Webroot" : "Missing";
+          const detail = uploaded
+            ? `${uploaded.fileName} (${fileSizeLabel(uploaded.size)})`
+            : generatedManifest
+              ? "Generated from the active 192px and 512px icons."
+              : fallback
+                ? `Fallback from ${fallback.filePath} (${fileSizeLabel(fallback.size)})`
+                : asset.required
+                  ? "Required for a complete favicon package."
+                  : "Optional; Surls can generate this when icons are uploaded.";
+
+          return (
+            <div key={asset.key}>
+              <dt>
+                <span>{asset.label}</span>
+                <span className={status === "Missing" ? "status-pill" : "status-pill status-pill-active"}>{status}</span>
+              </dt>
+              <dd>
+                <code>{asset.url}</code>
+                <span className="muted small">{detail}</span>
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
+
+      <div className="settings-favicon-snippet">
         <label>
-          Upload HTML
-          <input name="file" type="file" accept=".html,.htm,text/html" required />
+          Custom page snippet
+          <textarea readOnly rows={4} value={FAVICON_HTML_SNIPPET} />
         </label>
-        <button type="submit">Upload {title.toLowerCase()}</button>
+      </div>
+
+      <form className="form-stack" action={uploadFaviconsAction} encType="multipart/form-data">
+        <input type="hidden" name="csrf" value={csrf} />
+        <div className="form-grid">
+          {FAVICON_ASSETS.map((asset) => (
+            <label key={asset.key}>
+              {asset.label}
+              <input name={asset.fieldName} type="file" accept={asset.accept} required={asset.required} />
+              <span className="muted small">
+                {asset.required ? "Required" : "Optional"}: <code>{asset.url}</code>
+              </span>
+            </label>
+          ))}
+        </div>
+        <button type="submit">Upload favicon package</button>
       </form>
-      {page ? (
-        <form action={resetCustomPageAction}>
+
+      {favicons ? (
+        <form action={resetFaviconsAction}>
           <input type="hidden" name="csrf" value={csrf} />
-          <input type="hidden" name="kind" value="login" />
-          <button className="secondary" type="submit">{resetLabel}</button>
+          <button className="secondary" type="submit">Use webroot/default favicons</button>
         </form>
       ) : null}
-    </div>
+    </section>
   );
 }
 
@@ -94,13 +153,67 @@ export default async function SettingsPage() {
   const admin = await requireSiteAdmin();
   if (!admin) redirect("/admin");
 
-  const [settings, filesystemLoginPage, webrootIndexPage, webrootNotFoundPage] = await Promise.all([
-    getSettings(),
-    pageFromFilesystem("login"),
-    publicWebrootFile([]),
-    publicWebrootFile(["404.html"], { allowReservedPath: true })
-  ]);
+  const [settings, filesystemLoginPage, webrootIndexPage, webrootNotFoundPage, ...webrootFaviconResults] =
+    await Promise.all([
+      getSettings(),
+      pageFromFilesystem("login"),
+      publicWebrootFile([]),
+      publicWebrootFile(["404.html"], { allowReservedPath: true }),
+      ...FAVICON_ASSETS.map((asset) => publicWebrootFile([asset.url.slice(1)]))
+    ]);
   const csrf = getCsrfToken();
+  const webrootFaviconFiles = Object.fromEntries(
+    FAVICON_ASSETS.map((asset, index) => [asset.key, webrootFaviconResults[index]])
+  ) as Partial<Record<FaviconAssetKey | "siteManifest", PublicWebrootFile | null>>;
+  const loginFilesystemPath = filesystemCustomPageLocation("login");
+  const customPageStatuses: CustomPageStatus[] = [
+    webrootIndexPage
+      ? {
+          active: true,
+          label: "Home page",
+          source: `index.html from ${webrootIndexPage.filePath}`,
+          detail: fileSizeLabel(webrootIndexPage.size)
+        }
+      : {
+          active: false,
+          label: "Home page",
+          source: "No index.html is active from the public webroot."
+        },
+    webrootNotFoundPage
+      ? {
+          active: true,
+          label: "Not found page",
+          source: `404.html from ${webrootNotFoundPage.filePath}`,
+          detail: fileSizeLabel(webrootNotFoundPage.size)
+        }
+      : {
+          active: false,
+          label: "Not found page",
+          source: "No 404.html is active from the public webroot."
+        },
+    filesystemLoginPage
+      ? {
+          active: true,
+          label: "Login template",
+          source: `login.html from ${loginFilesystemPath}`,
+          detail: settings.customLoginPage
+            ? `Uploaded fallback saved: ${settings.customLoginPage.fileName} (${fileSizeLabel(settings.customLoginPage.size)})`
+            : fileSizeLabel(filesystemLoginPage.size)
+        }
+      : settings.customLoginPage
+        ? {
+            active: true,
+            label: "Login template",
+            source: `Uploaded fallback: ${settings.customLoginPage.fileName}`,
+            detail: fileSizeLabel(settings.customLoginPage.size)
+          }
+        : {
+            active: false,
+            label: "Login template",
+            source: "Using the built-in admin login page."
+          }
+  ];
+  const activeCustomPageCount = customPageStatuses.filter((page) => page.active).length;
 
   return (
     <main className="admin-content">
@@ -166,44 +279,35 @@ export default async function SettingsPage() {
         </form>
       </section>
 
-      <section className="surface" style={{ padding: "1rem" }}>
-        <h2>Public webroot</h2>
-        <p className="muted">
-          Public files are served directly from <code>{publicWebrootLocation()}</code>. Use <code>index.html</code> for the
-          public home page, <code>404.html</code> for missing public paths, and normal files or directories for assets and
-          extra pages. App-owned paths such as <code>/admin</code>, <code>/api</code>, <code>/_next</code>, and{" "}
-          <code>/health</code> remain reserved.
-        </p>
-        <div className="grid-3">
-          <WebrootFileStatus file={webrootIndexPage} label="Home page" pathHint="index.html" />
-          <WebrootFileStatus file={webrootNotFoundPage} label="Not found page" pathHint="404.html" />
-          <LoginTemplateControl
-            csrf={csrf}
-            description={
-              "Wraps the app-owned admin login and 2FA forms. Use {{LOGIN_FORM}} for the form slot, " +
-              "and optionally {{LOGIN_TITLE}} and {{LOGIN_TAGLINE}} for app-provided text."
-            }
-            filesystemKind="login"
-            filesystemPage={filesystemLoginPage}
-            page={settings.customLoginPage}
-            title="Login template"
-          />
-        </div>
-      </section>
+      <FaviconsPanel csrf={csrf} favicons={settings.favicons} webrootFiles={webrootFaviconFiles} />
 
-      <section className="surface" style={{ padding: "1rem" }}>
-        <h2>Current security-related settings</h2>
-        <dl>
-          <dt>Base URL</dt>
-          <dd>{appBaseUrl()}</dd>
-          <dt>Track admin clicks</dt>
-          <dd>{settings.trackAdminClicks ? "Enabled" : "Disabled"}</dd>
-          <dt>Preserve redirect query</dt>
-          <dd>{settings.preserveRedirectQuery ? "Enabled" : "Disabled"}</dd>
-          <dt>Display timezone</dt>
-          <dd>{settings.displayTimeZone}</dd>
-        </dl>
-      </section>
+      <div className="settings-status-grid">
+        <section className="surface surface-panel">
+          <CustomPageStatusList activeCount={activeCustomPageCount} pages={customPageStatuses} />
+        </section>
+
+        <section className="surface surface-panel">
+          <h2>Current security-related settings</h2>
+          <dl className="settings-status-list">
+            <div>
+              <dt>Base URL</dt>
+              <dd>{appBaseUrl()}</dd>
+            </div>
+            <div>
+              <dt>Track admin clicks</dt>
+              <dd>{settings.trackAdminClicks ? "Enabled" : "Disabled"}</dd>
+            </div>
+            <div>
+              <dt>Preserve redirect query</dt>
+              <dd>{settings.preserveRedirectQuery ? "Enabled" : "Disabled"}</dd>
+            </div>
+            <div>
+              <dt>Display timezone</dt>
+              <dd>{settings.displayTimeZone}</dd>
+            </div>
+          </dl>
+        </section>
+      </div>
     </main>
   );
 }

@@ -161,6 +161,8 @@ Public file behavior:
 
 `login.html` in the webroot is reserved for the app-owned admin login template and is not served as a public file. It must include exactly one `{{LOGIN_FORM}}` placeholder where the secure Surls login form should appear. You can also place optional `{{LOGIN_TITLE}}` and `{{LOGIN_TAGLINE}}` placeholders anywhere in the template; Surls replaces them with the current login-step heading text. The inserted form exposes stable styling hooks such as `[data-surls-auth-form]`, `[data-surls-auth-input]`, `[data-surls-auth-submit]`, `[data-surls-auth-secondary]`, and `[data-surls-auth-passkey]`, plus CSS variables like `--surls-login-input-background` and `--surls-login-button-background`.
 
+Admin-managed favicons can be uploaded from Settings without writing to the read-only webroot. Uploaded favicons are served from standard root URLs that custom pages can reference directly: `/favicon.ico`, `/favicon.svg`, `/apple-touch-icon.png`, `/icon-192.png`, `/icon-512.png`, and `/site.webmanifest`. If no admin-managed favicon package is configured, these paths fall back to matching files in the public webroot when present.
+
 Public webroot HTML is served as same-origin trusted owner content. Keep this directory writable only by trusted admins. If you want stronger isolation for arbitrary third-party HTML, serve that content from a separate domain.
 
 ## Health Checks

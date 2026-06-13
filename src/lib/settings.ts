@@ -3,6 +3,7 @@ import { prisma } from "./prisma";
 import { env } from "./env";
 import { DEFAULT_DISPLAY_TIME_ZONE, normalizeDisplayTimeZone } from "./dates";
 import { normalizeCustomHtmlPage } from "./custom-pages";
+import { normalizeFavicons, type StoredFavicons } from "./favicons";
 
 export type CustomHtmlPage = {
   fileName: string;
@@ -22,6 +23,7 @@ export type AppSettings = {
   customIndexPage: CustomHtmlPage | null;
   customNotFoundPage: CustomHtmlPage | null;
   customLoginPage: CustomHtmlPage | null;
+  favicons: StoredFavicons | null;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -34,7 +36,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   themeDefault: "auto",
   customIndexPage: null,
   customNotFoundPage: null,
-  customLoginPage: null
+  customLoginPage: null,
+  favicons: null
 };
 
 export function normalizeSiteName(value: unknown) {
@@ -75,7 +78,8 @@ export async function getSettings(): Promise<AppSettings> {
     displayTimeZone: normalizeDisplayTimeZone(settings.displayTimeZone),
     customIndexPage: normalizeCustomHtmlPage(settings.customIndexPage),
     customNotFoundPage: normalizeCustomHtmlPage(settings.customNotFoundPage),
-    customLoginPage: normalizeCustomHtmlPage(settings.customLoginPage)
+    customLoginPage: normalizeCustomHtmlPage(settings.customLoginPage),
+    favicons: normalizeFavicons(settings.favicons)
   };
 }
 

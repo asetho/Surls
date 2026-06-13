@@ -7,6 +7,7 @@ import { requireSiteAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
 import { CUSTOM_PAGE_SETTINGS, isCustomPageKind, pageFromUpload } from "@/lib/custom-pages";
 import { requireDisplayTimeZone } from "@/lib/dates";
+import { faviconsFromUpload } from "@/lib/favicons";
 import { normalizeSiteName, setSetting } from "@/lib/settings";
 
 export async function updateSettingsAction(formData: FormData) {
@@ -42,6 +43,18 @@ function revalidateCustomPagePaths() {
   revalidatePath("/admin");
   revalidatePath("/admin/2fa");
   revalidatePath("/admin/settings");
+}
+
+function revalidateFaviconPaths() {
+  revalidatePath("/", "layout");
+  revalidatePath("/admin", "layout");
+  revalidatePath("/admin/settings");
+  revalidatePath("/favicon.ico");
+  revalidatePath("/favicon.svg");
+  revalidatePath("/apple-touch-icon.png");
+  revalidatePath("/icon-192.png");
+  revalidatePath("/icon-512.png");
+  revalidatePath("/site.webmanifest");
 }
 
 export async function uploadCustomPageAction(formData: FormData) {
@@ -86,4 +99,44 @@ export async function resetCustomPageAction(formData: FormData) {
     details: { customPage: kind, removed: true }
   });
   revalidateCustomPagePaths();
+}
+
+export async function uploadFaviconsAction(formData: FormData) {
+  validateCsrf(formData);
+  const admin = await requireSiteAdmin();
+  if (!admin) throw new Error("Only admins can update favicons.");
+
+  const favicons = await faviconsFromUpload(formData);
+  await setSetting("favicons", favicons);
+  await auditLog({
+    userId: admin.id,
+    action: AuditAction.SETTINGS_CHANGED,
+    entityType: "AppSetting",
+    entityId: "favicons",
+    details: {
+      favicons: true,
+      files: Object.values(favicons.assets).map((asset) => ({
+        fileName: asset.fileName,
+        size: asset.size
+      })),
+      hasManifest: Boolean(favicons.siteManifest)
+    }
+  });
+  revalidateFaviconPaths();
+}
+
+export async function resetFaviconsAction(formData: FormData) {
+  validateCsrf(formData);
+  const admin = await requireSiteAdmin();
+  if (!admin) throw new Error("Only admins can update favicons.");
+
+  await setSetting("favicons", null);
+  await auditLog({
+    userId: admin.id,
+    action: AuditAction.SETTINGS_CHANGED,
+    entityType: "AppSetting",
+    entityId: "favicons",
+    details: { favicons: true, removed: true }
+  });
+  revalidateFaviconPaths();
 }

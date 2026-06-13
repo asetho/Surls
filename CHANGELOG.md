@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.6.0 - 2026-06-13
+
+### Added
+
+* Added admin-managed favicon uploads for modern browser icons and app manifests.
+* Added hosted favicon URLs and a copyable snippet for custom public pages.
+
+### Changed
+
+* Settings now summarizes active custom pages instead of showing the old public webroot upload controls.
+
+### Fixed
+
+* Removed the cookie consent popup from the app shell.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.5.2 - 2026-06-12
 
 ### Fixed

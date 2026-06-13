@@ -1,11 +1,12 @@
-import { publicWebrootResponse } from "@/lib/webroot";
+import { faviconRouteResponse } from "@/lib/favicon-routes";
 
+export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET() {
-  return (await publicWebrootResponse(["favicon.ico"])) ?? new Response("Not found", { status: 404 });
+  return faviconRouteResponse("faviconIco");
 }
 
 export async function HEAD() {
-  return (await publicWebrootResponse(["favicon.ico"], { method: "HEAD" })) ?? new Response(null, { status: 404 });
+  return faviconRouteResponse("faviconIco", { method: "HEAD" });
 }

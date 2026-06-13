@@ -10,8 +10,13 @@ export const RESERVED_ALIASES = new Set([
   "s",
   "static",
   "_next",
+  "apple-touch-icon.png",
   "favicon.ico",
-  "robots.txt"
+  "favicon.svg",
+  "icon-192.png",
+  "icon-512.png",
+  "robots.txt",
+  "site.webmanifest"
 ]);
 
 const ALIAS_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{2,63}$/;
