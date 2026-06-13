@@ -3,6 +3,11 @@ import { prisma } from "./prisma";
 import { env } from "./env";
 import { DEFAULT_DISPLAY_TIME_ZONE, normalizeDisplayTimeZone } from "./dates";
 import { normalizeCustomHtmlPage } from "./custom-pages";
+import {
+  DEFAULT_DASHBOARD_THEME,
+  normalizeDashboardTheme,
+  type DashboardTheme
+} from "./dashboard-theme";
 import { normalizeFavicons, type StoredFavicons } from "./favicons";
 
 export type CustomHtmlPage = {
@@ -20,6 +25,7 @@ export type AppSettings = {
   enablePasswordProtectedLinks: boolean;
   enableQrCodes: boolean;
   themeDefault: "auto" | "light" | "dark";
+  dashboardTheme: DashboardTheme;
   customIndexPage: CustomHtmlPage | null;
   customNotFoundPage: CustomHtmlPage | null;
   customLoginPage: CustomHtmlPage | null;
@@ -34,6 +40,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   enablePasswordProtectedLinks: true,
   enableQrCodes: true,
   themeDefault: "auto",
+  dashboardTheme: DEFAULT_DASHBOARD_THEME,
   customIndexPage: null,
   customNotFoundPage: null,
   customLoginPage: null,
@@ -76,6 +83,7 @@ export async function getSettings(): Promise<AppSettings> {
     ...settings,
     siteName: normalizeSiteName(settings.siteName),
     displayTimeZone: normalizeDisplayTimeZone(settings.displayTimeZone),
+    dashboardTheme: normalizeDashboardTheme(settings.dashboardTheme),
     customIndexPage: normalizeCustomHtmlPage(settings.customIndexPage),
     customNotFoundPage: normalizeCustomHtmlPage(settings.customNotFoundPage),
     customLoginPage: normalizeCustomHtmlPage(settings.customLoginPage),

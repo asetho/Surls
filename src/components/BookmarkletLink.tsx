@@ -24,7 +24,23 @@ async function copyToClipboard(value: string) {
   textarea.remove();
 }
 
-export function BookmarkletLink({ bookmarklet, label }: { bookmarklet: string; label: string }) {
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+export function BookmarkletLink({
+  bookmarklet,
+  bookmarkTitle = "ShortenURL",
+  label
+}: {
+  bookmarklet: string;
+  bookmarkTitle?: string;
+  label: string;
+}) {
   const linkRef = useRef<HTMLAnchorElement>(null);
   const resetTimerRef = useRef<number | null>(null);
   const [copied, setCopied] = useState(false);
@@ -52,8 +68,12 @@ export function BookmarkletLink({ bookmarklet, label }: { bookmarklet: string; l
   }
 
   function handleDragStart(event: DragEvent<HTMLAnchorElement>) {
+    const html = `<a href="${escapeHtml(bookmarklet)}">${escapeHtml(bookmarkTitle)}</a>`;
+    event.dataTransfer.effectAllowed = "copyLink";
+    event.dataTransfer.setData("text/html", html);
     event.dataTransfer.setData("text/uri-list", bookmarklet);
-    event.dataTransfer.setData("text/plain", bookmarklet);
+    event.dataTransfer.setData("text/x-moz-url", `${bookmarklet}\n${bookmarkTitle}`);
+    event.dataTransfer.setData("text/plain", bookmarkTitle);
   }
 
   return (
@@ -63,9 +83,10 @@ export function BookmarkletLink({ bookmarklet, label }: { bookmarklet: string; l
         className="button bookmarklet-button"
         href="#"
         draggable="true"
+        aria-label={`${label}. Drag to your bookmarks bar to save it as ${bookmarkTitle}, or click to copy.`}
         onClick={handleCopy}
         onDragStart={handleDragStart}
-        title="Drag to your bookmarks bar, or click to copy."
+        title={bookmarkTitle}
       >
         <Bookmark size={16} aria-hidden />
         {label}
@@ -74,6 +95,9 @@ export function BookmarkletLink({ bookmarklet, label }: { bookmarklet: string; l
         {copied ? <Check size={16} aria-hidden /> : <Copy size={16} aria-hidden />}
         {copied ? "Copied" : "Copy"}
       </button>
+      <p className="bookmarklet-help muted small">
+        Drag this to your bookmarks toolbar to save it as {bookmarkTitle}.
+      </p>
     </div>
   );
 }

@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.7.0 - 2026-06-13
+
+### Added
+
+* Added dashboard theme customization with separate light and dark palettes.
+* Added web app name controls and mobile-style previews for generated manifests.
+* Added backup-code copy, download, saved-confirmation, and admin-only delete controls.
+
+### Changed
+
+* Favicons can now be added or replaced one file at a time without re-uploading the full package.
+* Favicon status cards now show previews, cleaner status labels, and collapsible custom-page snippets.
+* The admin sidebar now uses the hosted favicon when available and shows the current Surls version.
+* The bookmarklet now uses a stable `ShortenURL` drag title and clearer helper text.
+* The passkey setup field now uses muted password-manager examples instead of a prefilled name.
+
+### Fixed
+
+* Backup-code generation now uses first-time wording when no unused codes exist.
+* Custom login placeholder text is styled as muted guidance across themes.
+
+### Security
+
+* Added a dedicated audit action for admin backup-code deletion.
+* Refreshed dependency lockfile entries and confirmed `npm audit` reports no vulnerabilities.
+
+### Upgrade Notes
+
+Database migrations run automatically in Docker deployments.
+
 ## 1.6.0 - 2026-06-13
 
 ### Added

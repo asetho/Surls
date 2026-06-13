@@ -6,9 +6,10 @@ import { auditLog } from "@/lib/audit";
 import { requireSiteAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
 import { CUSTOM_PAGE_SETTINGS, isCustomPageKind, pageFromUpload } from "@/lib/custom-pages";
+import { DEFAULT_DASHBOARD_THEME, dashboardThemeFromFormData } from "@/lib/dashboard-theme";
 import { requireDisplayTimeZone } from "@/lib/dates";
-import { faviconsFromUpload } from "@/lib/favicons";
-import { normalizeSiteName, setSetting } from "@/lib/settings";
+import { faviconsWithManifestNames } from "@/lib/favicons";
+import { getSettings, normalizeSiteName, setSetting } from "@/lib/settings";
 
 export async function updateSettingsAction(formData: FormData) {
   validateCsrf(formData);
@@ -34,6 +35,41 @@ export async function updateSettingsAction(formData: FormData) {
     }
   });
   revalidatePath("/", "layout");
+  revalidatePath("/admin", "layout");
+  revalidatePath("/admin/settings");
+}
+
+export async function updateDashboardThemeAction(formData: FormData) {
+  validateCsrf(formData);
+  const admin = await requireSiteAdmin();
+  if (!admin) throw new Error("Only admins can update dashboard theme.");
+
+  const dashboardTheme = dashboardThemeFromFormData(formData);
+  await setSetting("dashboardTheme", dashboardTheme);
+  await auditLog({
+    userId: admin.id,
+    action: AuditAction.SETTINGS_CHANGED,
+    entityType: "AppSetting",
+    entityId: "dashboardTheme",
+    details: { dashboardTheme }
+  });
+  revalidatePath("/admin", "layout");
+  revalidatePath("/admin/settings");
+}
+
+export async function resetDashboardThemeAction(formData: FormData) {
+  validateCsrf(formData);
+  const admin = await requireSiteAdmin();
+  if (!admin) throw new Error("Only admins can update dashboard theme.");
+
+  await setSetting("dashboardTheme", DEFAULT_DASHBOARD_THEME);
+  await auditLog({
+    userId: admin.id,
+    action: AuditAction.SETTINGS_CHANGED,
+    entityType: "AppSetting",
+    entityId: "dashboardTheme",
+    details: { dashboardTheme: "default" }
+  });
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/settings");
 }
@@ -101,30 +137,6 @@ export async function resetCustomPageAction(formData: FormData) {
   revalidateCustomPagePaths();
 }
 
-export async function uploadFaviconsAction(formData: FormData) {
-  validateCsrf(formData);
-  const admin = await requireSiteAdmin();
-  if (!admin) throw new Error("Only admins can update favicons.");
-
-  const favicons = await faviconsFromUpload(formData);
-  await setSetting("favicons", favicons);
-  await auditLog({
-    userId: admin.id,
-    action: AuditAction.SETTINGS_CHANGED,
-    entityType: "AppSetting",
-    entityId: "favicons",
-    details: {
-      favicons: true,
-      files: Object.values(favicons.assets).map((asset) => ({
-        fileName: asset.fileName,
-        size: asset.size
-      })),
-      hasManifest: Boolean(favicons.siteManifest)
-    }
-  });
-  revalidateFaviconPaths();
-}
-
 export async function resetFaviconsAction(formData: FormData) {
   validateCsrf(formData);
   const admin = await requireSiteAdmin();
@@ -137,6 +149,30 @@ export async function resetFaviconsAction(formData: FormData) {
     entityType: "AppSetting",
     entityId: "favicons",
     details: { favicons: true, removed: true }
+  });
+  revalidateFaviconPaths();
+}
+
+export async function updateFaviconManifestAction(formData: FormData) {
+  validateCsrf(formData);
+  const admin = await requireSiteAdmin();
+  if (!admin) throw new Error("Only admins can update favicons.");
+
+  const settings = await getSettings();
+  if (!settings.favicons) throw new Error("Upload a favicon package before saving web app names.");
+
+  const favicons = faviconsWithManifestNames(settings.favicons, formData, settings.siteName);
+  await setSetting("favicons", favicons);
+  await auditLog({
+    userId: admin.id,
+    action: AuditAction.SETTINGS_CHANGED,
+    entityType: "AppSetting",
+    entityId: "favicons",
+    details: {
+      favicons: true,
+      manifestName: favicons.manifestName,
+      manifestShortName: favicons.manifestShortName
+    }
   });
   revalidateFaviconPaths();
 }

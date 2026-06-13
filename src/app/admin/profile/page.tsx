@@ -4,7 +4,7 @@ import QRCode from "qrcode";
 import { BackupCodesForm } from "@/components/BackupCodesForm";
 import { PasskeyManager } from "@/components/PasskeyManager";
 import { getCsrfToken } from "@/lib/csrf";
-import { requireAdmin } from "@/lib/auth";
+import { isAdminUser, requireAdmin } from "@/lib/auth";
 import { formatDateTime } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 import { getSetting, getSiteName } from "@/lib/settings";
@@ -43,7 +43,7 @@ export default async function ProfilePage() {
     <main className="admin-content">
       <div className="content-header">
         <div>
-          <h1>Admin security</h1>
+          <h1>User security</h1>
           <p className="muted">Manage TOTP 2FA, one-time backup codes, and optional passkey records.</p>
         </div>
       </div>
@@ -93,7 +93,7 @@ export default async function ProfilePage() {
           You currently have {backupCount} unused backup {backupCount === 1 ? "code" : "codes"}. Codes are stored only
           as hashes and are consumed after one successful use.
         </p>
-        <BackupCodesForm csrf={csrf} />
+        <BackupCodesForm backupCount={backupCount} canDeleteBackupCodes={isAdminUser(admin)} csrf={csrf} />
       </section>
 
       <section className="surface" style={{ padding: "1rem" }}>

@@ -3,7 +3,7 @@
 import { AuditAction } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { auditLog } from "@/lib/audit";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireSiteAdmin } from "@/lib/auth";
 import { generateBackupCodes, hashBackupCode } from "@/lib/backup-codes";
 import { validateCsrf } from "@/lib/csrf";
 import { prisma } from "@/lib/prisma";
@@ -65,6 +65,22 @@ export async function regenerateBackupCodesAction(_state: { codes: string[] } | 
   await auditLog({ userId: admin.id, action: AuditAction.BACKUP_CODES_REGENERATED });
   revalidatePath("/admin/profile");
   return { codes };
+}
+
+export async function deleteBackupCodesAction(formData: FormData) {
+  validateCsrf(formData);
+  const admin = await requireSiteAdmin();
+  if (!admin) throw new Error("Unauthorized");
+  const deleted = await prisma.backupCode.deleteMany({ where: { userId: admin.id } });
+  if (deleted.count > 0) {
+    await auditLog({
+      userId: admin.id,
+      action: AuditAction.BACKUP_CODES_DELETED,
+      entityType: "BackupCode",
+      details: { count: deleted.count }
+    });
+  }
+  revalidatePath("/admin/profile");
 }
 
 export async function removePasskeyAction(formData: FormData) {

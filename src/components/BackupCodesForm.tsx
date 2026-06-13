@@ -1,11 +1,145 @@
 "use client";
 
-import { useActionState } from "react";
-import { KeyRound } from "lucide-react";
-import { regenerateBackupCodesAction } from "@/app/admin/profile/actions";
+import { useActionState, useEffect, useMemo, useState } from "react";
+import { Check, Copy, Download, KeyRound, Trash2 } from "lucide-react";
+import { deleteBackupCodesAction, regenerateBackupCodesAction } from "@/app/admin/profile/actions";
+import { ConfirmButton } from "./ConfirmButton";
 
-export function BackupCodesForm({ csrf }: { csrf: string }) {
+const BACKUP_CODES_CONFIRMATION =
+  "These backup codes are shown only once. Confirm you have saved, downloaded, or copied them before leaving this page.";
+
+export function BackupCodesForm({
+  backupCount,
+  canDeleteBackupCodes,
+  csrf
+}: {
+  backupCount: number;
+  canDeleteBackupCodes: boolean;
+  csrf: string;
+}) {
   const [state, action, pending] = useActionState(regenerateBackupCodesAction, null);
+  const [acknowledgedCodesText, setAcknowledgedCodesText] = useState<string | null>(null);
+  const [exportState, setExportState] = useState<{ codesText: string; message: string } | null>(null);
+  const codes = state?.codes;
+  const codesText = useMemo(() => (codes ?? []).join("\n"), [codes]);
+  const codesAcknowledged = !codesText || acknowledgedCodesText === codesText;
+  const exportMessage = exportState?.codesText === codesText ? exportState.message : null;
+  const hasBackupCodes = backupCount > 0 || Boolean(codes?.length);
+  const buttonLabel = backupCount > 0 || state?.codes?.length ? "Regenerate backup codes" : "Generate backup codes";
+  const shouldWarnBeforeLeaving = Boolean(codesText) && !codesAcknowledged;
+
+  useEffect(() => {
+    if (!shouldWarnBeforeLeaving) return;
+
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    function confirmSaved() {
+      const confirmed = window.confirm(BACKUP_CODES_CONFIRMATION);
+      if (confirmed) setAcknowledgedCodesText(codesText);
+      return confirmed;
+    }
+
+    function handleDocumentClick(event: MouseEvent) {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.shiftKey
+      ) {
+        return;
+      }
+
+      if (!(event.target instanceof Element)) return;
+      const anchor = event.target.closest("a[href]");
+      if (!(anchor instanceof HTMLAnchorElement)) return;
+      if (anchor.download || (anchor.target && anchor.target !== "_self")) return;
+
+      const href = anchor.getAttribute("href");
+      if (!href || href.startsWith("#")) return;
+
+      const url = new URL(href, window.location.href);
+      const samePage =
+        url.origin === window.location.origin &&
+        url.pathname === window.location.pathname &&
+        url.search === window.location.search;
+
+      if (samePage) return;
+      if (confirmSaved()) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    function handleDocumentSubmit(event: SubmitEvent) {
+      if (event.defaultPrevented) return;
+      if (confirmSaved()) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("click", handleDocumentClick, true);
+    document.addEventListener("submit", handleDocumentSubmit, true);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("click", handleDocumentClick, true);
+      document.removeEventListener("submit", handleDocumentSubmit, true);
+    };
+  }, [codesText, shouldWarnBeforeLeaving]);
+
+  async function copyBackupCodes() {
+    if (!codesText) return;
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(codesText);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = codesText;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.top = "-1000px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        const copied = document.execCommand("copy");
+        textarea.remove();
+        if (!copied) throw new Error("Copy command failed.");
+      }
+      setExportState({ codesText, message: "Backup codes copied." });
+    } catch {
+      setExportState({ codesText, message: "Could not copy backup codes. Select and copy them manually." });
+    }
+  }
+
+  function downloadBackupCodes() {
+    if (!codesText) return;
+
+    const contents = [
+      "Surls backup codes",
+      `Generated: ${new Date().toLocaleString()}`,
+      "",
+      "Store these securely. Each backup code can be used once.",
+      "",
+      codesText
+    ].join("\n");
+    const blob = new Blob([contents], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `surls-backup-codes-${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setExportState({ codesText, message: "Backup codes download started." });
+  }
 
   return (
     <div className="form-stack">
@@ -13,14 +147,51 @@ export function BackupCodesForm({ csrf }: { csrf: string }) {
         <input type="hidden" name="csrf" value={csrf} />
         <button type="submit" disabled={pending}>
           <KeyRound size={16} aria-hidden />
-          Regenerate backup codes
+          {buttonLabel}
         </button>
       </form>
-      {state?.codes?.length ? (
-        <div className="success">
-          <strong>Store these backup codes now. They are shown only after regeneration.</strong>
-          <div className="form-grid" style={{ marginTop: "0.75rem" }}>
-            {state.codes.map((code) => (
+      {canDeleteBackupCodes && hasBackupCodes ? (
+        <form action={deleteBackupCodesAction}>
+          <input type="hidden" name="csrf" value={csrf} />
+          <ConfirmButton
+            className="danger-outline"
+            type="submit"
+            message="Delete all backup codes for your account? You will not be able to use them for recovery."
+          >
+            <Trash2 size={16} aria-hidden />
+            Delete backup codes
+          </ConfirmButton>
+        </form>
+      ) : null}
+      {codes?.length ? (
+        <div className="success backup-codes-result">
+          <strong>Store these backup codes now. They are shown only this once.</strong>
+          <p className="muted small">Copy or download the codes, then confirm once you have saved them.</p>
+          <div className="backup-code-actions">
+            <button type="button" className="secondary" onClick={copyBackupCodes}>
+              <Copy size={16} aria-hidden />
+              Copy codes
+            </button>
+            <button type="button" className="secondary" onClick={downloadBackupCodes}>
+              <Download size={16} aria-hidden />
+              Download .txt
+            </button>
+            <button
+              type="button"
+              onClick={() => setAcknowledgedCodesText(codesText)}
+              disabled={codesAcknowledged}
+            >
+              <Check size={16} aria-hidden />
+              {codesAcknowledged ? "Saved confirmed" : "I saved these codes"}
+            </button>
+          </div>
+          {exportMessage ? (
+            <p className="backup-code-feedback small" aria-live="polite">
+              {exportMessage}
+            </p>
+          ) : null}
+          <div className="form-grid backup-code-grid">
+            {codes.map((code) => (
               <code key={code}>{code}</code>
             ))}
           </div>

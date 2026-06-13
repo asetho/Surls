@@ -5,12 +5,12 @@ import { revokeTokenAction } from "./actions";
 import { BookmarkletLink } from "@/components/BookmarkletLink";
 import { ApiTokenForm, ImportCsvForm, LinkCheckerForm, UtmBuilder } from "@/components/ToolsForms";
 import { ConfirmButton } from "@/components/ConfirmButton";
+import { APP_VERSION } from "@/lib/app-version";
 import { requireAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { appBaseUrl, env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
-import packageJson from "../../../../package.json";
 
 export const metadata: Metadata = {
   title: "Tools"
@@ -134,7 +134,7 @@ export default async function ToolsPage() {
           <h2>System info</h2>
           <dl>
             <dt>App version</dt>
-            <dd>{packageJson.version}</dd>
+            <dd>{APP_VERSION}</dd>
             <dt>Environment</dt>
             <dd>{env.NODE_ENV}</dd>
             <dt>Base URL</dt>

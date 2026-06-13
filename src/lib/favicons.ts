@@ -13,8 +13,15 @@ export type StoredFaviconAsset = {
 
 export type StoredFavicons = {
   assets: Record<FaviconAssetKey, StoredFaviconAsset>;
+  manifestName?: string;
+  manifestShortName?: string;
   siteManifest?: StoredFaviconAsset | null;
   updatedAt: string;
+};
+
+export type FaviconManifestNames = {
+  name: string;
+  shortName: string;
 };
 
 type FaviconAssetSpec = {
@@ -106,6 +113,7 @@ export const FAVICON_ASSETS = [
 ] as const satisfies readonly FaviconAssetSpec[];
 
 export const REQUIRED_FAVICON_ASSETS = FAVICON_ASSETS.filter((asset) => asset.required);
+export const FAVICON_UPLOAD_ASSETS = FAVICON_ASSETS.filter((asset) => asset.key !== "siteManifest");
 export const FAVICON_HTML_SNIPPET = [
   '<link rel="icon" href="/favicon.ico" sizes="any">',
   '<link rel="icon" href="/favicon.svg" type="image/svg+xml">',
@@ -114,7 +122,10 @@ export const FAVICON_HTML_SNIPPET = [
 ].join("\n");
 
 const FAVICON_ASSET_BY_KEY = new Map(FAVICON_ASSETS.map((asset) => [asset.key, asset]));
+const FAVICON_MANIFEST_NAME_MAX_LENGTH = 64;
+const FAVICON_MANIFEST_SHORT_NAME_MAX_LENGTH = 24;
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+const GENERIC_JSON_UPLOAD_MIME_TYPES = new Set(["application/octet-stream", "binary/octet-stream", "text/plain"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -131,6 +142,56 @@ function normalizeStoredFaviconAsset(value: unknown): StoredFaviconAsset | null 
   return { base64, contentType, fileName, size, updatedAt };
 }
 
+function plainTextSetting(value: unknown) {
+  return typeof value === "string" ? value.replace(/[\u0000-\u001f\u007f]/g, "").replace(/\s+/g, " ").trim() : "";
+}
+
+function truncateText(value: string, maxLength: number) {
+  return value.length > maxLength ? value.slice(0, maxLength).trimEnd() : value;
+}
+
+export function normalizeFaviconManifestName(value: unknown, fallback: unknown = "Surls") {
+  const fallbackName = truncateText(plainTextSetting(fallback) || "Surls", FAVICON_MANIFEST_NAME_MAX_LENGTH);
+  return truncateText(plainTextSetting(value) || fallbackName, FAVICON_MANIFEST_NAME_MAX_LENGTH);
+}
+
+export function normalizeFaviconManifestShortName(value: unknown, fallbackName: unknown) {
+  const fallback = truncateText(plainTextSetting(fallbackName) || "Surls", FAVICON_MANIFEST_SHORT_NAME_MAX_LENGTH);
+  return truncateText(plainTextSetting(value) || fallback, FAVICON_MANIFEST_SHORT_NAME_MAX_LENGTH);
+}
+
+export function faviconManifestNamesFromFormData(
+  formData: FormData,
+  fallbackName: string,
+  fallbackShortName?: string
+): FaviconManifestNames {
+  const name = normalizeFaviconManifestName(formData.get("manifestName"), fallbackName);
+  return {
+    name,
+    shortName: normalizeFaviconManifestShortName(formData.get("manifestShortName"), fallbackShortName ?? name)
+  };
+}
+
+export function getFaviconManifestNames(favicons: StoredFavicons | null, siteName: string): FaviconManifestNames {
+  const name = normalizeFaviconManifestName(favicons?.manifestName, siteName);
+  return {
+    name,
+    shortName: normalizeFaviconManifestShortName(favicons?.manifestShortName, name)
+  };
+}
+
+export function faviconsWithManifestNames(favicons: StoredFavicons, formData: FormData, fallbackName: string): StoredFavicons {
+  const currentNames = getFaviconManifestNames(favicons, fallbackName);
+  const names = faviconManifestNamesFromFormData(formData, currentNames.name, currentNames.shortName);
+  return {
+    ...favicons,
+    manifestName: names.name,
+    manifestShortName: names.shortName,
+    siteManifest: null,
+    updatedAt: new Date().toISOString()
+  };
+}
+
 export function normalizeFavicons(value: unknown): StoredFavicons | null {
   if (!isRecord(value) || !isRecord(value.assets)) return null;
   const storedAssets = value.assets;
@@ -143,8 +204,12 @@ export function normalizeFavicons(value: unknown): StoredFavicons | null {
 
   const siteManifest = normalizeStoredFaviconAsset(value.siteManifest);
   const updatedAt = typeof value.updatedAt === "string" ? value.updatedAt : new Date(0).toISOString();
+  const manifestName = plainTextSetting(value.manifestName);
+  const manifestShortName = plainTextSetting(value.manifestShortName);
   return {
     assets: assets as Record<FaviconAssetKey, StoredFaviconAsset>,
+    manifestName: manifestName || undefined,
+    manifestShortName: manifestShortName || undefined,
     siteManifest,
     updatedAt
   };
@@ -163,6 +228,19 @@ function isFileLike(value: FormDataEntryValue | null): value is File {
 
 function fileNameHasExtension(fileName: string, extension: string) {
   return fileName.trim().toLowerCase().endsWith(extension);
+}
+
+function reportedMimeType(value: File) {
+  return value.type.split(";")[0]?.trim().toLowerCase() ?? "";
+}
+
+function acceptsMimeType(type: string, spec: FaviconAssetSpec) {
+  if (!type || spec.mimeTypes.includes(type)) return true;
+  return spec.extension === ".webmanifest" && GENERIC_JSON_UPLOAD_MIME_TYPES.has(type);
+}
+
+function acceptsReportedMimeType(value: File, spec: FaviconAssetSpec) {
+  return acceptsMimeType(reportedMimeType(value), spec);
 }
 
 function hasPngSignature(bytes: Uint8Array) {
@@ -191,23 +269,17 @@ function validateManifest(manifest: string) {
   if (!isRecord(parsed)) throw new Error("site.webmanifest must contain a JSON object.");
 }
 
-async function faviconAssetFromFile(value: FormDataEntryValue | null, spec: FaviconAssetSpec) {
-  if (!isFileLike(value) || value.size === 0) {
-    if (spec.required) throw new Error(`Upload ${spec.label}.`);
-    return null;
-  }
-  const fileName = value.name.trim() || spec.url.slice(1);
+function faviconAssetFromBuffer(fileName: string, reportedType: string, buffer: Buffer, spec: FaviconAssetSpec, options: { skipReportedMimeType?: boolean } = {}) {
   if (!fileNameHasExtension(fileName, spec.extension)) {
     throw new Error(`${spec.label} must use the ${spec.extension} extension.`);
   }
-  if (value.type && !spec.mimeTypes.includes(value.type.toLowerCase())) {
+  if (!options.skipReportedMimeType && !acceptsMimeType(reportedType, spec)) {
     throw new Error(`${spec.label} must use one of these content types: ${spec.mimeTypes.join(", ")}.`);
   }
-  if (value.size > spec.maxBytes) {
+  if (buffer.byteLength > spec.maxBytes) {
     throw new Error(`${spec.label} must be ${Math.ceil(spec.maxBytes / 1024)} KB or smaller.`);
   }
 
-  const buffer = Buffer.from(await value.arrayBuffer());
   const bytes = new Uint8Array(buffer);
   if (spec.extension === ".png" && !hasPngSignature(bytes)) throw new Error(`${spec.label} must be a PNG image.`);
   if (spec.extension === ".ico" && !hasIcoSignature(bytes)) throw new Error(`${spec.label} must be an ICO file.`);
@@ -218,33 +290,68 @@ async function faviconAssetFromFile(value: FormDataEntryValue | null, spec: Favi
     base64: buffer.toString("base64"),
     contentType: spec.contentType,
     fileName,
-    size: value.size,
+    size: buffer.byteLength,
     updatedAt: new Date().toISOString()
   };
 }
 
-export async function faviconsFromUpload(formData: FormData): Promise<StoredFavicons> {
+async function faviconAssetFromFile(value: FormDataEntryValue | null, spec: FaviconAssetSpec) {
+  if (!isFileLike(value) || value.size === 0) return null;
+  const fileName = value.name.trim() || spec.url.slice(1);
+  if (!acceptsReportedMimeType(value, spec)) {
+    throw new Error(`${spec.label} must use one of these content types: ${spec.mimeTypes.join(", ")}.`);
+  }
+  const buffer = Buffer.from(await value.arrayBuffer());
+  return faviconAssetFromBuffer(fileName, reportedMimeType(value), buffer, spec);
+}
+
+export async function faviconsFromUpload(
+  formData: FormData,
+  options: { existingFavicons?: StoredFavicons | null; manifestName?: string; manifestShortName?: string; siteName?: string } = {}
+): Promise<StoredFavicons> {
+  const hasUploads = FAVICON_ASSETS.some((asset) => {
+    const value = formData.get(asset.fieldName);
+    return isFileLike(value) && value.size > 0;
+  });
+  if (!hasUploads) {
+    throw new Error("Choose at least one favicon file to upload.");
+  }
+
   const entries = await Promise.all(
     FAVICON_ASSETS.map(async (spec) => [spec.key, await faviconAssetFromFile(formData.get(spec.fieldName), spec)] as const)
   );
   const assets = Object.fromEntries(
-    entries.filter((entry): entry is readonly [FaviconAssetKey, StoredFaviconAsset] => entry[0] !== "siteManifest")
+    REQUIRED_FAVICON_ASSETS.map((spec) => {
+      const uploaded = entries.find((entry) => entry[0] === spec.key)?.[1];
+      const existing = options.existingFavicons?.assets[spec.key];
+      if (!uploaded && !existing) throw new Error(`Upload ${spec.label}.`);
+      return [spec.key, uploaded ?? existing] as const;
+    })
   ) as Record<FaviconAssetKey, StoredFaviconAsset>;
-  const siteManifest = entries.find((entry) => entry[0] === "siteManifest")?.[1] ?? null;
+  const uploadedSiteManifest = entries.find((entry) => entry[0] === "siteManifest")?.[1] ?? null;
+  const siteManifest = uploadedSiteManifest ?? options.existingFavicons?.siteManifest ?? null;
+  const names = faviconManifestNamesFromFormData(
+    formData,
+    options.manifestName ?? options.existingFavicons?.manifestName ?? options.siteName ?? "Surls",
+    options.manifestShortName ?? options.existingFavicons?.manifestShortName
+  );
 
   return {
     assets,
+    manifestName: names.name,
+    manifestShortName: names.shortName,
     siteManifest,
     updatedAt: new Date().toISOString()
   };
 }
 
-export function buildGeneratedWebManifest(siteName: string) {
-  const name = siteName.trim() || "Surls";
+export function buildGeneratedWebManifest(siteName: string, names?: Partial<FaviconManifestNames>) {
+  const name = normalizeFaviconManifestName(names?.name, siteName);
+  const shortName = normalizeFaviconManifestShortName(names?.shortName, name);
   return JSON.stringify(
     {
       name,
-      short_name: name,
+      short_name: shortName,
       icons: [
         { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
         { src: "/icon-512.png", sizes: "512x512", type: "image/png" }
@@ -286,9 +393,7 @@ export function webManifestResponse(
   options: { method?: string } = {}
 ) {
   if (!favicons) return null;
-  const manifest = favicons.siteManifest
-    ? Buffer.from(favicons.siteManifest.base64, "base64").toString("utf8")
-    : buildGeneratedWebManifest(siteName);
+  const manifest = buildGeneratedWebManifest(siteName, getFaviconManifestNames(favicons, siteName));
   const body = options.method?.toUpperCase() === "HEAD" ? null : manifest;
 
   return new Response(body, {
@@ -296,7 +401,7 @@ export function webManifestResponse(
       "Cache-Control": "public, max-age=300",
       "Content-Length": String(Buffer.byteLength(manifest)),
       "Content-Type": "application/manifest+json; charset=utf-8",
-      "Last-Modified": new Date(favicons.siteManifest?.updatedAt ?? favicons.updatedAt).toUTCString(),
+      "Last-Modified": new Date(favicons.updatedAt).toUTCString(),
       "X-Content-Type-Options": "nosniff"
     }
   });

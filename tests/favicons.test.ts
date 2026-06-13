@@ -30,9 +30,62 @@ describe("favicon uploads", () => {
       contentType: "image/x-icon",
       fileName: "favicon.ico"
     });
+    expect(favicons.manifestName).toBe("Surls");
+    expect(favicons.manifestShortName).toBe("Surls");
     expect(favicons.assets.faviconSvg.contentType).toContain("image/svg+xml");
     expect(favicons.assets.icon192.contentType).toBe("image/png");
     expect(favicons.siteManifest).toBeNull();
+  });
+
+  it("stores generated manifest names from the upload form", async () => {
+    const formData = faviconForm();
+    formData.set("manifestName", "asetho link");
+    formData.set("manifestShortName", "ase.link");
+
+    const favicons = await faviconsFromUpload(formData, { siteName: "Fallback" });
+
+    expect(favicons.manifestName).toBe("asetho link");
+    expect(favicons.manifestShortName).toBe("ase.link");
+  });
+
+  it("preserves existing manifest names when an icon package is reuploaded", async () => {
+    const favicons = await faviconsFromUpload(faviconForm(), {
+      manifestName: "asetho link",
+      manifestShortName: "ase.link",
+      siteName: "Fallback"
+    });
+
+    expect(favicons.manifestName).toBe("asetho link");
+    expect(favicons.manifestShortName).toBe("ase.link");
+  });
+
+  it("replaces only selected favicon files when existing favicons are saved", async () => {
+    const existingFavicons = await faviconsFromUpload(faviconForm(), {
+      manifestName: "asetho link",
+      manifestShortName: "ase.link"
+    });
+    const updatedSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 2 2\"></svg>";
+    const formData = new FormData();
+    formData.set("faviconSvg", new File([updatedSvg], "favicon.svg", { type: "image/svg+xml" }));
+
+    const favicons = await faviconsFromUpload(formData, { existingFavicons, siteName: "Fallback" });
+
+    expect(favicons.assets.faviconSvg.base64).toBe(Buffer.from(updatedSvg).toString("base64"));
+    expect(favicons.assets.faviconIco).toBe(existingFavicons.assets.faviconIco);
+    expect(favicons.assets.appleTouchIcon).toBe(existingFavicons.assets.appleTouchIcon);
+    expect(favicons.manifestName).toBe("asetho link");
+    expect(favicons.manifestShortName).toBe("ase.link");
+  });
+
+  it("requires missing required files during first favicon setup", async () => {
+    const formData = new FormData();
+    formData.set("faviconSvg", new File(["<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>"], "favicon.svg", { type: "image/svg+xml" }));
+
+    await expect(faviconsFromUpload(formData)).rejects.toThrow(/ICO favicon/i);
+  });
+
+  it("rejects empty favicon uploads", async () => {
+    await expect(faviconsFromUpload(new FormData())).rejects.toThrow(/at least one favicon file/i);
   });
 
   it("stores an optional manifest when provided", async () => {
@@ -46,6 +99,29 @@ describe("favicon uploads", () => {
       contentType: "application/manifest+json; charset=utf-8",
       fileName: "site.webmanifest"
     });
+  });
+
+  it("accepts valid web manifests reported as generic uploads", async () => {
+    const manifest = new File([JSON.stringify({ name: "Surls" })], "site.webmanifest", {
+      type: "application/octet-stream"
+    });
+
+    const favicons = await faviconsFromUpload(faviconForm({ siteManifest: manifest }));
+
+    expect(favicons.siteManifest).toMatchObject({
+      contentType: "application/manifest+json; charset=utf-8",
+      fileName: "site.webmanifest"
+    });
+  });
+
+  it("rejects web manifests with non-json content types", async () => {
+    await expect(
+      faviconsFromUpload(
+        faviconForm({
+          siteManifest: new File([JSON.stringify({ name: "Surls" })], "site.webmanifest", { type: "text/html" })
+        })
+      )
+    ).rejects.toThrow(/content types/i);
   });
 
   it("rejects unsafe SVG and invalid manifests", async () => {
@@ -79,12 +155,16 @@ describe("favicon responses", () => {
   });
 
   it("generates a web manifest when none was uploaded", async () => {
-    const favicons = await faviconsFromUpload(faviconForm());
+    const formData = faviconForm();
+    formData.set("manifestName", "asetho link");
+    formData.set("manifestShortName", "ase.link");
+    const favicons = await faviconsFromUpload(formData);
     const response = webManifestResponse(favicons, "Asetho Surls");
 
     expect(response?.headers.get("content-type")).toBe("application/manifest+json; charset=utf-8");
     await expect(response?.json()).resolves.toMatchObject({
-      name: "Asetho Surls",
+      name: "asetho link",
+      short_name: "ase.link",
       icons: [
         { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
         { src: "/icon-512.png", sizes: "512x512", type: "image/png" }
@@ -100,8 +180,9 @@ describe("favicon responses", () => {
   });
 
   it("keeps generated manifests parseable", () => {
-    expect(JSON.parse(buildGeneratedWebManifest("Surls"))).toMatchObject({
-      short_name: "Surls",
+    expect(JSON.parse(buildGeneratedWebManifest("Surls", { name: "asetho link", shortName: "ase.link" }))).toMatchObject({
+      name: "asetho link",
+      short_name: "ase.link",
       start_url: "/"
     });
   });

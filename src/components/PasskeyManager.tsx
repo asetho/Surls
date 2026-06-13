@@ -15,13 +15,15 @@ type PasskeyItem = {
   name: string;
 };
 
+const PASSKEY_NAME_PLACEHOLDER = "iCloud Keychain, 1Password, Bitwarden, Google Password Manager";
+
 function initialPasskeySupport() {
   return typeof window === "undefined" ? null : browserSupportsWebAuthn();
 }
 
 export function PasskeyManager({ csrf, passkeys }: { csrf: string; passkeys: PasskeyItem[] }) {
   const router = useRouter();
-  const [name, setName] = useState("Surls passkey");
+  const [name, setName] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [supportsPasskeys] = useState<boolean | null>(initialPasskeySupport);
@@ -54,6 +56,7 @@ export function PasskeyManager({ csrf, passkeys }: { csrf: string; passkeys: Pas
       if (!verifyResponse.ok) throw new Error(result.error || "Could not save that passkey.");
 
       setMessage("Passkey added.");
+      setName("");
       router.refresh();
     } catch (registrationError) {
       setError(registrationError instanceof Error ? registrationError.message : "Passkey setup failed.");
@@ -67,7 +70,12 @@ export function PasskeyManager({ csrf, passkeys }: { csrf: string; passkeys: Pas
       <div className="form-grid">
         <label>
           Passkey name
-          <input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} />
+          <input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            maxLength={80}
+            placeholder={PASSKEY_NAME_PLACEHOLDER}
+          />
         </label>
         <div className="field-action">
           <button type="button" onClick={registerPasskey} disabled={pending || supportsPasskeys === false}>

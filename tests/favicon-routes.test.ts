@@ -57,14 +57,22 @@ describe("favicon routes", () => {
   });
 
   it("generates a manifest for uploaded favicon packages without a manifest file", async () => {
+    const formData = new FormData();
+    formData.set("faviconIco", new File([icoBytes], "favicon.ico", { type: "image/x-icon" }));
+    formData.set("faviconSvg", new File(["<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>"], "favicon.svg", { type: "image/svg+xml" }));
+    formData.set("appleTouchIcon", new File([pngBytes], "apple-touch-icon.png", { type: "image/png" }));
+    formData.set("icon192", new File([pngBytes], "icon-192.png", { type: "image/png" }));
+    formData.set("icon512", new File([pngBytes], "icon-512.png", { type: "image/png" }));
+    formData.set("manifestName", "asetho link");
+    formData.set("manifestShortName", "ase.link");
     routeMocks.getSettings.mockResolvedValue({
-      favicons: await testFavicons(),
+      favicons: await faviconsFromUpload(formData),
       siteName: "Surls"
     });
 
     const response = await webManifestRouteResponse();
 
     expect(response.headers.get("content-type")).toBe("application/manifest+json; charset=utf-8");
-    await expect(response.json()).resolves.toMatchObject({ name: "Surls" });
+    await expect(response.json()).resolves.toMatchObject({ name: "asetho link", short_name: "ase.link" });
   });
 });
