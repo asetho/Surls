@@ -157,11 +157,23 @@ export function DashboardThemeEditor({ theme }: { theme: DashboardTheme }) {
               <div className="dashboard-theme-preview-panel">
                 <strong>{mode.label} preview</strong>
                 <span>Short URL metrics and dashboard controls use these colors.</span>
+                <div className="dashboard-theme-preview-chart" aria-hidden="true">
+                  <svg viewBox="0 0 220 72">
+                    <path className="dashboard-theme-preview-chart-area" d="M8 58 C42 58 42 24 72 37 C98 48 98 13 126 28 C154 44 155 18 184 22 C202 25 205 44 212 36 L212 64 L8 64 Z" />
+                    <path className="dashboard-theme-preview-chart-line" d="M8 58 C42 58 42 24 72 37 C98 48 98 13 126 28 C154 44 155 18 184 22 C202 25 205 44 212 36" />
+                    <circle cx="126" cy="28" r="4" />
+                  </svg>
+                </div>
                 <div className="dashboard-theme-preview-pills">
                   <span className="dashboard-theme-preview-pill">Default pill</span>
                   <span className="dashboard-theme-preview-pill dashboard-theme-preview-pill-active">Active pill</span>
+                  <span className="badge warning">Disabled</span>
+                  <span className="dashboard-theme-preview-short-url-pill">qr-demo</span>
                 </div>
-                <button type="button" tabIndex={-1}>Primary action</button>
+                <div className="dashboard-theme-preview-actions">
+                  <button type="button" tabIndex={-1}>Primary action</button>
+                  <button className="danger" type="button" tabIndex={-1}>Archive</button>
+                </div>
               </div>
             </div>
           </div>

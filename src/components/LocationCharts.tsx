@@ -32,7 +32,14 @@ type MapTooltipState = {
   y: number;
 };
 
-const chartColors = ["#64abbb", "#79b7c8", "#92c1d3", "#a7cfe0", "#bddceb", "#d7eaf3"];
+const chartColors = [
+  "var(--chart-color-2, #64abbb)",
+  "var(--chart-color-7, #79b7c8)",
+  "var(--chart-color-3, #92c1d3)",
+  "var(--chart-color-6, #a7cfe0)",
+  "var(--chart-map-bucket-1, #bddceb)",
+  "var(--chart-map-empty, #d7eaf3)"
+];
 const topology = countries110m as unknown as Topology<{ countries: GeometryCollection }>;
 const countryFeatures = feature(topology, topology.objects.countries) as FeatureCollection<Geometry, GeoJsonProperties>;
 

@@ -135,26 +135,27 @@ button.secondary:hover {
 
 .button.danger,
 button.danger {
-  background: var(--color-red);
+  background: var(--danger-background, var(--color-red));
+  color: var(--danger-text, var(--button-text));
 }
 
 .button.danger:hover,
 button.danger:hover {
-  background: #a91820;
+  background: color-mix(in srgb, var(--danger-background, var(--color-red)), black 16%);
 }
 
 .button.danger-outline,
 button.danger-outline {
-  background: #fff;
-  border-color: var(--color-red);
-  color: var(--color-red);
+  background: var(--surface);
+  border-color: var(--danger-border, var(--color-red));
+  color: var(--danger-background, var(--color-red));
 }
 
 .button.danger-outline:hover,
 button.danger-outline:hover {
-  background: color-mix(in srgb, var(--color-red), white 92%);
-  border-color: var(--color-red);
-  color: var(--color-red);
+  background: color-mix(in srgb, var(--danger-background, var(--color-red)), var(--surface) 88%);
+  border-color: var(--danger-border, var(--color-red));
+  color: var(--danger-background, var(--color-red));
 }
 
 .container {
@@ -597,10 +598,10 @@ button.danger-outline:hover {
 }
 
 .status-pill {
-  background: var(--surface-strong);
-  border: 1px solid var(--border);
+  background: var(--pill-background, var(--surface-strong));
+  border: 1px solid var(--pill-border, var(--border));
   border-radius: 999px;
-  color: var(--muted);
+  color: var(--pill-text, var(--muted));
   flex: 0 0 auto;
   font-size: 0.76rem;
   font-weight: 700;
@@ -609,9 +610,9 @@ button.danger-outline:hover {
 }
 
 .status-pill-active {
-  background: color-mix(in srgb, var(--color-teal), #fff 84%);
-  border-color: color-mix(in srgb, var(--color-teal), #fff 55%);
-  color: var(--color-navy);
+  background: var(--active-pill-background, color-mix(in srgb, var(--color-teal), #fff 84%));
+  border-color: var(--active-pill-border, color-mix(in srgb, var(--color-teal), #fff 55%));
+  color: var(--active-pill-text, var(--color-navy));
 }
 
 @media (max-width: 1320px) {
@@ -1241,11 +1242,41 @@ button.danger-outline:hover {
   gap: 0.4rem;
 }
 
-.dashboard-theme-preview-panel .dashboard-theme-preview-pill {
-  background: var(--surface-strong);
+.dashboard-theme-preview-chart {
+  background: color-mix(in srgb, var(--surface), var(--surface-strong) 36%);
   border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.35rem;
+}
+
+.dashboard-theme-preview-chart svg {
+  display: block;
+  width: 100%;
+}
+
+.dashboard-theme-preview-chart-area {
+  fill: color-mix(in srgb, var(--chart-color-3), transparent 58%);
+}
+
+.dashboard-theme-preview-chart-line {
+  fill: none;
+  stroke: var(--chart-color-1);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+}
+
+.dashboard-theme-preview-chart circle {
+  fill: var(--surface);
+  stroke: var(--danger-background, var(--color-red));
+  stroke-width: 3;
+}
+
+.dashboard-theme-preview-panel .dashboard-theme-preview-pill {
+  background: var(--pill-background);
+  border: 1px solid var(--pill-border);
   border-radius: 999px;
-  color: var(--muted);
+  color: var(--pill-text);
   display: inline-flex;
   font-size: 0.74rem;
   font-weight: 700;
@@ -1254,9 +1285,29 @@ button.danger-outline:hover {
 }
 
 .dashboard-theme-preview-panel .dashboard-theme-preview-pill-active {
-  background: color-mix(in srgb, var(--color-teal), #fff 84%);
-  border-color: color-mix(in srgb, var(--color-teal), #fff 55%);
-  color: var(--color-navy);
+  background: var(--active-pill-background);
+  border-color: var(--active-pill-border);
+  color: var(--active-pill-text);
+}
+
+.dashboard-theme-preview-short-url-pill {
+  background: var(--short-url-pill-background);
+  border: 1px solid var(--short-url-pill-border);
+  border-left: 4px solid var(--short-url-pill-accent);
+  border-radius: 6px;
+  color: var(--short-url-pill-text);
+  display: inline-flex;
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1.2;
+  padding: 0.18rem 0.5rem 0.18rem 0.42rem;
+}
+
+.dashboard-theme-preview-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
 }
 
 .dashboard-theme-preview-panel button {
@@ -1295,27 +1346,70 @@ button.danger-outline:hover {
 
 .bookmarklet-shell {
   --dashboard-active-accent: var(--dashboard-light-accent);
+  --dashboard-active-active-pill-background: var(--dashboard-light-active-pill-background);
+  --dashboard-active-active-pill-border: var(--dashboard-light-active-pill-border);
+  --dashboard-active-active-pill-text: var(--dashboard-light-active-pill-text);
   --dashboard-active-background: var(--dashboard-light-background);
   --dashboard-active-border: var(--dashboard-light-border);
   --dashboard-active-button-text: var(--dashboard-light-button-text);
+  --dashboard-active-danger-background: var(--dashboard-light-danger-background);
+  --dashboard-active-danger-border: var(--dashboard-light-danger-border);
+  --dashboard-active-danger-text: var(--dashboard-light-danger-text);
   --dashboard-active-muted: var(--dashboard-light-muted);
+  --dashboard-active-pill-background: var(--dashboard-light-pill-background);
+  --dashboard-active-pill-border: var(--dashboard-light-pill-border);
+  --dashboard-active-pill-text: var(--dashboard-light-pill-text);
   --dashboard-active-shadow: var(--dashboard-light-shadow);
+  --dashboard-active-short-url-pill-accent: var(--dashboard-light-short-url-pill-accent);
+  --dashboard-active-short-url-pill-background: var(--dashboard-light-short-url-pill-background);
+  --dashboard-active-short-url-pill-border: var(--dashboard-light-short-url-pill-border);
+  --dashboard-active-short-url-pill-text: var(--dashboard-light-short-url-pill-text);
   --dashboard-active-sidebar: var(--dashboard-light-sidebar);
   --dashboard-active-sidebar-hover: var(--dashboard-light-sidebar-hover);
   --dashboard-active-surface: var(--dashboard-light-surface);
   --dashboard-active-surface-strong: var(--dashboard-light-surface-strong);
   --dashboard-active-text: var(--dashboard-light-text);
+  --active-pill-background: var(--dashboard-active-active-pill-background);
+  --active-pill-border: var(--dashboard-active-active-pill-border);
+  --active-pill-text: var(--dashboard-active-active-pill-text);
   --background: var(--dashboard-active-background);
   --border: var(--dashboard-active-border);
   --button-text: var(--dashboard-active-button-text);
   --color-deep-teal: var(--dashboard-active-sidebar-hover);
   --color-ice: var(--dashboard-active-surface-strong);
   --color-navy: var(--dashboard-active-sidebar);
+  --color-red: var(--dashboard-active-danger-background);
   --color-teal: var(--dashboard-active-accent);
+  --danger-background: var(--dashboard-active-danger-background);
+  --danger-border: var(--dashboard-active-danger-border);
+  --danger-text: var(--dashboard-active-danger-text);
   --dark-teal: var(--dashboard-active-sidebar);
   --muted: var(--dashboard-active-muted);
   --pacific-blue: var(--dashboard-active-border);
+  --chart-color-1: var(--color-teal);
+  --chart-color-2: var(--color-deep-teal);
+  --chart-color-3: var(--color-ice);
+  --chart-color-4: var(--color-navy);
+  --chart-color-5: var(--color-red);
+  --chart-color-6: color-mix(in srgb, var(--surface-strong), var(--surface) 35%);
+  --chart-color-7: color-mix(in srgb, var(--color-teal), var(--surface) 45%);
+  --chart-map-bucket-1: color-mix(in srgb, var(--color-teal), var(--surface) 78%);
+  --chart-map-bucket-2: color-mix(in srgb, var(--color-teal), var(--surface) 64%);
+  --chart-map-bucket-3: color-mix(in srgb, var(--color-teal), var(--surface) 48%);
+  --chart-map-bucket-4: color-mix(in srgb, var(--color-teal), var(--surface) 30%);
+  --chart-map-bucket-5: var(--color-navy);
+  --chart-map-empty: color-mix(in srgb, var(--surface), var(--surface-strong) 42%);
+  --chart-tooltip-background: var(--surface);
+  --chart-tooltip-border: var(--border);
+  --chart-tooltip-text: var(--text);
+  --pill-background: var(--dashboard-active-pill-background);
+  --pill-border: var(--dashboard-active-pill-border);
+  --pill-text: var(--dashboard-active-pill-text);
   --shadow: var(--dashboard-active-shadow);
+  --short-url-pill-accent: var(--dashboard-active-short-url-pill-accent);
+  --short-url-pill-background: var(--dashboard-active-short-url-pill-background);
+  --short-url-pill-border: var(--dashboard-active-short-url-pill-border);
+  --short-url-pill-text: var(--dashboard-active-short-url-pill-text);
   --sky-blue-light: var(--dashboard-active-surface-strong);
   --surface: var(--dashboard-active-surface);
   --surface-strong: var(--dashboard-active-surface-strong);
@@ -1333,11 +1427,24 @@ button.danger-outline:hover {
 
 :root[data-theme="dark"] .bookmarklet-shell {
   --dashboard-active-accent: var(--dashboard-dark-accent);
+  --dashboard-active-active-pill-background: var(--dashboard-dark-active-pill-background);
+  --dashboard-active-active-pill-border: var(--dashboard-dark-active-pill-border);
+  --dashboard-active-active-pill-text: var(--dashboard-dark-active-pill-text);
   --dashboard-active-background: var(--dashboard-dark-background);
   --dashboard-active-border: var(--dashboard-dark-border);
   --dashboard-active-button-text: var(--dashboard-dark-button-text);
+  --dashboard-active-danger-background: var(--dashboard-dark-danger-background);
+  --dashboard-active-danger-border: var(--dashboard-dark-danger-border);
+  --dashboard-active-danger-text: var(--dashboard-dark-danger-text);
   --dashboard-active-muted: var(--dashboard-dark-muted);
+  --dashboard-active-pill-background: var(--dashboard-dark-pill-background);
+  --dashboard-active-pill-border: var(--dashboard-dark-pill-border);
+  --dashboard-active-pill-text: var(--dashboard-dark-pill-text);
   --dashboard-active-shadow: var(--dashboard-dark-shadow);
+  --dashboard-active-short-url-pill-accent: var(--dashboard-dark-short-url-pill-accent);
+  --dashboard-active-short-url-pill-background: var(--dashboard-dark-short-url-pill-background);
+  --dashboard-active-short-url-pill-border: var(--dashboard-dark-short-url-pill-border);
+  --dashboard-active-short-url-pill-text: var(--dashboard-dark-short-url-pill-text);
   --dashboard-active-sidebar: var(--dashboard-dark-sidebar);
   --dashboard-active-sidebar-hover: var(--dashboard-dark-sidebar-hover);
   --dashboard-active-surface: var(--dashboard-dark-surface);
@@ -1511,8 +1618,8 @@ button.danger-outline:hover {
 }
 
 .alert {
-  background: color-mix(in srgb, var(--color-red), transparent 88%);
-  border: 1px solid color-mix(in srgb, var(--color-red), transparent 50%);
+  background: color-mix(in srgb, var(--danger-background, var(--color-red)), transparent 88%);
+  border: 1px solid color-mix(in srgb, var(--danger-border, var(--color-red)), transparent 50%);
   border-radius: var(--radius);
   color: var(--text);
   padding: 0.85rem;
@@ -1770,27 +1877,70 @@ textarea {
 
 .admin-shell {
   --dashboard-active-accent: var(--dashboard-light-accent);
+  --dashboard-active-active-pill-background: var(--dashboard-light-active-pill-background);
+  --dashboard-active-active-pill-border: var(--dashboard-light-active-pill-border);
+  --dashboard-active-active-pill-text: var(--dashboard-light-active-pill-text);
   --dashboard-active-background: var(--dashboard-light-background);
   --dashboard-active-border: var(--dashboard-light-border);
   --dashboard-active-button-text: var(--dashboard-light-button-text);
+  --dashboard-active-danger-background: var(--dashboard-light-danger-background);
+  --dashboard-active-danger-border: var(--dashboard-light-danger-border);
+  --dashboard-active-danger-text: var(--dashboard-light-danger-text);
   --dashboard-active-muted: var(--dashboard-light-muted);
+  --dashboard-active-pill-background: var(--dashboard-light-pill-background);
+  --dashboard-active-pill-border: var(--dashboard-light-pill-border);
+  --dashboard-active-pill-text: var(--dashboard-light-pill-text);
   --dashboard-active-shadow: var(--dashboard-light-shadow);
+  --dashboard-active-short-url-pill-accent: var(--dashboard-light-short-url-pill-accent);
+  --dashboard-active-short-url-pill-background: var(--dashboard-light-short-url-pill-background);
+  --dashboard-active-short-url-pill-border: var(--dashboard-light-short-url-pill-border);
+  --dashboard-active-short-url-pill-text: var(--dashboard-light-short-url-pill-text);
   --dashboard-active-sidebar: var(--dashboard-light-sidebar);
   --dashboard-active-sidebar-hover: var(--dashboard-light-sidebar-hover);
   --dashboard-active-surface: var(--dashboard-light-surface);
   --dashboard-active-surface-strong: var(--dashboard-light-surface-strong);
   --dashboard-active-text: var(--dashboard-light-text);
+  --active-pill-background: var(--dashboard-active-active-pill-background);
+  --active-pill-border: var(--dashboard-active-active-pill-border);
+  --active-pill-text: var(--dashboard-active-active-pill-text);
   --background: var(--dashboard-active-background);
   --border: var(--dashboard-active-border);
   --button-text: var(--dashboard-active-button-text);
   --color-deep-teal: var(--dashboard-active-sidebar-hover);
   --color-ice: var(--dashboard-active-surface-strong);
   --color-navy: var(--dashboard-active-sidebar);
+  --color-red: var(--dashboard-active-danger-background);
   --color-teal: var(--dashboard-active-accent);
+  --danger-background: var(--dashboard-active-danger-background);
+  --danger-border: var(--dashboard-active-danger-border);
+  --danger-text: var(--dashboard-active-danger-text);
   --dark-teal: var(--dashboard-active-sidebar);
   --muted: var(--dashboard-active-muted);
   --pacific-blue: var(--dashboard-active-border);
+  --chart-color-1: var(--color-teal);
+  --chart-color-2: var(--color-deep-teal);
+  --chart-color-3: var(--color-ice);
+  --chart-color-4: var(--color-navy);
+  --chart-color-5: var(--color-red);
+  --chart-color-6: color-mix(in srgb, var(--surface-strong), var(--surface) 35%);
+  --chart-color-7: color-mix(in srgb, var(--color-teal), var(--surface) 45%);
+  --chart-map-bucket-1: color-mix(in srgb, var(--color-teal), var(--surface) 78%);
+  --chart-map-bucket-2: color-mix(in srgb, var(--color-teal), var(--surface) 64%);
+  --chart-map-bucket-3: color-mix(in srgb, var(--color-teal), var(--surface) 48%);
+  --chart-map-bucket-4: color-mix(in srgb, var(--color-teal), var(--surface) 30%);
+  --chart-map-bucket-5: var(--color-navy);
+  --chart-map-empty: color-mix(in srgb, var(--surface), var(--surface-strong) 42%);
+  --chart-tooltip-background: var(--surface);
+  --chart-tooltip-border: var(--border);
+  --chart-tooltip-text: var(--text);
+  --pill-background: var(--dashboard-active-pill-background);
+  --pill-border: var(--dashboard-active-pill-border);
+  --pill-text: var(--dashboard-active-pill-text);
   --shadow: var(--dashboard-active-shadow);
+  --short-url-pill-accent: var(--dashboard-active-short-url-pill-accent);
+  --short-url-pill-background: var(--dashboard-active-short-url-pill-background);
+  --short-url-pill-border: var(--dashboard-active-short-url-pill-border);
+  --short-url-pill-text: var(--dashboard-active-short-url-pill-text);
   --sky-blue-light: var(--dashboard-active-surface-strong);
   --surface: var(--dashboard-active-surface);
   --surface-strong: var(--dashboard-active-surface-strong);
@@ -1805,11 +1955,24 @@ textarea {
 
 :root[data-theme="dark"] .admin-shell {
   --dashboard-active-accent: var(--dashboard-dark-accent);
+  --dashboard-active-active-pill-background: var(--dashboard-dark-active-pill-background);
+  --dashboard-active-active-pill-border: var(--dashboard-dark-active-pill-border);
+  --dashboard-active-active-pill-text: var(--dashboard-dark-active-pill-text);
   --dashboard-active-background: var(--dashboard-dark-background);
   --dashboard-active-border: var(--dashboard-dark-border);
   --dashboard-active-button-text: var(--dashboard-dark-button-text);
+  --dashboard-active-danger-background: var(--dashboard-dark-danger-background);
+  --dashboard-active-danger-border: var(--dashboard-dark-danger-border);
+  --dashboard-active-danger-text: var(--dashboard-dark-danger-text);
   --dashboard-active-muted: var(--dashboard-dark-muted);
+  --dashboard-active-pill-background: var(--dashboard-dark-pill-background);
+  --dashboard-active-pill-border: var(--dashboard-dark-pill-border);
+  --dashboard-active-pill-text: var(--dashboard-dark-pill-text);
   --dashboard-active-shadow: var(--dashboard-dark-shadow);
+  --dashboard-active-short-url-pill-accent: var(--dashboard-dark-short-url-pill-accent);
+  --dashboard-active-short-url-pill-background: var(--dashboard-dark-short-url-pill-background);
+  --dashboard-active-short-url-pill-border: var(--dashboard-dark-short-url-pill-border);
+  --dashboard-active-short-url-pill-text: var(--dashboard-dark-short-url-pill-text);
   --dashboard-active-sidebar: var(--dashboard-dark-sidebar);
   --dashboard-active-sidebar-hover: var(--dashboard-dark-sidebar-hover);
   --dashboard-active-surface: var(--dashboard-dark-surface);
@@ -2072,10 +2235,11 @@ textarea {
 }
 
 .short-url-pill {
-  background: color-mix(in srgb, var(--color-teal), transparent 91%);
-  border: 1px solid color-mix(in srgb, var(--color-teal), transparent 62%);
-  border-left: 4px solid var(--color-teal);
+  background: var(--short-url-pill-background, color-mix(in srgb, var(--color-teal), transparent 91%));
+  border: 1px solid var(--short-url-pill-border, color-mix(in srgb, var(--color-teal), transparent 62%));
+  border-left: 4px solid var(--short-url-pill-accent, var(--color-teal));
   border-radius: 6px;
+  color: var(--short-url-pill-text, var(--color-deep-teal));
   display: inline-flex;
   font-weight: 700;
   line-height: 1.2;
@@ -2084,8 +2248,8 @@ textarea {
 }
 
 .short-url-pill:hover {
-  background: color-mix(in srgb, var(--color-teal), transparent 84%);
-  color: var(--color-deep-teal);
+  background: color-mix(in srgb, var(--short-url-pill-background, var(--color-teal)), var(--short-url-pill-accent, var(--color-teal)) 16%);
+  color: var(--short-url-pill-text, var(--color-deep-teal));
 }
 
 .link-destination-title {
@@ -2234,9 +2398,10 @@ th {
 }
 
 .sort-badge {
-  border: 1px solid var(--border);
+  background: var(--pill-background, var(--surface-strong));
+  border: 1px solid var(--pill-border, var(--border));
   border-radius: 999px;
-  color: var(--text);
+  color: var(--pill-text, var(--text));
   font-size: 0.68rem;
   font-weight: 800;
   padding: 0.08rem 0.32rem;
@@ -2249,8 +2414,8 @@ th {
 }
 
 .tag-link:hover {
-  background: color-mix(in srgb, var(--color-teal), transparent 74%);
-  color: var(--text);
+  background: color-mix(in srgb, var(--pill-background, var(--color-teal)), var(--active-pill-background, var(--color-teal)) 22%);
+  color: var(--pill-text, var(--text));
 }
 
 .role-form {
@@ -2428,10 +2593,10 @@ th {
 }
 
 .badge {
-  background: color-mix(in srgb, var(--color-teal), transparent 84%);
-  border: 1px solid color-mix(in srgb, var(--color-teal), transparent 45%);
+  background: var(--active-pill-background, color-mix(in srgb, var(--color-teal), transparent 84%));
+  border: 1px solid var(--active-pill-border, color-mix(in srgb, var(--color-teal), transparent 45%));
   border-radius: 999px;
-  color: var(--text);
+  color: var(--active-pill-text, var(--text));
   display: inline-flex;
   font-size: 0.76rem;
   font-weight: 800;
@@ -2439,15 +2604,19 @@ th {
 }
 
 .badge.tag-link {
+  background: var(--pill-background, color-mix(in srgb, var(--color-teal), transparent 90%));
+  border-color: var(--pill-border, color-mix(in srgb, var(--color-teal), transparent 58%));
   border-radius: 5px;
+  color: var(--pill-text, var(--text));
   font-size: 0.7rem;
   line-height: 1.15;
   padding: 0.1rem 0.32rem;
 }
 
 .badge.warning {
-  background: color-mix(in srgb, var(--color-red), transparent 86%);
-  border-color: color-mix(in srgb, var(--color-red), transparent 45%);
+  background: color-mix(in srgb, var(--danger-background, var(--color-red)), transparent 86%);
+  border-color: color-mix(in srgb, var(--danger-border, var(--color-red)), transparent 45%);
+  color: var(--danger-background, var(--color-red));
 }
 
 .chart-bars {
@@ -2467,12 +2636,12 @@ th {
 }
 
 .chart-tooltip-anchor::after {
-  background: #fff;
-  border: 2px solid #d0d3d6;
+  background: var(--chart-tooltip-background);
+  border: 2px solid var(--chart-tooltip-border);
   border-radius: 2px;
   bottom: calc(100% + 0.45rem);
   box-shadow: 0 10px 28px rgb(0 0 0 / 18%);
-  color: #050505;
+  color: var(--chart-tooltip-text);
   content: attr(data-tooltip);
   font-size: 0.78rem;
   font-weight: 800;
@@ -2516,7 +2685,7 @@ th {
 }
 
 .bar-fill {
-  background: var(--color-teal);
+  background: var(--chart-color-1);
   height: 100%;
 }
 
@@ -2598,40 +2767,40 @@ th {
 
 .history-chart polygon,
 .history-chart .history-area {
-  fill: color-mix(in srgb, var(--color-ice), transparent 58%);
+  fill: color-mix(in srgb, var(--chart-color-3), transparent 58%);
 }
 
 .history-chart polyline,
 .history-chart .history-line {
   fill: none;
-  stroke: var(--color-teal);
+  stroke: var(--chart-color-1);
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 3;
 }
 
 .history-chart circle {
-  fill: var(--color-teal);
+  fill: var(--chart-color-1);
 }
 
 .history-chart .chart-hover-marker line {
-  stroke: var(--color-red);
+  stroke: var(--danger-background, var(--color-red));
   stroke-dasharray: 4 4;
   stroke-width: 1.5;
 }
 
 .history-chart .chart-hover-marker circle {
   fill: var(--surface);
-  stroke: var(--color-red);
+  stroke: var(--danger-background, var(--color-red));
   stroke-width: 3;
 }
 
 .chart-tooltip {
-  background: #fff;
-  border: 2px solid #d0d3d6;
+  background: var(--chart-tooltip-background);
+  border: 2px solid var(--chart-tooltip-border);
   border-radius: 2px;
   box-shadow: 0 10px 28px rgb(0 0 0 / 18%);
-  color: #050505;
+  color: var(--chart-tooltip-text);
   font-size: 0.78rem;
   font-weight: 800;
   line-height: 1.15;
@@ -2650,10 +2819,10 @@ th {
 .chart-tooltip::after {
   border-left: 0.45rem solid transparent;
   border-right: 0.45rem solid transparent;
-  border-top: 0.58rem solid #fff;
+  border-top: 0.58rem solid var(--chart-tooltip-background);
   bottom: -0.58rem;
   content: "";
-  filter: drop-shadow(0 1px 0 #d0d3d6);
+  filter: drop-shadow(0 1px 0 var(--chart-tooltip-border));
   left: 50%;
   position: absolute;
   transform: translateX(-50%);
@@ -2747,7 +2916,7 @@ th {
 .distribution-pie path,
 .distribution-pie circle {
   cursor: help;
-  stroke: #fff;
+  stroke: var(--surface);
   stroke-width: 1.5;
 }
 
@@ -2756,12 +2925,12 @@ th {
 .distribution-pie path:focus-visible,
 .distribution-pie circle:focus-visible {
   opacity: 0.9;
-  stroke: var(--color-red);
+  stroke: var(--danger-background, var(--color-red));
   stroke-width: 3;
 }
 
 .distribution-pie text {
-  fill: #fff;
+  fill: var(--button-text);
   font-size: 0.72rem;
   font-weight: 900;
   pointer-events: none;
@@ -2811,7 +2980,7 @@ th {
 
 .country-pie-wrap,
 .world-map-wrap {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: visible;
@@ -2836,7 +3005,7 @@ th {
 .country-pie path,
 .country-pie circle {
   cursor: help;
-  stroke: #fff;
+  stroke: var(--surface);
   stroke-width: 1.6;
 }
 
@@ -2845,12 +3014,12 @@ th {
 .country-pie path:focus-visible,
 .country-pie circle:focus-visible {
   opacity: 0.88;
-  stroke: var(--color-red);
+  stroke: var(--danger-background, var(--color-red));
   stroke-width: 3;
 }
 
 .country-pie text {
-  fill: #fff;
+  fill: var(--button-text);
   font-size: 0.86rem;
   font-weight: 800;
   pointer-events: none;
@@ -2899,52 +3068,52 @@ th {
 }
 
 .world-map rect {
-  fill: #fff;
+  fill: var(--surface);
 }
 
 .map-country {
   cursor: help;
-  fill: #f6f7f8;
-  stroke: #d9dde1;
+  fill: var(--chart-map-empty);
+  stroke: var(--border);
   stroke-width: 0.7;
 }
 
 .map-country:hover,
 .map-country:focus-visible {
-  stroke: var(--color-red);
+  stroke: var(--danger-background, var(--color-red));
   stroke-width: 1.8;
 }
 
 .map-country.has-traffic {
-  stroke: #f7fbff;
+  stroke: var(--surface);
 }
 
 .map-country.bucket-1 {
-  fill: #bddceb;
+  fill: var(--chart-map-bucket-1);
 }
 
 .map-country.bucket-2 {
-  fill: #92c1d3;
+  fill: var(--chart-map-bucket-2);
 }
 
 .map-country.bucket-3 {
-  fill: #64abbb;
+  fill: var(--chart-map-bucket-3);
 }
 
 .map-country.bucket-4 {
-  fill: #087e8b;
+  fill: var(--chart-map-bucket-4);
 }
 
 .map-country.bucket-5 {
-  fill: #0a5c70;
+  fill: var(--chart-map-bucket-5);
 }
 
 .map-tooltip {
-  background: #fff;
-  border: 2px solid #d0d3d6;
+  background: var(--chart-tooltip-background);
+  border: 2px solid var(--chart-tooltip-border);
   border-radius: 2px;
   box-shadow: 0 10px 28px rgb(0 0 0 / 18%);
-  color: #050505;
+  color: var(--chart-tooltip-text);
   display: grid;
   font-size: 0.78rem;
   font-weight: 800;
@@ -2965,10 +3134,10 @@ th {
 .map-tooltip::after {
   border-left: 0.45rem solid transparent;
   border-right: 0.45rem solid transparent;
-  border-top: 0.58rem solid #fff;
+  border-top: 0.58rem solid var(--chart-tooltip-background);
   bottom: -0.58rem;
   content: "";
-  filter: drop-shadow(0 1px 0 #d0d3d6);
+  filter: drop-shadow(0 1px 0 var(--chart-tooltip-border));
   left: 50%;
   position: absolute;
   transform: translateX(-50%);
@@ -2977,7 +3146,7 @@ th {
 .map-legend {
   align-items: center;
   bottom: 0.7rem;
-  color: #0b2636;
+  color: var(--chart-tooltip-text);
   display: flex;
   font-size: 0.82rem;
   font-weight: 800;
@@ -2987,7 +3156,14 @@ th {
 }
 
 .legend-ramp {
-  background: linear-gradient(90deg, #bddceb, #92c1d3, #64abbb, #087e8b, #0a5c70);
+  background: linear-gradient(
+    90deg,
+    var(--chart-map-bucket-1),
+    var(--chart-map-bucket-2),
+    var(--chart-map-bucket-3),
+    var(--chart-map-bucket-4),
+    var(--chart-map-bucket-5)
+  );
   display: inline-block;
   height: 0.8rem;
   position: relative;
@@ -3007,18 +3183,18 @@ th {
 .legend-marker::after {
   border-left: 0.4rem solid transparent;
   border-right: 0.4rem solid transparent;
-  border-top: 0.62rem solid #050505;
+  border-top: 0.62rem solid var(--chart-tooltip-text);
   content: "";
   display: block;
 }
 
 .legend-marker-label {
-  background: #fff;
-  border: 1px solid #d0d3d6;
+  background: var(--chart-tooltip-background);
+  border: 1px solid var(--chart-tooltip-border);
   border-radius: 2px;
   bottom: 0.72rem;
   box-shadow: 0 4px 14px rgb(0 0 0 / 14%);
-  color: #050505;
+  color: var(--chart-tooltip-text);
   font-size: 0.7rem;
   font-weight: 900;
   left: 50%;

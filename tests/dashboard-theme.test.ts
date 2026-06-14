@@ -6,6 +6,7 @@ import {
   dashboardThemeCssVariables,
   dashboardThemeFieldName,
   dashboardThemeFromFormData,
+  dashboardThemePaletteCssVariables,
   isDefaultDashboardTheme,
   normalizeDashboardTheme
 } from "@/lib/dashboard-theme";
@@ -41,7 +42,10 @@ describe("dashboard theme settings", () => {
       light: {
         accent: "#aabbcc",
         background: "#123456",
+        dangerBackground: DEFAULT_DASHBOARD_THEME.light.dangerBackground,
+        pillBackground: DEFAULT_DASHBOARD_THEME.light.pillBackground,
         sidebar: DEFAULT_DASHBOARD_THEME.light.sidebar,
+        shortUrlPillAccent: DEFAULT_DASHBOARD_THEME.light.shortUrlPillAccent,
         text: DEFAULT_DASHBOARD_THEME.light.text
       },
       dark: {
@@ -93,9 +97,24 @@ describe("dashboard theme settings", () => {
       })
     ).toMatchObject({
       "--dashboard-light-accent": "#112233",
+      "--dashboard-light-active-pill-background": DEFAULT_DASHBOARD_THEME.light.activePillBackground,
+      "--dashboard-light-danger-background": DEFAULT_DASHBOARD_THEME.light.dangerBackground,
       "--dashboard-dark-accent": DEFAULT_DASHBOARD_THEME.dark.accent,
+      "--dashboard-dark-short-url-pill-accent": DEFAULT_DASHBOARD_THEME.dark.shortUrlPillAccent,
+      "--dashboard-light-pill-background": DEFAULT_DASHBOARD_THEME.light.pillBackground,
       "--dashboard-light-surface": DEFAULT_DASHBOARD_THEME.light.surface,
       "--dashboard-light-text": DEFAULT_DASHBOARD_THEME.light.text
+    });
+  });
+
+  it("maps a single palette to chart and warning preview variables", () => {
+    expect(dashboardThemePaletteCssVariables(DEFAULT_DASHBOARD_THEME.light)).toMatchObject({
+      "--chart-color-1": DEFAULT_DASHBOARD_THEME.light.accent,
+      "--chart-color-5": DEFAULT_DASHBOARD_THEME.light.dangerBackground,
+      "--chart-map-bucket-5": DEFAULT_DASHBOARD_THEME.light.sidebar,
+      "--chart-tooltip-background": DEFAULT_DASHBOARD_THEME.light.surface,
+      "--danger-background": DEFAULT_DASHBOARD_THEME.light.dangerBackground,
+      "--short-url-pill-background": DEFAULT_DASHBOARD_THEME.light.shortUrlPillBackground
     });
   });
 });

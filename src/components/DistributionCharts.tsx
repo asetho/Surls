@@ -20,7 +20,15 @@ type TooltipState = {
   y: number;
 };
 
-const chartColors = ["#087e8b", "#64abbb", "#92c1d3", "#0a5c70", "#c81d25", "#bddceb", "#79b7c8"];
+const chartColors = [
+  "var(--chart-color-1, #087e8b)",
+  "var(--chart-color-2, #64abbb)",
+  "var(--chart-color-3, #92c1d3)",
+  "var(--chart-color-4, #0a5c70)",
+  "var(--chart-color-5, #c81d25)",
+  "var(--chart-color-6, #bddceb)",
+  "var(--chart-color-7, #79b7c8)"
+];
 
 function hitLabel(count: number) {
   return `${count} hit${count === 1 ? "" : "s"}`;
