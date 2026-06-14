@@ -9,7 +9,7 @@ import { faviconsFromUpload, getFaviconManifestNames } from "@/lib/favicons";
 import { getSettings, setSetting } from "@/lib/settings";
 
 function settingsFeedbackUrl(kind: "settingsError" | "settingsSuccess", message: string) {
-  const url = new URL("/admin/settings", appBaseUrl());
+  const url = new URL("/admin/settings/favicons/editor", appBaseUrl());
   url.searchParams.set(kind, message.slice(0, 240));
   url.searchParams.set("settingsSection", "favicons");
   return url;
@@ -27,6 +27,7 @@ function revalidateFaviconPaths() {
   revalidatePath("/", "layout");
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/settings");
+  revalidatePath("/admin/settings/favicons/editor");
   revalidatePath("/favicon.ico");
   revalidatePath("/favicon.svg");
   revalidatePath("/apple-touch-icon.png");
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
 
   const admin = await requireSiteAdmin();
   if (!admin) {
-    return NextResponse.redirect(new URL("/admin?next=/admin/settings", appBaseUrl()), 303);
+    return NextResponse.redirect(new URL("/admin?next=/admin/settings/favicons/editor", appBaseUrl()), 303);
   }
 
   const settings = await getSettings();

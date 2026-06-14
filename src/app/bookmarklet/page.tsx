@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { ExternalLink, Link2, LogIn, Plus } from "lucide-react";
 import { BookmarkletPopupActions } from "@/components/BookmarkletPopupActions";
@@ -6,10 +8,11 @@ import { PasskeyLoginButton } from "@/components/PasskeyLoginButton";
 import { TitleAutoFill } from "@/components/TitleAutoFill";
 import { requireAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
+import { dashboardThemeCssVariables } from "@/lib/dashboard-theme";
 import { appBaseUrl } from "@/lib/env";
 import { shortUrl } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
-import { getSiteName } from "@/lib/settings";
+import { getSettings } from "@/lib/settings";
 import { createBookmarkletLinkAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -42,8 +45,10 @@ function bookmarkletPath(destinationUrl: string, title: string) {
 
 export default async function BookmarkletPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
-  const [user, siteName] = await Promise.all([requireAdmin(), getSiteName()]);
+  const [user, settings] = await Promise.all([requireAdmin(), getSettings()]);
   const csrf = getCsrfToken();
+  const siteName = settings.siteName;
+  const themeStyle = dashboardThemeCssVariables(settings.dashboardTheme) as CSSProperties;
   const destinationUrl = compactValue(params.url, 2048);
   const title = compactValue(params.title, 240);
   const nextPath = bookmarkletPath(destinationUrl, title);
@@ -52,12 +57,19 @@ export default async function BookmarkletPage({ searchParams }: { searchParams: 
     ? await prisma.shortLink.findUnique({ where: { id: params.created } })
     : null;
   const createdUrl = createdLink ? shortUrl(appBaseUrl(), createdLink.code) : null;
+  const hasFaviconBrandMark = Boolean(settings.favicons?.assets.faviconSvg);
 
   return (
-    <main className="bookmarklet-shell">
+    <main className="bookmarklet-shell" style={themeStyle}>
       <section className="bookmarklet-mini" aria-label={`${siteName} bookmarklet`}>
         <div className="bookmarklet-mini-brand">
-          <span className="brand-mark">{siteName.slice(0, 1).toUpperCase() || "S"}</span>
+          <span className={hasFaviconBrandMark ? "brand-mark brand-mark-favicon" : "brand-mark"}>
+            {hasFaviconBrandMark ? (
+              <Image src="/favicon.svg" alt="" aria-hidden="true" width={34} height={34} unoptimized />
+            ) : (
+              siteName.slice(0, 1).toUpperCase() || "S"
+            )}
+          </span>
           <div>
             <strong>{siteName}</strong>
             <span className="muted small">Bookmarklet</span>

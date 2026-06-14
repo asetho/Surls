@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type CSSProperties } from "react";
+import { RotateCcw } from "lucide-react";
 import {
   DASHBOARD_THEME_FIELDS,
   DASHBOARD_THEME_MODES,
@@ -48,28 +49,43 @@ function DashboardThemeColorField({
   value: string;
 }) {
   const pickerColor = expandHexColor(value) ?? savedValue;
+  const comparableValue = expandHexColor(value) ?? value.trim().toLowerCase();
+  const hasChanged = comparableValue !== savedValue.toLowerCase();
 
   return (
     <span className="dashboard-theme-color-row">
-      <input
-        aria-label={`${label} HEX color`}
-        autoCapitalize="none"
-        autoComplete="off"
-        className="dashboard-theme-hex-input"
-        name={name}
-        pattern="#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})"
-        placeholder="#087e8b"
-        required
-        spellCheck={false}
-        title="Use HEX format, for example #087e8b."
-        type="text"
-        value={value}
-        onBlur={() => {
-          const normalized = expandHexColor(value);
-          if (normalized) onChange(mode, fieldKey, normalized);
-        }}
-        onChange={(event) => onChange(mode, fieldKey, event.currentTarget.value)}
-      />
+      <span className="dashboard-theme-hex-wrap">
+        <input
+          aria-label={`${label} HEX color`}
+          autoCapitalize="none"
+          autoComplete="off"
+          className={`dashboard-theme-hex-input${hasChanged ? " has-reset" : ""}`}
+          name={name}
+          pattern="#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})"
+          placeholder="#087e8b"
+          required
+          spellCheck={false}
+          title="Use HEX format, for example #087e8b."
+          type="text"
+          value={value}
+          onBlur={() => {
+            const normalized = expandHexColor(value);
+            if (normalized) onChange(mode, fieldKey, normalized);
+          }}
+          onChange={(event) => onChange(mode, fieldKey, event.currentTarget.value)}
+        />
+        {hasChanged ? (
+          <button
+            aria-label={`Reset ${label} to saved color`}
+            className="dashboard-theme-reset-color"
+            title="Reset to saved color"
+            type="button"
+            onClick={() => onChange(mode, fieldKey, savedValue)}
+          >
+            <RotateCcw aria-hidden="true" size={13} strokeWidth={2.4} />
+          </button>
+        ) : null}
+      </span>
       <input
         aria-label={`${label} color picker`}
         className="dashboard-theme-color-swatch"

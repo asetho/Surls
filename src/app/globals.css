@@ -357,6 +357,52 @@ button.danger-outline:hover {
   min-width: 0;
 }
 
+.settings-editor-card-grid {
+  align-items: stretch;
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.settings-editor-card {
+  align-content: start;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.settings-editor-card > .muted {
+  margin: 0;
+}
+
+.settings-editor-card > .button {
+  justify-self: start;
+}
+
+.settings-editor-panel {
+  padding: 0;
+}
+
+.settings-editor-panel > .settings-card-header {
+  border-bottom: 1px solid var(--border);
+  padding: 0.8rem;
+}
+
+.settings-form-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.settings-form-actions > button,
+.settings-form-actions > .button {
+  flex: 1 1 14rem;
+}
+
+.settings-hidden-form {
+  display: none;
+}
+
 .settings-card-header {
   align-items: center;
   display: flex;
@@ -495,7 +541,7 @@ button.danger-outline:hover {
   flex-wrap: wrap;
 }
 
-.favicon-status-list dt .status-pill {
+.favicon-status-list > div > .status-pill {
   bottom: 0.45rem;
   margin-left: 0;
   position: absolute;
@@ -1090,10 +1136,48 @@ button.danger-outline:hover {
   padding: 0.18rem;
 }
 
+.dashboard-theme-hex-wrap {
+  display: grid;
+  min-width: 0;
+  position: relative;
+}
+
+.dashboard-theme-reset-color {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--text), transparent 86%);
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0;
+  gap: 0;
+  height: 1.35rem;
+  justify-content: center;
+  min-height: 1.35rem;
+  min-width: 1.35rem;
+  padding: 0;
+  position: absolute;
+  right: 0.42rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.35rem;
+}
+
+.dashboard-theme-reset-color:hover,
+.dashboard-theme-reset-color:focus-visible {
+  color: var(--color-teal);
+}
+
 .dashboard-theme-hex-input {
   font-family: var(--font-mono);
   min-height: 2.4rem;
   text-transform: lowercase;
+}
+
+.dashboard-theme-hex-input.has-reset {
+  padding-right: 2.2rem;
 }
 
 .dashboard-theme-preview {
@@ -1210,10 +1294,55 @@ button.danger-outline:hover {
 }
 
 .bookmarklet-shell {
+  --dashboard-active-accent: var(--dashboard-light-accent);
+  --dashboard-active-background: var(--dashboard-light-background);
+  --dashboard-active-border: var(--dashboard-light-border);
+  --dashboard-active-button-text: var(--dashboard-light-button-text);
+  --dashboard-active-muted: var(--dashboard-light-muted);
+  --dashboard-active-shadow: var(--dashboard-light-shadow);
+  --dashboard-active-sidebar: var(--dashboard-light-sidebar);
+  --dashboard-active-sidebar-hover: var(--dashboard-light-sidebar-hover);
+  --dashboard-active-surface: var(--dashboard-light-surface);
+  --dashboard-active-surface-strong: var(--dashboard-light-surface-strong);
+  --dashboard-active-text: var(--dashboard-light-text);
+  --background: var(--dashboard-active-background);
+  --border: var(--dashboard-active-border);
+  --button-text: var(--dashboard-active-button-text);
+  --color-deep-teal: var(--dashboard-active-sidebar-hover);
+  --color-ice: var(--dashboard-active-surface-strong);
+  --color-navy: var(--dashboard-active-sidebar);
+  --color-teal: var(--dashboard-active-accent);
+  --dark-teal: var(--dashboard-active-sidebar);
+  --muted: var(--dashboard-active-muted);
+  --pacific-blue: var(--dashboard-active-border);
+  --shadow: var(--dashboard-active-shadow);
+  --sky-blue-light: var(--dashboard-active-surface-strong);
+  --surface: var(--dashboard-active-surface);
+  --surface-strong: var(--dashboard-active-surface-strong);
+  --teal: var(--dashboard-active-accent);
+  --text: var(--dashboard-active-text);
   align-items: center;
+  background:
+    radial-gradient(circle at 50% 12%, color-mix(in srgb, var(--color-teal), transparent 86%), transparent 30rem),
+    var(--background);
+  color: var(--text);
   display: grid;
   min-height: 100vh;
   padding: 1rem;
+}
+
+:root[data-theme="dark"] .bookmarklet-shell {
+  --dashboard-active-accent: var(--dashboard-dark-accent);
+  --dashboard-active-background: var(--dashboard-dark-background);
+  --dashboard-active-border: var(--dashboard-dark-border);
+  --dashboard-active-button-text: var(--dashboard-dark-button-text);
+  --dashboard-active-muted: var(--dashboard-dark-muted);
+  --dashboard-active-shadow: var(--dashboard-dark-shadow);
+  --dashboard-active-sidebar: var(--dashboard-dark-sidebar);
+  --dashboard-active-sidebar-hover: var(--dashboard-dark-sidebar-hover);
+  --dashboard-active-surface: var(--dashboard-dark-surface);
+  --dashboard-active-surface-strong: var(--dashboard-dark-surface-strong);
+  --dashboard-active-text: var(--dashboard-dark-text);
 }
 
 .bookmarklet-mini {
@@ -1226,8 +1355,14 @@ button.danger-outline:hover {
 
 .bookmarklet-mini-brand {
   align-items: center;
+  color: var(--text);
   display: inline-flex;
   gap: 0.6rem;
+}
+
+.bookmarklet-mini-brand .brand-mark {
+  background: var(--color-teal);
+  color: var(--button-text);
 }
 
 .bookmarklet-mini-brand > div {
@@ -1236,13 +1371,23 @@ button.danger-outline:hover {
 }
 
 .bookmarklet-card {
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+  color: var(--text);
   padding: 1rem;
 }
 
 .bookmarklet-card-header {
   align-items: center;
+  color: var(--text);
   display: flex;
   gap: 0.65rem;
+}
+
+.bookmarklet-card-header > svg {
+  color: var(--color-teal);
+  flex: 0 0 auto;
 }
 
 .bookmarklet-card-header h1 {
@@ -1813,6 +1958,15 @@ textarea {
   gap: 0.75rem;
   justify-content: space-between;
   min-width: 0;
+}
+
+.content-header-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
 }
 
 .content-header h1,
@@ -3200,6 +3354,18 @@ th {
 
   .content-header {
     display: grid;
+  }
+
+  .content-header-actions {
+    justify-content: stretch;
+  }
+
+  .content-header-actions > .button {
+    flex: 1 1 11rem;
+  }
+
+  .settings-editor-card-grid {
+    grid-template-columns: 1fr;
   }
 
   .link-filter-form {

@@ -37,6 +37,8 @@ export async function updateSettingsAction(formData: FormData) {
   revalidatePath("/", "layout");
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/settings");
+  revalidatePath("/admin/settings/theme");
+  revalidatePath("/admin/settings/favicons/editor");
 }
 
 export async function updateDashboardThemeAction(formData: FormData) {
@@ -55,6 +57,7 @@ export async function updateDashboardThemeAction(formData: FormData) {
   });
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/settings");
+  revalidatePath("/admin/settings/theme");
 }
 
 export async function resetDashboardThemeAction(formData: FormData) {
@@ -72,6 +75,7 @@ export async function resetDashboardThemeAction(formData: FormData) {
   });
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/settings");
+  revalidatePath("/admin/settings/theme");
 }
 
 function revalidateCustomPagePaths() {
@@ -85,6 +89,7 @@ function revalidateFaviconPaths() {
   revalidatePath("/", "layout");
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/settings");
+  revalidatePath("/admin/settings/favicons/editor");
   revalidatePath("/favicon.ico");
   revalidatePath("/favicon.svg");
   revalidatePath("/apple-touch-icon.png");

@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.8.0 - 2026-06-13
+
+### Added
+
+* Added dedicated Theme Editor and Favicon Editor pages from Settings.
+
+### Changed
+
+* Settings now links to separate editors and shows compact editor summary cards.
+* Favicon uploads now return to the Favicon Editor and keep save/reset actions together.
+* Bookmarklet creation now follows the active dashboard theme and hosted favicon branding.
+* Dashboard theme color fields now show an inline reset control after edits.
+
+### Fixed
+
+* Favicon status cards keep status badges anchored at the bottom-right with previews visible.
+
+### Security
+
+* No security changes.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.7.0 - 2026-06-13
 
 ### Added
