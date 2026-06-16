@@ -40,6 +40,10 @@ function escapeHtml(value: string) {
   });
 }
 
+function escapeHtmlWithLineBreaks(value: string) {
+  return escapeHtml(value).replace(/\r\n|\r|\n/g, "<br>");
+}
+
 export function parseLoginTemplate(html: string) {
   const parts: LoginTemplatePart[] = [];
   const counts = { form: 0, tagline: 0, title: 0 };
@@ -90,7 +94,7 @@ export function renderLoginTemplateHtml(html: string, { tagline, title }: { tagl
       if (part.type === "html") return part.html;
       if (part.type === "form") return '<div data-surls-login-form-slot></div>';
       if (part.type === "title") return escapeHtml(title);
-      return escapeHtml(tagline);
+      return escapeHtmlWithLineBreaks(tagline);
     })
     .join("");
 }

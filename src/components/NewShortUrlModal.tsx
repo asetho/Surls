@@ -2,10 +2,11 @@
 
 import { Plus, X } from "lucide-react";
 import { useId, useRef, useState } from "react";
+import { createLinkAction } from "@/app/admin/links/actions";
 import { DestinationWarnings } from "./DestinationWarnings";
 import { TitleAutoFill } from "./TitleAutoFill";
 
-export function NewShortUrlModal({ csrf, siteName }: { csrf: string; siteName: string }) {
+export function NewShortUrlModal({ csrf }: { csrf: string }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const [destinationUrl, setDestinationUrl] = useState("");
@@ -52,13 +53,13 @@ export function NewShortUrlModal({ csrf, siteName }: { csrf: string; siteName: s
           <div className="modal-header">
             <div>
               <h2 id={titleId}>New short URL</h2>
-              <p className="muted small">Create a private {siteName} link from anywhere in the admin.</p>
+              <p className="muted small">Create a private short link from anywhere in the admin.</p>
             </div>
             <button type="button" className="icon-button secondary" onClick={closeDialog} aria-label="Close new short URL dialog">
               <X size={16} aria-hidden />
             </button>
           </div>
-          <form className="form-stack" action="/admin/links/create" method="post" data-title-autofill="true">
+          <form className="form-stack" action={createLinkAction} data-title-autofill="true">
             <input type="hidden" name="csrf" value={csrf} />
             <div className="form-grid">
               <label>
@@ -103,7 +104,7 @@ export function NewShortUrlModal({ csrf, siteName }: { csrf: string; siteName: s
               <textarea name="notes" />
             </label>
             <div className="row-actions">
-              <button type="submit">Create {siteName} link</button>
+              <button type="submit">Create Link</button>
               <button type="button" className="secondary" onClick={closeDialog}>
                 Cancel
               </button>

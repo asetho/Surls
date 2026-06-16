@@ -1,5 +1,38 @@
 # Changelog
 
+## 1.9.0 - 2026-06-15
+
+### Added
+
+* Added a live Theme Editor drawer that can stay open while browsing admin pages.
+* Added admin toast notifications with editable success and error colors plus live test buttons.
+* Added theme controls for links, pills, status badges, graph colors, map colors, and danger actions.
+* Added AddToAny universal share menus with prioritized services for share actions.
+* Added an admin dashboard-theme API endpoint for saving and resetting theme changes without leaving the current page.
+
+### Changed
+
+* Theme editing is grouped into light and dark mode tabs with collapsed color sections.
+* Theme saves now use in-page toasts and keep the user on the current admin view.
+* Admin pages, bookmarklet pages, buttons, badges, links, and charts now use the expanded dashboard theme tokens.
+* Link creation now uses clearer button text and returns to the created link detail page.
+* Backup-code and 2FA login screens have clearer layout and action styling.
+
+### Fixed
+
+* Improved chart hover alignment and date label positioning.
+* Fixed bookmarklet handling so the bookmark can run without React blocking the `javascript:` URL.
+* Removed extra historical chart helper text and tightened chart spacing.
+* Cleaned up duplicate link color styling across admin pages.
+
+### Security
+
+* Kept destructive link deletion restricted to admins while retaining archive actions for normal users.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.8.0 - 2026-06-13
 
 ### Added

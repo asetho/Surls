@@ -2,6 +2,7 @@ import { AuditAction } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
 import { auditLog } from "@/lib/audit";
+import { adminToastPath } from "@/lib/admin-toast";
 import { requireSiteAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
 import { appBaseUrl } from "@/lib/env";
@@ -9,9 +10,8 @@ import { faviconsFromUpload, getFaviconManifestNames } from "@/lib/favicons";
 import { getSettings, setSetting } from "@/lib/settings";
 
 function settingsFeedbackUrl(kind: "settingsError" | "settingsSuccess", message: string) {
-  const url = new URL("/admin/settings/favicons/editor", appBaseUrl());
-  url.searchParams.set(kind, message.slice(0, 240));
-  url.searchParams.set("settingsSection", "favicons");
+  const toastType = kind === "settingsSuccess" ? "success" : "error";
+  const url = new URL(adminToastPath("/admin/settings/favicons/editor", toastType, message), appBaseUrl());
   return url;
 }
 

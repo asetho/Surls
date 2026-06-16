@@ -108,7 +108,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Set
           <p className="muted">Control privacy, redirect behavior, branding, and UI defaults.</p>
         </div>
         <div className="content-header-actions">
-          <Link id="theme-editor-button" className="button secondary" href="/admin/settings/theme">
+          <Link id="theme-editor-button" className="button secondary" href="/admin?themeEditor=open">
             Theme Editor
           </Link>
           <Link id="favicon-editor-button" className="button secondary" href="/admin/settings/favicons/editor">
@@ -120,6 +120,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Set
       <section className="surface" style={{ padding: "1rem" }}>
         <form className="form-stack" action={updateSettingsAction}>
           <input type="hidden" name="csrf" value={csrf} />
+          <input type="hidden" name="returnTo" value="/admin/settings" />
           {settingsFeedback ? (
             <div className={settingsFeedback.type === "success" ? "success" : "alert"}>{settingsFeedback.message}</div>
           ) : null}
@@ -195,7 +196,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Set
             </span>
           </div>
           <p className="muted">Adjust signed-in dashboard colors, light/dark palettes, and live previews.</p>
-          <Link className="button secondary" href="/admin/settings/theme">
+          <Link className="button secondary" href="/admin?themeEditor=open">
             Open Theme Editor
           </Link>
         </div>

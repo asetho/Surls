@@ -1,7 +1,7 @@
 "use client";
 
 import { Bookmark, Check, Copy } from "lucide-react";
-import { type DragEvent, type MouseEvent, useEffect, useRef, useState } from "react";
+import { type MouseEvent, useEffect, useRef, useState } from "react";
 
 async function copyToClipboard(value: string) {
   if (navigator.clipboard?.writeText) {
@@ -22,14 +22,6 @@ async function copyToClipboard(value: string) {
   textarea.select();
   document.execCommand("copy");
   textarea.remove();
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
 }
 
 export function BookmarkletLink({
@@ -67,15 +59,6 @@ export function BookmarkletLink({
     markCopied();
   }
 
-  function handleDragStart(event: DragEvent<HTMLAnchorElement>) {
-    const html = `<a href="${escapeHtml(bookmarklet)}">${escapeHtml(bookmarkTitle)}</a>`;
-    event.dataTransfer.effectAllowed = "copyLink";
-    event.dataTransfer.setData("text/html", html);
-    event.dataTransfer.setData("text/uri-list", bookmarklet);
-    event.dataTransfer.setData("text/x-moz-url", `${bookmarklet}\n${bookmarkTitle}`);
-    event.dataTransfer.setData("text/plain", bookmarkTitle);
-  }
-
   return (
     <div className="bookmarklet-control">
       <a
@@ -83,20 +66,19 @@ export function BookmarkletLink({
         className="button bookmarklet-button"
         href="#"
         draggable="true"
-        aria-label={`${label}. Drag to your bookmarks bar to save it as ${bookmarkTitle}, or click to copy.`}
-        onClick={handleCopy}
-        onDragStart={handleDragStart}
+        aria-label={`${bookmarkTitle}. ${label}. Drag to your bookmarks bar.`}
         title={bookmarkTitle}
       >
         <Bookmark size={16} aria-hidden />
-        {label}
+        {bookmarkTitle}
       </a>
       <button type="button" className="button secondary icon-button" onClick={handleCopy}>
         {copied ? <Check size={16} aria-hidden /> : <Copy size={16} aria-hidden />}
         {copied ? "Copied" : "Copy"}
       </button>
       <p className="bookmarklet-help muted small">
-        Drag this to your bookmarks toolbar to save it as {bookmarkTitle}.
+        Drag this to your bookmarks toolbar to save it as {bookmarkTitle}, then click that bookmark from a page you want to shorten.
+        Use Copy if you want the bookmarklet code.
       </p>
     </div>
   );

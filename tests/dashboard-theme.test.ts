@@ -42,11 +42,14 @@ describe("dashboard theme settings", () => {
       light: {
         accent: "#aabbcc",
         background: "#123456",
+        chartPrimary: DEFAULT_DASHBOARD_THEME.light.chartPrimary,
         dangerBackground: DEFAULT_DASHBOARD_THEME.light.dangerBackground,
+        link: DEFAULT_DASHBOARD_THEME.light.link,
         pillBackground: DEFAULT_DASHBOARD_THEME.light.pillBackground,
         sidebar: DEFAULT_DASHBOARD_THEME.light.sidebar,
         shortUrlPillAccent: DEFAULT_DASHBOARD_THEME.light.shortUrlPillAccent,
-        text: DEFAULT_DASHBOARD_THEME.light.text
+        text: DEFAULT_DASHBOARD_THEME.light.text,
+        toastSuccessBackground: DEFAULT_DASHBOARD_THEME.light.toastSuccessBackground
       },
       dark: {
         accent: "#ddeeff",
@@ -98,23 +101,32 @@ describe("dashboard theme settings", () => {
     ).toMatchObject({
       "--dashboard-light-accent": "#112233",
       "--dashboard-light-active-pill-background": DEFAULT_DASHBOARD_THEME.light.activePillBackground,
+      "--dashboard-light-chart-primary": DEFAULT_DASHBOARD_THEME.light.chartPrimary,
+      "--dashboard-light-chart-map-high": DEFAULT_DASHBOARD_THEME.light.chartMapHigh,
       "--dashboard-light-danger-background": DEFAULT_DASHBOARD_THEME.light.dangerBackground,
+      "--dashboard-light-link": DEFAULT_DASHBOARD_THEME.light.link,
       "--dashboard-dark-accent": DEFAULT_DASHBOARD_THEME.dark.accent,
       "--dashboard-dark-short-url-pill-accent": DEFAULT_DASHBOARD_THEME.dark.shortUrlPillAccent,
       "--dashboard-light-pill-background": DEFAULT_DASHBOARD_THEME.light.pillBackground,
       "--dashboard-light-surface": DEFAULT_DASHBOARD_THEME.light.surface,
-      "--dashboard-light-text": DEFAULT_DASHBOARD_THEME.light.text
+      "--dashboard-light-text": DEFAULT_DASHBOARD_THEME.light.text,
+      "--dashboard-light-toast-success-background": DEFAULT_DASHBOARD_THEME.light.toastSuccessBackground,
+      "--dashboard-dark-toast-error-border": DEFAULT_DASHBOARD_THEME.dark.toastErrorBorder
     });
   });
 
   it("maps a single palette to chart and warning preview variables", () => {
     expect(dashboardThemePaletteCssVariables(DEFAULT_DASHBOARD_THEME.light)).toMatchObject({
-      "--chart-color-1": DEFAULT_DASHBOARD_THEME.light.accent,
-      "--chart-color-5": DEFAULT_DASHBOARD_THEME.light.dangerBackground,
-      "--chart-map-bucket-5": DEFAULT_DASHBOARD_THEME.light.sidebar,
+      "--chart-color-1": DEFAULT_DASHBOARD_THEME.light.chartPrimary,
+      "--chart-color-5": DEFAULT_DASHBOARD_THEME.light.chartDanger,
+      "--chart-map-bucket-1": DEFAULT_DASHBOARD_THEME.light.chartMapLow,
+      "--chart-map-bucket-5": DEFAULT_DASHBOARD_THEME.light.chartMapHigh,
       "--chart-tooltip-background": DEFAULT_DASHBOARD_THEME.light.surface,
       "--danger-background": DEFAULT_DASHBOARD_THEME.light.dangerBackground,
-      "--short-url-pill-background": DEFAULT_DASHBOARD_THEME.light.shortUrlPillBackground
+      "--link-color": DEFAULT_DASHBOARD_THEME.light.link,
+      "--short-url-pill-background": DEFAULT_DASHBOARD_THEME.light.shortUrlPillBackground,
+      "--toast-error-border": DEFAULT_DASHBOARD_THEME.light.toastErrorBorder,
+      "--toast-success-background": DEFAULT_DASHBOARD_THEME.light.toastSuccessBackground
     });
   });
 });

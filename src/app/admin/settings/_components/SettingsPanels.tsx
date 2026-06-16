@@ -152,6 +152,7 @@ export function DashboardThemePanel({
   theme: DashboardTheme;
 }) {
   const isDefault = isDefaultDashboardTheme(theme);
+  const returnTo = mode === "section" ? "/admin/settings/theme" : "/admin/settings";
   const header = (
     <div className="settings-card-header">
       <h2>Dashboard theme</h2>
@@ -169,6 +170,7 @@ export function DashboardThemePanel({
 
       <form id="dashboard-theme-form" className="form-stack" action={updateDashboardThemeAction}>
         <input type="hidden" name="csrf" value={csrf} />
+        <input type="hidden" name="returnTo" value={returnTo} />
         <DashboardThemeEditor theme={theme} />
         <div className="settings-form-actions">
           <button type="submit">Save dashboard theme</button>
@@ -183,6 +185,7 @@ export function DashboardThemePanel({
       {!isDefault ? (
         <form id="dashboard-theme-reset-form" className="settings-hidden-form" action={resetDashboardThemeAction}>
           <input type="hidden" name="csrf" value={csrf} />
+          <input type="hidden" name="returnTo" value={returnTo} />
         </form>
       ) : null}
     </div>
@@ -225,6 +228,7 @@ export function FaviconsPanel({
   siteName: string;
   webrootFiles: WebrootFaviconFiles;
 }) {
+  const returnTo = mode === "section" ? "/admin/settings/favicons/editor" : "/admin/settings";
   const manifestNames = getFaviconManifestNames(favicons, siteName);
   const activeCount = faviconActiveCount(favicons, webrootFiles);
   const manifestStatus = favicons ? "Generated" : webrootFiles.siteManifest ? "Webroot" : "Missing";
@@ -323,6 +327,7 @@ export function FaviconsPanel({
           {favicons ? (
             <form id={manifestFormId} className="form-stack" action={updateFaviconManifestAction}>
               <input type="hidden" name="csrf" value={csrf} />
+              <input type="hidden" name="returnTo" value={returnTo} />
               <FaviconManifestEditor
                 defaultName={manifestNames.name}
                 defaultShortName={manifestNames.shortName}
@@ -343,6 +348,7 @@ export function FaviconsPanel({
 
       <form id="favicon-upload-form" className="form-stack" action="/admin/settings/favicons" encType="multipart/form-data" method="post">
         <input type="hidden" name="csrf" value={csrf} />
+        <input type="hidden" name="returnTo" value={returnTo} />
         <div className="form-grid">
           {FAVICON_UPLOAD_ASSETS.map((asset) => (
             <label key={asset.key}>
@@ -368,6 +374,7 @@ export function FaviconsPanel({
       {favicons ? (
         <form id="favicon-reset-form" className="settings-hidden-form" action={resetFaviconsAction}>
           <input type="hidden" name="csrf" value={csrf} />
+          <input type="hidden" name="returnTo" value={returnTo} />
         </form>
       ) : null}
     </div>

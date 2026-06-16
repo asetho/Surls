@@ -1,17 +1,22 @@
 import type { Metadata, Viewport } from "next";
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { ThemeScript } from "@/components/ThemeScript";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { DEFAULT_DASHBOARD_THEME, dashboardThemeCssVariables } from "@/lib/dashboard-theme";
 import { FAVICON_MANIFEST_PATH } from "@/lib/favicons";
-import { getSiteName } from "@/lib/settings";
+import { getSettings, getSiteName } from "@/lib/settings";
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#1f6a5d"
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: DEFAULT_DASHBOARD_THEME.light.background },
+    { media: "(prefers-color-scheme: dark)", color: DEFAULT_DASHBOARD_THEME.dark.background }
+  ]
 };
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -47,11 +52,12 @@ async function savedThemeChoice() {
 }
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const themeChoice = await savedThemeChoice();
+  const [themeChoice, settings] = await Promise.all([savedThemeChoice(), getSettings()]);
   const initialTheme = themeChoice === "dark" ? "dark" : "light";
+  const dashboardThemeStyle = dashboardThemeCssVariables(settings.dashboardTheme) as CSSProperties;
 
   return (
-    <html lang="en" data-theme={initialTheme} data-theme-choice={themeChoice} suppressHydrationWarning>
+    <html lang="en" data-theme={initialTheme} data-theme-choice={themeChoice} style={dashboardThemeStyle} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://use.typekit.net" />
         <link rel="preconnect" href="https://p.typekit.net" />

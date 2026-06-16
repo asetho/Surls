@@ -29,7 +29,7 @@ export default async function TwoFactorLoginPage({ searchParams }: { searchParam
   const [settings, filesystemLoginPage] = await Promise.all([getSettings(), pageFromFilesystem("login")]);
   const customLoginPage = filesystemLoginPage ?? settings.customLoginPage;
   const title = "Enter your 2FA code";
-  const tagline = `Finish signing in to ${settings.siteName} as ${pendingLogin.email}.`;
+  const tagline = `Finish signing in to ${settings.siteName} as\n${pendingLogin.email}.`;
 
   return (
     <LoginPageShell customPage={customLoginPage} tagline={tagline} title={title}>

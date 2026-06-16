@@ -1,7 +1,7 @@
 "use client";
 
 import type { PointerEvent } from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { formatDateKey } from "@/lib/dates";
 
 type DailyHistoryRow = {
@@ -14,6 +14,11 @@ type HistoryRange = "30d" | "1y" | "3y" | "5y";
 type ChartPoint = DailyHistoryRow & {
   x: number;
   y: number;
+};
+
+type HoveredChartPoint = ChartPoint & {
+  tooltipLeft: number;
+  tooltipTop: number;
 };
 
 type SvgPoint = Pick<ChartPoint, "x" | "y">;
@@ -90,7 +95,8 @@ function HistoryChart({ days }: { days: DailyHistoryRow[] }) {
   const width = 760;
   const height = 220;
   const pad = 34;
-  const [hovered, setHovered] = useState<ChartPoint | null>(null);
+  const plotRef = useRef<HTMLDivElement>(null);
+  const [hovered, setHovered] = useState<HoveredChartPoint | null>(null);
   const max = Math.max(1, ...days.map((day) => day.count));
   const innerWidth = width - pad * 2;
   const innerHeight = height - pad * 2;
@@ -123,61 +129,97 @@ function HistoryChart({ days }: { days: DailyHistoryRow[] }) {
       return;
     }
 
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * width;
+    const svg = event.currentTarget;
+    const svgRect = svg.getBoundingClientRect();
+    const plotRect = plotRef.current?.getBoundingClientRect() ?? svgRect;
+    const matrix = svg.getScreenCTM();
+    let x = ((event.clientX - svgRect.left) / svgRect.width) * width;
+
+    if (matrix) {
+      const pointer = svg.createSVGPoint();
+      pointer.x = event.clientX;
+      pointer.y = event.clientY;
+      x = pointer.matrixTransform(matrix.inverse()).x;
+    }
+
     const index =
       points.length === 1
         ? 0
         : Math.min(points.length - 1, Math.max(0, Math.round(((x - pad) / innerWidth) * (points.length - 1))));
     const nextPoint = points[index];
-    setHovered((current) => (current?.date === nextPoint.date && current.count === nextPoint.count ? current : nextPoint));
+    const tooltipPosition = { x: (nextPoint.x / width) * svgRect.width, y: (nextPoint.y / height) * svgRect.height };
+
+    if (matrix) {
+      const anchor = svg.createSVGPoint();
+      anchor.x = nextPoint.x;
+      anchor.y = nextPoint.y;
+      const screenAnchor = anchor.matrixTransform(matrix);
+      tooltipPosition.x = screenAnchor.x - plotRect.left;
+      tooltipPosition.y = screenAnchor.y - plotRect.top;
+    }
+
+    const nextHover = {
+      ...nextPoint,
+      tooltipLeft: tooltipPosition.x,
+      tooltipTop: tooltipPosition.y
+    };
+    setHovered((current) =>
+      current?.date === nextHover.date &&
+      current.count === nextHover.count &&
+      current.tooltipLeft === nextHover.tooltipLeft &&
+      current.tooltipTop === nextHover.tooltipTop
+        ? current
+        : nextHover
+    );
   }
 
   return (
     <div className="history-chart" aria-label="Historical click count">
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        role="img"
-        aria-describedby={hovered ? "history-chart-tooltip" : undefined}
-        onPointerMove={handlePointerMove}
-        onPointerLeave={() => setHovered(null)}
-      >
-        <title>Historical click count</title>
-        {grid.map((line, index) => (
-          <g key={`${index}-${line.value}`}>
-            <line x1={pad} x2={width - pad} y1={line.y} y2={line.y} />
-            <text x={8} y={line.y + 4}>{line.value}</text>
-          </g>
-        ))}
-        {areaPath ? <path className="history-area" d={areaPath} /> : null}
-        {linePath ? <path className="history-line" d={linePath} /> : null}
-        {points.length <= 90
-          ? points.map((point) => (
-              <circle key={point.date} cx={point.x} cy={point.y} r={3}>
-                <title>{`${formatDateKey(point.date)}: ${point.count} hit${point.count === 1 ? "" : "s"}`}</title>
-              </circle>
-            ))
-          : null}
-        {hovered ? (
-          <g className="chart-hover-marker" aria-hidden>
-            <line x1={hovered.x} x2={hovered.x} y1={pad} y2={height - pad} />
-            <circle cx={hovered.x} cy={hovered.y} r={5} />
-          </g>
-        ) : null}
-      </svg>
-      {hovered ? (
-        <div
-          className="chart-tooltip"
-          id="history-chart-tooltip"
-          role="status"
-          style={{
-            left: `${(hovered.x / width) * 100}%`,
-            top: `${(hovered.y / height) * 100}%`
-          }}
+      <div className="history-chart-plot" ref={plotRef}>
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          role="img"
+          aria-describedby={hovered ? "history-chart-tooltip" : undefined}
+          onPointerMove={handlePointerMove}
+          onPointerLeave={() => setHovered(null)}
         >
-          {hoverLabel}
-        </div>
-      ) : null}
+          <title>Historical click count</title>
+          {grid.map((line, index) => (
+            <g key={`${index}-${line.value}`}>
+              <line x1={pad} x2={width - pad} y1={line.y} y2={line.y} />
+              <text x={8} y={line.y + 4}>{line.value}</text>
+            </g>
+          ))}
+          {areaPath ? <path className="history-area" d={areaPath} /> : null}
+          {linePath ? <path className="history-line" d={linePath} /> : null}
+          {points.length <= 90
+            ? points.map((point) => (
+                <circle key={point.date} cx={point.x} cy={point.y} r={3}>
+                  <title>{`${formatDateKey(point.date)}: ${point.count} hit${point.count === 1 ? "" : "s"}`}</title>
+                </circle>
+              ))
+            : null}
+          {hovered ? (
+            <g className="chart-hover-marker" aria-hidden>
+              <line x1={hovered.x} x2={hovered.x} y1={pad} y2={height - pad} />
+              <circle cx={hovered.x} cy={hovered.y} r={5} />
+            </g>
+          ) : null}
+        </svg>
+        {hovered ? (
+          <div
+            className="chart-tooltip"
+            id="history-chart-tooltip"
+            role="status"
+            style={{
+              left: `${hovered.tooltipLeft}px`,
+              top: `${hovered.tooltipTop}px`
+            }}
+          >
+            {hoverLabel}
+          </div>
+        ) : null}
+      </div>
       <div className="chart-axis-labels">
         <span>{days[0] ? formatDateKey(days[0].date) : "No clicks"}</span>
         <span>{days.at(-1) ? formatDateKey(days.at(-1)!.date) : ""}</span>
@@ -188,12 +230,10 @@ function HistoryChart({ days }: { days: DailyHistoryRow[] }) {
 
 export function HistoricalClicksPanel({
   allTimeRate,
-  createdAtLabel,
   dailyHistory,
   periodCounts
 }: {
   allTimeRate: number;
-  createdAtLabel: string;
   dailyHistory: DailyHistoryRow[];
   periodCounts: {
     last24Hours: number;
@@ -218,9 +258,6 @@ export function HistoricalClicksPanel({
       <div className="stats-panel-header">
         <div>
           <h2>Historical click count</h2>
-          <p className="muted small">
-            Short URL created on <span className="timestamp">{createdAtLabel}</span>.
-          </p>
         </div>
         <div className="segmented-control" aria-label="Historical click range">
           {historyRanges.map((option) => (

@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { auditLog } from "@/lib/audit";
 import { requireAdmin, requireSiteAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
-import { archiveShortLink, deleteArchivedShortLink, restoreShortLink } from "@/lib/link-lifecycle";
+import { archiveShortLink, deleteShortLink, restoreShortLink } from "@/lib/link-lifecycle";
 import { normalizeOptionalDate, normalizeOptionalPositiveInt } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
 import { parseSafeHttpUrl } from "@/lib/url-safety";
@@ -108,7 +108,7 @@ export async function deleteLinkAction(formData: FormData) {
   if (!admin) throw new Error("Only admins can permanently delete links.");
   const id = String(formData.get("id") ?? "");
   const returnTo = safeInternalPath(formData.get("returnTo"), "/admin/links");
-  const link = await deleteArchivedShortLink(id, formData.get("confirmCode"));
+  const link = await deleteShortLink(id, formData.get("confirmCode"));
   await auditLog({
     userId: admin.id,
     action: AuditAction.SHORT_LINK_DELETED,

@@ -1,7 +1,42 @@
 "use client";
 
 import { Copy, Share2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  ADDTOANY_PRIORITIZED_SERVICES,
+  ADDTOANY_SCRIPT_ID,
+  ADDTOANY_SCRIPT_SRC
+} from "@/lib/addtoany";
+
+type AddToAnyWindow = Window & {
+  a2a?: {
+    init_all?: () => void;
+  };
+  a2a_config?: {
+    prioritize?: string[];
+  };
+};
+
+function setupAddToAny() {
+  const addToAnyWindow = window as AddToAnyWindow;
+  addToAnyWindow.a2a_config = addToAnyWindow.a2a_config || {};
+  addToAnyWindow.a2a_config.prioritize = [...ADDTOANY_PRIORITIZED_SERVICES];
+
+  if (addToAnyWindow.a2a?.init_all) {
+    addToAnyWindow.a2a.init_all();
+    return;
+  }
+
+  const existingScript = document.getElementById(ADDTOANY_SCRIPT_ID) as HTMLScriptElement | null;
+  if (existingScript) return;
+
+  const script = document.createElement("script");
+  script.id = ADDTOANY_SCRIPT_ID;
+  script.async = true;
+  script.src = ADDTOANY_SCRIPT_SRC;
+  script.addEventListener("load", () => addToAnyWindow.a2a?.init_all?.());
+  document.body.appendChild(script);
+}
 
 export function CopyShortUrlButton({ compact = false, url }: { compact?: boolean; url: string }) {
   const [toast, setToast] = useState("");
@@ -50,38 +85,25 @@ export function ShareButton({
   defaultTitle?: string;
 }) {
   const shareTitle = title || defaultTitle;
-  const [toast, setToast] = useState("");
 
-  async function share() {
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: shareTitle, url });
-        return;
-      }
-      await navigator.clipboard.writeText(url);
-      setToast("Copied share link!");
-      window.setTimeout(() => setToast(""), 1600);
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      setToast("Share failed.");
-      window.setTimeout(() => setToast(""), 1600);
-    }
-  }
+  useEffect(() => {
+    setupAddToAny();
+  }, [shareTitle, url]);
 
   return (
-    <>
-      <button
-        type="button"
-        className={`secondary icon-button${compact ? " icon-only-action" : ""}`}
-        onClick={share}
+    <div className="addtoany-share a2a_kit" data-a2a-title={shareTitle} data-a2a-url={url}>
+      <a
+        className={`button secondary icon-button addtoany-share-button a2a_dd${compact ? " icon-only-action" : ""}`}
+        href="https://www.addtoany.com/share"
         aria-label="Share short URL"
+        rel="noopener noreferrer"
+        target="_blank"
         title="Share short URL"
       >
         <Share2 size={16} aria-hidden />
         {compact ? null : <span className="share-button-label">Share</span>}
-      </button>
-      {toast ? <div className="toast" role="status">{toast}</div> : null}
-    </>
+      </a>
+    </div>
   );
 }
 

@@ -41,7 +41,7 @@ export default async function ProfilePage() {
 
   return (
     <main className="admin-content">
-      <div className="content-header">
+      <div className="content-header content-header-topbar">
         <div>
           <h1>User security</h1>
           <p className="muted">Manage TOTP 2FA, one-time backup codes, and optional passkey records.</p>

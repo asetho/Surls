@@ -6,9 +6,16 @@ export type DashboardThemePalette = {
   background: string;
   border: string;
   buttonText: string;
+  chartAccent: string;
+  chartDanger: string;
+  chartMapHigh: string;
+  chartMapLow: string;
+  chartPrimary: string;
+  chartSecondary: string;
   dangerBackground: string;
   dangerBorder: string;
   dangerText: string;
+  link: string;
   muted: string;
   pillBackground: string;
   pillBorder: string;
@@ -22,6 +29,12 @@ export type DashboardThemePalette = {
   surface: string;
   surfaceStrong: string;
   text: string;
+  toastErrorBackground: string;
+  toastErrorBorder: string;
+  toastErrorText: string;
+  toastSuccessBackground: string;
+  toastSuccessBorder: string;
+  toastSuccessText: string;
 };
 
 export type DashboardTheme = {
@@ -32,22 +45,35 @@ export type DashboardTheme = {
 export type DashboardThemeKey = keyof DashboardThemePalette;
 export type DashboardThemeMode = keyof DashboardTheme;
 
-type DashboardThemeField = {
+export type DashboardThemeField = {
   description: string;
   key: DashboardThemeKey;
   label: string;
 };
 
-export const DASHBOARD_THEME_FIELDS = [
+type DashboardThemeFieldSection = {
+  fields: readonly DashboardThemeField[];
+  key: "actions" | "graphs" | "panels" | "sidebar" | "toasts";
+  label: string;
+};
+
+const DASHBOARD_THEME_SIDEBAR_FIELDS: readonly DashboardThemeField[] = [
   { key: "sidebar", label: "Sidebar", description: "Navigation background." },
   { key: "sidebarHover", label: "Sidebar hover", description: "Active and hover states in the sidebar." },
-  { key: "accent", label: "Accent", description: "Primary buttons, links, and highlighted values." },
+  { key: "accent", label: "Accent", description: "Primary buttons, links, and highlighted values." }
+] as const;
+
+const DASHBOARD_THEME_PANEL_FIELDS: readonly DashboardThemeField[] = [
   { key: "background", label: "Page background", description: "Dashboard page background." },
   { key: "surface", label: "Panels", description: "Cards, top bar, tables, and form surfaces." },
   { key: "surfaceStrong", label: "Subtle fill", description: "Badges, previews, and secondary panels." },
   { key: "text", label: "Text", description: "Primary dashboard text." },
   { key: "muted", label: "Muted text", description: "Secondary labels and helper text." },
   { key: "border", label: "Borders", description: "Panel and field outlines." },
+  { key: "link", label: "Links", description: "Inline dashboard links and destination URLs." }
+] as const;
+
+const DASHBOARD_THEME_ACTION_FIELDS: readonly DashboardThemeField[] = [
   { key: "buttonText", label: "Button text", description: "Text color on filled buttons." },
   { key: "dangerBackground", label: "Danger", description: "Archive, delete, disabled, and warning states." },
   { key: "dangerText", label: "Danger text", description: "Text for filled danger buttons." },
@@ -62,7 +88,37 @@ export const DASHBOARD_THEME_FIELDS = [
   { key: "shortUrlPillText", label: "Short URL text", description: "Text for short link codes." },
   { key: "shortUrlPillBorder", label: "Short URL border", description: "Outline around short link codes." },
   { key: "shortUrlPillAccent", label: "Short URL accent", description: "Left accent bar for short link codes." }
-] as const satisfies readonly DashboardThemeField[];
+] as const;
+
+const DASHBOARD_THEME_GRAPH_FIELDS: readonly DashboardThemeField[] = [
+  { key: "chartPrimary", label: "Line graph", description: "Primary line and graph highlights." },
+  { key: "chartSecondary", label: "Graph secondary", description: "Secondary chart series and supporting marks." },
+  { key: "chartAccent", label: "Graph fill", description: "Area fills, neutral chart marks, and soft segments." },
+  { key: "chartDanger", label: "Graph warning", description: "Warning slices and high-attention chart marks." },
+  { key: "chartMapLow", label: "Map low", description: "Lower-traffic country map color." },
+  { key: "chartMapHigh", label: "Map high", description: "Highest-traffic country map color." }
+] as const;
+
+const DASHBOARD_THEME_TOAST_FIELDS: readonly DashboardThemeField[] = [
+  { key: "toastSuccessBackground", label: "Success background", description: "Saved and completed notifications." },
+  { key: "toastSuccessText", label: "Success text", description: "Text for success notifications." },
+  { key: "toastSuccessBorder", label: "Success border", description: "Accent and outline for success notifications." },
+  { key: "toastErrorBackground", label: "Error background", description: "Failed action notifications." },
+  { key: "toastErrorText", label: "Error text", description: "Text for error notifications." },
+  { key: "toastErrorBorder", label: "Error border", description: "Accent and outline for error notifications." }
+] as const;
+
+export const DASHBOARD_THEME_FIELD_SECTIONS: readonly DashboardThemeFieldSection[] = [
+  { key: "sidebar", label: "Sidebar", fields: DASHBOARD_THEME_SIDEBAR_FIELDS },
+  { key: "panels", label: "Panels & text", fields: DASHBOARD_THEME_PANEL_FIELDS },
+  { key: "actions", label: "Action buttons & pills", fields: DASHBOARD_THEME_ACTION_FIELDS },
+  { key: "graphs", label: "Graphs & maps", fields: DASHBOARD_THEME_GRAPH_FIELDS },
+  { key: "toasts", label: "Toast notifications", fields: DASHBOARD_THEME_TOAST_FIELDS }
+] as const;
+
+export const DASHBOARD_THEME_FIELDS: readonly DashboardThemeField[] = DASHBOARD_THEME_FIELD_SECTIONS.flatMap(
+  (section) => section.fields
+);
 
 export const DASHBOARD_THEME_MODES = [
   { key: "light", label: "Light mode" },
@@ -78,9 +134,16 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     background: "#e9f2f6",
     border: "#bdd8e4",
     buttonText: "#ffffff",
+    chartAccent: "#d8edf4",
+    chartDanger: "#c81d25",
+    chartMapHigh: "#0a5c70",
+    chartMapLow: "#d8edf4",
+    chartPrimary: "#087e8b",
+    chartSecondary: "#0a5c70",
     dangerBackground: "#c81d25",
     dangerBorder: "#c81d25",
     dangerText: "#ffffff",
+    link: "#087e8b",
     muted: "#477282",
     pillBackground: "#d8edf4",
     pillBorder: "#bdd8e4",
@@ -93,7 +156,13 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     sidebarHover: "#087e8b",
     surface: "#ffffff",
     surfaceStrong: "#d8edf4",
-    text: "#0b2636"
+    text: "#0b2636",
+    toastErrorBackground: "#ffffff",
+    toastErrorBorder: "#c81d25",
+    toastErrorText: "#0b2636",
+    toastSuccessBackground: "#ffffff",
+    toastSuccessBorder: "#087e8b",
+    toastSuccessText: "#0b2636"
   },
   dark: {
     accent: "#64abbb",
@@ -103,9 +172,16 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     background: "#052f3b",
     border: "#3c8ea0",
     buttonText: "#ffffff",
+    chartAccent: "#176d7d",
+    chartDanger: "#e65057",
+    chartMapHigh: "#92c1d3",
+    chartMapLow: "#176d7d",
+    chartPrimary: "#64abbb",
+    chartSecondary: "#087e8b",
     dangerBackground: "#e65057",
     dangerBorder: "#ff858a",
     dangerText: "#ffffff",
+    link: "#8ed6e4",
     muted: "#92c1d3",
     pillBackground: "#176d7d",
     pillBorder: "#3c8ea0",
@@ -118,7 +194,13 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     sidebarHover: "#087e8b",
     surface: "#0a5c70",
     surfaceStrong: "#176d7d",
-    text: "#f3fbff"
+    text: "#f3fbff",
+    toastErrorBackground: "#0a5c70",
+    toastErrorBorder: "#ff858a",
+    toastErrorText: "#f3fbff",
+    toastSuccessBackground: "#0a5c70",
+    toastSuccessBorder: "#64abbb",
+    toastSuccessText: "#f3fbff"
   }
 };
 
@@ -203,18 +285,18 @@ export function dashboardThemePaletteCssVariables(theme: DashboardThemePalette) 
     "--background": theme.background,
     "--border": theme.border,
     "--button-text": theme.buttonText,
-    "--chart-color-1": theme.accent,
-    "--chart-color-2": theme.sidebarHover,
-    "--chart-color-3": theme.surfaceStrong,
-    "--chart-color-4": theme.sidebar,
-    "--chart-color-5": theme.dangerBackground,
-    "--chart-color-6": `color-mix(in srgb, ${theme.surfaceStrong}, ${theme.surface} 35%)`,
-    "--chart-color-7": `color-mix(in srgb, ${theme.accent}, ${theme.surface} 45%)`,
-    "--chart-map-bucket-1": `color-mix(in srgb, ${theme.accent}, ${theme.surface} 78%)`,
-    "--chart-map-bucket-2": `color-mix(in srgb, ${theme.accent}, ${theme.surface} 64%)`,
-    "--chart-map-bucket-3": `color-mix(in srgb, ${theme.accent}, ${theme.surface} 48%)`,
-    "--chart-map-bucket-4": `color-mix(in srgb, ${theme.accent}, ${theme.surface} 30%)`,
-    "--chart-map-bucket-5": theme.sidebar,
+    "--chart-color-1": theme.chartPrimary,
+    "--chart-color-2": theme.chartSecondary,
+    "--chart-color-3": theme.chartAccent,
+    "--chart-color-4": theme.chartMapHigh,
+    "--chart-color-5": theme.chartDanger,
+    "--chart-color-6": `color-mix(in srgb, ${theme.chartAccent}, ${theme.surface} 35%)`,
+    "--chart-color-7": `color-mix(in srgb, ${theme.chartPrimary}, ${theme.surface} 45%)`,
+    "--chart-map-bucket-1": theme.chartMapLow,
+    "--chart-map-bucket-2": `color-mix(in srgb, ${theme.chartMapLow}, ${theme.chartMapHigh} 25%)`,
+    "--chart-map-bucket-3": `color-mix(in srgb, ${theme.chartMapLow}, ${theme.chartMapHigh} 50%)`,
+    "--chart-map-bucket-4": `color-mix(in srgb, ${theme.chartMapLow}, ${theme.chartMapHigh} 75%)`,
+    "--chart-map-bucket-5": theme.chartMapHigh,
     "--chart-map-empty": `color-mix(in srgb, ${theme.surface}, ${theme.surfaceStrong} 42%)`,
     "--chart-tooltip-background": theme.surface,
     "--chart-tooltip-border": theme.border,
@@ -222,6 +304,7 @@ export function dashboardThemePaletteCssVariables(theme: DashboardThemePalette) 
     "--danger-background": theme.dangerBackground,
     "--danger-border": theme.dangerBorder,
     "--danger-text": theme.dangerText,
+    "--link-color": theme.link,
     "--color-deep-teal": theme.sidebarHover,
     "--color-ice": theme.surfaceStrong,
     "--color-navy": theme.sidebar,
@@ -241,7 +324,13 @@ export function dashboardThemePaletteCssVariables(theme: DashboardThemePalette) 
     "--surface": theme.surface,
     "--surface-strong": theme.surfaceStrong,
     "--teal": theme.accent,
-    "--text": theme.text
+    "--text": theme.text,
+    "--toast-error-background": theme.toastErrorBackground,
+    "--toast-error-border": theme.toastErrorBorder,
+    "--toast-error-text": theme.toastErrorText,
+    "--toast-success-background": theme.toastSuccessBackground,
+    "--toast-success-border": theme.toastSuccessBorder,
+    "--toast-success-text": theme.toastSuccessText
   };
 }
 
@@ -255,9 +344,16 @@ export function dashboardThemeCssVariables(theme: DashboardTheme) {
       [`--dashboard-${mode.key}-background`, theme[mode.key].background],
       [`--dashboard-${mode.key}-border`, theme[mode.key].border],
       [`--dashboard-${mode.key}-button-text`, theme[mode.key].buttonText],
+      [`--dashboard-${mode.key}-chart-accent`, theme[mode.key].chartAccent],
+      [`--dashboard-${mode.key}-chart-danger`, theme[mode.key].chartDanger],
+      [`--dashboard-${mode.key}-chart-map-high`, theme[mode.key].chartMapHigh],
+      [`--dashboard-${mode.key}-chart-map-low`, theme[mode.key].chartMapLow],
+      [`--dashboard-${mode.key}-chart-primary`, theme[mode.key].chartPrimary],
+      [`--dashboard-${mode.key}-chart-secondary`, theme[mode.key].chartSecondary],
       [`--dashboard-${mode.key}-danger-background`, theme[mode.key].dangerBackground],
       [`--dashboard-${mode.key}-danger-border`, theme[mode.key].dangerBorder],
       [`--dashboard-${mode.key}-danger-text`, theme[mode.key].dangerText],
+      [`--dashboard-${mode.key}-link`, theme[mode.key].link],
       [`--dashboard-${mode.key}-muted`, theme[mode.key].muted],
       [`--dashboard-${mode.key}-pill-background`, theme[mode.key].pillBackground],
       [`--dashboard-${mode.key}-pill-border`, theme[mode.key].pillBorder],
@@ -271,7 +367,13 @@ export function dashboardThemeCssVariables(theme: DashboardTheme) {
       [`--dashboard-${mode.key}-sidebar-hover`, theme[mode.key].sidebarHover],
       [`--dashboard-${mode.key}-surface`, theme[mode.key].surface],
       [`--dashboard-${mode.key}-surface-strong`, theme[mode.key].surfaceStrong],
-      [`--dashboard-${mode.key}-text`, theme[mode.key].text]
+      [`--dashboard-${mode.key}-text`, theme[mode.key].text],
+      [`--dashboard-${mode.key}-toast-error-background`, theme[mode.key].toastErrorBackground],
+      [`--dashboard-${mode.key}-toast-error-border`, theme[mode.key].toastErrorBorder],
+      [`--dashboard-${mode.key}-toast-error-text`, theme[mode.key].toastErrorText],
+      [`--dashboard-${mode.key}-toast-success-background`, theme[mode.key].toastSuccessBackground],
+      [`--dashboard-${mode.key}-toast-success-border`, theme[mode.key].toastSuccessBorder],
+      [`--dashboard-${mode.key}-toast-success-text`, theme[mode.key].toastSuccessText]
     ])
   );
 }

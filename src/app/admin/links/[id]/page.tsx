@@ -169,7 +169,6 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
             children: (
               <HistoricalClicksPanel
                 allTimeRate={allTimeRate}
-                createdAtLabel={formatDateTime(link.createdAt, displayTimeZone)}
                 dailyHistory={stats.dailyHistory}
                 periodCounts={stats.periodCounts}
               />
@@ -289,14 +288,15 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
         ) : null}
       </section>
 
-      {link.archivedAt ? (
-        <section className="surface surface-panel">
-          <h2>Archive/Delete</h2>
-          <p className="muted">
-            This link is archived, hidden from active lists, and no longer redirects. Restore it to make it active again,
-            or permanently delete it and its click history.
-          </p>
-          <div className="row-actions link-lifecycle-actions">
+      <section className="surface surface-panel">
+        <h2>{link.archivedAt ? "Restore/Delete" : "Archive/Delete"}</h2>
+        <p className="muted">
+          {link.archivedAt
+            ? "This link is archived, hidden from active lists, and no longer redirects. Restore it to make it active again, or permanently delete it and its click history."
+            : "Archive stops this link from redirecting and hides it from active lists. Admins can permanently delete the link and its click history."}
+        </p>
+        <div className="row-actions link-lifecycle-actions">
+          {link.archivedAt ? (
             <form action={restoreLinkAction}>
               <input type="hidden" name="csrf" value={csrf} />
               <input type="hidden" name="id" value={link.id} />
@@ -305,27 +305,29 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
                 Restore
               </ConfirmButton>
             </form>
-            {canDeleteLinks ? (
-              <DeleteLinkModal csrf={csrf} id={link.id} code={link.code} shortUrl={url} returnTo="/admin/links?view=archived" />
-            ) : (
-              <span className="muted small">Permanent delete is admin-only.</span>
-            )}
-          </div>
-        </section>
-      ) : (
-        <section className="surface surface-panel">
-          <h2>Archive</h2>
-          <p className="muted">Archived links stop redirecting and are hidden from normal dashboard lists.</p>
-          <form action={archiveLinkAction}>
-            <input type="hidden" name="csrf" value={csrf} />
-            <input type="hidden" name="id" value={link.id} />
-            <ConfirmButton className="danger" type="submit" message={`Archive this ${siteName} link?`}>
-              <Archive size={16} aria-hidden />
-              Archive
-            </ConfirmButton>
-          </form>
-        </section>
-      )}
+          ) : (
+            <form action={archiveLinkAction}>
+              <input type="hidden" name="csrf" value={csrf} />
+              <input type="hidden" name="id" value={link.id} />
+              <ConfirmButton className="danger" type="submit" message={`Archive this ${siteName} link?`}>
+                <Archive size={16} aria-hidden />
+                Archive
+              </ConfirmButton>
+            </form>
+          )}
+          {canDeleteLinks ? (
+            <DeleteLinkModal
+              csrf={csrf}
+              id={link.id}
+              code={link.code}
+              shortUrl={url}
+              returnTo={link.archivedAt ? "/admin/links?view=archived" : "/admin/links"}
+            />
+          ) : (
+            <span className="muted small">Permanent delete is admin-only.</span>
+          )}
+        </div>
+      </section>
     </main>
   );
 }

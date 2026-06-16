@@ -2,6 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { cookies } from "next/headers";
 import { BarChart3, Link2, LogOut, Settings, ShieldCheck, Users, Wrench } from "lucide-react";
+import { AdminToastHost } from "@/components/AdminToastHost";
+import { DashboardThemeDrawer } from "@/components/DashboardThemeDrawer";
 import { NewShortUrlModal } from "@/components/NewShortUrlModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { APP_VERSION } from "@/lib/app-version";
@@ -42,7 +44,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
   return (
     <div className="admin-shell" style={adminThemeStyle}>
       <aside className="admin-sidebar">
-        <Link className="brand" href="/admin" style={{ color: "#fff", marginBottom: "1rem" }}>
+        <Link className="brand" href="/admin" style={{ marginBottom: "1rem" }}>
           <span className={hasFaviconBrandMark ? "brand-mark brand-mark-favicon" : "brand-mark"} style={{ background: hasFaviconBrandMark ? undefined : "var(--teal)" }}>
             {hasFaviconBrandMark ? <Image src="/favicon.svg" alt="" aria-hidden="true" width={34} height={34} unoptimized /> : brandInitial}
           </span>
@@ -78,11 +80,13 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
       <div className="admin-main">
         <header className="admin-topbar">
           <div className="nav-actions">
-            <NewShortUrlModal csrf={csrf} siteName={siteName} />
+            <NewShortUrlModal csrf={csrf} />
           </div>
         </header>
+        <AdminToastHost />
         {children}
       </div>
+      {isAdminUser(user) ? <DashboardThemeDrawer csrf={csrf} theme={settings.dashboardTheme} /> : null}
     </div>
   );
 }

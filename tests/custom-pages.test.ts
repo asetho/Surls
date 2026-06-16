@@ -81,6 +81,14 @@ describe("custom page uploads", () => {
     );
   });
 
+  it("preserves safe line breaks in custom login taglines", () => {
+    const html = `<p>${LOGIN_TAGLINE_PLACEHOLDER}</p>${LOGIN_FORM_PLACEHOLDER}`;
+
+    expect(renderLoginTemplateHtml(html, { tagline: "Sign in as\nuser@example.test<script>", title: "" })).toBe(
+      `<p>Sign in as<br>user@example.test&lt;script&gt;</p><div data-surls-login-form-slot></div>`
+    );
+  });
+
   it("rejects custom login templates without exactly one form placeholder", async () => {
     expect(() => validateLoginPageTemplate("<main>No form here</main>")).toThrow(LOGIN_FORM_PLACEHOLDER);
     expect(() =>

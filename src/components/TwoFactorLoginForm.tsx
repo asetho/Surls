@@ -128,7 +128,6 @@ export function TwoFactorLoginForm({
   const [totpCode, setTotpCode] = useState("");
   const isBackup = mode === "backup";
   const title = "Enter your 2FA code";
-  const tagline = `Finish signing in to ${siteName} as ${email}.`;
 
   return (
     <form
@@ -140,7 +139,10 @@ export function TwoFactorLoginForm({
       {!embedded ? (
         <div data-surls-auth-intro>
           <h1>{title}</h1>
-          <p className="muted">{tagline}</p>
+          <p className="muted">
+            Finish signing in to {siteName} as
+            <span className="auth-account-line">{email}.</span>
+          </p>
         </div>
       ) : null}
       {error ? <div className="alert">{error}</div> : null}

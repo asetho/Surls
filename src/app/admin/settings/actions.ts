@@ -2,6 +2,8 @@
 
 import { AuditAction } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { adminToastPath, adminToastPathFromFormData } from "@/lib/admin-toast";
 import { auditLog } from "@/lib/audit";
 import { requireSiteAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
@@ -11,14 +13,31 @@ import { requireDisplayTimeZone } from "@/lib/dates";
 import { faviconsWithManifestNames } from "@/lib/favicons";
 import { getSettings, normalizeSiteName, setSetting } from "@/lib/settings";
 
+function actionErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
+function redirectWithToast(formData: FormData, type: "error" | "success", message: string, fallbackPath: string): never {
+  redirect(adminToastPathFromFormData(formData, type, message, fallbackPath));
+}
+
 export async function updateSettingsAction(formData: FormData) {
-  validateCsrf(formData);
+  try {
+    validateCsrf(formData);
+  } catch {
+    redirectWithToast(formData, "error", "The form expired. Please try again.", "/admin/settings");
+  }
   const admin = await requireSiteAdmin();
-  if (!admin) throw new Error("Only admins can update settings.");
+  if (!admin) redirect(adminToastPath("/admin", "error", "Sign in again to continue."));
   const trackAdminClicks = formData.get("trackAdminClicks") === "on";
   const preserveRedirectQuery = formData.get("preserveRedirectQuery") === "on";
   const siteName = normalizeSiteName(formData.get("siteName"));
-  const displayTimeZone = requireDisplayTimeZone(formData.get("displayTimeZone"));
+  let displayTimeZone: string;
+  try {
+    displayTimeZone = requireDisplayTimeZone(formData.get("displayTimeZone"));
+  } catch (error) {
+    redirectWithToast(formData, "error", actionErrorMessage(error, "Choose a valid display timezone."), "/admin/settings");
+  }
   await setSetting("trackAdminClicks", trackAdminClicks);
   await setSetting("preserveRedirectQuery", preserveRedirectQuery);
   await setSetting("siteName", siteName);
@@ -39,14 +58,29 @@ export async function updateSettingsAction(formData: FormData) {
   revalidatePath("/admin/settings");
   revalidatePath("/admin/settings/theme");
   revalidatePath("/admin/settings/favicons/editor");
+  redirectWithToast(formData, "success", "Settings saved.", "/admin/settings");
 }
 
 export async function updateDashboardThemeAction(formData: FormData) {
-  validateCsrf(formData);
+  try {
+    validateCsrf(formData);
+  } catch {
+    redirectWithToast(formData, "error", "The form expired. Please try again.", "/admin/settings/theme");
+  }
   const admin = await requireSiteAdmin();
-  if (!admin) throw new Error("Only admins can update dashboard theme.");
+  if (!admin) redirect(adminToastPath("/admin", "error", "Sign in again to continue."));
 
-  const dashboardTheme = dashboardThemeFromFormData(formData);
+  let dashboardTheme: ReturnType<typeof dashboardThemeFromFormData>;
+  try {
+    dashboardTheme = dashboardThemeFromFormData(formData);
+  } catch (error) {
+    redirectWithToast(
+      formData,
+      "error",
+      actionErrorMessage(error, "Check the dashboard theme colors and try again."),
+      "/admin/settings/theme"
+    );
+  }
   await setSetting("dashboardTheme", dashboardTheme);
   await auditLog({
     userId: admin.id,
@@ -58,12 +92,17 @@ export async function updateDashboardThemeAction(formData: FormData) {
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/settings");
   revalidatePath("/admin/settings/theme");
+  redirectWithToast(formData, "success", "Dashboard theme saved.", "/admin/settings/theme");
 }
 
 export async function resetDashboardThemeAction(formData: FormData) {
-  validateCsrf(formData);
+  try {
+    validateCsrf(formData);
+  } catch {
+    redirectWithToast(formData, "error", "The form expired. Please try again.", "/admin/settings/theme");
+  }
   const admin = await requireSiteAdmin();
-  if (!admin) throw new Error("Only admins can update dashboard theme.");
+  if (!admin) redirect(adminToastPath("/admin", "error", "Sign in again to continue."));
 
   await setSetting("dashboardTheme", DEFAULT_DASHBOARD_THEME);
   await auditLog({
@@ -76,6 +115,7 @@ export async function resetDashboardThemeAction(formData: FormData) {
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/settings");
   revalidatePath("/admin/settings/theme");
+  redirectWithToast(formData, "success", "Dashboard theme reset to the built-in palette.", "/admin/settings/theme");
 }
 
 function revalidateCustomPagePaths() {
@@ -143,9 +183,13 @@ export async function resetCustomPageAction(formData: FormData) {
 }
 
 export async function resetFaviconsAction(formData: FormData) {
-  validateCsrf(formData);
+  try {
+    validateCsrf(formData);
+  } catch {
+    redirectWithToast(formData, "error", "The form expired. Please try again.", "/admin/settings/favicons/editor");
+  }
   const admin = await requireSiteAdmin();
-  if (!admin) throw new Error("Only admins can update favicons.");
+  if (!admin) redirect(adminToastPath("/admin", "error", "Sign in again to continue."));
 
   await setSetting("favicons", null);
   await auditLog({
@@ -156,17 +200,39 @@ export async function resetFaviconsAction(formData: FormData) {
     details: { favicons: true, removed: true }
   });
   revalidateFaviconPaths();
+  redirectWithToast(formData, "success", "Using webroot/default favicons.", "/admin/settings/favicons/editor");
 }
 
 export async function updateFaviconManifestAction(formData: FormData) {
-  validateCsrf(formData);
+  try {
+    validateCsrf(formData);
+  } catch {
+    redirectWithToast(formData, "error", "The form expired. Please try again.", "/admin/settings/favicons/editor");
+  }
   const admin = await requireSiteAdmin();
-  if (!admin) throw new Error("Only admins can update favicons.");
+  if (!admin) redirect(adminToastPath("/admin", "error", "Sign in again to continue."));
 
   const settings = await getSettings();
-  if (!settings.favicons) throw new Error("Upload a favicon package before saving web app names.");
+  if (!settings.favicons) {
+    redirectWithToast(
+      formData,
+      "error",
+      "Upload favicon files before saving web app names.",
+      "/admin/settings/favicons/editor"
+    );
+  }
 
-  const favicons = faviconsWithManifestNames(settings.favicons, formData, settings.siteName);
+  let favicons: ReturnType<typeof faviconsWithManifestNames>;
+  try {
+    favicons = faviconsWithManifestNames(settings.favicons, formData, settings.siteName);
+  } catch (error) {
+    redirectWithToast(
+      formData,
+      "error",
+      actionErrorMessage(error, "Check the web app names and try again."),
+      "/admin/settings/favicons/editor"
+    );
+  }
   await setSetting("favicons", favicons);
   await auditLog({
     userId: admin.id,
@@ -180,4 +246,5 @@ export async function updateFaviconManifestAction(formData: FormData) {
     }
   });
   revalidateFaviconPaths();
+  redirectWithToast(formData, "success", "Web app names saved.", "/admin/settings/favicons/editor");
 }

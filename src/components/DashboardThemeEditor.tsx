@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties } from "react";
-import { RotateCcw } from "lucide-react";
+import { useMemo, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { AlertTriangle, CheckCircle2, RotateCcw, X } from "lucide-react";
 import {
+  DASHBOARD_THEME_FIELD_SECTIONS,
   DASHBOARD_THEME_FIELDS,
   DASHBOARD_THEME_MODES,
   dashboardThemeFieldName,
@@ -14,6 +15,11 @@ import {
 } from "@/lib/dashboard-theme";
 
 const HEX_COLOR_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
+function currentDocumentThemeMode(): DashboardThemeMode {
+  if (typeof document === "undefined") return "light";
+  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+}
 
 function expandHexColor(value: string) {
   const trimmed = value.trim().toLowerCase();
@@ -97,17 +103,145 @@ function DashboardThemeColorField({
   );
 }
 
-export function DashboardThemeEditor({ theme }: { theme: DashboardTheme }) {
-  const [draftTheme, setDraftTheme] = useState<DashboardTheme>(theme);
+function ThemePreviewCharts() {
+  return (
+    <div className="dashboard-theme-preview-chart-grid" aria-hidden="true">
+      <div className="dashboard-theme-preview-chart-card">
+        <span>Line</span>
+        <div className="dashboard-theme-preview-chart dashboard-theme-preview-line-chart">
+          <svg viewBox="0 0 220 72">
+            <path className="dashboard-theme-preview-chart-area" d="M8 58 C42 58 42 24 72 37 C98 48 98 13 126 28 C154 44 155 18 184 22 C202 25 205 44 212 36 L212 64 L8 64 Z" />
+            <path className="dashboard-theme-preview-chart-line" d="M8 58 C42 58 42 24 72 37 C98 48 98 13 126 28 C154 44 155 18 184 22 C202 25 205 44 212 36" />
+            <circle cx="126" cy="28" r="4" />
+          </svg>
+        </div>
+      </div>
+      <div className="dashboard-theme-preview-chart-card">
+        <span>Pie</span>
+        <div className="dashboard-theme-preview-pie-chart" />
+      </div>
+      <div className="dashboard-theme-preview-chart-card">
+        <span>World map</span>
+        <svg className="dashboard-theme-preview-map" viewBox="0 0 220 104">
+          <rect x="0" y="0" width="220" height="104" rx="8" />
+          <path className="bucket-2" d="M28 33 51 25 73 34 69 51 47 57 28 48Z" />
+          <path className="bucket-4" d="M82 42 101 35 119 48 111 69 91 69Z" />
+          <path className="bucket-1" d="M121 24 152 19 170 31 159 47 132 44Z" />
+          <path className="bucket-5" d="M151 51 183 47 196 65 176 82 151 72Z" />
+          <path className="empty" d="M49 64 67 64 72 82 55 88 43 77Z" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function ThemeModePreview({ label, styles }: { label: string; styles: CSSProperties }) {
+  return (
+    <div className="dashboard-theme-preview" style={styles} aria-hidden="true">
+      <div className="dashboard-theme-preview-sidebar">
+        <span>Navigation</span>
+        <strong>Dashboard</strong>
+        <span>Links</span>
+      </div>
+      <div className="dashboard-theme-preview-main">
+        <div className="dashboard-theme-preview-topbar">Admin toolbar</div>
+        <div className="dashboard-theme-preview-panel">
+          <strong>{label} preview</strong>
+          <span>Common dashboard states update live as you edit the colors.</span>
+          <a className="dashboard-theme-preview-link" href="#" tabIndex={-1}>
+            Destination link
+          </a>
+          <ThemePreviewCharts />
+          <div className="dashboard-theme-preview-pills">
+            <span className="dashboard-theme-preview-pill">Default pill</span>
+            <span className="dashboard-theme-preview-pill dashboard-theme-preview-pill-active">Active pill</span>
+            <span className="badge warning">Disabled</span>
+            <span className="dashboard-theme-preview-short-url-pill">qr-demo</span>
+          </div>
+          <div className="dashboard-theme-toast-preview-grid dashboard-theme-preview-toast-row">
+            <div className="dashboard-theme-toast-preview dashboard-theme-toast-preview-success">
+              <CheckCircle2 size={16} aria-hidden />
+              <span>Saved.</span>
+              <X size={14} aria-hidden />
+            </div>
+            <div className="dashboard-theme-toast-preview dashboard-theme-toast-preview-error">
+              <AlertTriangle size={16} aria-hidden />
+              <span>Error.</span>
+              <X size={14} aria-hidden />
+            </div>
+          </div>
+          <div className="dashboard-theme-preview-actions">
+            <button type="button" tabIndex={-1}>Primary action</button>
+            <button className="secondary" type="button" tabIndex={-1}>Secondary</button>
+            <button className="danger" type="button" tabIndex={-1}>Archive</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function DashboardThemeEditor({
+  draftTheme: controlledDraftTheme,
+  initialMode,
+  onDraftThemeChange,
+  onTestToast,
+  showModePreviews = true,
+  theme,
+  variant = "panel"
+}: {
+  draftTheme?: DashboardTheme;
+  initialMode?: DashboardThemeMode;
+  onDraftThemeChange?: (theme: DashboardTheme) => void;
+  onTestToast?: (type: "error" | "success") => void;
+  showModePreviews?: boolean;
+  theme: DashboardTheme;
+  variant?: "drawer" | "panel";
+}) {
+  const [uncontrolledDraftTheme, setUncontrolledDraftTheme] = useState<DashboardTheme>(theme);
+  const [activeMode, setActiveMode] = useState<DashboardThemeMode>(() => initialMode ?? currentDocumentThemeMode());
+  const draftTheme = controlledDraftTheme ?? uncontrolledDraftTheme;
+  const isControlled = controlledDraftTheme !== undefined;
+
+  function setNextDraftTheme(nextTheme: DashboardTheme) {
+    if (isControlled) {
+      onDraftThemeChange?.(nextTheme);
+      return;
+    }
+
+    setUncontrolledDraftTheme(nextTheme);
+    onDraftThemeChange?.(nextTheme);
+  }
 
   function updateColor(mode: DashboardThemeMode, key: DashboardThemeKey, value: string) {
-    setDraftTheme((current) => ({
-      ...current,
+    setNextDraftTheme({
+      ...draftTheme,
       [mode]: {
-        ...current[mode],
+        ...draftTheme[mode],
         [key]: value
       }
-    }));
+    });
+  }
+
+  function activateMode(mode: DashboardThemeMode) {
+    setActiveMode(mode);
+  }
+
+  function handleModeTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight" && event.key !== "Home" && event.key !== "End") {
+      return;
+    }
+
+    event.preventDefault();
+    const nextIndex =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? DASHBOARD_THEME_MODES.length - 1
+          : event.key === "ArrowRight"
+            ? (index + 1) % DASHBOARD_THEME_MODES.length
+            : (index - 1 + DASHBOARD_THEME_MODES.length) % DASHBOARD_THEME_MODES.length;
+    activateMode(DASHBOARD_THEME_MODES[nextIndex].key);
   }
 
   const previewStyles = useMemo(
@@ -122,63 +256,138 @@ export function DashboardThemeEditor({ theme }: { theme: DashboardTheme }) {
   );
 
   return (
-    <div className="dashboard-theme-mode-grid">
-      {DASHBOARD_THEME_MODES.map((mode) => (
-        <section className="dashboard-theme-mode-card" key={mode.key}>
-          <h3>{mode.label}</h3>
-          <div className="dashboard-theme-grid">
-            {DASHBOARD_THEME_FIELDS.map((field) => (
-              <label className="dashboard-theme-field" key={field.key}>
-                <span>
-                  {field.label}
-                  <small>{field.description}</small>
-                </span>
-                <DashboardThemeColorField
-                  fieldKey={field.key}
-                  label={`${mode.label} ${field.label}`}
-                  mode={mode.key}
-                  name={dashboardThemeFieldName(mode.key, field.key)}
-                  savedValue={theme[mode.key][field.key]}
-                  value={draftTheme[mode.key][field.key]}
-                  onChange={updateColor}
-                />
-              </label>
-            ))}
-          </div>
+    <div className={`dashboard-theme-mode-grid dashboard-theme-mode-grid-${variant}`}>
+      <div className="dashboard-theme-mode-tabs" role="tablist" aria-label="Theme mode">
+        {DASHBOARD_THEME_MODES.map((mode, index) => {
+          const selected = activeMode === mode.key;
+          return (
+            <button
+              id={`dashboard-theme-${mode.key}-tab`}
+              aria-controls={`dashboard-theme-${mode.key}-panel`}
+              aria-selected={selected}
+              className="dashboard-theme-mode-tab"
+              role="tab"
+              tabIndex={selected ? 0 : -1}
+              type="button"
+              key={mode.key}
+              onClick={() => activateMode(mode.key)}
+              onKeyDown={(event) => handleModeTabKeyDown(event, index)}
+            >
+              {mode.label}
+            </button>
+          );
+        })}
+      </div>
 
-          <div className="dashboard-theme-preview" style={previewStyles[mode.key]} aria-hidden="true">
-            <div className="dashboard-theme-preview-sidebar">
-              <span>Navigation</span>
-              <strong>Dashboard</strong>
-              <span>Links</span>
-            </div>
-            <div className="dashboard-theme-preview-main">
-              <div className="dashboard-theme-preview-topbar">Admin toolbar</div>
-              <div className="dashboard-theme-preview-panel">
-                <strong>{mode.label} preview</strong>
-                <span>Short URL metrics and dashboard controls use these colors.</span>
-                <div className="dashboard-theme-preview-chart" aria-hidden="true">
-                  <svg viewBox="0 0 220 72">
-                    <path className="dashboard-theme-preview-chart-area" d="M8 58 C42 58 42 24 72 37 C98 48 98 13 126 28 C154 44 155 18 184 22 C202 25 205 44 212 36 L212 64 L8 64 Z" />
-                    <path className="dashboard-theme-preview-chart-line" d="M8 58 C42 58 42 24 72 37 C98 48 98 13 126 28 C154 44 155 18 184 22 C202 25 205 44 212 36" />
-                    <circle cx="126" cy="28" r="4" />
-                  </svg>
+      {DASHBOARD_THEME_MODES.map((mode) => {
+        const selected = activeMode === mode.key;
+        return (
+        <section
+          id={`dashboard-theme-${mode.key}-panel`}
+          aria-labelledby={`dashboard-theme-${mode.key}-tab`}
+          className="dashboard-theme-mode-card"
+          hidden={!selected}
+          role="tabpanel"
+          tabIndex={0}
+          key={mode.key}
+        >
+          <h3>{mode.label}</h3>
+          {DASHBOARD_THEME_FIELD_SECTIONS.map((section) => (
+            variant === "drawer" ? (
+              <details className="dashboard-theme-field-section dashboard-theme-field-section-collapsible" key={section.key}>
+                <summary>
+                  <h4>{section.label}</h4>
+                </summary>
+                <div className="dashboard-theme-grid">
+                  {section.fields.map((field) => (
+                    <label className="dashboard-theme-field" key={field.key}>
+                      <span>
+                        {field.label}
+                        <small>{field.description}</small>
+                      </span>
+                      <DashboardThemeColorField
+                        fieldKey={field.key}
+                        label={`${mode.label} ${field.label}`}
+                        mode={mode.key}
+                        name={dashboardThemeFieldName(mode.key, field.key)}
+                        savedValue={theme[mode.key][field.key]}
+                        value={draftTheme[mode.key][field.key]}
+                        onChange={updateColor}
+                      />
+                    </label>
+                  ))}
                 </div>
-                <div className="dashboard-theme-preview-pills">
-                  <span className="dashboard-theme-preview-pill">Default pill</span>
-                  <span className="dashboard-theme-preview-pill dashboard-theme-preview-pill-active">Active pill</span>
-                  <span className="badge warning">Disabled</span>
-                  <span className="dashboard-theme-preview-short-url-pill">qr-demo</span>
+                {section.key === "toasts" ? (
+                  <>
+                    <div className="dashboard-theme-toast-preview-grid" style={previewStyles[mode.key]} aria-hidden="true">
+                      <div className="dashboard-theme-toast-preview dashboard-theme-toast-preview-success">
+                        <CheckCircle2 size={18} aria-hidden />
+                        <span>Dashboard theme saved.</span>
+                        <X size={15} aria-hidden />
+                      </div>
+                      <div className="dashboard-theme-toast-preview dashboard-theme-toast-preview-error">
+                        <AlertTriangle size={18} aria-hidden />
+                        <span>Could not save theme.</span>
+                        <X size={15} aria-hidden />
+                      </div>
+                    </div>
+                    {onTestToast ? (
+                      <div className="dashboard-theme-toast-test-actions">
+                        <button className="secondary" type="button" onClick={() => onTestToast("success")}>
+                          Test success
+                        </button>
+                        <button className="secondary" type="button" onClick={() => onTestToast("error")}>
+                          Test error
+                        </button>
+                      </div>
+                    ) : null}
+                  </>
+                ) : null}
+              </details>
+            ) : (
+              <section className="dashboard-theme-field-section" key={section.key}>
+                <h4>{section.label}</h4>
+                <div className="dashboard-theme-grid">
+                  {section.fields.map((field) => (
+                    <label className="dashboard-theme-field" key={field.key}>
+                      <span>
+                        {field.label}
+                        <small>{field.description}</small>
+                      </span>
+                      <DashboardThemeColorField
+                        fieldKey={field.key}
+                        label={`${mode.label} ${field.label}`}
+                        mode={mode.key}
+                        name={dashboardThemeFieldName(mode.key, field.key)}
+                        savedValue={theme[mode.key][field.key]}
+                        value={draftTheme[mode.key][field.key]}
+                        onChange={updateColor}
+                      />
+                    </label>
+                  ))}
                 </div>
-                <div className="dashboard-theme-preview-actions">
-                  <button type="button" tabIndex={-1}>Primary action</button>
-                  <button className="danger" type="button" tabIndex={-1}>Archive</button>
-                </div>
-              </div>
-            </div>
-          </div>
+                {section.key === "toasts" ? (
+                  <div className="dashboard-theme-toast-preview-grid" style={previewStyles[mode.key]} aria-hidden="true">
+                    <div className="dashboard-theme-toast-preview dashboard-theme-toast-preview-success">
+                      <CheckCircle2 size={18} aria-hidden />
+                      <span>Dashboard theme saved.</span>
+                      <X size={15} aria-hidden />
+                    </div>
+                    <div className="dashboard-theme-toast-preview dashboard-theme-toast-preview-error">
+                      <AlertTriangle size={18} aria-hidden />
+                      <span>Could not save theme.</span>
+                      <X size={15} aria-hidden />
+                    </div>
+                  </div>
+                ) : null}
+              </section>
+            )
+          ))}
+
+          {showModePreviews ? <ThemeModePreview label={mode.label} styles={previewStyles[mode.key]} /> : null}
         </section>
-      ))}
+        );
+      })}
     </div>
   );
 }
