@@ -1,10 +1,21 @@
 import type { NextRequest } from "next/server";
+import net from "node:net";
 import { hashPrivacyValue } from "./crypto";
 import { env } from "./env";
 
+function normalizeForwardedIp(value: string | null | undefined) {
+  const candidate = value?.split(",")[0]?.trim();
+  if (!candidate) return null;
+
+  const withoutBrackets = candidate.startsWith("[") && candidate.endsWith("]") ? candidate.slice(1, -1) : candidate;
+  if (net.isIP(withoutBrackets)) return withoutBrackets;
+
+  return null;
+}
+
 export function clientIpFromHeaders(headers: Headers, trustProxy: boolean) {
   if (!trustProxy) return "unknown";
-  return headers.get("x-forwarded-for")?.split(",")[0]?.trim() || headers.get("x-real-ip")?.trim() || "unknown";
+  return normalizeForwardedIp(headers.get("x-forwarded-for")) ?? normalizeForwardedIp(headers.get("x-real-ip")) ?? "unknown";
 }
 
 export function requestIp(request: NextRequest) {

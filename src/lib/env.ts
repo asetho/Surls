@@ -34,6 +34,9 @@ const envSchema = z
     PUBLIC_WEBROOT_DIR: emptyToUndefined(z.string().optional()),
     DATABASE_URL: emptyToUndefined(z.string().optional()),
     SESSION_DAYS: emptyToUndefined(z.coerce.number().int().positive().default(14)),
+    API_TOKEN_DAYS: emptyToUndefined(z.coerce.number().int().positive().default(90)),
+    CLICK_EVENT_RETENTION_DAYS: emptyToUndefined(z.coerce.number().int().positive().default(365)),
+    AUDIT_LOG_RETENTION_DAYS: emptyToUndefined(z.coerce.number().int().positive().default(365)),
     ALLOW_PRIVATE_DESTINATIONS: emptyToUndefined(
       z
         .enum(["true", "false"])

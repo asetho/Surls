@@ -12,8 +12,20 @@ import { getSiteName } from "@/lib/settings";
 import { assertNoPrivateResolution, parseSafeHttpUrl } from "@/lib/url-safety";
 import { createShortLink } from "@/lib/links";
 import { validateAlias } from "@/lib/alias";
+import { env } from "@/lib/env";
 
 const MAX_IMPORT_ROWS = 200;
+const API_TOKEN_EXPIRATION_CHOICES = new Set([30, 90, 180, 365]);
+
+function tokenExpiresAt(value: FormDataEntryValue | null) {
+  const days = Number.parseInt(String(value ?? ""), 10);
+  const safeDays = API_TOKEN_EXPIRATION_CHOICES.has(days) ? days : env.API_TOKEN_DAYS;
+  return new Date(Date.now() + safeDays * 24 * 60 * 60 * 1000);
+}
+
+async function trustedSafeResolution() {
+  return true;
+}
 
 export async function createTokenAction(_state: { token?: string; error?: string } | null, formData: FormData) {
   validateCsrf(formData);
@@ -21,13 +33,14 @@ export async function createTokenAction(_state: { token?: string; error?: string
   if (!admin) return { error: "Unauthorized" };
   const fallbackName = `${await getSiteName()} API token`;
   const name = String(formData.get("name") ?? "").trim() || fallbackName;
-  const { row, token } = await createApiToken(admin.id, name);
+  const expiresAt = tokenExpiresAt(formData.get("expiresInDays"));
+  const { row, token } = await createApiToken(admin.id, name, { expiresAt });
   await auditLog({
     userId: admin.id,
     action: AuditAction.API_TOKEN_CREATED,
     entityType: "ApiToken",
     entityId: row.id,
-    details: { name, tokenPrefix: row.tokenPrefix }
+    details: { expiresAt: row.expiresAt?.toISOString(), name, scopes: row.scopes, tokenPrefix: row.tokenPrefix }
   });
   revalidatePath("/admin/tools");
   return { token };
@@ -104,9 +117,9 @@ export async function importCsvAction(_state: { imported?: number; errors?: stri
           return null;
         }
       }
-      return { destinationUrl: safe.url, code: cleanCode, title: title?.trim() || undefined };
+      return { destinationUrl: safe.url, code: cleanCode, rowNumber: index + 1, title: title?.trim() || undefined };
     })
-    .filter(Boolean) as Array<{ destinationUrl: string; code?: string; title?: string }>;
+    .filter(Boolean) as Array<{ destinationUrl: string; code?: string; rowNumber: number; title?: string }>;
 
   const aliases = valid.flatMap((row) => (row.code ? [row.code] : []));
   const duplicateAliases = aliases.filter((alias, index) => aliases.indexOf(alias) !== index);
@@ -120,6 +133,16 @@ export async function importCsvAction(_state: { imported?: number; errors?: stri
     });
     for (const link of existingAliases) {
       errors.push(`Alias "${link.code}" is already in use.`);
+    }
+  }
+
+  if (errors.length === 0 && valid.length) {
+    for (const row of valid) {
+      try {
+        await assertNoPrivateResolution(row.destinationUrl);
+      } catch (error) {
+        errors.push(`Row ${row.rowNumber}: ${error instanceof Error ? error.message : "Destination check failed."}`);
+      }
     }
   }
 
@@ -145,7 +168,8 @@ export async function importCsvAction(_state: { imported?: number; errors?: stri
             createdById: admin.id,
             fetchTitle: false
           },
-          tx
+          tx,
+          { assertSafeResolution: trustedSafeResolution }
         );
       }
     });

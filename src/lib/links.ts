@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { generateAlias, validateAlias } from "./alias";
 import { fetchPageTitle } from "./page-title";
-import { parseSafeHttpUrl } from "./url-safety";
+import { assertNoPrivateResolution, parseSafeHttpUrl } from "./url-safety";
 import { prisma } from "./prisma";
 
 export type CreateShortLinkInput = {
@@ -19,6 +19,10 @@ export type CreateShortLinkInput = {
 };
 
 type ShortLinkClient = Pick<Prisma.TransactionClient, "shortLink">;
+
+type CreateShortLinkOptions = {
+  assertSafeResolution?: typeof assertNoPrivateResolution;
+};
 
 export function shortUrl(baseUrl: string, code: string) {
   return `${baseUrl.replace(/\/$/, "")}/${code}`;
@@ -66,11 +70,16 @@ export function normalizeShortLinkTags(tags: string[] | undefined) {
     });
 }
 
-export async function createShortLink(input: CreateShortLinkInput, db: ShortLinkClient = prisma) {
+export async function createShortLink(
+  input: CreateShortLinkInput,
+  db: ShortLinkClient = prisma,
+  options: CreateShortLinkOptions = {}
+) {
   const safeUrl = parseSafeHttpUrl(input.destinationUrl);
   if (!safeUrl.ok) {
     throw new Error(safeUrl.error);
   }
+  await (options.assertSafeResolution ?? assertNoPrivateResolution)(safeUrl.url);
 
   const expiresAt = normalizeOptionalDate(input.expiresAt);
   const maxClicks = normalizeOptionalPositiveInt(input.maxClicks, "Max clicks");

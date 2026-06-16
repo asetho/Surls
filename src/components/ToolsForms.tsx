@@ -13,6 +13,16 @@ export function ApiTokenForm({ csrf, siteName }: { csrf: string; siteName: strin
           Token name
           <input name="name" defaultValue={`${siteName} API token`} />
         </label>
+        <label>
+          Expires after
+          <select name="expiresInDays" defaultValue="90">
+            <option value="30">30 days</option>
+            <option value="90">90 days</option>
+            <option value="180">180 days</option>
+            <option value="365">1 year</option>
+          </select>
+          <span className="muted small">Tokens are limited to creating links and can be revoked anytime.</span>
+        </label>
         <button type="submit" disabled={pending}>Generate API token</button>
       </form>
       {state?.token ? (

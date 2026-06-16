@@ -9,7 +9,7 @@ import { validateCsrf } from "@/lib/csrf";
 import { archiveShortLink, deleteShortLink, restoreShortLink } from "@/lib/link-lifecycle";
 import { normalizeOptionalDate, normalizeOptionalPositiveInt } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
-import { parseSafeHttpUrl } from "@/lib/url-safety";
+import { assertNoPrivateResolution, parseSafeHttpUrl } from "@/lib/url-safety";
 import { createLinkFromFormData } from "./create-link";
 
 function optionalDate(value: FormDataEntryValue | null) {
@@ -38,6 +38,7 @@ export async function updateLinkAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const safe = parseSafeHttpUrl(String(formData.get("destinationUrl") ?? ""));
   if (!safe.ok) throw new Error(safe.error);
+  await assertNoPrivateResolution(safe.url);
 
   const link = await prisma.shortLink.update({
     where: { id },

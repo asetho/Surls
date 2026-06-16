@@ -20,24 +20,49 @@ function isPrivateIPv4(ip: string) {
   );
 }
 
+function normalizeIpLiteral(ip: string) {
+  return ip.toLowerCase().replace(/^\[|\]$/g, "");
+}
+
+function ipv4FromMappedIPv6(ip: string) {
+  const normalized = normalizeIpLiteral(ip);
+  if (!normalized.startsWith("::ffff:")) return null;
+  const mapped = normalized.slice("::ffff:".length);
+  if (net.isIP(mapped) === 4) return mapped;
+
+  const parts = mapped.split(":");
+  if (
+    parts.length !== 2 ||
+    parts.some((part) => !/^[\da-f]{1,4}$/i.test(part))
+  ) {
+    return null;
+  }
+
+  const high = Number.parseInt(parts[0], 16);
+  const low = Number.parseInt(parts[1], 16);
+  return `${(high >> 8) & 255}.${high & 255}.${(low >> 8) & 255}.${low & 255}`;
+}
+
 function isPrivateIPv6(ip: string) {
-  const normalized = ip.toLowerCase();
+  const normalized = normalizeIpLiteral(ip);
+  const mappedIpv4 = ipv4FromMappedIPv6(normalized);
+  if (mappedIpv4) return isPrivateIPv4(mappedIpv4);
+
+  const firstHextet = Number.parseInt(normalized.split(":")[0] || "0", 16);
   return (
     normalized === "::1" ||
-    normalized.startsWith("fc") ||
-    normalized.startsWith("fd") ||
-    normalized.startsWith("fe80") ||
     normalized === "::" ||
-    normalized.startsWith("::ffff:127.") ||
-    normalized.startsWith("::ffff:10.") ||
-    normalized.startsWith("::ffff:192.168.")
+    (firstHextet >= 0xfc00 && firstHextet <= 0xfdff) ||
+    (firstHextet >= 0xfe80 && firstHextet <= 0xfebf) ||
+    (firstHextet >= 0xff00 && firstHextet <= 0xffff)
   );
 }
 
 export function isPrivateAddress(ip: string) {
-  const family = net.isIP(ip);
-  if (family === 4) return isPrivateIPv4(ip);
-  if (family === 6) return isPrivateIPv6(ip);
+  const normalized = normalizeIpLiteral(ip);
+  const family = net.isIP(normalized);
+  if (family === 4) return isPrivateIPv4(normalized);
+  if (family === 6) return isPrivateIPv6(normalized);
   return false;
 }
 
@@ -70,7 +95,7 @@ export function parseSafeHttpUrl(value: string, allowPrivate = env.ALLOW_PRIVATE
 export async function assertNoPrivateResolution(urlText: string, allowPrivate = env.ALLOW_PRIVATE_DESTINATIONS) {
   if (allowPrivate) return true;
   const parsed = new URL(urlText);
-  const records = await dns.lookup(parsed.hostname, { all: true, verbatim: true });
+  const records = await dns.lookup(normalizeIpLiteral(parsed.hostname), { all: true, verbatim: true });
   if (records.some((record) => isPrivateAddress(record.address))) {
     throw new Error("Destination resolves to a private or internal address.");
   }

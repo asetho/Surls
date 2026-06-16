@@ -1,5 +1,37 @@
 # Changelog
 
+## 1.10.0 - 2026-06-16
+
+### Added
+
+* Added scoped API tokens with configurable expiration.
+* Added configurable click-event and audit-log retention settings.
+* Added startup cleanup for stale raw IP addresses, click events, and audit logs.
+* Added hardening tests for token scope, retention cleanup, API imports, stats exports, and raw IP visibility.
+
+### Changed
+
+* API token creation now offers supported expiration choices and stores token scopes.
+* Click stats exports and link detail pages only expose raw IP addresses to admins.
+* Bulk imports now validate destination URLs with the same safety checks used by link creation.
+* Typechecking now removes generated Next type conflict files before running.
+
+### Fixed
+
+* Tightened trusted-proxy parsing so forwarded IP headers are only honored from configured trusted proxy addresses.
+* Hardened destination validation against private/internal IP destinations and DNS results.
+* Blocked unsafe destination URLs during link edits and API-created links.
+
+### Security
+
+* Existing API tokens are migrated to the `links:create` scope.
+* Raw IP addresses are purged after 30 days while longer click-event and audit-log retention remain configurable.
+* Non-admin users no longer receive raw IP addresses in link detail views or stats CSV exports.
+
+### Upgrade Notes
+
+Run database migrations before starting the new version so API token scope and expiration columns are added. Review `API_TOKEN_DAYS`, `CLICK_EVENT_RETENTION_DAYS`, and `AUDIT_LOG_RETENTION_DAYS` for your retention policy.
+
 ## 1.9.0 - 2026-06-15
 
 ### Added

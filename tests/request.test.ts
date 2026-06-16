@@ -11,4 +11,21 @@ describe("request IP handling", () => {
     expect(clientIpFromHeaders(headers, false)).toBe("unknown");
     expect(clientIpFromHeaders(headers, true)).toBe("203.0.113.7");
   });
+
+  it("rejects malformed forwarded IP header values", () => {
+    const headers = new Headers({
+      "x-forwarded-for": "203.0.113.7:malformed",
+      "x-real-ip": "not-an-ip"
+    });
+
+    expect(clientIpFromHeaders(headers, true)).toBe("unknown");
+  });
+
+  it("accepts valid bracketed IPv6 forwarded IP header values", () => {
+    const headers = new Headers({
+      "x-forwarded-for": "[2001:db8::1]"
+    });
+
+    expect(clientIpFromHeaders(headers, true)).toBe("2001:db8::1");
+  });
 });

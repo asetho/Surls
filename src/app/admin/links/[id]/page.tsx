@@ -58,6 +58,7 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
   ]);
   if (!link) notFound();
   const canDeleteLinks = isAdminUser(currentUser);
+  const canViewRawIpAddresses = isAdminUser(currentUser);
   const { displayTimeZone, siteName } = settings;
   const csrf = getCsrfToken();
   const baseUrl = appBaseUrl();
@@ -243,7 +244,9 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
                         </span>
                       </td>
                       <td>{click.country || "Unknown"}</td>
-                      <td className="ip-cell">{click.ipAddress || "Unknown"}</td>
+                      <td className="ip-cell">
+                        {canViewRawIpAddresses ? click.ipAddress || "Unknown" : click.ipAddress ? "Hidden" : "Unknown"}
+                      </td>
                       <td className="user-agent-cell">
                         <span>{click.userAgent || "Unknown user agent"}</span>
                         <span className="muted small">[{click.referrer || "direct"}]</span>

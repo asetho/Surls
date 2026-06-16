@@ -27,28 +27,47 @@ describe("short link creation", () => {
 
   it("fills a blank title from the destination page", async () => {
     pageTitle.fetchPageTitle.mockResolvedValue("Fetched Page Title");
+    const assertSafeResolution = vi.fn().mockResolvedValue(true);
 
     const link = await createShortLink({
       destinationUrl: "https://example.com/article",
       code: "news",
       title: null
-    });
+    }, undefined, { assertSafeResolution });
 
+    expect(assertSafeResolution).toHaveBeenCalledWith("https://example.com/article");
     expect(pageTitle.fetchPageTitle).toHaveBeenCalledWith("https://example.com/article");
     expect(shortLink.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ title: "Fetched Page Title" }) }));
     expect(link.title).toBe("Fetched Page Title");
   });
 
   it("keeps manually provided titles", async () => {
+    const assertSafeResolution = vi.fn().mockResolvedValue(true);
+
     const link = await createShortLink({
       destinationUrl: "https://example.com/article",
       code: "news",
       title: "  Manual Title  "
-    });
+    }, undefined, { assertSafeResolution });
 
+    expect(assertSafeResolution).toHaveBeenCalledWith("https://example.com/article");
     expect(pageTitle.fetchPageTitle).not.toHaveBeenCalled();
     expect(shortLink.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ title: "Manual Title" }) }));
     expect(link.title).toBe("Manual Title");
+  });
+
+  it("rejects destinations that resolve to private addresses before saving", async () => {
+    const assertSafeResolution = vi.fn().mockRejectedValue(new Error("Destination resolves to a private or internal address."));
+
+    await expect(
+      createShortLink({
+        destinationUrl: "https://private.example/article",
+        code: "news",
+        fetchTitle: false
+      }, undefined, { assertSafeResolution })
+    ).rejects.toThrow(/private or internal address/i);
+
+    expect(shortLink.create).not.toHaveBeenCalled();
   });
 
   it("rejects invalid dates, max-click values, and empty tag slugs", () => {

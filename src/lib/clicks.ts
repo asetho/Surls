@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import type { NextRequest } from "next/server";
 import { hashPrivacyValue } from "./crypto";
 import { DEFAULT_DISPLAY_TIME_ZONE, dateKeyForTimeZone, enumerateDateKeys } from "./dates";
+import { env } from "./env";
 import { prisma } from "./prisma";
 import { requestCountry, requestIp, requestIpHash, requestRegion, userAgentSummary } from "./request";
 
@@ -9,9 +10,11 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export const DEFAULT_RECENT_CLICK_PAGE_SIZE = 20;
 export const MAX_RECENT_CLICK_PAGE_SIZE = 500;
 export const RAW_IP_RETENTION_DAYS = 30;
+export const CLICK_EVENT_RETENTION_DAYS = env.CLICK_EVENT_RETENTION_DAYS;
 
-const RAW_IP_PURGE_INTERVAL_MS = DAY_MS;
-let lastRawIpPurgeAt = 0;
+const CLICK_PRIVACY_PURGE_INTERVAL_MS = DAY_MS;
+let lastClickPrivacyPurgeAt = 0;
+let clickPrivacyPurgeInterval: ReturnType<typeof setInterval> | null = null;
 
 function normalizePositiveInteger(value: unknown, fallback: number, max: number) {
   const parsed = typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
@@ -123,6 +126,10 @@ export function rawIpRetentionCutoff(now = new Date()) {
   return new Date(now.getTime() - RAW_IP_RETENTION_DAYS * DAY_MS);
 }
 
+export function clickEventRetentionCutoff(now = new Date()) {
+  return new Date(now.getTime() - CLICK_EVENT_RETENTION_DAYS * DAY_MS);
+}
+
 export async function purgeExpiredRawIpAddresses(now = new Date()) {
   return prisma.clickEvent.updateMany({
     where: {
@@ -133,10 +140,37 @@ export async function purgeExpiredRawIpAddresses(now = new Date()) {
   });
 }
 
-async function purgeExpiredRawIpAddressesOnce(now = new Date()) {
-  if (now.getTime() - lastRawIpPurgeAt < RAW_IP_PURGE_INTERVAL_MS) return;
-  lastRawIpPurgeAt = now.getTime();
+export async function purgeExpiredClickEvents(now = new Date()) {
+  return prisma.clickEvent.deleteMany({
+    where: {
+      occurredAt: { lt: clickEventRetentionCutoff(now) }
+    }
+  });
+}
+
+async function purgeExpiredClickPrivacyDataOnce(now = new Date()) {
+  if (now.getTime() - lastClickPrivacyPurgeAt < CLICK_PRIVACY_PURGE_INTERVAL_MS) return;
+  lastClickPrivacyPurgeAt = now.getTime();
   await purgeExpiredRawIpAddresses(now);
+  await purgeExpiredClickEvents(now);
+}
+
+export async function purgeExpiredClickPrivacyData(now = new Date()) {
+  const [rawIp, clickEvents] = await Promise.all([purgeExpiredRawIpAddresses(now), purgeExpiredClickEvents(now)]);
+  return { clickEvents, rawIp };
+}
+
+export function startClickPrivacyPurgeSchedule() {
+  if (clickPrivacyPurgeInterval) return;
+  void purgeExpiredClickPrivacyDataOnce().catch(() => null);
+  clickPrivacyPurgeInterval = setInterval(() => {
+    void purgeExpiredClickPrivacyDataOnce().catch(() => null);
+  }, CLICK_PRIVACY_PURGE_INTERVAL_MS);
+  (clickPrivacyPurgeInterval as { unref?: () => void }).unref?.();
+}
+
+export function startRawIpPurgeSchedule() {
+  startClickPrivacyPurgeSchedule();
 }
 
 export async function recordClick(input: {
@@ -189,7 +223,7 @@ export async function recordClick(input: {
     }
     return true;
   });
-  void purgeExpiredRawIpAddressesOnce().catch(() => null);
+  void purgeExpiredClickPrivacyDataOnce().catch(() => null);
   return recorded;
 }
 

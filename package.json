@@ -1,6 +1,6 @@
 {
   "name": "surls",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "private": true,
   "description": "Surls is a personal short URL system for managing private links, redirects, and click statistics.",
   "scripts": {
@@ -8,7 +8,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
-    "typecheck": "prisma generate && tsc --noEmit",
+    "typecheck": "node scripts/clean-next-type-conflicts.mjs && prisma generate && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "prisma:generate": "prisma generate",

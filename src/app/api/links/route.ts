@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { AuditAction } from "@prisma/client";
 import { z } from "zod";
 import { auditLog } from "@/lib/audit";
-import { authenticateApiToken } from "@/lib/api-tokens";
+import { API_TOKEN_SCOPE_LINKS_CREATE, authenticateApiToken } from "@/lib/api-tokens";
 import { requireAdmin } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createShortLink, shortUrl } from "@/lib/links";
@@ -20,7 +20,7 @@ const createSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const apiToken = await authenticateApiToken(request.headers.get("authorization"));
+  const apiToken = await authenticateApiToken(request.headers.get("authorization"), API_TOKEN_SCOPE_LINKS_CREATE);
   const admin = apiToken?.user ?? (await requireAdmin());
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

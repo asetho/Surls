@@ -15,7 +15,7 @@ It is inspired by the product shape of personal URL shorteners such as YOURLS an
 - Redirects at `/:code` and `/s/:code`.
 - Admin clicks excluded from statistics by default, controlled by the Settings page switch “Track admin clicks”.
 - Detailed redirect analytics skip privacy opt-out requests and high-volume click bursts while still sending visitors to the destination.
-- Privacy-respecting click stats: timestamp, referrer, user-agent-derived browser/device, hashed IP-derived values, and raw IP retention limited to 30 days.
+- Privacy-respecting click stats: timestamp, referrer, user-agent-derived browser/device, hashed IP-derived values, raw IP retention limited to 30 days, and configurable click-event retention.
 - Optional owner-provided public pages from the mounted webroot.
 - Tools page with bookmarklet, API token generation/revocation, CSV import preview/import, exports, SSRF-aware link checker, UTM builder, cleanup summaries, API docs, and system info.
 - Light, Dark, and Auto theme modes. Auto follows the operating system preference.
@@ -92,7 +92,7 @@ openssl rand -base64 32
 docker compose up --build
 ```
 
-The container runs Prisma migrations, seeds missing settings, and purges expired raw IP addresses on startup. To create the first admin automatically, set `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` before first boot. After the first login, remove `INITIAL_ADMIN_PASSWORD` from `.env` and recreate the app container.
+The container runs Prisma migrations, seeds missing settings, and purges expired raw IP addresses, click events, and audit logs on startup. To create the first admin automatically, set `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` before first boot. After the first login, remove `INITIAL_ADMIN_PASSWORD` from `.env` and recreate the app container.
 
 Change `AUTH_SECRET`, database credentials, `BASE_URL`, and WebAuthn values before production. Generate `AUTH_SECRET` with a high-entropy command such as `openssl rand -base64 32`; production startup rejects documented placeholder values. Use a URL-safe PostgreSQL password, such as `openssl rand -hex 24`, because the compose file embeds it in `DATABASE_URL`.
 
@@ -136,7 +136,7 @@ The production image starts through `scripts/docker-entrypoint.mjs`, which:
 
 - checks required production environment values;
 - runs `prisma migrate deploy` unless `SURLS_RUN_MIGRATIONS=false`;
-- creates missing default settings, optionally creates the first admin, and purges raw IP addresses older than 30 days unless `SURLS_RUN_BOOTSTRAP=false`;
+- creates missing default settings, optionally creates the first admin, and purges expired raw IP addresses, click events, and audit logs unless `SURLS_RUN_BOOTSTRAP=false`;
 - starts the Next.js standalone server.
 
 ## Public Webroot
@@ -218,6 +218,7 @@ curl -X POST http://localhost:3000/api/links \
 ```
 
 API token hashes are stored in the database. The plain token is shown once.
+Tokens are limited to link creation by default, expire after `API_TOKEN_DAYS` unless a shorter supported lifetime is selected, and can be revoked from `Admin -> Tools`.
 
 ## Import And Export
 
@@ -240,6 +241,7 @@ Leave “Confirm import” unchecked to preview validation without creating link
 - Sessions use HttpOnly cookies, `SameSite=Lax`, and secure cookies in production.
 - Passwords and backup codes use one-way Argon2id hashes.
 - TOTP secrets are encrypted with `AUTH_SECRET`.
+- Raw IPs are purged after 30 days; click-event rows and audit logs use configurable retention windows.
 - Do not commit real secrets.
 
 ## Production Checklist
@@ -253,6 +255,7 @@ Leave “Confirm import” unchecked to preview validation without creating link
 - Keep automatic migrations enabled unless your deployment system runs them separately.
 - Create the first admin with temporary `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD`, then remove `INITIAL_ADMIN_PASSWORD` after first login.
 - Enable TOTP and generate backup codes.
+- Review `API_TOKEN_DAYS`, `CLICK_EVENT_RETENTION_DAYS`, and `AUDIT_LOG_RETENTION_DAYS` for your retention policy.
 - Run database migrations before scaling to multiple app replicas; login, passkey, page-title, and API creation rate limits are shared through PostgreSQL.
 - Mount the public webroot read-only and keep write access limited to trusted admins.
 - Keep `ALLOW_PRIVATE_DESTINATIONS=false` unless you understand the SSRF risk.

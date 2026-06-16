@@ -21,6 +21,13 @@ const DEFAULT_SETTINGS = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const RAW_IP_RETENTION_DAYS = 30;
+const CLICK_EVENT_RETENTION_DAYS = positiveIntegerEnv("CLICK_EVENT_RETENTION_DAYS", 365);
+const AUDIT_LOG_RETENTION_DAYS = positiveIntegerEnv("AUDIT_LOG_RETENTION_DAYS", 365);
+
+function positiveIntegerEnv(name, fallback) {
+  const parsed = Number.parseInt(process.env[name] ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
 
 function getInitialAdminCredentials() {
   const email = process.env.INITIAL_ADMIN_EMAIL?.trim().toLowerCase();
@@ -106,10 +113,42 @@ async function purgeExpiredRawIpAddresses(now = new Date()) {
   }
 }
 
+async function purgeExpiredClickEvents(now = new Date()) {
+  const cutoff = new Date(now.getTime() - CLICK_EVENT_RETENTION_DAYS * DAY_MS);
+  const result = await prisma.clickEvent.deleteMany({
+    where: {
+      occurredAt: { lt: cutoff }
+    }
+  });
+
+  if (result.count > 0) {
+    console.log(`Bootstrap: purged ${result.count} click event(s) older than ${CLICK_EVENT_RETENTION_DAYS} days.`);
+  } else {
+    console.log("Bootstrap: no expired click events found.");
+  }
+}
+
+async function purgeExpiredAuditLogs(now = new Date()) {
+  const cutoff = new Date(now.getTime() - AUDIT_LOG_RETENTION_DAYS * DAY_MS);
+  const result = await prisma.auditLog.deleteMany({
+    where: {
+      createdAt: { lt: cutoff }
+    }
+  });
+
+  if (result.count > 0) {
+    console.log(`Bootstrap: purged ${result.count} audit log(s) older than ${AUDIT_LOG_RETENTION_DAYS} days.`);
+  } else {
+    console.log("Bootstrap: no expired audit logs found.");
+  }
+}
+
 async function main() {
   await seedMissingSettings();
   await createInitialAdmin();
   await purgeExpiredRawIpAddresses();
+  await purgeExpiredClickEvents();
+  await purgeExpiredAuditLogs();
 }
 
 main()

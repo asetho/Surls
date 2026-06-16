@@ -53,7 +53,7 @@ In 1Panel:
 
 The compose file can build the Surls image from the cloned repo. It also has an `SURLS_IMAGE` setting, so after GitHub Actions publishes a GHCR image you can pull the prebuilt image instead. If the GHCR package is private, log in to GHCR from the server or keep using the local build path.
 
-The first app boot runs migrations, creates missing app settings, purges raw IP addresses older than 30 days, and creates the initial admin if no users exist. Set `AUTH_SECRET` to a high-entropy value such as output from `openssl rand -base64 32`; placeholder values are rejected in production.
+The first app boot runs migrations, creates missing app settings, purges expired raw IP addresses, click events, and audit logs, and creates the initial admin if no users exist. Set `AUTH_SECRET` to a high-entropy value such as output from `openssl rand -base64 32`; placeholder values are rejected in production.
 
 The app container healthcheck uses `/api/health/ready`, which verifies both the Surls process and PostgreSQL access.
 

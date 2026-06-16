@@ -16,6 +16,16 @@ export const metadata: Metadata = {
   title: "Tools"
 };
 
+function tokenStatus(token: { expiresAt: Date | null; revokedAt: Date | null }) {
+  if (token.revokedAt) return "Revoked";
+  if (token.expiresAt && token.expiresAt <= new Date()) return "Expired";
+  return "Active";
+}
+
+function tokenExpirationLabel(expiresAt: Date | null) {
+  return expiresAt ? expiresAt.toLocaleDateString("en-US", { dateStyle: "medium" }) : "No expiry";
+}
+
 export default async function ToolsPage() {
   const admin = await requireAdmin();
   if (!admin) redirect("/admin");
@@ -80,6 +90,8 @@ export default async function ToolsPage() {
                 <tr>
                   <th>Name</th>
                   <th>Prefix</th>
+                  <th>Scope</th>
+                  <th>Expires</th>
                   <th>Status</th>
                   <th>Action</th>
                 </tr>
@@ -89,7 +101,9 @@ export default async function ToolsPage() {
                   <tr key={token.id}>
                     <td>{token.name}</td>
                     <td>{token.tokenPrefix}</td>
-                    <td>{token.revokedAt ? "Revoked" : "Active"}</td>
+                    <td>{token.scopes}</td>
+                    <td>{tokenExpirationLabel(token.expiresAt)}</td>
+                    <td>{tokenStatus(token)}</td>
                     <td>
                       {!token.revokedAt ? (
                         <form action={revokeTokenAction}>
