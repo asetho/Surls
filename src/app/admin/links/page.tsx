@@ -132,7 +132,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
 
   return (
     <main className="admin-content">
-      <div className="content-header">
+      <div className="content-header content-header-topbar">
         <div>
           <h1>Link management</h1>
           <p className="muted">Create, search, copy, share, edit, disable, archive, and inspect {siteName} links.</p>

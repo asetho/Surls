@@ -1,28 +1,27 @@
 "use server";
 
-import { UserRole } from "@prisma/client";
+import { Prisma, UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireSiteAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
 import { hashPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
+import { normalizeUserProfileFormData, normalizeUserProfileInput } from "@/lib/user-profile";
 
 type CreateUserState = {
   error?: string;
   message?: string;
 };
 
-function cleanEmail(value: FormDataEntryValue | null) {
-  return String(value ?? "").trim().toLowerCase();
-}
-
-function cleanName(value: FormDataEntryValue | null) {
-  return String(value ?? "").trim() || null;
-}
+type UpdateUserIdentityState = CreateUserState;
 
 function cleanRole(value: FormDataEntryValue | null) {
   return value === UserRole.ADMIN ? UserRole.ADMIN : UserRole.USER;
+}
+
+function isUniqueEmailError(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 }
 
 async function isLastAdmin(id: string) {
@@ -43,14 +42,18 @@ export async function createUserAction(_state: CreateUserState | null, formData:
   const admin = await requireSiteAdmin();
   if (!admin) redirect("/admin?next=/admin/users");
 
-  const email = cleanEmail(formData.get("email"));
-  const name = cleanName(formData.get("name"));
+  const parsedProfile = normalizeUserProfileInput({
+    email: formData.get("email"),
+    name: formData.get("name")
+  });
   const password = String(formData.get("password") ?? "");
   const role = cleanRole(formData.get("role"));
 
-  if (!email || !email.includes("@")) return { error: "Enter a valid email address." };
+  if (parsedProfile.error) return { error: parsedProfile.error };
+  if (!parsedProfile.data) return { error: "Enter a valid email address." };
   if (password.length < 12) return { error: "Temporary passwords must be at least 12 characters." };
 
+  const { email, name } = parsedProfile.data;
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { error: "A user with that email already exists." };
 
@@ -65,6 +68,55 @@ export async function createUserAction(_state: CreateUserState | null, formData:
 
   revalidatePath("/admin/users");
   return { message: `Created ${email} as ${role === UserRole.ADMIN ? "an admin" : "a user"}.` };
+}
+
+export async function updateUserIdentityAction(
+  _state: UpdateUserIdentityState | null,
+  formData: FormData
+): Promise<UpdateUserIdentityState> {
+  try {
+    validateCsrf(formData);
+  } catch {
+    return { error: "The form expired. Please refresh and try again." };
+  }
+
+  const admin = await requireSiteAdmin();
+  if (!admin) redirect("/admin?next=/admin/users");
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Choose a user to update." };
+
+  const parsed = normalizeUserProfileFormData(formData);
+  if (parsed.error) return { error: parsed.error };
+  if (!parsed.data) return { error: "Enter a valid email address." };
+  const profile = parsed.data;
+
+  const [target, existing] = await Promise.all([
+    prisma.user.findUnique({ where: { id }, select: { id: true } }),
+    prisma.user.findFirst({
+      where: {
+        email: profile.email,
+        NOT: { id }
+      },
+      select: { id: true }
+    })
+  ]);
+  if (!target) return { error: "That user no longer exists." };
+  if (existing) return { error: "A user with that email already exists." };
+
+  try {
+    await prisma.user.update({
+      where: { id },
+      data: profile
+    });
+  } catch (error) {
+    if (isUniqueEmailError(error)) return { error: "A user with that email already exists." };
+    throw error;
+  }
+
+  revalidatePath("/admin/users");
+  revalidatePath("/admin", "layout");
+  return { message: "User updated." };
 }
 
 export async function updateUserRoleAction(formData: FormData) {

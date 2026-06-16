@@ -48,14 +48,14 @@ describe("stats CSV raw IP visibility", () => {
     await expect(response.text()).resolves.toContain("198.51.100.10");
   });
 
-  it("hides raw IP addresses for non-admin users", async () => {
+  it("includes raw IP addresses for non-admin users", async () => {
     const { GET } = await import("@/app/api/links/[id]/stats.csv/route");
     auth.requireAdmin.mockResolvedValue({ id: "user_1", role: "USER" });
 
     const response = await GET(request(), { params: Promise.resolve({ id: "link_123" }) });
     const text = await response.text();
 
-    expect(text).toContain("Hidden");
-    expect(text).not.toContain("198.51.100.10");
+    expect(text).toContain("198.51.100.10");
+    expect(text).not.toContain("Hidden");
   });
 });

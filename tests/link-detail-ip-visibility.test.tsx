@@ -165,12 +165,12 @@ describe("link detail raw IP visibility", () => {
     await expect(renderLinkDetail()).resolves.toContain("198.51.100.10");
   });
 
-  it("hides raw click IP addresses from non-admin users", async () => {
+  it("shows raw click IP addresses to non-admin users", async () => {
     authState.currentUser = { id: "user_1", role: "USER" };
 
     const markup = await renderLinkDetail();
 
-    expect(markup).toContain("Hidden");
-    expect(markup).not.toContain("198.51.100.10");
+    expect(markup).toContain("198.51.100.10");
+    expect(markup).not.toContain("Hidden");
   });
 });

@@ -30,7 +30,7 @@ export default async function FaviconEditorPage({ searchParams }: { searchParams
 
   return (
     <main className="admin-content">
-      <div className="content-header">
+      <div className="content-header content-header-topbar">
         <div>
           <h1>Favicon Editor</h1>
           <p className="muted">Manage browser icons, app icons, and install-screen names for Surls pages.</p>

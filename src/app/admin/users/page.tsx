@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { UserRole } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { Trash2 } from "lucide-react";
+import { AdminUserIdentityForm } from "@/components/AdminUserIdentityForm";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { CreateUserForm } from "@/components/CreateUserForm";
 import { requireSiteAdmin } from "@/lib/auth";
@@ -39,7 +40,7 @@ export default async function UsersPage() {
 
   return (
     <main className="admin-content">
-      <div className="content-header">
+      <div className="content-header content-header-topbar">
         <div>
           <h1>Admin users</h1>
           <p className="muted">Create users and admins that can sign in to this Surls instance.</p>
@@ -70,8 +71,14 @@ export default async function UsersPage() {
               {users.map((user) => (
                 <tr key={user.id}>
                   <td>
-                    <strong>{user.name || user.email}</strong>
-                    <div className="muted small">{user.email}</div>
+                    <AdminUserIdentityForm
+                      csrf={csrf}
+                      user={{
+                        email: user.email,
+                        id: user.id,
+                        name: user.name
+                      }}
+                    />
                     <div className="muted small">Created {formatDateTime(user.createdAt, displayTimeZone)}</div>
                   </td>
                   <td>

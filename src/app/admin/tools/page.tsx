@@ -49,7 +49,7 @@ export default async function ToolsPage() {
 
   return (
     <main className="admin-content">
-      <div className="content-header">
+      <div className="content-header content-header-topbar">
         <div>
           <h1>{settings.siteName} tools</h1>
           <p className="muted">Bookmarklet, API tokens, import/export, link checks, UTM builder, cleanup, and system info.</p>

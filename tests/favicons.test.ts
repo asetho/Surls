@@ -163,12 +163,14 @@ describe("favicon responses", () => {
 
     expect(response?.headers.get("content-type")).toBe("application/manifest+json; charset=utf-8");
     await expect(response?.json()).resolves.toMatchObject({
+      background_color: "#1f6a5d",
       name: "asetho link",
       short_name: "ase.link",
       icons: [
         { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
         { src: "/icon-512.png", sizes: "512x512", type: "image/png" }
-      ]
+      ],
+      theme_color: "#1f6a5d"
     });
   });
 
@@ -180,10 +182,20 @@ describe("favicon responses", () => {
   });
 
   it("keeps generated manifests parseable", () => {
-    expect(JSON.parse(buildGeneratedWebManifest("Surls", { name: "asetho link", shortName: "ase.link" }))).toMatchObject({
+    expect(
+      JSON.parse(
+        buildGeneratedWebManifest(
+          "Surls",
+          { name: "asetho link", shortName: "ase.link" },
+          { backgroundColor: "#e9f2f6", themeColor: "#087e8b" }
+        )
+      )
+    ).toMatchObject({
+      background_color: "#e9f2f6",
       name: "asetho link",
       short_name: "ase.link",
-      start_url: "/"
+      start_url: "/",
+      theme_color: "#087e8b"
     });
   });
 });

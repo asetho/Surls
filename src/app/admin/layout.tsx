@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { cookies } from "next/headers";
-import { BarChart3, Link2, LogOut, Settings, ShieldCheck, Users, Wrench } from "lucide-react";
+import { BarChart3, Link2, LogOut, Settings, UserRound, Users, Wrench } from "lucide-react";
 import { AdminToastHost } from "@/components/AdminToastHost";
 import { DashboardThemeDrawer } from "@/components/DashboardThemeDrawer";
 import { NewShortUrlModal } from "@/components/NewShortUrlModal";
@@ -38,7 +38,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
     { href: "/admin/tools", label: "Tools", icon: Wrench },
     ...(isAdminUser(user) ? [{ href: "/admin/users", label: "Users", icon: Users }] : []),
     ...(isAdminUser(user) ? [{ href: "/admin/settings", label: "Settings", icon: Settings }] : []),
-    { href: "/admin/profile", label: "Security", icon: ShieldCheck }
+    { href: "/admin/profile", label: "Profile", icon: UserRound }
   ];
 
   return (

@@ -93,7 +93,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: S
 
   return (
     <main className="admin-content">
-      <div className="content-header">
+      <div className="content-header content-header-topbar">
         <div>
           <h1>Dashboard</h1>
         </div>

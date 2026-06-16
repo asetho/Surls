@@ -102,7 +102,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Set
 
   return (
     <main className="admin-content">
-      <div className="content-header">
+      <div className="content-header content-header-topbar">
         <div>
           <h1>{settings.siteName} settings</h1>
           <p className="muted">Control privacy, redirect behavior, branding, and UI defaults.</p>

@@ -1,0 +1,2 @@
+export const DEFAULT_RECENT_CLICK_PAGE_SIZE = 20;
+export const MAX_RECENT_CLICK_PAGE_SIZE = 500;

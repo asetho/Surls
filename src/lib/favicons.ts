@@ -24,6 +24,11 @@ export type FaviconManifestNames = {
   shortName: string;
 };
 
+export type FaviconManifestThemeColors = {
+  backgroundColor?: string;
+  themeColor?: string;
+};
+
 type FaviconAssetSpec = {
   accept: string;
   contentType: string;
@@ -345,7 +350,11 @@ export async function faviconsFromUpload(
   };
 }
 
-export function buildGeneratedWebManifest(siteName: string, names?: Partial<FaviconManifestNames>) {
+export function buildGeneratedWebManifest(
+  siteName: string,
+  names?: Partial<FaviconManifestNames>,
+  colors: FaviconManifestThemeColors = {}
+) {
   const name = normalizeFaviconManifestName(names?.name, siteName);
   const shortName = normalizeFaviconManifestShortName(names?.shortName, name);
   return JSON.stringify(
@@ -358,8 +367,8 @@ export function buildGeneratedWebManifest(siteName: string, names?: Partial<Favi
       ],
       start_url: "/",
       display: "standalone",
-      background_color: "#1f6a5d",
-      theme_color: "#1f6a5d"
+      background_color: colors.backgroundColor ?? "#1f6a5d",
+      theme_color: colors.themeColor ?? "#1f6a5d"
     },
     null,
     2
@@ -390,10 +399,10 @@ export function faviconResponse(
 export function webManifestResponse(
   favicons: StoredFavicons | null,
   siteName: string,
-  options: { method?: string } = {}
+  options: { method?: string; themeColors?: FaviconManifestThemeColors } = {}
 ) {
   if (!favicons) return null;
-  const manifest = buildGeneratedWebManifest(siteName, getFaviconManifestNames(favicons, siteName));
+  const manifest = buildGeneratedWebManifest(siteName, getFaviconManifestNames(favicons, siteName), options.themeColors);
   const body = options.method?.toUpperCase() === "HEAD" ? null : manifest;
 
   return new Response(body, {

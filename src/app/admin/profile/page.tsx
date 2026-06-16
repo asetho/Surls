@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import QRCode from "qrcode";
 import { BackupCodesForm } from "@/components/BackupCodesForm";
 import { PasskeyManager } from "@/components/PasskeyManager";
+import { ProfileIdentityForm } from "@/components/ProfileIdentityForm";
+import { RememberedDetails } from "@/components/RememberedDetails";
 import { getCsrfToken } from "@/lib/csrf";
 import { isAdminUser, requireAdmin } from "@/lib/auth";
 import { formatDateTime } from "@/lib/dates";
@@ -12,7 +14,7 @@ import { getTotpSecret, totpOtpAuthUrl } from "@/lib/totp";
 import { disableTotpAction, enableTotpAction, startTotpAction } from "./actions";
 
 export const metadata: Metadata = {
-  title: "Security"
+  title: "Profile"
 };
 
 export default async function ProfilePage() {
@@ -43,67 +45,86 @@ export default async function ProfilePage() {
     <main className="admin-content">
       <div className="content-header content-header-topbar">
         <div>
-          <h1>User security</h1>
-          <p className="muted">Manage TOTP 2FA, one-time backup codes, and optional passkey records.</p>
+          <h1>Profile</h1>
+          <p className="muted">Manage your name, email, TOTP 2FA, backup codes, and passkeys.</p>
         </div>
       </div>
 
-      <section className="surface" style={{ padding: "1rem" }}>
-        <h2>TOTP 2FA</h2>
-        {credential?.enabled ? (
-          <div className="form-stack">
-            <p className="success">TOTP is enabled for {admin.email}.</p>
-            <form action={disableTotpAction}>
-              <input type="hidden" name="csrf" value={csrf} />
-              <button className="danger" type="submit">Disable TOTP</button>
-            </form>
-          </div>
-        ) : (
-          <div className="form-stack">
-            {!pendingSecret ? (
-              <form action={startTotpAction}>
+      <section className="surface surface-panel profile-card">
+        <h2>Account information</h2>
+        <ProfileIdentityForm
+          csrf={csrf}
+          user={{
+            email: admin.email,
+            name: admin.name
+          }}
+        />
+      </section>
+
+      <RememberedDetails
+        className="surface settings-collapse profile-security-collapse"
+        summaryClassName="settings-card-header"
+        bodyClassName="profile-security-body"
+        storageKey="surls-profile-security-open"
+        title="Security"
+      >
+        <section className="profile-security-panel">
+          <h3>TOTP 2FA</h3>
+          {credential?.enabled ? (
+            <div className="form-stack">
+              <p className="success">TOTP is enabled for {admin.email}.</p>
+              <form action={disableTotpAction}>
                 <input type="hidden" name="csrf" value={csrf} />
-                <button type="submit">Start TOTP setup</button>
+                <button className="danger" type="submit">Disable TOTP</button>
               </form>
-            ) : (
-              <>
-                <p className="muted">Scan the QR code or enter the manual setup key, then verify a current code.</p>
-                <div className="qr-box">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={qr ?? ""} alt="TOTP setup QR code" width={180} height={180} />
-                </div>
-                <code>{pendingSecret}</code>
-                <form className="form-stack" action={enableTotpAction}>
+            </div>
+          ) : (
+            <div className="form-stack">
+              {!pendingSecret ? (
+                <form action={startTotpAction}>
                   <input type="hidden" name="csrf" value={csrf} />
-                  <label>
-                    Verification code
-                    <input name="code" inputMode="numeric" autoComplete="one-time-code" required />
-                  </label>
-                  <button type="submit">Verify and enable TOTP</button>
+                  <button type="submit">Start TOTP setup</button>
                 </form>
-              </>
-            )}
-          </div>
-        )}
-      </section>
+              ) : (
+                <>
+                  <p className="muted">Scan the QR code or enter the manual setup key, then verify a current code.</p>
+                  <div className="qr-box">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={qr ?? ""} alt="TOTP setup QR code" width={180} height={180} />
+                  </div>
+                  <code>{pendingSecret}</code>
+                  <form className="form-stack" action={enableTotpAction}>
+                    <input type="hidden" name="csrf" value={csrf} />
+                    <label>
+                      Verification code
+                      <input name="code" inputMode="numeric" autoComplete="one-time-code" required />
+                    </label>
+                    <button type="submit">Verify and enable TOTP</button>
+                  </form>
+                </>
+              )}
+            </div>
+          )}
+        </section>
 
-      <section className="surface" style={{ padding: "1rem" }}>
-        <h2>Backup codes</h2>
-        <p className="muted">
-          You currently have {backupCount} unused backup {backupCount === 1 ? "code" : "codes"}. Codes are stored only
-          as hashes and are consumed after one successful use.
-        </p>
-        <BackupCodesForm backupCount={backupCount} canDeleteBackupCodes={isAdminUser(admin)} csrf={csrf} />
-      </section>
+        <section className="profile-security-panel">
+          <h3>Backup codes</h3>
+          <p className="muted">
+            You currently have {backupCount} unused backup {backupCount === 1 ? "code" : "codes"}. Codes are stored only
+            as hashes and are consumed after one successful use.
+          </p>
+          <BackupCodesForm backupCount={backupCount} canDeleteBackupCodes={isAdminUser(admin)} csrf={csrf} />
+        </section>
 
-      <section className="surface" style={{ padding: "1rem" }}>
-        <h2>Passkeys</h2>
-        <p className="muted">
-          Register a device passkey for passwordless sign-in. Passkey sign-in still requires local user verification such
-          as Face ID, Touch ID, Windows Hello, a PIN, or a security key gesture.
-        </p>
-        <PasskeyManager csrf={csrf} passkeys={passkeyItems} />
-      </section>
+        <section className="profile-security-panel">
+          <h3>Passkeys</h3>
+          <p className="muted">
+            Register a device passkey for passwordless sign-in. Passkey sign-in still requires local user verification
+            such as Face ID, Touch ID, Windows Hello, a PIN, or a security key gesture.
+          </p>
+          <PasskeyManager csrf={csrf} passkeys={passkeyItems} />
+        </section>
+      </RememberedDetails>
     </main>
   );
 }

@@ -21,8 +21,18 @@ export async function faviconRouteResponse(key: FaviconAssetKey, options: { meth
 
 export async function webManifestRouteResponse(options: { method?: string } = {}) {
   const settings = await getSettings();
+  const dashboardTheme = settings.dashboardTheme;
+  const manifestOptions = dashboardTheme
+    ? {
+        ...options,
+        themeColors: {
+          backgroundColor: dashboardTheme.light.background,
+          themeColor: dashboardTheme.light.accent
+        }
+      }
+    : options;
   return (
-    webManifestResponse(settings.favicons, settings.siteName, options) ??
+    webManifestResponse(settings.favicons, settings.siteName, manifestOptions) ??
     (await publicWebrootResponse(["site.webmanifest"], options)) ??
     new Response(options.method?.toUpperCase() === "HEAD" ? null : "Not found", { status: 404 })
   );

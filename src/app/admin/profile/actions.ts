@@ -1,7 +1,8 @@
 "use server";
 
-import { AuditAction } from "@prisma/client";
+import { AuditAction, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { auditLog } from "@/lib/audit";
 import { requireAdmin, requireSiteAdmin } from "@/lib/auth";
 import { generateBackupCodes, hashBackupCode } from "@/lib/backup-codes";
@@ -9,6 +10,58 @@ import { validateCsrf } from "@/lib/csrf";
 import { prisma } from "@/lib/prisma";
 import { getSiteName } from "@/lib/settings";
 import { createTotpSecret, verifyTotpCode } from "@/lib/totp";
+import { normalizeUserProfileFormData } from "@/lib/user-profile";
+
+type ProfileActionState = {
+  error?: string;
+  message?: string;
+};
+
+function isUniqueEmailError(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+}
+
+export async function updateProfileAction(
+  _state: ProfileActionState | null,
+  formData: FormData
+): Promise<ProfileActionState> {
+  try {
+    validateCsrf(formData);
+  } catch {
+    return { error: "The form expired. Please refresh and try again." };
+  }
+
+  const user = await requireAdmin();
+  if (!user) redirect("/admin?next=/admin/profile");
+
+  const parsed = normalizeUserProfileFormData(formData);
+  if (parsed.error) return { error: parsed.error };
+  if (!parsed.data) return { error: "Enter a valid email address." };
+  const profile = parsed.data;
+
+  const existing = await prisma.user.findFirst({
+    where: {
+      email: profile.email,
+      NOT: { id: user.id }
+    },
+    select: { id: true }
+  });
+  if (existing) return { error: "A user with that email already exists." };
+
+  try {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: profile
+    });
+  } catch (error) {
+    if (isUniqueEmailError(error)) return { error: "A user with that email already exists." };
+    throw error;
+  }
+
+  revalidatePath("/admin/profile");
+  revalidatePath("/admin", "layout");
+  return { message: "Profile updated." };
+}
 
 export async function startTotpAction(formData: FormData) {
   validateCsrf(formData);

@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { isAdminUser, requireAdmin } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { csvLine } from "@/lib/csv";
 
@@ -12,7 +12,6 @@ const STATS_EXPORT_PAGE_SIZE = 500;
 export async function GET(_request: NextRequest, { params }: Params) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const canViewRawIpAddresses = isAdminUser(admin);
   const { id } = await params;
   let cursor: string | undefined;
   let sentHeader = false;
@@ -43,7 +42,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
                 row.occurredAt.toISOString(),
                 row.id,
                 row.country,
-                canViewRawIpAddresses ? row.ipAddress : row.ipAddress ? "Hidden" : null,
+                row.ipAddress,
                 row.userAgent,
                 row.referrer,
                 row.browser,

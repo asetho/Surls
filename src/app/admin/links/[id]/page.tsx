@@ -9,20 +9,16 @@ import { EditLinkModal } from "@/components/EditLinkModal";
 import { HistoricalClicksPanel } from "@/components/HistoricalClicksPanel";
 import { LocationCharts } from "@/components/LocationCharts";
 import { QrCodeModal } from "@/components/QrCodeModal";
+import { RecentClicksPanel } from "@/components/RecentClicksPanel";
 import { StatsTabs } from "@/components/StatsTabs";
 import { isAdminUser, requireAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { formatDateTime } from "@/lib/dates";
 import { appBaseUrl } from "@/lib/env";
-import {
-  DEFAULT_RECENT_CLICK_PAGE_SIZE,
-  MAX_RECENT_CLICK_PAGE_SIZE,
-  clickStats,
-  normalizeRecentClickPage,
-  normalizeRecentClickPageSize
-} from "@/lib/clicks";
+import { clickStats, normalizeRecentClickPage, normalizeRecentClickPageSize } from "@/lib/clicks";
 import { shortUrl } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
+import { recentClicksView } from "@/lib/recent-clicks-view";
 import { getSettings } from "@/lib/settings";
 import { archiveLinkAction, restoreLinkAction } from "../actions";
 
@@ -34,14 +30,6 @@ type PageProps = {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ clickPage?: string; clickPageSize?: string }>;
 };
-
-function recentClicksHref(linkId: string, page: number, pageSize: number) {
-  const searchParams = new URLSearchParams();
-  if (page > 1) searchParams.set("clickPage", String(page));
-  if (pageSize !== DEFAULT_RECENT_CLICK_PAGE_SIZE) searchParams.set("clickPageSize", String(pageSize));
-  const query = searchParams.toString();
-  return `/admin/links/${linkId}${query ? `?${query}` : ""}#recent-clicks`;
-}
 
 export default async function LinkDetailPage({ params, searchParams }: PageProps) {
   const [{ id }, query, currentUser] = await Promise.all([params, searchParams, requireAdmin()]);
@@ -58,7 +46,6 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
   ]);
   if (!link) notFound();
   const canDeleteLinks = isAdminUser(currentUser);
-  const canViewRawIpAddresses = isAdminUser(currentUser);
   const { displayTimeZone, siteName } = settings;
   const csrf = getCsrfToken();
   const baseUrl = appBaseUrl();
@@ -69,9 +56,7 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
   const url = shortUrl(baseUrl, link.code);
   const activeDays = Math.max(1, stats.dailyHistory.length);
   const allTimeRate = stats.total / activeDays;
-  const recentStart =
-    stats.recentPagination.total === 0 ? 0 : (stats.recentPagination.page - 1) * stats.recentPagination.pageSize + 1;
-  const recentEnd = Math.min(stats.recentPagination.total, recentStart + stats.recent.length - 1);
+  const recentClicks = recentClicksView(stats.recent, stats.recentPagination, displayTimeZone);
   const titleLabel = link.title || `Untitled ${siteName} link`;
   const expiresAtLabel = link.expiresAt ? formatDateTime(link.expiresAt, displayTimeZone) : "None";
   const maxClicksLabel = link.maxClicks ? link.maxClicks.toLocaleString() : "Unlimited";
@@ -199,104 +184,14 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
         ]}
       />
 
-      <section className="surface surface-panel" id="recent-clicks">
-        <div className="content-header recent-clicks-header">
-          <div>
-            <h2>Recent clicks</h2>
-            <p className="muted small">
-              Showing {recentStart}-{recentEnd} of {stats.recentPagination.total} clicks.
-            </p>
-          </div>
-          <form className="row-actions recent-clicks-form" method="get" action={`/admin/links/${link.id}#recent-clicks`}>
-            <input type="hidden" name="clickPage" value="1" />
-            <label>
-              Rows
-              <input
-                name="clickPageSize"
-                type="number"
-                min="1"
-                max={MAX_RECENT_CLICK_PAGE_SIZE}
-                defaultValue={stats.recentPagination.pageSize}
-              />
-            </label>
-            <button className="secondary" type="submit">Apply</button>
-          </form>
-        </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Timestamp</th>
-                <th>Country</th>
-                <th>IP Address</th>
-                <th>User Agent [Referrer]</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.recent.length ? (
-                stats.recent.map((click) => {
-                  const occurredAtLabel = formatDateTime(click.occurredAt, displayTimeZone);
-                  return (
-                    <tr key={click.id}>
-                      <td>
-                        <span className="timestamp" title={`Database ID: ${click.id}`}>
-                          {occurredAtLabel}
-                        </span>
-                      </td>
-                      <td>{click.country || "Unknown"}</td>
-                      <td className="ip-cell">
-                        {canViewRawIpAddresses ? click.ipAddress || "Unknown" : click.ipAddress ? "Hidden" : "Unknown"}
-                      </td>
-                      <td className="user-agent-cell">
-                        <span>{click.userAgent || "Unknown user agent"}</span>
-                        <span className="muted small">[{click.referrer || "direct"}]</span>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={4}>No clicks recorded for this link.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        {stats.recentPagination.pageCount > 1 ? (
-          <nav className="pagination" aria-label="Recent clicks pagination">
-            {stats.recentPagination.page > 1 ? (
-              <a
-                className="button secondary"
-                href={recentClicksHref(link.id, stats.recentPagination.page - 1, stats.recentPagination.pageSize)}
-              >
-                Previous
-              </a>
-            ) : (
-              <span className="button secondary" aria-disabled="true">Previous</span>
-            )}
-            <span className="muted small">
-              Page {stats.recentPagination.page} of {stats.recentPagination.pageCount}
-            </span>
-            {stats.recentPagination.page < stats.recentPagination.pageCount ? (
-              <a
-                className="button secondary"
-                href={recentClicksHref(link.id, stats.recentPagination.page + 1, stats.recentPagination.pageSize)}
-              >
-                Next
-              </a>
-            ) : (
-              <span className="button secondary" aria-disabled="true">Next</span>
-            )}
-          </nav>
-        ) : null}
-      </section>
+      <RecentClicksPanel initialData={recentClicks} linkId={link.id} />
 
       <section className="surface surface-panel">
         <h2>{link.archivedAt ? "Restore/Delete" : "Archive/Delete"}</h2>
         <p className="muted">
           {link.archivedAt
-            ? "This link is archived, hidden from active lists, and no longer redirects. Restore it to make it active again, or permanently delete it and its click history."
-            : "Archive stops this link from redirecting and hides it from active lists. Admins can permanently delete the link and its click history."}
+            ? "This link is archived, hidden from active lists, and no longer redirects. Restore it to make it active again."
+            : "Archive stops this link from redirecting and hides it from active lists."}
         </p>
         <div className="row-actions link-lifecycle-actions">
           {link.archivedAt ? (
@@ -326,9 +221,7 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
               shortUrl={url}
               returnTo={link.archivedAt ? "/admin/links?view=archived" : "/admin/links"}
             />
-          ) : (
-            <span className="muted small">Permanent delete is admin-only.</span>
-          )}
+          ) : null}
         </div>
       </section>
     </main>

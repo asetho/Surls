@@ -25,10 +25,14 @@ export type DashboardThemePalette = {
   shortUrlPillBorder: string;
   shortUrlPillText: string;
   sidebar: string;
+  sidebarBorder: string;
   sidebarHover: string;
+  sidebarMuted: string;
+  sidebarText: string;
   surface: string;
   surfaceStrong: string;
   text: string;
+  overlayBackground: string;
   toastErrorBackground: string;
   toastErrorBorder: string;
   toastErrorText: string;
@@ -60,6 +64,9 @@ type DashboardThemeFieldSection = {
 const DASHBOARD_THEME_SIDEBAR_FIELDS: readonly DashboardThemeField[] = [
   { key: "sidebar", label: "Sidebar", description: "Navigation background." },
   { key: "sidebarHover", label: "Sidebar hover", description: "Active and hover states in the sidebar." },
+  { key: "sidebarText", label: "Sidebar text", description: "Navigation labels and account text." },
+  { key: "sidebarMuted", label: "Sidebar muted", description: "Sidebar helper text and version labels." },
+  { key: "sidebarBorder", label: "Sidebar border", description: "Sidebar control and divider outlines." },
   { key: "accent", label: "Accent", description: "Primary buttons, links, and highlighted values." }
 ] as const;
 
@@ -70,6 +77,7 @@ const DASHBOARD_THEME_PANEL_FIELDS: readonly DashboardThemeField[] = [
   { key: "text", label: "Text", description: "Primary dashboard text." },
   { key: "muted", label: "Muted text", description: "Secondary labels and helper text." },
   { key: "border", label: "Borders", description: "Panel and field outlines." },
+  { key: "overlayBackground", label: "Overlay", description: "Modal backdrop tint." },
   { key: "link", label: "Links", description: "Inline dashboard links and destination URLs." }
 ] as const;
 
@@ -153,10 +161,14 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     shortUrlPillBorder: "#9ed1d7",
     shortUrlPillText: "#0a5c70",
     sidebar: "#0a5c70",
+    sidebarBorder: "#70a7b2",
     sidebarHover: "#087e8b",
+    sidebarMuted: "#c0dde3",
+    sidebarText: "#ffffff",
     surface: "#ffffff",
     surfaceStrong: "#d8edf4",
     text: "#0b2636",
+    overlayBackground: "#0b2636",
     toastErrorBackground: "#ffffff",
     toastErrorBorder: "#c81d25",
     toastErrorText: "#0b2636",
@@ -191,10 +203,14 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     shortUrlPillBorder: "#3c8ea0",
     shortUrlPillText: "#f3fbff",
     sidebar: "#073f4d",
+    sidebarBorder: "#3c8ea0",
     sidebarHover: "#087e8b",
+    sidebarMuted: "#b7d6e2",
+    sidebarText: "#f3fbff",
     surface: "#0a5c70",
     surfaceStrong: "#176d7d",
     text: "#f3fbff",
+    overlayBackground: "#000000",
     toastErrorBackground: "#0a5c70",
     toastErrorBorder: "#ff858a",
     toastErrorText: "#f3fbff",
@@ -315,7 +331,11 @@ export function dashboardThemePaletteCssVariables(theme: DashboardThemePalette) 
     "--pill-background": theme.pillBackground,
     "--pill-border": theme.pillBorder,
     "--pill-text": theme.pillText,
+    "--overlay-background": theme.overlayBackground,
     "--shadow": `0 18px 50px ${theme.sidebar}1f`,
+    "--sidebar-border": theme.sidebarBorder,
+    "--sidebar-muted": theme.sidebarMuted,
+    "--sidebar-text": theme.sidebarText,
     "--short-url-pill-accent": theme.shortUrlPillAccent,
     "--short-url-pill-background": theme.shortUrlPillBackground,
     "--short-url-pill-border": theme.shortUrlPillBorder,
@@ -358,13 +378,17 @@ export function dashboardThemeCssVariables(theme: DashboardTheme) {
       [`--dashboard-${mode.key}-pill-background`, theme[mode.key].pillBackground],
       [`--dashboard-${mode.key}-pill-border`, theme[mode.key].pillBorder],
       [`--dashboard-${mode.key}-pill-text`, theme[mode.key].pillText],
+      [`--dashboard-${mode.key}-overlay-background`, theme[mode.key].overlayBackground],
       [`--dashboard-${mode.key}-shadow`, `0 18px 50px ${theme[mode.key].sidebar}1f`],
       [`--dashboard-${mode.key}-short-url-pill-accent`, theme[mode.key].shortUrlPillAccent],
       [`--dashboard-${mode.key}-short-url-pill-background`, theme[mode.key].shortUrlPillBackground],
       [`--dashboard-${mode.key}-short-url-pill-border`, theme[mode.key].shortUrlPillBorder],
       [`--dashboard-${mode.key}-short-url-pill-text`, theme[mode.key].shortUrlPillText],
       [`--dashboard-${mode.key}-sidebar`, theme[mode.key].sidebar],
+      [`--dashboard-${mode.key}-sidebar-border`, theme[mode.key].sidebarBorder],
       [`--dashboard-${mode.key}-sidebar-hover`, theme[mode.key].sidebarHover],
+      [`--dashboard-${mode.key}-sidebar-muted`, theme[mode.key].sidebarMuted],
+      [`--dashboard-${mode.key}-sidebar-text`, theme[mode.key].sidebarText],
       [`--dashboard-${mode.key}-surface`, theme[mode.key].surface],
       [`--dashboard-${mode.key}-surface-strong`, theme[mode.key].surfaceStrong],
       [`--dashboard-${mode.key}-text`, theme[mode.key].text],
