@@ -10,7 +10,8 @@ const redirectMocks = vi.hoisted(() => ({
   getSiteName: vi.fn(),
   getCurrentSession: vi.fn(),
   recordClick: vi.fn(),
-  publicWebrootNotFoundResponse: vi.fn()
+  publicWebrootNotFoundResponse: vi.fn(),
+  publicWebrootResponse: vi.fn()
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -39,7 +40,8 @@ vi.mock("@/lib/rate-limit", () => ({
 }));
 
 vi.mock("@/lib/webroot", () => ({
-  publicWebrootNotFoundResponse: redirectMocks.publicWebrootNotFoundResponse
+  publicWebrootNotFoundResponse: redirectMocks.publicWebrootNotFoundResponse,
+  publicWebrootResponse: redirectMocks.publicWebrootResponse
 }));
 
 function requestFor(path: string, headers?: HeadersInit) {
@@ -57,6 +59,7 @@ describe("redirect behavior", () => {
     redirectMocks.getCurrentSession.mockReset();
     redirectMocks.recordClick.mockReset();
     redirectMocks.publicWebrootNotFoundResponse.mockReset();
+    redirectMocks.publicWebrootResponse.mockReset();
     redirectMocks.checkRateLimit.mockResolvedValue({ allowed: true, remaining: 119, resetAt: new Date("2026-06-11T12:01:00.000Z") });
     redirectMocks.getCurrentSession.mockResolvedValue(null);
     redirectMocks.getSetting.mockImplementation((key: string) => {
@@ -65,6 +68,7 @@ describe("redirect behavior", () => {
       return Promise.resolve(null);
     });
     redirectMocks.publicWebrootNotFoundResponse.mockResolvedValue(new Response("Not found", { status: 404 }));
+    redirectMocks.publicWebrootResponse.mockResolvedValue(null);
     redirectMocks.recordClick.mockResolvedValue(true);
   });
 
@@ -134,6 +138,80 @@ describe("redirect behavior", () => {
     expect(response.headers.get("content-type")).toContain("text/html");
     expect(redirectMocks.publicWebrootNotFoundResponse).toHaveBeenCalledWith({ method: "GET" });
     expect(redirectMocks.getSetting).not.toHaveBeenCalled();
+  });
+
+  it("uses built-in unavailable HTML when no custom unavailable page exists", async () => {
+    redirectMocks.findUnique.mockResolvedValue({
+      id: "link_1",
+      code: "abc",
+      destinationUrl: "https://example.com",
+      enabled: false,
+      archivedAt: null,
+      expiresAt: null,
+      maxClicks: null,
+      clickCount: 0
+    });
+    redirectMocks.getSiteName.mockResolvedValue("Surls");
+
+    const response = await handleShortRedirect(requestFor("/abc"), "abc");
+
+    expect(response.status).toBe(410);
+    expect(response.headers.get("content-type")).toContain("text/html");
+    await expect(response.text()).resolves.toContain("Short URL unavailable");
+    expect(redirectMocks.publicWebrootResponse).toHaveBeenCalledWith(
+      ["unavailable.html"],
+      expect.objectContaining({
+        cacheControl: "private, no-store, max-age=0",
+        method: "GET",
+        status: 410
+      })
+    );
+    expect(redirectMocks.recordClick).not.toHaveBeenCalled();
+  });
+
+  it("serves a custom unavailable page from the public webroot when present", async () => {
+    redirectMocks.findUnique.mockResolvedValue({
+      id: "link_1",
+      code: "abc",
+      destinationUrl: "https://example.com",
+      enabled: false,
+      archivedAt: null,
+      expiresAt: null,
+      maxClicks: null,
+      clickCount: 0
+    });
+    redirectMocks.publicWebrootResponse.mockResolvedValue(
+      new Response("<h1>Custom unavailable</h1>", { headers: { "content-type": "text/html; charset=utf-8" }, status: 410 })
+    );
+
+    const response = await handleShortRedirect(requestFor("/abc"), "abc");
+
+    expect(response.status).toBe(410);
+    await expect(response.text()).resolves.toBe("<h1>Custom unavailable</h1>");
+    expect(redirectMocks.getSiteName).not.toHaveBeenCalled();
+  });
+
+  it("omits the unavailable response body for HEAD probes", async () => {
+    redirectMocks.findUnique.mockResolvedValue({
+      id: "link_1",
+      code: "abc",
+      destinationUrl: "https://example.com",
+      enabled: false,
+      archivedAt: null,
+      expiresAt: null,
+      maxClicks: null,
+      clickCount: 0
+    });
+    redirectMocks.getSiteName.mockResolvedValue("Surls");
+
+    const response = await handleShortRedirect(requestFor("/abc"), "abc", true);
+
+    expect(response.status).toBe(410);
+    await expect(response.text()).resolves.toBe("");
+    expect(redirectMocks.publicWebrootResponse).toHaveBeenCalledWith(
+      ["unavailable.html"],
+      expect.objectContaining({ method: "HEAD", status: 410 })
+    );
   });
 
   it("redirects with no-store headers and records normal analytics", async () => {

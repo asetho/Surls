@@ -50,17 +50,8 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
   const [activeMode, setActiveMode] = useState<DashboardThemeMode>(() => currentDocumentThemeMode());
   const [submitting, setSubmitting] = useState<"reset" | "save" | null>(null);
   const savedThemeRef = useRef(savedTheme);
-  const [open, setOpen] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const requestedOpen = new URLSearchParams(window.location.search).get("themeEditor") === "open";
-    const storedOpen = window.sessionStorage.getItem(THEME_EDITOR_STORAGE_KEY) === "1";
-    return requestedOpen || storedOpen;
-  });
-  const [minimized, setMinimized] = useState(() => {
-    if (typeof window === "undefined") return false;
-    if (new URLSearchParams(window.location.search).get("themeEditor") === "open") return false;
-    return window.sessionStorage.getItem(THEME_EDITOR_MINIMIZED_STORAGE_KEY) === "1";
-  });
+  const [open, setOpen] = useState(false);
+  const [minimized, setMinimized] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const readonlySearchParams = useSearchParams();
@@ -71,6 +62,17 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
   useEffect(() => {
     savedThemeRef.current = savedTheme;
   }, [savedTheme]);
+
+  useEffect(() => {
+    const syncTimer = window.setTimeout(() => {
+      const storedOpen = window.sessionStorage.getItem(THEME_EDITOR_STORAGE_KEY) === "1";
+      const storedMinimized = window.sessionStorage.getItem(THEME_EDITOR_MINIMIZED_STORAGE_KEY) === "1";
+      setOpen(requestedOpen || storedOpen);
+      setMinimized(requestedOpen ? false : storedMinimized);
+    }, 0);
+
+    return () => window.clearTimeout(syncTimer);
+  }, [requestedOpen]);
 
   useEffect(() => {
     if (!requestedOpen) return;

@@ -27,12 +27,13 @@ export default async function SettingsPage() {
   const admin = await requireSiteAdmin();
   if (!admin) redirect(adminLoginPath("/admin/settings"));
 
-  const [settings, filesystemLoginPage, webrootIndexPage, webrootNotFoundPage, webrootFaviconFiles] =
+  const [settings, filesystemLoginPage, webrootIndexPage, webrootNotFoundPage, webrootUnavailablePage, webrootFaviconFiles] =
     await Promise.all([
       getSettings(),
       pageFromFilesystem("login"),
       publicWebrootFile([]),
       publicWebrootFile(["404.html"], { allowReservedPath: true }),
+      publicWebrootFile(["unavailable.html"]),
       getWebrootFaviconFiles()
     ]);
   const csrf = getCsrfToken();
@@ -61,6 +62,18 @@ export default async function SettingsPage() {
           active: false,
           label: "Not found page",
           source: "No 404.html is active from the public webroot."
+        },
+    webrootUnavailablePage
+      ? {
+          active: true,
+          label: "URL unavailable page",
+          source: `unavailable.html from ${webrootUnavailablePage.filePath}`,
+          detail: fileSizeLabel(webrootUnavailablePage.size)
+        }
+      : {
+          active: false,
+          label: "URL unavailable page",
+          source: "Using the built-in unavailable page for archived, disabled, expired, and click-limited links."
         },
     filesystemLoginPage
       ? {

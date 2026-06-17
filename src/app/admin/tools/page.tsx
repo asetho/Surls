@@ -86,7 +86,7 @@ export default async function ToolsPage() {
           <h2>API token</h2>
           <ApiTokenForm csrf={csrf} siteName={settings.siteName} />
           <div className="table-wrap">
-            <table>
+            <table className="responsive-table">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -100,12 +100,12 @@ export default async function ToolsPage() {
               <tbody>
                 {tokens.map((token) => (
                   <tr key={token.id}>
-                    <td>{token.name}</td>
-                    <td>{token.tokenPrefix}</td>
-                    <td>{token.scopes}</td>
-                    <td>{tokenExpirationLabel(token.expiresAt)}</td>
-                    <td>{tokenStatus(token)}</td>
-                    <td>
+                    <td data-label="Name">{token.name}</td>
+                    <td data-label="Prefix">{token.tokenPrefix}</td>
+                    <td data-label="Scope">{token.scopes}</td>
+                    <td data-label="Expires">{tokenExpirationLabel(token.expiresAt)}</td>
+                    <td data-label="Status">{tokenStatus(token)}</td>
+                    <td data-label="Action">
                       {!token.revokedAt ? (
                         <form action={revokeTokenAction}>
                           <input type="hidden" name="csrf" value={csrf} />

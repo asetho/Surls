@@ -23,7 +23,7 @@ export function buildContentSecurityPolicy({ isDev = false, nonce }: CspOptions 
     "img-src 'self' data: https://cdn.asetho.com https://static.addtoany.com https://www.addtoany.com",
     scriptSources.join(" "),
     "style-src 'self' 'unsafe-inline' https://cdn.asetho.com https://use.typekit.net https://p.typekit.net",
-    "connect-src 'self' https://cdn.asetho.com https://p.typekit.net https://cloudflareinsights.com https://static.addtoany.com https://www.addtoany.com",
+    "connect-src 'self' https://cdn.asetho.com https://p.typekit.net https://cloudflareinsights.com https://static.addtoany.com https://www.addtoany.com https://stats.addtoany.com",
     "frame-src 'self' about: https://static.addtoany.com https://www.addtoany.com",
     "font-src 'self' https://cdn.asetho.com https://use.typekit.net",
     "media-src 'self' https://cdn.asetho.com",

@@ -203,7 +203,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
           </div>
         ) : null}
         <div className="table-wrap">
-          <table className="links-table">
+          <table className="links-table responsive-table">
             <thead>
               <tr>
                 <th aria-sort={ariaSortFor("url", sort)}>{sortableHeader("url", "Short URL")}</th>
@@ -230,7 +230,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
                   };
                   return (
                     <tr key={link.id}>
-                      <td>
+                      <td data-label="Short URL">
                         <div className="link-list-short-row">
                           <a className="short-url-pill" href={`/admin/links/${link.id}`}>{link.code}</a>
                           {view === "active" ? (
@@ -250,19 +250,19 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
                           ))}
                         </div>
                       </td>
-                      <td className="small">
+                      <td className="small" data-label="Destination">
                         <div className="muted small link-destination-title">{link.title || "Untitled"}</div>
                         <a href={link.destinationUrl} target="_blank" rel="noreferrer">
                           <ExternalLink size={13} aria-hidden /> {link.destinationUrl}
                         </a>
                       </td>
-                      <td>
+                      <td data-label="Status">
                         <span className={link.archivedAt || !link.enabled ? "badge warning" : "badge"}>
                           {link.archivedAt ? "Archived" : link.enabled ? "Active" : "Disabled"}
                         </span>
                       </td>
-                      <td>{link.clickCount}</td>
-                      <td>
+                      <td data-label="Clicks">{link.clickCount}</td>
+                      <td data-label="Actions">
                         {view === "archived" ? (
                           <div className="row-actions">
                             <form action={restoreLinkAction}>

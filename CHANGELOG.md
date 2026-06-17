@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.11.0 - 2026-06-17
+
+### Added
+
+* Added support for a custom `unavailable.html` public page for archived, disabled, expired, and click-limited short URLs.
+
+### Changed
+
+* Admin tables now adapt into labeled cards on mobile so links, users, API tokens, recent clicks, and dashboard tables fit small screens.
+* The Theme Editor now opens cleanly from `?themeEditor=open` without starting minimized from saved browser state.
+
+### Fixed
+
+* Allowed AddToAny stats requests through the app content security policy.
+* Tightened mobile modal sizing and close-button layout.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.10.1 - 2026-06-17
 
 ### Fixed

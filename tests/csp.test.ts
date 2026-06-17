@@ -9,7 +9,9 @@ describe("content security policy", () => {
     expect(csp).toContain("script-src 'self' 'nonce-test-nonce'");
     expect(csp).toContain("https://static.addtoany.com");
     expect(csp).not.toContain("script-src 'self' 'unsafe-inline'");
-    expect(csp).toContain("connect-src 'self' https://cdn.asetho.com https://p.typekit.net https://cloudflareinsights.com https://static.addtoany.com https://www.addtoany.com");
+    expect(csp).toContain(
+      "connect-src 'self' https://cdn.asetho.com https://p.typekit.net https://cloudflareinsights.com https://static.addtoany.com https://www.addtoany.com https://stats.addtoany.com"
+    );
     expect(csp).toContain("frame-src 'self' about: https://static.addtoany.com https://www.addtoany.com");
     expect(csp).toContain("https://use.typekit.net");
     expect(csp).toContain("https://p.typekit.net");

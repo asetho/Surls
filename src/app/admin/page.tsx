@@ -130,7 +130,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: S
           <h2>Top links</h2>
         </div>
         <div className="table-wrap">
-          <table>
+          <table className="responsive-table">
             <thead>
               <tr>
                 <th>Short URL</th>
@@ -145,17 +145,17 @@ export default async function AdminDashboard({ searchParams }: { searchParams: S
                   const url = shortUrl(appBaseUrl(), link.code);
                   return (
                     <tr key={link.id}>
-                      <td>
+                      <td data-label="Short URL">
                         <a className="short-url-pill" href={`/admin/links/${link.id}`}>{link.code}</a>
                       </td>
-                      <td className="small">
+                      <td className="small" data-label="Destination">
                         <div className="muted small link-destination-title">{link.title || "Untitled"}</div>
                         <a href={link.destinationUrl} target="_blank" rel="noreferrer">
                           <ExternalLink size={13} aria-hidden /> {link.destinationUrl}
                         </a>
                       </td>
-                      <td>{link.clickCount}</td>
-                      <td>
+                      <td data-label="Clicks">{link.clickCount}</td>
+                      <td data-label="Actions">
                         <CopyShareButtons url={url} title={link.title} defaultTitle={`${siteName} short link`} />
                       </td>
                     </tr>

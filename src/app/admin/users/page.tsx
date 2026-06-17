@@ -56,7 +56,7 @@ export default async function UsersPage() {
       <section className="surface surface-panel">
         <h2>Users</h2>
         <div className="table-wrap">
-          <table>
+          <table className="responsive-table">
             <thead>
               <tr>
                 <th>User</th>
@@ -71,7 +71,7 @@ export default async function UsersPage() {
             <tbody>
               {users.map((user) => (
                 <tr key={user.id}>
-                  <td>
+                  <td data-label="User">
                     <AdminUserIdentityForm
                       csrf={csrf}
                       user={{
@@ -82,7 +82,7 @@ export default async function UsersPage() {
                     />
                     <div className="muted small">Created {formatDateTime(user.createdAt, displayTimeZone)}</div>
                   </td>
-                  <td>
+                  <td data-label="Role">
                     {user.id === admin.id ? (
                       <span className="badge">Admin</span>
                     ) : (
@@ -97,7 +97,7 @@ export default async function UsersPage() {
                       </form>
                     )}
                   </td>
-                  <td>
+                  <td data-label="Security">
                     <div className="row-actions small">
                       <span className={user.totpCredential?.enabled ? "badge" : "badge warning"}>
                         TOTP {user.totpCredential?.enabled ? "on" : "off"}
@@ -107,10 +107,10 @@ export default async function UsersPage() {
                       </span>
                     </div>
                   </td>
-                  <td>{user._count.shortLinks}</td>
-                  <td>{user._count.sessions}</td>
-                  <td>{user.lastLoginAt ? formatDateTime(user.lastLoginAt, displayTimeZone) : "Never"}</td>
-                  <td>
+                  <td data-label="Links">{user._count.shortLinks}</td>
+                  <td data-label="Sessions">{user._count.sessions}</td>
+                  <td data-label="Last login">{user.lastLoginAt ? formatDateTime(user.lastLoginAt, displayTimeZone) : "Never"}</td>
+                  <td data-label="Actions">
                     {user.id === admin.id ? (
                       <span className="muted small">Current admin</span>
                     ) : (

@@ -2940,6 +2940,10 @@ table {
   width: 100%;
 }
 
+table.responsive-table {
+  min-width: min(780px, 100%);
+}
+
 th,
 td {
   border-bottom: 1px solid var(--border);
@@ -4165,6 +4169,14 @@ th {
   margin: 0;
 }
 
+.modal-header > .icon-button {
+  align-self: start;
+  justify-self: end;
+  min-width: 2rem;
+  padding: 0;
+  width: 2rem;
+}
+
 .delete-modal-panel {
   max-width: 36rem;
 }
@@ -4299,6 +4311,11 @@ th {
     display: grid;
   }
 
+  .modal-header {
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
   .admin-sidebar {
     height: auto;
     min-height: auto;
@@ -4392,6 +4409,11 @@ th {
     width: min(100%, 42rem);
   }
 
+  .modal-dialog {
+    max-width: calc(100vw - 1rem);
+    width: calc(100vw - 1rem);
+  }
+
   .settings-editor-card-grid {
     grid-template-columns: 1fr;
   }
@@ -4424,6 +4446,71 @@ th {
 
   .stats-summary {
     grid-template-columns: 1fr;
+  }
+
+  table.responsive-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    display: block;
+    min-width: 0;
+  }
+
+  table.responsive-table thead {
+    display: none;
+  }
+
+  table.responsive-table tbody {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  table.responsive-table tr {
+    background: color-mix(in srgb, var(--surface), var(--surface-strong) 12%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: grid;
+    gap: 0.45rem;
+    padding: 0.75rem;
+  }
+
+  table.responsive-table td {
+    border-bottom: 0;
+    display: block;
+    min-width: 0;
+    padding: 0;
+    width: 100%;
+  }
+
+  table.responsive-table td[data-label]::before {
+    color: var(--muted);
+    content: attr(data-label);
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    margin-bottom: 0.16rem;
+    text-transform: uppercase;
+  }
+
+  table.responsive-table td[colspan] {
+    color: var(--muted);
+  }
+
+  table.responsive-table .row-actions {
+    align-items: stretch;
+  }
+
+  table.responsive-table .row-actions > *,
+  table.responsive-table .row-actions > form > button,
+  table.responsive-table td[data-label="Actions"] > form,
+  table.responsive-table td[data-label="Action"] > form {
+    width: 100%;
+  }
+
+  table.responsive-table .user-agent-cell,
+  table.responsive-table .ip-cell,
+  table.responsive-table a {
+    overflow-wrap: anywhere;
   }
 
   .theme-toggle.icon-only {

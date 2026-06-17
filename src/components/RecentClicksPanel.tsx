@@ -91,7 +91,7 @@ export function RecentClicksPanel({ initialData, linkId }: RecentClicksPanelProp
         </div>
       ) : null}
       <div className="table-wrap">
-        <table>
+        <table className="responsive-table">
           <thead>
             <tr>
               <th>Timestamp</th>
@@ -104,14 +104,14 @@ export function RecentClicksPanel({ initialData, linkId }: RecentClicksPanelProp
             {data.rows.length ? (
               data.rows.map((click) => (
                 <tr key={click.id}>
-                  <td>
+                  <td data-label="Timestamp">
                     <span className="timestamp" title={`Database ID: ${click.id}`}>
                       {click.occurredAtLabel}
                     </span>
                   </td>
-                  <td>{click.countryLabel}</td>
-                  <td className="ip-cell">{click.ipAddressLabel}</td>
-                  <td className="user-agent-cell">
+                  <td data-label="Country">{click.countryLabel}</td>
+                  <td className="ip-cell" data-label="IP Address">{click.ipAddressLabel}</td>
+                  <td className="user-agent-cell" data-label="User Agent [Referrer]">
                     <span>{click.userAgentLabel}</span>
                     <span className="muted small">[{click.referrerLabel}]</span>
                   </td>
