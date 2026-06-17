@@ -299,6 +299,18 @@ export function dashboardThemeFromFormData(formData: FormData): DashboardTheme {
   ) as DashboardTheme;
 }
 
+export function dashboardThemeToFormData(theme: DashboardTheme) {
+  const formData = new FormData();
+
+  for (const mode of DASHBOARD_THEME_MODES) {
+    for (const field of DASHBOARD_THEME_FIELDS) {
+      formData.set(dashboardThemeFieldName(mode.key, field.key), theme[mode.key][field.key]);
+    }
+  }
+
+  return formData;
+}
+
 export function isDefaultDashboardTheme(theme: DashboardTheme) {
   return DASHBOARD_THEME_MODES.every((mode) =>
     DASHBOARD_THEME_FIELDS.every((field) => theme[mode.key][field.key] === DEFAULT_DASHBOARD_THEME[mode.key][field.key])

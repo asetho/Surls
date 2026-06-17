@@ -7,6 +7,7 @@ import {
   dashboardThemeFieldName,
   dashboardThemeFromFormData,
   dashboardThemePaletteCssVariables,
+  dashboardThemeToFormData,
   isDefaultDashboardTheme,
   normalizeDashboardTheme
 } from "@/lib/dashboard-theme";
@@ -85,6 +86,14 @@ describe("dashboard theme settings", () => {
     ).toThrow(
       /Light mode accent must be a valid hex color/
     );
+  });
+
+  it("serializes every palette color for client-side theme editor saves", () => {
+    const formData = dashboardThemeToFormData(DEFAULT_DASHBOARD_THEME);
+    const expectedFieldCount = DASHBOARD_THEME_MODES.length * DASHBOARD_THEME_FIELDS.length;
+
+    expect(Array.from(formData.keys())).toHaveLength(expectedFieldCount);
+    expect(dashboardThemeFromFormData(formData)).toEqual(DEFAULT_DASHBOARD_THEME);
   });
 
   it("identifies the built-in palette", () => {

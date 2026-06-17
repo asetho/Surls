@@ -6,6 +6,7 @@ import { Minus, Palette, X } from "lucide-react";
 import { DashboardThemeEditor } from "@/components/DashboardThemeEditor";
 import {
   dashboardThemeCssVariables,
+  dashboardThemeToFormData,
   isDefaultDashboardTheme,
   type DashboardTheme,
   type DashboardThemeMode
@@ -114,6 +115,7 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
 
   async function submitThemeForm(formData: FormData, intent: "reset" | "save") {
     formData.set("intent", intent);
+    formData.set("csrf", csrf);
     setSubmitting(intent);
 
     try {
@@ -147,12 +149,12 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
 
   function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    void submitThemeForm(new FormData(event.currentTarget), "save");
+    void submitThemeForm(dashboardThemeToFormData(draftTheme), "save");
   }
 
   function handleReset(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    void submitThemeForm(new FormData(event.currentTarget), "reset");
+    void submitThemeForm(new FormData(), "reset");
   }
 
   if (!open) return null;
