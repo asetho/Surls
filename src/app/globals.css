@@ -626,15 +626,17 @@ button.danger-outline:hover {
 }
 
 .status-pill {
+  align-items: center;
   background: var(--pill-background, var(--surface-strong));
   border: 1px solid var(--pill-border, var(--border));
-  border-radius: 999px;
-  color: var(--pill-text, var(--muted));
+  border-radius: 8px;
+  color: var(--pill-text, var(--text));
+  display: inline-flex;
   flex: 0 0 auto;
   font-size: 0.76rem;
-  font-weight: 700;
-  line-height: 1.2;
-  padding: 0.16rem 0.48rem;
+  font-weight: 800;
+  line-height: 1.15;
+  padding: 0.18rem 0.48rem;
 }
 
 .status-pill-active {
@@ -663,6 +665,285 @@ button.danger-outline:hover {
   .favicon-manifest-fields {
     grid-template-columns: 1fr;
   }
+}
+
+.style-reference-page {
+  gap: 0.9rem;
+}
+
+.style-reference-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.style-reference-token-grid {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.style-reference-token-sections {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.style-reference-token-section {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.style-reference-token-section h3 {
+  margin: 0;
+}
+
+.style-reference-token {
+  align-items: center;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  gap: 0.65rem;
+  min-width: 0;
+  padding: 0.65rem;
+}
+
+.style-reference-swatch {
+  background: var(--token-color);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  box-shadow: var(--token-shadow, inset 0 0 0 1px color-mix(in srgb, var(--surface), transparent 50%));
+  flex: 0 0 2rem;
+  height: 2rem;
+  width: 2rem;
+}
+
+.style-reference-token span:last-child {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.style-reference-token code {
+  color: var(--muted);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+.style-reference-token small {
+  color: var(--muted);
+  line-height: 1.25;
+}
+
+.style-reference-type-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.style-reference-type-list p {
+  margin: 0.1rem 0 0;
+}
+
+.style-reference-type-display {
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+.style-reference-type-heading {
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.style-reference-type-body {
+  color: var(--text);
+}
+
+.style-reference-type-mono {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+
+.style-reference-button-grid,
+.style-reference-pill-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.input-with-icon {
+  align-items: center;
+  display: flex;
+  gap: 0.45rem;
+}
+
+.input-with-icon svg {
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+
+.input-with-icon input {
+  min-width: 0;
+}
+
+.style-reference-viz-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(18rem, 2fr) repeat(2, minmax(12rem, 1fr));
+}
+
+.style-reference-chart-card {
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.8rem;
+}
+
+.style-reference-chart-card h3 {
+  margin: 0;
+}
+
+.style-reference-line-chart {
+  background: color-mix(in srgb, var(--surface-strong), var(--surface) 34%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  min-height: 13rem;
+  width: 100%;
+}
+
+.style-reference-line-chart line {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.style-reference-line-chart polygon {
+  fill: var(--chart-color-3);
+  opacity: 0.62;
+}
+
+.style-reference-line-chart polyline {
+  fill: none;
+  stroke: var(--chart-color-1);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+}
+
+.style-reference-line-chart circle {
+  fill: var(--surface);
+  stroke: var(--chart-color-5);
+  stroke-width: 4;
+}
+
+.style-reference-pie {
+  aspect-ratio: 1;
+  background: conic-gradient(
+    var(--chart-color-1) 0 52%,
+    var(--chart-color-2) 52% 76%,
+    var(--chart-color-5) 76% 100%
+  );
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  max-width: 10rem;
+  width: 100%;
+}
+
+.style-reference-chart-list {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.style-reference-chart-list > div {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.style-reference-map {
+  display: grid;
+  gap: 0.35rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.style-reference-map span {
+  aspect-ratio: 1.1;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.style-reference-map .bucket-1 {
+  background: var(--chart-map-bucket-1);
+}
+
+.style-reference-map .bucket-2 {
+  background: var(--chart-map-bucket-2);
+}
+
+.style-reference-map .bucket-3 {
+  background: var(--chart-map-bucket-3);
+}
+
+.style-reference-map .bucket-4 {
+  background: var(--chart-map-bucket-4);
+}
+
+.style-reference-map .bucket-5 {
+  background: var(--chart-map-bucket-5);
+}
+
+.style-reference-map-legend {
+  color: var(--muted);
+  display: flex;
+  font-size: 0.82rem;
+  font-weight: 800;
+  justify-content: space-between;
+}
+
+.style-reference-toast-stack {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.style-reference-toast {
+  align-items: center;
+  border: 1px solid var(--toast-success-border);
+  border-left-width: 4px;
+  border-radius: var(--radius);
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+}
+
+.style-reference-toast-success {
+  background: var(--toast-success-background);
+  border-color: var(--toast-success-border);
+  color: var(--toast-success-text);
+}
+
+.style-reference-toast-error {
+  background: var(--toast-error-background);
+  border-color: var(--toast-error-border);
+  color: var(--toast-error-text);
+}
+
+.style-reference-empty-state {
+  align-items: center;
+  background: var(--surface-strong);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 0.45rem;
+  justify-items: start;
+  padding: 1rem;
+}
+
+.style-reference-empty-state p {
+  margin: 0;
 }
 
 .settings-favicon-snippet {
@@ -4407,6 +4688,8 @@ th {
   .location-analytics-grid,
   .qr-output-grid,
   .settings-status-grid,
+  .style-reference-grid,
+  .style-reference-viz-grid,
   .stats-history-grid,
   .stats-split-grid,
   .admin-shell {

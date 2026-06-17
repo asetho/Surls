@@ -111,6 +111,9 @@ export default async function SettingsPage() {
           <Link id="theme-editor-button" className="button secondary" href="/admin/settings?themeEditor=open">
             Theme Editor
           </Link>
+          <Link className="button secondary" href="/admin/style-reference">
+            Style Reference
+          </Link>
           <Link id="favicon-editor-button" className="button secondary" href="/admin/settings/favicons/editor">
             Favicon Editor
           </Link>
@@ -208,6 +211,17 @@ export default async function SettingsPage() {
           <p className="muted">Upload browser icons, app icons, and generated install-screen names.</p>
           <Link className="button secondary" href="/admin/settings/favicons/editor">
             Open Favicon Editor
+          </Link>
+        </div>
+
+        <div className="surface surface-panel settings-editor-card">
+          <div className="settings-card-header">
+            <h2>Style reference</h2>
+            <span className="status-pill">Preview</span>
+          </div>
+          <p className="muted">Review saved theme colors across buttons, forms, tables, charts, and notices.</p>
+          <Link className="button secondary" href="/admin/style-reference">
+            Open Style Reference
           </Link>
         </div>
       </section>
