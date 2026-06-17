@@ -5,29 +5,21 @@ import { adminLoginPath } from "@/lib/admin-login-path";
 import { requireSiteAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { getSettings } from "@/lib/settings";
-import { buildFaviconsFeedback, FaviconsPanel, getWebrootFaviconFiles } from "../../_components/SettingsPanels";
+import { FaviconsPanel, getWebrootFaviconFiles } from "../../_components/SettingsPanels";
 
 export const metadata: Metadata = {
   title: "Favicon Editor"
 };
 
-type FaviconEditorSearchParams = Promise<{
-  settingsError?: string;
-  settingsSection?: string;
-  settingsSuccess?: string;
-}>;
-
-export default async function FaviconEditorPage({ searchParams }: { searchParams: FaviconEditorSearchParams }) {
+export default async function FaviconEditorPage() {
   const admin = await requireSiteAdmin();
   if (!admin) redirect(adminLoginPath("/admin/settings/favicons/editor"));
 
-  const [params, settings, csrf, webrootFaviconFiles] = await Promise.all([
-    searchParams,
+  const [settings, csrf, webrootFaviconFiles] = await Promise.all([
     getSettings(),
     getCsrfToken(),
     getWebrootFaviconFiles()
   ]);
-  const feedback = buildFaviconsFeedback(params);
 
   return (
     <main className="admin-content">
@@ -46,7 +38,6 @@ export default async function FaviconEditorPage({ searchParams }: { searchParams
       <FaviconsPanel
         csrf={csrf}
         favicons={settings.favicons}
-        feedback={feedback}
         mode="section"
         siteName={settings.siteName}
         webrootFiles={webrootFaviconFiles}

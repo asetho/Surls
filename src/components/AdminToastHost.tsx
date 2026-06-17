@@ -4,17 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AlertTriangle, CheckCircle2, X } from "lucide-react";
 import { normalizeAdminToastType, type AdminToastType } from "@/lib/admin-toast";
-
-const ADMIN_TOAST_EVENT = "surls-admin-toast";
-
-function toastFromEvent(event: Event) {
-  const detail = event instanceof CustomEvent ? (event.detail as unknown) : null;
-  if (!detail || typeof detail !== "object") return null;
-  const message = "message" in detail && typeof detail.message === "string" ? detail.message : null;
-  if (!message) return null;
-  const type = "type" in detail && typeof detail.type === "string" ? normalizeAdminToastType(detail.type) : "success";
-  return { message, type };
-}
+import { ADMIN_TOAST_EVENT, adminToastFromEvent } from "@/lib/admin-toast-event";
 
 export function AdminToastHost() {
   const searchParams = useSearchParams();
@@ -46,7 +36,7 @@ export function AdminToastHost() {
 
   useEffect(() => {
     function handleToastEvent(event: Event) {
-      const nextToast = toastFromEvent(event);
+      const nextToast = adminToastFromEvent(event);
       if (!nextToast) return;
 
       setActiveToast(nextToast);

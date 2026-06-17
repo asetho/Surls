@@ -3384,25 +3384,37 @@ th {
 
 .tab-list {
   align-items: center;
-  border-bottom: 1px solid var(--border);
+  background: var(--subtle-fill, var(--surface-strong));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: 0.4rem;
+  justify-self: start;
+  padding: 0.28rem;
 }
 
 .tab-button {
-  background: transparent;
-  border: 0;
-  border-bottom: 3px solid transparent;
-  border-radius: 0;
-  color: var(--muted);
+  background: var(--pill-background, var(--surface));
+  border: 1px solid var(--pill-border, var(--border));
+  border-radius: 999px;
+  color: var(--pill-text, var(--text));
+  font-weight: 800;
   min-height: 2.2rem;
-  padding: 0.4rem 0.6rem;
+  padding: 0.4rem 0.72rem;
+}
+
+.tab-button:hover,
+.tab-button:focus-visible {
+  background: color-mix(in srgb, var(--pill-background, var(--surface)), var(--active-pill-background, var(--color-teal)) 18%);
+  border-color: var(--active-pill-border, var(--border));
+  color: var(--pill-text, var(--text));
 }
 
 .tab-button[aria-selected="true"] {
-  border-bottom-color: var(--color-teal);
-  color: var(--text);
+  background: var(--active-pill-background, var(--color-teal));
+  border-color: var(--active-pill-border, var(--color-teal));
+  color: var(--active-pill-text, var(--button-text));
 }
 
 .stats-panel,
@@ -4056,20 +4068,6 @@ th {
   gap: 0.25rem;
   min-width: 24rem;
   overflow-wrap: anywhere;
-}
-
-.toast {
-  background: var(--toast-success-background, var(--surface));
-  border: 1px solid var(--toast-success-border, var(--border));
-  border-left: 4px solid var(--toast-success-border, var(--color-teal));
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  bottom: 1rem;
-  color: var(--toast-success-text, var(--text));
-  padding: 0.55rem 0.7rem;
-  position: fixed;
-  right: 1rem;
-  z-index: 40;
 }
 
 .system-toast-region {

@@ -1,11 +1,17 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { UserPlus } from "lucide-react";
 import { createUserAction } from "@/app/admin/users/actions";
+import { dispatchAdminToast } from "@/lib/admin-toast-event";
 
 export function CreateUserForm({ csrf }: { csrf: string }) {
   const [state, action, pending] = useActionState(createUserAction, null);
+
+  useEffect(() => {
+    if (state?.message) dispatchAdminToast("success", state.message);
+    if (state?.error) dispatchAdminToast("error", state.error);
+  }, [state]);
 
   return (
     <form className="form-stack" action={action}>
@@ -35,8 +41,6 @@ export function CreateUserForm({ csrf }: { csrf: string }) {
         <UserPlus size={16} aria-hidden />
         {pending ? "Creating..." : "Create user"}
       </button>
-      {state?.message ? <div className="success">{state.message}</div> : null}
-      {state?.error ? <div className="alert">{state.error}</div> : null}
     </form>
   );
 }

@@ -23,19 +23,12 @@ export const metadata: Metadata = {
   title: "Settings"
 };
 
-type SettingsSearchParams = Promise<{
-  settingsError?: string;
-  settingsSection?: string;
-  settingsSuccess?: string;
-}>;
-
-export default async function SettingsPage({ searchParams }: { searchParams: SettingsSearchParams }) {
+export default async function SettingsPage() {
   const admin = await requireSiteAdmin();
   if (!admin) redirect(adminLoginPath("/admin/settings"));
 
-  const [params, settings, filesystemLoginPage, webrootIndexPage, webrootNotFoundPage, webrootFaviconFiles] =
+  const [settings, filesystemLoginPage, webrootIndexPage, webrootNotFoundPage, webrootFaviconFiles] =
     await Promise.all([
-      searchParams,
       getSettings(),
       pageFromFilesystem("login"),
       publicWebrootFile([]),
@@ -94,13 +87,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: Set
   const activeCustomPageCount = customPageStatuses.filter((page) => page.active).length;
   const isDefaultTheme = isDefaultDashboardTheme(settings.dashboardTheme);
   const hostedFaviconCount = faviconActiveCount(settings.favicons, webrootFaviconFiles);
-  const settingsFeedback =
-    params.settingsSection === "settings" && params.settingsError
-      ? { message: params.settingsError, type: "error" as const }
-      : params.settingsSection === "settings" && params.settingsSuccess
-        ? { message: params.settingsSuccess, type: "success" as const }
-        : null;
-
   return (
     <main className="admin-content">
       <div className="content-header content-header-topbar">
@@ -122,9 +108,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: Set
         <form className="form-stack" action={updateSettingsAction}>
           <input type="hidden" name="csrf" value={csrf} />
           <input type="hidden" name="returnTo" value="/admin/settings" />
-          {settingsFeedback ? (
-            <div className={settingsFeedback.type === "success" ? "success" : "alert"}>{settingsFeedback.message}</div>
-          ) : null}
           <label>
             Site name
             <input name="siteName" defaultValue={settings.siteName} />

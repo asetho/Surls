@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Minus, Palette, X } from "lucide-react";
 import { DashboardThemeEditor } from "@/components/DashboardThemeEditor";
+import { dispatchAdminToast } from "@/lib/admin-toast-event";
 import {
   dashboardThemeCssVariables,
   dashboardThemeToFormData,
@@ -14,7 +15,6 @@ import {
 
 const THEME_EDITOR_STORAGE_KEY = "surls-theme-editor-open";
 const THEME_EDITOR_MINIMIZED_STORAGE_KEY = "surls-theme-editor-minimized";
-const ADMIN_TOAST_EVENT = "surls-admin-toast";
 
 function themeCssVariableMap(theme: DashboardTheme) {
   return dashboardThemeCssVariables(theme) as Record<string, string>;
@@ -38,10 +38,6 @@ function adminPathWithoutEditor(pathname: string, searchParams: URLSearchParams)
 function currentDocumentThemeMode(): DashboardThemeMode {
   if (typeof document === "undefined") return "light";
   return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
-}
-
-function showAdminToast(type: "error" | "success", message: string) {
-  window.dispatchEvent(new CustomEvent(ADMIN_TOAST_EVENT, { detail: { message, type } }));
 }
 
 function isThemeResponse(value: unknown): value is { dashboardTheme: DashboardTheme; message?: string } {
@@ -142,9 +138,9 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
       setSavedTheme(body.dashboardTheme);
       setDraftTheme(body.dashboardTheme);
       applyThemeVariables(body.dashboardTheme);
-      showAdminToast("success", body.message ?? "Dashboard theme saved.");
+      dispatchAdminToast("success", body.message ?? "Dashboard theme saved.");
     } catch (error) {
-      showAdminToast("error", error instanceof Error ? error.message : "Could not save dashboard theme.");
+      dispatchAdminToast("error", error instanceof Error ? error.message : "Could not save dashboard theme.");
     } finally {
       setSubmitting(null);
     }
@@ -200,7 +196,7 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
           variant="drawer"
           showModePreviews={false}
           onTestToast={(type) =>
-            showAdminToast(
+            dispatchAdminToast(
               type,
               type === "success" ? "Theme success toast preview." : "Theme error toast preview."
             )

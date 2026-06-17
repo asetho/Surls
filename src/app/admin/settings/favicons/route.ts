@@ -9,14 +9,14 @@ import { appBaseUrl } from "@/lib/env";
 import { faviconsFromUpload, getFaviconManifestNames } from "@/lib/favicons";
 import { getSettings, setSetting } from "@/lib/settings";
 
-function settingsFeedbackUrl(kind: "settingsError" | "settingsSuccess", message: string) {
-  const toastType = kind === "settingsSuccess" ? "success" : "error";
+function faviconToastUrl(kind: "error" | "success", message: string) {
+  const toastType = kind === "success" ? "success" : "error";
   const url = new URL(adminToastPath("/admin/settings/favicons/editor", toastType, message), appBaseUrl());
   return url;
 }
 
-function redirectToSettings(kind: "settingsError" | "settingsSuccess", message: string) {
-  return NextResponse.redirect(settingsFeedbackUrl(kind, message), 303);
+function redirectToFaviconEditor(kind: "error" | "success", message: string) {
+  return NextResponse.redirect(faviconToastUrl(kind, message), 303);
 }
 
 function uploadErrorMessage(error: unknown) {
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     formData = await request.formData();
     validateCsrf(formData);
   } catch {
-    return redirectToSettings("settingsError", "The form expired. Please try again.");
+    return redirectToFaviconEditor("error", "The form expired. Please try again.");
   }
 
   const admin = await requireSiteAdmin();
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       siteName: settings.siteName
     });
   } catch (error) {
-    return redirectToSettings("settingsError", uploadErrorMessage(error));
+    return redirectToFaviconEditor("error", uploadErrorMessage(error));
   }
 
   await setSetting("favicons", favicons);
@@ -83,5 +83,5 @@ export async function POST(request: NextRequest) {
   });
   revalidateFaviconPaths();
 
-  return redirectToSettings("settingsSuccess", "Favicon files saved.");
+  return redirectToFaviconEditor("success", "Favicon files saved.");
 }

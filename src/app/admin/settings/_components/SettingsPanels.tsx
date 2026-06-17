@@ -26,11 +26,6 @@ export type CustomPageStatus = {
   source: string;
 };
 
-export type SettingsFeedback = {
-  message: string;
-  type: "error" | "success";
-};
-
 type PanelMode = "collapsed" | "section";
 
 type WebrootFaviconFiles = Partial<Record<FaviconAssetKey | "siteManifest", PublicWebrootFile | null>>;
@@ -47,17 +42,6 @@ export async function getWebrootFaviconFiles() {
   return Object.fromEntries(
     FAVICON_ASSETS.map((asset, index) => [asset.key, webrootFaviconResults[index]])
   ) as WebrootFaviconFiles;
-}
-
-export function buildFaviconsFeedback(params: {
-  settingsError?: string;
-  settingsSection?: string;
-  settingsSuccess?: string;
-}) {
-  if (params.settingsSection !== "favicons") return null;
-  if (params.settingsError) return { message: params.settingsError, type: "error" as const };
-  if (params.settingsSuccess) return { message: params.settingsSuccess, type: "success" as const };
-  return null;
 }
 
 export function faviconActiveCount(favicons: StoredFavicons | null, webrootFiles: WebrootFaviconFiles) {
@@ -216,14 +200,12 @@ export function DashboardThemePanel({
 export function FaviconsPanel({
   csrf,
   favicons,
-  feedback,
   mode = "collapsed",
   siteName,
   webrootFiles
 }: {
   csrf: string;
   favicons: StoredFavicons | null;
-  feedback?: SettingsFeedback | null;
   mode?: PanelMode;
   siteName: string;
   webrootFiles: WebrootFaviconFiles;
@@ -252,7 +234,6 @@ export function FaviconsPanel({
         are left empty. Surls hosts these files from standard root URLs so app pages and custom pages can share the same
         browser icons. The web app manifest is generated from the app names below.
       </p>
-      {feedback ? <div className={feedback.type === "success" ? "success" : "alert"}>{feedback.message}</div> : null}
 
       <dl className="settings-status-list favicon-status-list">
         {FAVICON_ASSETS.map((asset) => {
@@ -390,7 +371,7 @@ export function FaviconsPanel({
   }
 
   return (
-    <details className="surface surface-panel settings-collapse" open={Boolean(feedback) || undefined}>
+    <details className="surface surface-panel settings-collapse">
       <summary className="settings-card-header">
         <h2>Favicons</h2>
         <span className={activeCount > 0 ? "status-pill status-pill-active" : "status-pill"}>

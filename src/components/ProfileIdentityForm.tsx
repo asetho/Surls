@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { Save } from "lucide-react";
 import { updateProfileAction } from "@/app/admin/profile/actions";
+import { dispatchAdminToast } from "@/lib/admin-toast-event";
 
 type ProfileIdentityFormProps = {
   csrf: string;
@@ -14,6 +15,11 @@ type ProfileIdentityFormProps = {
 
 export function ProfileIdentityForm({ csrf, user }: ProfileIdentityFormProps) {
   const [state, action, pending] = useActionState(updateProfileAction, null);
+
+  useEffect(() => {
+    if (state?.message) dispatchAdminToast("success", state.message);
+    if (state?.error) dispatchAdminToast("error", state.error);
+  }, [state]);
 
   return (
     <form className="form-stack" action={action}>
@@ -35,8 +41,6 @@ export function ProfileIdentityForm({ csrf, user }: ProfileIdentityFormProps) {
         <Save size={16} aria-hidden />
         {pending ? "Saving..." : "Save profile"}
       </button>
-      {state?.message ? <div className="success">{state.message}</div> : null}
-      {state?.error ? <div className="alert">{state.error}</div> : null}
     </form>
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { Save } from "lucide-react";
 import { updateUserIdentityAction } from "@/app/admin/users/actions";
+import { dispatchAdminToast } from "@/lib/admin-toast-event";
 
 type AdminUserIdentityFormProps = {
   csrf: string;
@@ -15,6 +16,11 @@ type AdminUserIdentityFormProps = {
 
 export function AdminUserIdentityForm({ csrf, user }: AdminUserIdentityFormProps) {
   const [state, action, pending] = useActionState(updateUserIdentityAction, null);
+
+  useEffect(() => {
+    if (state?.message) dispatchAdminToast("success", state.message);
+    if (state?.error) dispatchAdminToast("error", state.error);
+  }, [state]);
 
   return (
     <form className="user-identity-form" action={action}>
@@ -32,8 +38,6 @@ export function AdminUserIdentityForm({ csrf, user }: AdminUserIdentityFormProps
         <Save size={16} aria-hidden />
         {pending ? "Saving..." : "Save"}
       </button>
-      {state?.message ? <div className="success small">{state.message}</div> : null}
-      {state?.error ? <div className="alert small">{state.error}</div> : null}
     </form>
   );
 }

@@ -4,6 +4,7 @@ import { Pencil, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { updateLinkAction } from "@/app/admin/links/actions";
+import { dispatchAdminToast } from "@/lib/admin-toast-event";
 import { DestinationWarnings } from "./DestinationWarnings";
 import { TitleAutoFill } from "./TitleAutoFill";
 
@@ -30,12 +31,10 @@ export function EditLinkModal({
 }) {
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const toastTimeoutRef = useRef<number | null>(null);
   const titleId = useId();
   const [destinationUrl, setDestinationUrl] = useState(link.destinationUrl);
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [toast, setToast] = useState("");
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -65,21 +64,15 @@ export function EditLinkModal({
     setIsOpen(false);
   }
 
-  function showSavedToast() {
-    if (toastTimeoutRef.current) {
-      window.clearTimeout(toastTimeoutRef.current);
-    }
-    setToast("Link saved.");
-    toastTimeoutRef.current = window.setTimeout(() => setToast(""), 1800);
-  }
-
   async function saveLink(formData: FormData) {
     setIsSaving(true);
     try {
       await updateLinkAction(formData);
       closeDialog();
       router.refresh();
-      showSavedToast();
+      dispatchAdminToast("success", "Link saved.");
+    } catch (error) {
+      dispatchAdminToast("error", error instanceof Error ? error.message : "Could not save that link.");
     } finally {
       setIsSaving(false);
     }
@@ -177,7 +170,6 @@ export function EditLinkModal({
           </div>
         ) : null}
       </dialog>
-      {toast ? <div className="toast" role="status">{toast}</div> : null}
     </>
   );
 }

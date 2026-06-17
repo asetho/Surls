@@ -1,12 +1,13 @@
 "use client";
 
 import { Copy, Share2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
   ADDTOANY_PRIORITIZED_SERVICES,
   ADDTOANY_SCRIPT_ID,
   ADDTOANY_SCRIPT_SRC
 } from "@/lib/addtoany";
+import { dispatchAdminToast } from "@/lib/admin-toast-event";
 
 type AddToAnyWindow = Window & {
   a2a?: {
@@ -39,8 +40,6 @@ function setupAddToAny() {
 }
 
 export function CopyShortUrlButton({ compact = false, url }: { compact?: boolean; url: string }) {
-  const [toast, setToast] = useState("");
-
   async function copy() {
     try {
       await navigator.clipboard.writeText(url);
@@ -52,24 +51,20 @@ export function CopyShortUrlButton({ compact = false, url }: { compact?: boolean
       document.execCommand("copy");
       textarea.remove();
     }
-    setToast("Copied!");
-    window.setTimeout(() => setToast(""), 1600);
+    dispatchAdminToast("success", "Copied to clipboard.");
   }
 
   return (
-    <>
-      <button
-        type="button"
-        className={`icon-button secondary${compact ? " icon-only-action" : ""}`}
-        onClick={copy}
-        aria-label={compact ? "Copy short URL" : undefined}
-        title="Copy short URL"
-      >
-        <Copy size={16} aria-hidden />
-        {compact ? null : "Copy"}
-      </button>
-      {toast ? <div className="toast" role="status">{toast}</div> : null}
-    </>
+    <button
+      type="button"
+      className={`icon-button secondary${compact ? " icon-only-action" : ""}`}
+      onClick={copy}
+      aria-label={compact ? "Copy short URL" : undefined}
+      title="Copy short URL"
+    >
+      <Copy size={16} aria-hidden />
+      {compact ? null : "Copy"}
+    </button>
   );
 }
 

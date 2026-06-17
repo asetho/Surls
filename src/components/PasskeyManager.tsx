@@ -5,6 +5,7 @@ import { KeyRound, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { removePasskeyAction } from "@/app/admin/profile/actions";
+import { dispatchAdminToast } from "@/lib/admin-toast-event";
 import { ConfirmButton } from "./ConfirmButton";
 
 type PasskeyItem = {
@@ -24,15 +25,11 @@ function initialPasskeySupport() {
 export function PasskeyManager({ csrf, passkeys }: { csrf: string; passkeys: PasskeyItem[] }) {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [supportsPasskeys] = useState<boolean | null>(initialPasskeySupport);
   const [pending, setPending] = useState(false);
 
   async function registerPasskey() {
     setPending(true);
-    setError(null);
-    setMessage(null);
     try {
       if (!browserSupportsWebAuthn()) {
         throw new Error("This browser does not support passkeys. Use a browser with WebAuthn support to add one.");
@@ -55,11 +52,14 @@ export function PasskeyManager({ csrf, passkeys }: { csrf: string; passkeys: Pas
       const result = await verifyResponse.json();
       if (!verifyResponse.ok) throw new Error(result.error || "Could not save that passkey.");
 
-      setMessage("Passkey added.");
+      dispatchAdminToast("success", "Passkey added.");
       setName("");
       router.refresh();
     } catch (registrationError) {
-      setError(registrationError instanceof Error ? registrationError.message : "Passkey setup failed.");
+      dispatchAdminToast(
+        "error",
+        registrationError instanceof Error ? registrationError.message : "Passkey setup failed."
+      );
     } finally {
       setPending(false);
     }
@@ -87,8 +87,6 @@ export function PasskeyManager({ csrf, passkeys }: { csrf: string; passkeys: Pas
       {supportsPasskeys === false ? (
         <div className="alert">This browser does not support passkeys. Use a browser with WebAuthn support to add one.</div>
       ) : null}
-      {message ? <div className="success">{message}</div> : null}
-      {error ? <div className="alert">{error}</div> : null}
       {passkeys.length ? (
         <div className="passkey-list">
           {passkeys.map((passkey) => (
