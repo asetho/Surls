@@ -6,6 +6,7 @@ import { BookmarkletLink } from "@/components/BookmarkletLink";
 import { ApiTokenForm, ImportCsvForm, LinkCheckerForm, UtmBuilder } from "@/components/ToolsForms";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { APP_BUILD_LABEL, APP_VERSION } from "@/lib/app-version";
+import { adminLoginPath } from "@/lib/admin-login-path";
 import { requireAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { appBaseUrl, env } from "@/lib/env";
@@ -28,7 +29,7 @@ function tokenExpirationLabel(expiresAt: Date | null) {
 
 export default async function ToolsPage() {
   const admin = await requireAdmin();
-  if (!admin) redirect("/admin");
+  if (!admin) redirect(adminLoginPath("/admin/tools"));
   const csrf = getCsrfToken();
   const [tokens, settings, disabled, expired, zeroClicks, duplicates] = await Promise.all([
     prisma.apiToken.findMany({ orderBy: { createdAt: "desc" }, take: 20 }),

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { adminLoginPath } from "@/lib/admin-login-path";
 import { requireSiteAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { filesystemCustomPageLocation, pageFromFilesystem } from "@/lib/custom-pages";
@@ -30,7 +31,7 @@ type SettingsSearchParams = Promise<{
 
 export default async function SettingsPage({ searchParams }: { searchParams: SettingsSearchParams }) {
   const admin = await requireSiteAdmin();
-  if (!admin) redirect("/admin");
+  if (!admin) redirect(adminLoginPath("/admin/settings"));
 
   const [params, settings, filesystemLoginPage, webrootIndexPage, webrootNotFoundPage, webrootFaviconFiles] =
     await Promise.all([

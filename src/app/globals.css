@@ -357,6 +357,7 @@ button.danger-outline:hover {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+  min-width: 0;
 }
 
 .surface-panel {
@@ -2025,6 +2026,13 @@ button.danger-outline:hover {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.grid-3 > *,
+.form-grid > *,
+.stats-history-grid > *,
+.stats-split-grid > * {
+  min-width: 0;
+}
+
 .metric {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -2922,6 +2930,7 @@ textarea {
 
 .table-wrap {
   max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
 }
 
@@ -4421,6 +4430,26 @@ th {
 
   .theme-toggle.icon-only {
     width: max-content;
+  }
+
+  .short-url-pill {
+    align-items: center;
+    min-height: 2.35rem;
+    padding: 0.38rem 0.68rem 0.38rem 0.52rem;
+  }
+
+  .icon-button {
+    min-height: 2.35rem;
+    padding: 0.42rem 0.68rem;
+  }
+
+  .icon-button.icon-only-action,
+  .button.icon-only-action {
+    flex-basis: 2.35rem;
+    height: 2.35rem;
+    min-height: 2.35rem;
+    min-width: 2.35rem;
+    width: 2.35rem;
   }
 
   .dashboard-theme-preview {

@@ -5,6 +5,7 @@ import { Trash2 } from "lucide-react";
 import { AdminUserIdentityForm } from "@/components/AdminUserIdentityForm";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { CreateUserForm } from "@/components/CreateUserForm";
+import { adminLoginPath } from "@/lib/admin-login-path";
 import { requireSiteAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { formatDateTime } from "@/lib/dates";
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
 
 export default async function UsersPage() {
   const admin = await requireSiteAdmin();
-  if (!admin) redirect("/admin");
+  if (!admin) redirect(adminLoginPath("/admin/users"));
 
   const csrf = getCsrfToken();
   const [users, displayTimeZone] = await Promise.all([

@@ -6,6 +6,7 @@ import { prisma } from "./prisma";
 import { hashToken, randomToken } from "./crypto";
 import { env, isProduction } from "./env";
 import { requestIpHash } from "./request";
+import { adminLoginPath } from "./admin-login-path";
 import { safeRedirectPath } from "./redirect-path";
 
 export const SESSION_COOKIE = "surls_session";
@@ -100,8 +101,7 @@ export async function requireSiteAdmin() {
 }
 
 export function redirectToLogin(requestUrl?: string) {
-  const url = new URL("/admin", env.BASE_URL);
-  if (requestUrl) url.searchParams.set("next", requestUrl);
+  const url = new URL(adminLoginPath(requestUrl), env.BASE_URL);
   return NextResponse.redirect(url);
 }
 

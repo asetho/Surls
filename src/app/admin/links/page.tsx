@@ -7,6 +7,7 @@ import { CopyShortUrlButton, ShareButton } from "@/components/CopyShareButtons";
 import { DeleteLinkModal } from "@/components/DeleteLinkModal";
 import { EditLinkModal } from "@/components/EditLinkModal";
 import { QrCodeModal } from "@/components/QrCodeModal";
+import { adminLoginPath } from "@/lib/admin-login-path";
 import { isAdminUser, requireAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { appBaseUrl } from "@/lib/env";
@@ -31,6 +32,17 @@ export const metadata: Metadata = {
 };
 
 type SearchParams = Promise<{ page?: string; pageSize?: string; q?: string; sort?: string; tag?: string; view?: string }>;
+type LinkSearchParams = Awaited<SearchParams>;
+
+function linksNextPath(params: LinkSearchParams) {
+  const urlParams = new URLSearchParams();
+  for (const key of ["page", "pageSize", "q", "sort", "tag", "view"] as const) {
+    const value = params[key];
+    if (value) urlParams.set(key, value);
+  }
+  const query = urlParams.toString();
+  return query ? `/admin/links?${query}` : "/admin/links";
+}
 
 function nextSortFor(column: "clicks" | "status" | "url", sort: LinkListSort) {
   if (column === "url") return sort === "url_asc" ? "url_desc" : "url_asc";
@@ -61,7 +73,7 @@ function sortBadge(column: "clicks" | "status" | "url", sort: LinkListSort) {
 export default async function LinksPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const currentUser = await requireAdmin();
-  if (!currentUser) redirect("/admin");
+  if (!currentUser) redirect(adminLoginPath(linksNextPath(params)));
 
   const q = params.q?.trim();
   const view = normalizeLinkListView(params.view);

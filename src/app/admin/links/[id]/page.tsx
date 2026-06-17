@@ -11,6 +11,7 @@ import { LocationCharts } from "@/components/LocationCharts";
 import { QrCodeModal } from "@/components/QrCodeModal";
 import { RecentClicksPanel } from "@/components/RecentClicksPanel";
 import { StatsTabs } from "@/components/StatsTabs";
+import { adminLoginPath } from "@/lib/admin-login-path";
 import { isAdminUser, requireAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { formatDateTime } from "@/lib/dates";
@@ -31,9 +32,18 @@ type PageProps = {
   searchParams: Promise<{ clickPage?: string; clickPageSize?: string }>;
 };
 
+function linkDetailNextPath(id: string, query: Awaited<PageProps["searchParams"]>) {
+  const urlParams = new URLSearchParams();
+  if (query.clickPage) urlParams.set("clickPage", query.clickPage);
+  if (query.clickPageSize) urlParams.set("clickPageSize", query.clickPageSize);
+  const search = urlParams.toString();
+  const path = `/admin/links/${encodeURIComponent(id)}`;
+  return search ? `${path}?${search}` : path;
+}
+
 export default async function LinkDetailPage({ params, searchParams }: PageProps) {
   const [{ id }, query, currentUser] = await Promise.all([params, searchParams, requireAdmin()]);
-  if (!currentUser) redirect("/admin");
+  if (!currentUser) redirect(adminLoginPath(linkDetailNextPath(id, query)));
 
   const recentPage = normalizeRecentClickPage(query.clickPage);
   const recentPageSize = normalizeRecentClickPageSize(query.clickPageSize);

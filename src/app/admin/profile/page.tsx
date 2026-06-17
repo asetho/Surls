@@ -5,6 +5,7 @@ import { BackupCodesForm } from "@/components/BackupCodesForm";
 import { PasskeyManager } from "@/components/PasskeyManager";
 import { ProfileIdentityForm } from "@/components/ProfileIdentityForm";
 import { RememberedDetails } from "@/components/RememberedDetails";
+import { adminLoginPath } from "@/lib/admin-login-path";
 import { getCsrfToken } from "@/lib/csrf";
 import { isAdminUser, requireAdmin } from "@/lib/auth";
 import { formatDateTime } from "@/lib/dates";
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
 
 export default async function ProfilePage() {
   const admin = await requireAdmin();
-  if (!admin) redirect("/admin");
+  if (!admin) redirect(adminLoginPath("/admin/profile"));
   const csrf = getCsrfToken();
   const [credential, backupCount, passkeys, siteName, displayTimeZone] = await Promise.all([
     prisma.totpCredential.findUnique({ where: { userId: admin.id } }),

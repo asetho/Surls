@@ -81,8 +81,6 @@ export async function PublicHeader() {
           <span>{siteName}</span>
         </Link>
         <nav className="nav-actions" aria-label="Primary">
-          <Link href="/privacy">Privacy</Link>
-          <Link href="/cookies">Cookies</Link>
           <ThemeToggle initialChoice={themeChoice} />
           <Link className="button" href="/admin">
             Admin login

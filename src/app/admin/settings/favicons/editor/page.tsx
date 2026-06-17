@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { adminLoginPath } from "@/lib/admin-login-path";
 import { requireSiteAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { getSettings } from "@/lib/settings";
@@ -18,7 +19,7 @@ type FaviconEditorSearchParams = Promise<{
 
 export default async function FaviconEditorPage({ searchParams }: { searchParams: FaviconEditorSearchParams }) {
   const admin = await requireSiteAdmin();
-  if (!admin) redirect("/admin");
+  if (!admin) redirect(adminLoginPath("/admin/settings/favicons/editor"));
 
   const [params, settings, csrf, webrootFaviconFiles] = await Promise.all([
     searchParams,
