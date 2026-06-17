@@ -39,6 +39,13 @@ export type DashboardThemePalette = {
   toastErrorBackground: string;
   toastErrorBorder: string;
   toastErrorText: string;
+  statsTabActiveBackground: string;
+  statsTabActiveBorder: string;
+  statsTabActiveText: string;
+  statsTabBackground: string;
+  statsTabBorder: string;
+  statsTabListBackground: string;
+  statsTabText: string;
   toastSuccessBackground: string;
   toastSuccessBorder: string;
   toastSuccessText: string;
@@ -110,7 +117,14 @@ const DASHBOARD_THEME_GRAPH_FIELDS: readonly DashboardThemeField[] = [
   { key: "chartAccent", label: "Graph fill", description: "Area fills, neutral chart marks, and soft segments." },
   { key: "chartDanger", label: "Graph warning", description: "Warning slices and high-attention chart marks." },
   { key: "chartMapLow", label: "Map low", description: "Lower-traffic country map color." },
-  { key: "chartMapHigh", label: "Map high", description: "Highest-traffic country map color." }
+  { key: "chartMapHigh", label: "Map high", description: "Highest-traffic country map color." },
+  { key: "statsTabListBackground", label: "Stats tab bar", description: "Background behind the link statistics tabs." },
+  { key: "statsTabBackground", label: "Stats tab", description: "Inactive link statistics tab background." },
+  { key: "statsTabText", label: "Stats tab text", description: "Inactive link statistics tab text." },
+  { key: "statsTabBorder", label: "Stats tab border", description: "Link statistics tab outlines." },
+  { key: "statsTabActiveBackground", label: "Active stats tab", description: "Selected link statistics tab background." },
+  { key: "statsTabActiveText", label: "Active stats tab text", description: "Selected link statistics tab text." },
+  { key: "statsTabActiveBorder", label: "Active stats tab border", description: "Selected link statistics tab outline." }
 ] as const;
 
 const DASHBOARD_THEME_TOAST_FIELDS: readonly DashboardThemeField[] = [
@@ -178,6 +192,13 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     text: "#0b2636",
     overlayBackground: "#0b2636",
     shadowColor: "#0a5c70",
+    statsTabActiveBackground: "#087e8b",
+    statsTabActiveBorder: "#087e8b",
+    statsTabActiveText: "#ffffff",
+    statsTabBackground: "#ffffff",
+    statsTabBorder: "#bdd8e4",
+    statsTabListBackground: "#d8edf4",
+    statsTabText: "#0b2636",
     toastErrorBackground: "#ffffff",
     toastErrorBorder: "#c81d25",
     toastErrorText: "#0b2636",
@@ -223,6 +244,13 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     text: "#f3fbff",
     overlayBackground: "#000000",
     shadowColor: "#000000",
+    statsTabActiveBackground: "#64abbb",
+    statsTabActiveBorder: "#92c1d3",
+    statsTabActiveText: "#052f3b",
+    statsTabBackground: "#0a5c70",
+    statsTabBorder: "#3c8ea0",
+    statsTabListBackground: "#176d7d",
+    statsTabText: "#f3fbff",
     toastErrorBackground: "#0a5c70",
     toastErrorBorder: "#ff858a",
     toastErrorText: "#f3fbff",
@@ -371,6 +399,13 @@ export function dashboardThemePaletteCssVariables(theme: DashboardThemePalette) 
     "--surface-strong": theme.surfaceStrong,
     "--teal": theme.accent,
     "--text": theme.text,
+    "--stats-tab-active-background": theme.statsTabActiveBackground,
+    "--stats-tab-active-border": theme.statsTabActiveBorder,
+    "--stats-tab-active-text": theme.statsTabActiveText,
+    "--stats-tab-background": theme.statsTabBackground,
+    "--stats-tab-border": theme.statsTabBorder,
+    "--stats-tab-list-background": theme.statsTabListBackground,
+    "--stats-tab-text": theme.statsTabText,
     "--toast-error-background": theme.toastErrorBackground,
     "--toast-error-border": theme.toastErrorBorder,
     "--toast-error-text": theme.toastErrorText,
@@ -409,6 +444,13 @@ export function dashboardThemeCssVariables(theme: DashboardTheme) {
       [`--dashboard-${mode.key}-overlay-background`, theme[mode.key].overlayBackground],
       [`--dashboard-${mode.key}-shadow`, `0 18px 50px ${theme[mode.key].shadowColor}1f`],
       [`--dashboard-${mode.key}-shadow-color`, theme[mode.key].shadowColor],
+      [`--dashboard-${mode.key}-stats-tab-active-background`, theme[mode.key].statsTabActiveBackground],
+      [`--dashboard-${mode.key}-stats-tab-active-border`, theme[mode.key].statsTabActiveBorder],
+      [`--dashboard-${mode.key}-stats-tab-active-text`, theme[mode.key].statsTabActiveText],
+      [`--dashboard-${mode.key}-stats-tab-background`, theme[mode.key].statsTabBackground],
+      [`--dashboard-${mode.key}-stats-tab-border`, theme[mode.key].statsTabBorder],
+      [`--dashboard-${mode.key}-stats-tab-list-background`, theme[mode.key].statsTabListBackground],
+      [`--dashboard-${mode.key}-stats-tab-text`, theme[mode.key].statsTabText],
       [`--dashboard-${mode.key}-short-url-pill-accent`, theme[mode.key].shortUrlPillAccent],
       [`--dashboard-${mode.key}-short-url-pill-background`, theme[mode.key].shortUrlPillBackground],
       [`--dashboard-${mode.key}-short-url-pill-border`, theme[mode.key].shortUrlPillBorder],

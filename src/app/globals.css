@@ -110,7 +110,7 @@ button,
     transform 150ms ease;
 }
 
-button:not(.secondary):not(.danger):not(.danger-outline):not(.dashboard-theme-mode-tab):not(.theme-editor-floating-button),
+button:not(.secondary):not(.danger):not(.danger-outline):not(.dashboard-theme-mode-tab):not(.theme-editor-floating-button):not(.qr-inline-trigger),
 .button:not(.secondary):not(.danger):not(.danger-outline) {
   color: var(--button-text);
 }
@@ -1416,6 +1416,39 @@ button.danger-outline:hover {
   padding: 0.35rem;
 }
 
+.dashboard-theme-preview-chart-stack {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.dashboard-theme-preview-stat-tabs {
+  align-items: center;
+  background: var(--stats-tab-list-background);
+  border: 1px solid var(--stats-tab-border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.32rem;
+  padding: 0.28rem;
+}
+
+.dashboard-theme-preview-stat-tabs span {
+  background: var(--stats-tab-background);
+  border: 1px solid var(--stats-tab-border);
+  border-radius: calc(var(--radius) - 2px);
+  color: var(--stats-tab-text);
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0.36rem 0.52rem;
+}
+
+.dashboard-theme-preview-stat-tabs span.is-active {
+  background: var(--stats-tab-active-background);
+  border-color: var(--stats-tab-active-border);
+  color: var(--stats-tab-active-text);
+}
+
 .dashboard-theme-preview-chart-grid {
   display: grid;
   gap: 0.45rem;
@@ -1770,6 +1803,13 @@ button.danger-outline:hover {
   --dashboard-active-qr-background: var(--dashboard-light-qr-background);
   --dashboard-active-shadow: var(--dashboard-light-shadow);
   --dashboard-active-shadow-color: var(--dashboard-light-shadow-color);
+  --dashboard-active-stats-tab-active-background: var(--dashboard-light-stats-tab-active-background);
+  --dashboard-active-stats-tab-active-border: var(--dashboard-light-stats-tab-active-border);
+  --dashboard-active-stats-tab-active-text: var(--dashboard-light-stats-tab-active-text);
+  --dashboard-active-stats-tab-background: var(--dashboard-light-stats-tab-background);
+  --dashboard-active-stats-tab-border: var(--dashboard-light-stats-tab-border);
+  --dashboard-active-stats-tab-list-background: var(--dashboard-light-stats-tab-list-background);
+  --dashboard-active-stats-tab-text: var(--dashboard-light-stats-tab-text);
   --dashboard-active-short-url-pill-accent: var(--dashboard-light-short-url-pill-accent);
   --dashboard-active-short-url-pill-background: var(--dashboard-light-short-url-pill-background);
   --dashboard-active-short-url-pill-border: var(--dashboard-light-short-url-pill-border);
@@ -1841,6 +1881,13 @@ button.danger-outline:hover {
   --surface-strong: var(--dashboard-active-surface-strong);
   --teal: var(--dashboard-active-accent);
   --text: var(--dashboard-active-text);
+  --stats-tab-active-background: var(--dashboard-active-stats-tab-active-background);
+  --stats-tab-active-border: var(--dashboard-active-stats-tab-active-border);
+  --stats-tab-active-text: var(--dashboard-active-stats-tab-active-text);
+  --stats-tab-background: var(--dashboard-active-stats-tab-background);
+  --stats-tab-border: var(--dashboard-active-stats-tab-border);
+  --stats-tab-list-background: var(--dashboard-active-stats-tab-list-background);
+  --stats-tab-text: var(--dashboard-active-stats-tab-text);
   --toast-error-background: var(--dashboard-active-toast-error-background);
   --toast-error-border: var(--dashboard-active-toast-error-border);
   --toast-error-text: var(--dashboard-active-toast-error-text);
@@ -1885,6 +1932,13 @@ button.danger-outline:hover {
   --dashboard-active-qr-background: var(--dashboard-dark-qr-background);
   --dashboard-active-shadow: var(--dashboard-dark-shadow);
   --dashboard-active-shadow-color: var(--dashboard-dark-shadow-color);
+  --dashboard-active-stats-tab-active-background: var(--dashboard-dark-stats-tab-active-background);
+  --dashboard-active-stats-tab-active-border: var(--dashboard-dark-stats-tab-active-border);
+  --dashboard-active-stats-tab-active-text: var(--dashboard-dark-stats-tab-active-text);
+  --dashboard-active-stats-tab-background: var(--dashboard-dark-stats-tab-background);
+  --dashboard-active-stats-tab-border: var(--dashboard-dark-stats-tab-border);
+  --dashboard-active-stats-tab-list-background: var(--dashboard-dark-stats-tab-list-background);
+  --dashboard-active-stats-tab-text: var(--dashboard-dark-stats-tab-text);
   --dashboard-active-short-url-pill-accent: var(--dashboard-dark-short-url-pill-accent);
   --dashboard-active-short-url-pill-background: var(--dashboard-dark-short-url-pill-background);
   --dashboard-active-short-url-pill-border: var(--dashboard-dark-short-url-pill-border);
@@ -2430,6 +2484,13 @@ textarea {
   --dashboard-active-qr-background: var(--dashboard-light-qr-background);
   --dashboard-active-shadow: var(--dashboard-light-shadow);
   --dashboard-active-shadow-color: var(--dashboard-light-shadow-color);
+  --dashboard-active-stats-tab-active-background: var(--dashboard-light-stats-tab-active-background);
+  --dashboard-active-stats-tab-active-border: var(--dashboard-light-stats-tab-active-border);
+  --dashboard-active-stats-tab-active-text: var(--dashboard-light-stats-tab-active-text);
+  --dashboard-active-stats-tab-background: var(--dashboard-light-stats-tab-background);
+  --dashboard-active-stats-tab-border: var(--dashboard-light-stats-tab-border);
+  --dashboard-active-stats-tab-list-background: var(--dashboard-light-stats-tab-list-background);
+  --dashboard-active-stats-tab-text: var(--dashboard-light-stats-tab-text);
   --dashboard-active-short-url-pill-accent: var(--dashboard-light-short-url-pill-accent);
   --dashboard-active-short-url-pill-background: var(--dashboard-light-short-url-pill-background);
   --dashboard-active-short-url-pill-border: var(--dashboard-light-short-url-pill-border);
@@ -2501,6 +2562,13 @@ textarea {
   --surface-strong: var(--dashboard-active-surface-strong);
   --teal: var(--dashboard-active-accent);
   --text: var(--dashboard-active-text);
+  --stats-tab-active-background: var(--dashboard-active-stats-tab-active-background);
+  --stats-tab-active-border: var(--dashboard-active-stats-tab-active-border);
+  --stats-tab-active-text: var(--dashboard-active-stats-tab-active-text);
+  --stats-tab-background: var(--dashboard-active-stats-tab-background);
+  --stats-tab-border: var(--dashboard-active-stats-tab-border);
+  --stats-tab-list-background: var(--dashboard-active-stats-tab-list-background);
+  --stats-tab-text: var(--dashboard-active-stats-tab-text);
   --toast-error-background: var(--dashboard-active-toast-error-background);
   --toast-error-border: var(--dashboard-active-toast-error-border);
   --toast-error-text: var(--dashboard-active-toast-error-text);
@@ -2542,6 +2610,13 @@ textarea {
   --dashboard-active-qr-background: var(--dashboard-dark-qr-background);
   --dashboard-active-shadow: var(--dashboard-dark-shadow);
   --dashboard-active-shadow-color: var(--dashboard-dark-shadow-color);
+  --dashboard-active-stats-tab-active-background: var(--dashboard-dark-stats-tab-active-background);
+  --dashboard-active-stats-tab-active-border: var(--dashboard-dark-stats-tab-active-border);
+  --dashboard-active-stats-tab-active-text: var(--dashboard-dark-stats-tab-active-text);
+  --dashboard-active-stats-tab-background: var(--dashboard-dark-stats-tab-background);
+  --dashboard-active-stats-tab-border: var(--dashboard-dark-stats-tab-border);
+  --dashboard-active-stats-tab-list-background: var(--dashboard-dark-stats-tab-list-background);
+  --dashboard-active-stats-tab-text: var(--dashboard-dark-stats-tab-text);
   --dashboard-active-short-url-pill-accent: var(--dashboard-dark-short-url-pill-accent);
   --dashboard-active-short-url-pill-background: var(--dashboard-dark-short-url-pill-background);
   --dashboard-active-short-url-pill-border: var(--dashboard-dark-short-url-pill-border);
@@ -2895,15 +2970,19 @@ textarea {
   background: transparent;
   border: 0;
   border-radius: 4px;
-  color: var(--color-teal);
+  color: var(--link-color, var(--color-teal));
   min-height: 1.55rem;
   min-width: 1.55rem;
   padding: 0.14rem;
 }
 
 .qr-inline-trigger:hover {
-  background: color-mix(in srgb, var(--color-teal), transparent 88%);
-  color: var(--color-deep-teal);
+  background: color-mix(in srgb, var(--link-color, var(--color-teal)), transparent 88%);
+  color: var(--link-color, var(--color-teal));
+}
+
+.qr-inline-trigger:focus-visible {
+  outline-color: color-mix(in srgb, var(--link-color, var(--color-teal)), white 35%);
 }
 
 .link-header-main {
@@ -3388,37 +3467,41 @@ th {
 
 .tab-list {
   align-items: center;
-  background: var(--subtle-fill, var(--surface-strong));
-  border: 1px solid var(--border);
+  background: var(--stats-tab-list-background, var(--surface-strong));
+  border: 1px solid var(--stats-tab-border, var(--border));
   border-radius: var(--radius);
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.35rem;
   justify-self: start;
-  padding: 0.28rem;
+  padding: 0.3rem;
 }
 
 .tab-button {
-  background: var(--pill-background, var(--surface));
-  border: 1px solid var(--pill-border, var(--border));
-  border-radius: 999px;
-  color: var(--pill-text, var(--text));
+  background: var(--stats-tab-background, var(--surface));
+  border: 1px solid var(--stats-tab-border, var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  color: var(--stats-tab-text, var(--text));
   font-weight: 800;
-  min-height: 2.2rem;
-  padding: 0.4rem 0.72rem;
+  min-height: 2.15rem;
+  padding: 0.38rem 0.82rem;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
 }
 
 .tab-button:hover,
 .tab-button:focus-visible {
-  background: color-mix(in srgb, var(--pill-background, var(--surface)), var(--active-pill-background, var(--color-teal)) 18%);
-  border-color: var(--active-pill-border, var(--border));
-  color: var(--pill-text, var(--text));
+  background: color-mix(in srgb, var(--stats-tab-background, var(--surface)), var(--stats-tab-active-background, var(--color-teal)) 18%);
+  border-color: var(--stats-tab-active-border, var(--border));
+  color: var(--stats-tab-text, var(--text));
 }
 
 .tab-button[aria-selected="true"] {
-  background: var(--active-pill-background, var(--color-teal));
-  border-color: var(--active-pill-border, var(--color-teal));
-  color: var(--active-pill-text, var(--button-text));
+  background: var(--stats-tab-active-background, var(--color-teal));
+  border-color: var(--stats-tab-active-border, var(--color-teal));
+  color: var(--stats-tab-active-text, var(--button-text));
 }
 
 .stats-panel,

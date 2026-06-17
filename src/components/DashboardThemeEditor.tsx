@@ -105,31 +105,38 @@ function DashboardThemeColorField({
 
 function ThemePreviewCharts() {
   return (
-    <div className="dashboard-theme-preview-chart-grid" aria-hidden="true">
-      <div className="dashboard-theme-preview-chart-card">
-        <span>Line</span>
-        <div className="dashboard-theme-preview-chart dashboard-theme-preview-line-chart">
-          <svg viewBox="0 0 220 72">
-            <path className="dashboard-theme-preview-chart-area" d="M8 58 C42 58 42 24 72 37 C98 48 98 13 126 28 C154 44 155 18 184 22 C202 25 205 44 212 36 L212 64 L8 64 Z" />
-            <path className="dashboard-theme-preview-chart-line" d="M8 58 C42 58 42 24 72 37 C98 48 98 13 126 28 C154 44 155 18 184 22 C202 25 205 44 212 36" />
-            <circle cx="126" cy="28" r="4" />
+    <div className="dashboard-theme-preview-chart-stack" aria-hidden="true">
+      <div className="dashboard-theme-preview-stat-tabs">
+        <span className="is-active">Historical clicks</span>
+        <span>Location</span>
+        <span>Sources</span>
+      </div>
+      <div className="dashboard-theme-preview-chart-grid">
+        <div className="dashboard-theme-preview-chart-card">
+          <span>Line</span>
+          <div className="dashboard-theme-preview-chart dashboard-theme-preview-line-chart">
+            <svg viewBox="0 0 220 72">
+              <path className="dashboard-theme-preview-chart-area" d="M8 58 C42 58 42 24 72 37 C98 48 98 13 126 28 C154 44 155 18 184 22 C202 25 205 44 212 36 L212 64 L8 64 Z" />
+              <path className="dashboard-theme-preview-chart-line" d="M8 58 C42 58 42 24 72 37 C98 48 98 13 126 28 C154 44 155 18 184 22 C202 25 205 44 212 36" />
+              <circle cx="126" cy="28" r="4" />
+            </svg>
+          </div>
+        </div>
+        <div className="dashboard-theme-preview-chart-card">
+          <span>Pie</span>
+          <div className="dashboard-theme-preview-pie-chart" />
+        </div>
+        <div className="dashboard-theme-preview-chart-card">
+          <span>World map</span>
+          <svg className="dashboard-theme-preview-map" viewBox="0 0 220 104">
+            <rect x="0" y="0" width="220" height="104" rx="8" />
+            <path className="bucket-2" d="M28 33 51 25 73 34 69 51 47 57 28 48Z" />
+            <path className="bucket-4" d="M82 42 101 35 119 48 111 69 91 69Z" />
+            <path className="bucket-1" d="M121 24 152 19 170 31 159 47 132 44Z" />
+            <path className="bucket-5" d="M151 51 183 47 196 65 176 82 151 72Z" />
+            <path className="empty" d="M49 64 67 64 72 82 55 88 43 77Z" />
           </svg>
         </div>
-      </div>
-      <div className="dashboard-theme-preview-chart-card">
-        <span>Pie</span>
-        <div className="dashboard-theme-preview-pie-chart" />
-      </div>
-      <div className="dashboard-theme-preview-chart-card">
-        <span>World map</span>
-        <svg className="dashboard-theme-preview-map" viewBox="0 0 220 104">
-          <rect x="0" y="0" width="220" height="104" rx="8" />
-          <path className="bucket-2" d="M28 33 51 25 73 34 69 51 47 57 28 48Z" />
-          <path className="bucket-4" d="M82 42 101 35 119 48 111 69 91 69Z" />
-          <path className="bucket-1" d="M121 24 152 19 170 31 159 47 132 44Z" />
-          <path className="bucket-5" d="M151 51 183 47 196 65 176 82 151 72Z" />
-          <path className="empty" d="M49 64 67 64 72 82 55 88 43 77Z" />
-        </svg>
       </div>
     </div>
   );
