@@ -15,11 +15,13 @@ export type DashboardThemePalette = {
   dangerBackground: string;
   dangerBorder: string;
   dangerText: string;
+  focusRing: string;
   link: string;
   muted: string;
   pillBackground: string;
   pillBorder: string;
   pillText: string;
+  qrBackground: string;
   shortUrlPillAccent: string;
   shortUrlPillBackground: string;
   shortUrlPillBorder: string;
@@ -33,6 +35,7 @@ export type DashboardThemePalette = {
   surfaceStrong: string;
   text: string;
   overlayBackground: string;
+  shadowColor: string;
   toastErrorBackground: string;
   toastErrorBorder: string;
   toastErrorText: string;
@@ -77,7 +80,10 @@ const DASHBOARD_THEME_PANEL_FIELDS: readonly DashboardThemeField[] = [
   { key: "text", label: "Text", description: "Primary dashboard text." },
   { key: "muted", label: "Muted text", description: "Secondary labels and helper text." },
   { key: "border", label: "Borders", description: "Panel and field outlines." },
+  { key: "focusRing", label: "Focus ring", description: "Keyboard focus outlines and selected controls." },
   { key: "overlayBackground", label: "Overlay", description: "Modal backdrop tint." },
+  { key: "shadowColor", label: "Shadow", description: "Tint used for dashboard panel shadows." },
+  { key: "qrBackground", label: "QR background", description: "Background behind generated QR codes." },
   { key: "link", label: "Links", description: "Inline dashboard links and destination URLs." }
 ] as const;
 
@@ -151,11 +157,13 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     dangerBackground: "#c81d25",
     dangerBorder: "#c81d25",
     dangerText: "#ffffff",
+    focusRing: "#087e8b",
     link: "#087e8b",
     muted: "#477282",
     pillBackground: "#d8edf4",
     pillBorder: "#bdd8e4",
     pillText: "#0b2636",
+    qrBackground: "#ffffff",
     shortUrlPillAccent: "#087e8b",
     shortUrlPillBackground: "#eef8f9",
     shortUrlPillBorder: "#9ed1d7",
@@ -169,6 +177,7 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     surfaceStrong: "#d8edf4",
     text: "#0b2636",
     overlayBackground: "#0b2636",
+    shadowColor: "#0a5c70",
     toastErrorBackground: "#ffffff",
     toastErrorBorder: "#c81d25",
     toastErrorText: "#0b2636",
@@ -193,11 +202,13 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     dangerBackground: "#e65057",
     dangerBorder: "#ff858a",
     dangerText: "#ffffff",
+    focusRing: "#64abbb",
     link: "#8ed6e4",
     muted: "#92c1d3",
     pillBackground: "#176d7d",
     pillBorder: "#3c8ea0",
     pillText: "#f3fbff",
+    qrBackground: "#ffffff",
     shortUrlPillAccent: "#64abbb",
     shortUrlPillBackground: "#0d4a58",
     shortUrlPillBorder: "#3c8ea0",
@@ -211,6 +222,7 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     surfaceStrong: "#176d7d",
     text: "#f3fbff",
     overlayBackground: "#000000",
+    shadowColor: "#000000",
     toastErrorBackground: "#0a5c70",
     toastErrorBorder: "#ff858a",
     toastErrorText: "#f3fbff",
@@ -320,6 +332,7 @@ export function dashboardThemePaletteCssVariables(theme: DashboardThemePalette) 
     "--danger-background": theme.dangerBackground,
     "--danger-border": theme.dangerBorder,
     "--danger-text": theme.dangerText,
+    "--focus-ring": `0 0 0 3px ${theme.focusRing}55`,
     "--link-color": theme.link,
     "--color-deep-teal": theme.sidebarHover,
     "--color-ice": theme.surfaceStrong,
@@ -331,8 +344,9 @@ export function dashboardThemePaletteCssVariables(theme: DashboardThemePalette) 
     "--pill-background": theme.pillBackground,
     "--pill-border": theme.pillBorder,
     "--pill-text": theme.pillText,
+    "--qr-background": theme.qrBackground,
     "--overlay-background": theme.overlayBackground,
-    "--shadow": `0 18px 50px ${theme.sidebar}1f`,
+    "--shadow": `0 18px 50px ${theme.shadowColor}1f`,
     "--sidebar-border": theme.sidebarBorder,
     "--sidebar-muted": theme.sidebarMuted,
     "--sidebar-text": theme.sidebarText,
@@ -373,13 +387,16 @@ export function dashboardThemeCssVariables(theme: DashboardTheme) {
       [`--dashboard-${mode.key}-danger-background`, theme[mode.key].dangerBackground],
       [`--dashboard-${mode.key}-danger-border`, theme[mode.key].dangerBorder],
       [`--dashboard-${mode.key}-danger-text`, theme[mode.key].dangerText],
+      [`--dashboard-${mode.key}-focus-ring`, `0 0 0 3px ${theme[mode.key].focusRing}55`],
       [`--dashboard-${mode.key}-link`, theme[mode.key].link],
       [`--dashboard-${mode.key}-muted`, theme[mode.key].muted],
       [`--dashboard-${mode.key}-pill-background`, theme[mode.key].pillBackground],
       [`--dashboard-${mode.key}-pill-border`, theme[mode.key].pillBorder],
       [`--dashboard-${mode.key}-pill-text`, theme[mode.key].pillText],
+      [`--dashboard-${mode.key}-qr-background`, theme[mode.key].qrBackground],
       [`--dashboard-${mode.key}-overlay-background`, theme[mode.key].overlayBackground],
-      [`--dashboard-${mode.key}-shadow`, `0 18px 50px ${theme[mode.key].sidebar}1f`],
+      [`--dashboard-${mode.key}-shadow`, `0 18px 50px ${theme[mode.key].shadowColor}1f`],
+      [`--dashboard-${mode.key}-shadow-color`, theme[mode.key].shadowColor],
       [`--dashboard-${mode.key}-short-url-pill-accent`, theme[mode.key].shortUrlPillAccent],
       [`--dashboard-${mode.key}-short-url-pill-background`, theme[mode.key].shortUrlPillBackground],
       [`--dashboard-${mode.key}-short-url-pill-border`, theme[mode.key].shortUrlPillBorder],

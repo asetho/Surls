@@ -18,7 +18,9 @@
   --border: color-mix(in srgb, var(--pacific-blue), white 58%);
   --button-text: #ffffff;
   --link-color: var(--color-teal);
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--color-teal), transparent 72%);
   --overlay-background: var(--text);
+  --qr-background: #ffffff;
   --sidebar-border: color-mix(in srgb, var(--button-text), transparent 72%);
   --sidebar-muted: color-mix(in srgb, var(--button-text), var(--sky-blue-light) 30%);
   --sidebar-text: var(--button-text);
@@ -1757,13 +1759,16 @@ button.danger-outline:hover {
   --dashboard-active-danger-background: var(--dashboard-light-danger-background);
   --dashboard-active-danger-border: var(--dashboard-light-danger-border);
   --dashboard-active-danger-text: var(--dashboard-light-danger-text);
+  --dashboard-active-focus-ring: var(--dashboard-light-focus-ring);
   --dashboard-active-link: var(--dashboard-light-link);
   --dashboard-active-muted: var(--dashboard-light-muted);
   --dashboard-active-overlay-background: var(--dashboard-light-overlay-background);
   --dashboard-active-pill-background: var(--dashboard-light-pill-background);
   --dashboard-active-pill-border: var(--dashboard-light-pill-border);
   --dashboard-active-pill-text: var(--dashboard-light-pill-text);
+  --dashboard-active-qr-background: var(--dashboard-light-qr-background);
   --dashboard-active-shadow: var(--dashboard-light-shadow);
+  --dashboard-active-shadow-color: var(--dashboard-light-shadow-color);
   --dashboard-active-short-url-pill-accent: var(--dashboard-light-short-url-pill-accent);
   --dashboard-active-short-url-pill-background: var(--dashboard-light-short-url-pill-background);
   --dashboard-active-short-url-pill-border: var(--dashboard-light-short-url-pill-border);
@@ -1796,6 +1801,7 @@ button.danger-outline:hover {
   --danger-background: var(--dashboard-active-danger-background);
   --danger-border: var(--dashboard-active-danger-border);
   --danger-text: var(--dashboard-active-danger-text);
+  --focus-ring: var(--dashboard-active-focus-ring);
   --link-color: var(--dashboard-active-link);
   --dark-teal: var(--dashboard-active-sidebar);
   --muted: var(--dashboard-active-muted);
@@ -1820,6 +1826,7 @@ button.danger-outline:hover {
   --pill-background: var(--dashboard-active-pill-background);
   --pill-border: var(--dashboard-active-pill-border);
   --pill-text: var(--dashboard-active-pill-text);
+  --qr-background: var(--dashboard-active-qr-background);
   --shadow: var(--dashboard-active-shadow);
   --sidebar-border: var(--dashboard-active-sidebar-border);
   --sidebar-muted: var(--dashboard-active-sidebar-muted);
@@ -1867,13 +1874,16 @@ button.danger-outline:hover {
   --dashboard-active-danger-background: var(--dashboard-dark-danger-background);
   --dashboard-active-danger-border: var(--dashboard-dark-danger-border);
   --dashboard-active-danger-text: var(--dashboard-dark-danger-text);
+  --dashboard-active-focus-ring: var(--dashboard-dark-focus-ring);
   --dashboard-active-link: var(--dashboard-dark-link);
   --dashboard-active-muted: var(--dashboard-dark-muted);
   --dashboard-active-overlay-background: var(--dashboard-dark-overlay-background);
   --dashboard-active-pill-background: var(--dashboard-dark-pill-background);
   --dashboard-active-pill-border: var(--dashboard-dark-pill-border);
   --dashboard-active-pill-text: var(--dashboard-dark-pill-text);
+  --dashboard-active-qr-background: var(--dashboard-dark-qr-background);
   --dashboard-active-shadow: var(--dashboard-dark-shadow);
+  --dashboard-active-shadow-color: var(--dashboard-dark-shadow-color);
   --dashboard-active-short-url-pill-accent: var(--dashboard-dark-short-url-pill-accent);
   --dashboard-active-short-url-pill-background: var(--dashboard-dark-short-url-pill-background);
   --dashboard-active-short-url-pill-border: var(--dashboard-dark-short-url-pill-border);
@@ -2402,13 +2412,16 @@ textarea {
   --dashboard-active-danger-background: var(--dashboard-light-danger-background);
   --dashboard-active-danger-border: var(--dashboard-light-danger-border);
   --dashboard-active-danger-text: var(--dashboard-light-danger-text);
+  --dashboard-active-focus-ring: var(--dashboard-light-focus-ring);
   --dashboard-active-link: var(--dashboard-light-link);
   --dashboard-active-muted: var(--dashboard-light-muted);
   --dashboard-active-overlay-background: var(--dashboard-light-overlay-background);
   --dashboard-active-pill-background: var(--dashboard-light-pill-background);
   --dashboard-active-pill-border: var(--dashboard-light-pill-border);
   --dashboard-active-pill-text: var(--dashboard-light-pill-text);
+  --dashboard-active-qr-background: var(--dashboard-light-qr-background);
   --dashboard-active-shadow: var(--dashboard-light-shadow);
+  --dashboard-active-shadow-color: var(--dashboard-light-shadow-color);
   --dashboard-active-short-url-pill-accent: var(--dashboard-light-short-url-pill-accent);
   --dashboard-active-short-url-pill-background: var(--dashboard-light-short-url-pill-background);
   --dashboard-active-short-url-pill-border: var(--dashboard-light-short-url-pill-border);
@@ -2441,6 +2454,7 @@ textarea {
   --danger-background: var(--dashboard-active-danger-background);
   --danger-border: var(--dashboard-active-danger-border);
   --danger-text: var(--dashboard-active-danger-text);
+  --focus-ring: var(--dashboard-active-focus-ring);
   --link-color: var(--dashboard-active-link);
   --dark-teal: var(--dashboard-active-sidebar);
   --muted: var(--dashboard-active-muted);
@@ -2465,6 +2479,7 @@ textarea {
   --pill-background: var(--dashboard-active-pill-background);
   --pill-border: var(--dashboard-active-pill-border);
   --pill-text: var(--dashboard-active-pill-text);
+  --qr-background: var(--dashboard-active-qr-background);
   --shadow: var(--dashboard-active-shadow);
   --sidebar-border: var(--dashboard-active-sidebar-border);
   --sidebar-muted: var(--dashboard-active-sidebar-muted);
@@ -2509,13 +2524,16 @@ textarea {
   --dashboard-active-danger-background: var(--dashboard-dark-danger-background);
   --dashboard-active-danger-border: var(--dashboard-dark-danger-border);
   --dashboard-active-danger-text: var(--dashboard-dark-danger-text);
+  --dashboard-active-focus-ring: var(--dashboard-dark-focus-ring);
   --dashboard-active-link: var(--dashboard-dark-link);
   --dashboard-active-muted: var(--dashboard-dark-muted);
   --dashboard-active-overlay-background: var(--dashboard-dark-overlay-background);
   --dashboard-active-pill-background: var(--dashboard-dark-pill-background);
   --dashboard-active-pill-border: var(--dashboard-dark-pill-border);
   --dashboard-active-pill-text: var(--dashboard-dark-pill-text);
+  --dashboard-active-qr-background: var(--dashboard-dark-qr-background);
   --dashboard-active-shadow: var(--dashboard-dark-shadow);
+  --dashboard-active-shadow-color: var(--dashboard-dark-shadow-color);
   --dashboard-active-short-url-pill-accent: var(--dashboard-dark-short-url-pill-accent);
   --dashboard-active-short-url-pill-background: var(--dashboard-dark-short-url-pill-background);
   --dashboard-active-short-url-pill-border: var(--dashboard-dark-short-url-pill-border);
@@ -4226,7 +4244,7 @@ th {
 
 .qr-box {
   align-items: center;
-  background: #fff;
+  background: var(--qr-background);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   display: inline-flex;

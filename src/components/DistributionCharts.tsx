@@ -21,13 +21,13 @@ type TooltipState = {
 };
 
 const chartColors = [
-  "var(--chart-color-1, #087e8b)",
-  "var(--chart-color-2, #64abbb)",
-  "var(--chart-color-3, #92c1d3)",
-  "var(--chart-color-4, #0a5c70)",
-  "var(--chart-color-5, #c81d25)",
-  "var(--chart-color-6, #bddceb)",
-  "var(--chart-color-7, #79b7c8)"
+  "var(--chart-color-1, var(--color-teal))",
+  "var(--chart-color-2, var(--color-navy))",
+  "var(--chart-color-3, var(--surface-strong))",
+  "var(--chart-color-4, var(--dark-teal))",
+  "var(--chart-color-5, var(--danger-background, var(--color-red)))",
+  "var(--chart-color-6, color-mix(in srgb, var(--color-teal), var(--surface) 35%))",
+  "var(--chart-color-7, color-mix(in srgb, var(--color-navy), var(--surface) 45%))"
 ];
 
 function hitLabel(count: number) {
