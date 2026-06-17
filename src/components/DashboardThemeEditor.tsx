@@ -189,16 +189,20 @@ function ThemeModePreview({ label, styles }: { label: string; styles: CSSPropert
 }
 
 export function DashboardThemeEditor({
+  activeMode: controlledActiveMode,
   draftTheme: controlledDraftTheme,
   initialMode,
+  onActiveModeChange,
   onDraftThemeChange,
   onTestToast,
   showModePreviews = true,
   theme,
   variant = "panel"
 }: {
+  activeMode?: DashboardThemeMode;
   draftTheme?: DashboardTheme;
   initialMode?: DashboardThemeMode;
+  onActiveModeChange?: (mode: DashboardThemeMode) => void;
   onDraftThemeChange?: (theme: DashboardTheme) => void;
   onTestToast?: (type: "error" | "success") => void;
   showModePreviews?: boolean;
@@ -206,9 +210,12 @@ export function DashboardThemeEditor({
   variant?: "drawer" | "panel";
 }) {
   const [uncontrolledDraftTheme, setUncontrolledDraftTheme] = useState<DashboardTheme>(theme);
-  const [activeMode, setActiveMode] = useState<DashboardThemeMode>(() => initialMode ?? currentDocumentThemeMode());
+  const [uncontrolledActiveMode, setUncontrolledActiveMode] = useState<DashboardThemeMode>(
+    () => initialMode ?? currentDocumentThemeMode()
+  );
   const draftTheme = controlledDraftTheme ?? uncontrolledDraftTheme;
   const isControlled = controlledDraftTheme !== undefined;
+  const activeMode = controlledActiveMode ?? uncontrolledActiveMode;
 
   function setNextDraftTheme(nextTheme: DashboardTheme) {
     if (isControlled) {
@@ -231,7 +238,8 @@ export function DashboardThemeEditor({
   }
 
   function activateMode(mode: DashboardThemeMode) {
-    setActiveMode(mode);
+    if (controlledActiveMode === undefined) setUncontrolledActiveMode(mode);
+    onActiveModeChange?.(mode);
   }
 
   function handleModeTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {

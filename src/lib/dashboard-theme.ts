@@ -35,6 +35,7 @@ export type DashboardThemePalette = {
   surfaceStrong: string;
   text: string;
   overlayBackground: string;
+  placeholder: string;
   shadowColor: string;
   toastErrorBackground: string;
   toastErrorBorder: string;
@@ -82,6 +83,7 @@ const DASHBOARD_THEME_PANEL_FIELDS: readonly DashboardThemeField[] = [
   { key: "border", label: "Borders", description: "Panel and field outlines." },
   { key: "focusRing", label: "Focus ring", description: "Keyboard focus outlines and selected controls." },
   { key: "overlayBackground", label: "Overlay", description: "Modal backdrop tint." },
+  { key: "placeholder", label: "Placeholder text", description: "Text inside empty form fields." },
   { key: "shadowColor", label: "Shadow", description: "Tint used for dashboard panel shadows." },
   { key: "qrBackground", label: "QR background", description: "Background behind generated QR codes." },
   { key: "link", label: "Links", description: "Inline dashboard links and destination URLs." }
@@ -177,6 +179,7 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     surfaceStrong: "#d8edf4",
     text: "#0b2636",
     overlayBackground: "#0b2636",
+    placeholder: "#6f8a96",
     shadowColor: "#0a5c70",
     toastErrorBackground: "#ffffff",
     toastErrorBorder: "#c81d25",
@@ -222,6 +225,7 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     surfaceStrong: "#176d7d",
     text: "#f3fbff",
     overlayBackground: "#000000",
+    placeholder: "#b7d6e2",
     shadowColor: "#000000",
     toastErrorBackground: "#0a5c70",
     toastErrorBorder: "#ff858a",
@@ -370,6 +374,7 @@ export function dashboardThemePaletteCssVariables(theme: DashboardThemePalette) 
     "--pill-text": theme.pillText,
     "--qr-background": theme.qrBackground,
     "--overlay-background": theme.overlayBackground,
+    "--placeholder": theme.placeholder,
     "--shadow": `0 18px 50px ${theme.shadowColor}1f`,
     "--sidebar-border": theme.sidebarBorder,
     "--sidebar-muted": theme.sidebarMuted,
@@ -420,6 +425,7 @@ export function dashboardThemeCssVariables(theme: DashboardTheme) {
       [`--dashboard-${mode.key}-pill-text`, theme[mode.key].pillText],
       [`--dashboard-${mode.key}-qr-background`, theme[mode.key].qrBackground],
       [`--dashboard-${mode.key}-overlay-background`, theme[mode.key].overlayBackground],
+      [`--dashboard-${mode.key}-placeholder`, theme[mode.key].placeholder],
       [`--dashboard-${mode.key}-shadow`, `0 18px 50px ${theme[mode.key].shadowColor}1f`],
       [`--dashboard-${mode.key}-shadow-color`, theme[mode.key].shadowColor],
       ...Object.entries(dashboardThemeStatsTabCssVariables(theme[mode.key], `--dashboard-${mode.key}-`)),

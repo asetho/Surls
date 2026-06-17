@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ExternalLink, RotateCcw } from "lucide-react";
+import { AutoSubmitSelect } from "@/components/AutoSubmitSelect";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { CopyShortUrlButton, ShareButton } from "@/components/CopyShareButtons";
 import { DeleteLinkModal } from "@/components/DeleteLinkModal";
@@ -171,7 +172,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
             {view === "archived" ? <input type="hidden" name="view" value="archived" /> : null}
             {tag ? <input type="hidden" name="tag" value={tag} /> : null}
             <input name="q" placeholder="Search links or tags" defaultValue={q ?? ""} />
-            <select name="sort" defaultValue={sort} aria-label="Sort links">
+            <AutoSubmitSelect name="sort" defaultValue={sort} aria-label="Sort links">
               <option value="newest">Newest</option>
               <option value="url_asc">Short URL A-Z</option>
               <option value="url_desc">Short URL Z-A</option>
@@ -179,7 +180,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
               <option value="clicks_asc">Fewest clicks</option>
               <option value="status_desc">Active first</option>
               <option value="status_asc">Disabled first</option>
-            </select>
+            </AutoSubmitSelect>
             <label className="inline-field">
               Rows
               <input

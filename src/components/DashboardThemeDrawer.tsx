@@ -6,6 +6,8 @@ import { Minus, Palette, X } from "lucide-react";
 import { DashboardThemeEditor } from "@/components/DashboardThemeEditor";
 import { dispatchAdminToast } from "@/lib/admin-toast-event";
 import {
+  DASHBOARD_THEME_FIELDS,
+  DASHBOARD_THEME_MODES,
   dashboardThemeCssVariables,
   dashboardThemeToFormData,
   isDefaultDashboardTheme,
@@ -15,6 +17,7 @@ import {
 
 const THEME_EDITOR_STORAGE_KEY = "surls-theme-editor-open";
 const THEME_EDITOR_MINIMIZED_STORAGE_KEY = "surls-theme-editor-minimized";
+type ThemeChoice = "light" | "dark" | "auto";
 
 function themeCssVariableMap(theme: DashboardTheme) {
   return dashboardThemeCssVariables(theme) as Record<string, string>;
@@ -40,8 +43,47 @@ function currentDocumentThemeMode(): DashboardThemeMode {
   return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 }
 
+function isThemeChoice(value: string | null | undefined): value is ThemeChoice {
+  return value === "light" || value === "dark" || value === "auto";
+}
+
+function storedThemeChoice(): ThemeChoice {
+  try {
+    const stored = window.localStorage.getItem("surls-theme");
+    if (isThemeChoice(stored)) return stored;
+  } catch {
+    // Fall back to the first-party cookie or current dataset below.
+  }
+  const match = document.cookie.match(/(?:^|;\s*)surls-theme=([^;]+)/);
+  let cookieChoice: string | null = null;
+  try {
+    cookieChoice = match ? decodeURIComponent(match[1]) : null;
+  } catch {
+    cookieChoice = null;
+  }
+  if (isThemeChoice(cookieChoice)) return cookieChoice;
+  const datasetChoice = document.documentElement.dataset.themeChoice;
+  return isThemeChoice(datasetChoice) ? datasetChoice : "auto";
+}
+
+function preferredDocumentThemeMode(): DashboardThemeMode {
+  const choice = storedThemeChoice();
+  if (choice === "auto") return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return choice;
+}
+
+function applyDocumentThemeMode(mode: DashboardThemeMode) {
+  document.documentElement.dataset.theme = mode;
+}
+
 function isThemeResponse(value: unknown): value is { dashboardTheme: DashboardTheme; message?: string } {
   return Boolean(value && typeof value === "object" && "dashboardTheme" in value);
+}
+
+function dashboardThemesMatch(first: DashboardTheme, second: DashboardTheme) {
+  return DASHBOARD_THEME_MODES.every((mode) =>
+    DASHBOARD_THEME_FIELDS.every((field) => first[mode.key][field.key] === second[mode.key][field.key])
+  );
 }
 
 export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: DashboardTheme }) {
@@ -52,12 +94,14 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
   const savedThemeRef = useRef(savedTheme);
   const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
+  const previewModeActiveRef = useRef(false);
   const pathname = usePathname();
   const router = useRouter();
   const readonlySearchParams = useSearchParams();
   const searchParams = useMemo(() => new URLSearchParams(readonlySearchParams.toString()), [readonlySearchParams]);
   const requestedOpen = readonlySearchParams.get("themeEditor") === "open";
   const isDefault = isDefaultDashboardTheme(savedTheme);
+  const hasUnsavedChanges = !dashboardThemesMatch(draftTheme, savedTheme);
 
   useEffect(() => {
     savedThemeRef.current = savedTheme;
@@ -92,17 +136,43 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
   }, [draftTheme, open, savedTheme]);
 
   useEffect(() => {
+    if (open && !minimized) {
+      previewModeActiveRef.current = true;
+      applyDocumentThemeMode(activeMode);
+      return;
+    }
+
+    if (previewModeActiveRef.current) {
+      previewModeActiveRef.current = false;
+      applyDocumentThemeMode(preferredDocumentThemeMode());
+    }
+  }, [activeMode, minimized, open]);
+
+  useEffect(() => {
     return () => {
+      if (previewModeActiveRef.current) applyDocumentThemeMode(preferredDocumentThemeMode());
       applyThemeVariables(savedThemeRef.current);
     };
   }, []);
 
   const closeDrawer = useCallback(() => {
+    if (
+      hasUnsavedChanges &&
+      !window.confirm("You have unsaved theme changes. Close the Theme Editor and discard them?")
+    ) {
+      return;
+    }
+
     setOpen(false);
+    setDraftTheme(savedTheme);
     window.sessionStorage.setItem(THEME_EDITOR_STORAGE_KEY, "0");
+    if (previewModeActiveRef.current) {
+      previewModeActiveRef.current = false;
+      applyDocumentThemeMode(preferredDocumentThemeMode());
+    }
     applyThemeVariables(savedTheme);
     router.replace(adminPathWithoutEditor(pathname, searchParams), { scroll: false });
-  }, [pathname, router, savedTheme, searchParams]);
+  }, [hasUnsavedChanges, pathname, router, savedTheme, searchParams]);
 
   function minimizeDrawer() {
     setMinimized(true);
@@ -192,11 +262,12 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
       <form id="dashboard-theme-drawer-form" className="theme-editor-drawer-form" onSubmit={handleSave}>
         <input type="hidden" name="csrf" value={csrf} />
         <DashboardThemeEditor
+          activeMode={activeMode}
           draftTheme={draftTheme}
-          initialMode={activeMode}
           theme={savedTheme}
           variant="drawer"
           showModePreviews={false}
+          onActiveModeChange={setActiveMode}
           onTestToast={(type) =>
             dispatchAdminToast(
               type,

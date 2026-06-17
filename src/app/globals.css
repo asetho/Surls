@@ -15,6 +15,7 @@
   --surface-strong: color-mix(in srgb, var(--sky-blue-light), white 72%);
   --text: #0b2636;
   --muted: color-mix(in srgb, var(--dark-teal), var(--pacific-blue) 38%);
+  --placeholder: color-mix(in srgb, var(--muted), var(--surface) 34%);
   --border: color-mix(in srgb, var(--pacific-blue), white 58%);
   --button-text: #ffffff;
   --link-color: var(--color-teal);
@@ -38,6 +39,7 @@
   --surface-strong: color-mix(in srgb, var(--dark-teal), var(--teal) 38%);
   --text: #f3fbff;
   --muted: var(--sky-blue-light);
+  --placeholder: color-mix(in srgb, var(--muted), var(--surface) 24%);
   --border: color-mix(in srgb, var(--pacific-blue), var(--dark-teal) 38%);
   --overlay-background: #000000;
   --mobile-chrome-background: var(--dashboard-dark-background, var(--background));
@@ -1796,6 +1798,7 @@ button.danger-outline:hover {
   --dashboard-active-focus-ring: var(--dashboard-light-focus-ring);
   --dashboard-active-link: var(--dashboard-light-link);
   --dashboard-active-muted: var(--dashboard-light-muted);
+  --dashboard-active-placeholder: var(--dashboard-light-placeholder);
   --dashboard-active-overlay-background: var(--dashboard-light-overlay-background);
   --dashboard-active-pill-background: var(--dashboard-light-pill-background);
   --dashboard-active-pill-border: var(--dashboard-light-pill-border);
@@ -1846,6 +1849,7 @@ button.danger-outline:hover {
   --link-color: var(--dashboard-active-link);
   --dark-teal: var(--dashboard-active-sidebar);
   --muted: var(--dashboard-active-muted);
+  --placeholder: var(--dashboard-active-placeholder);
   --pacific-blue: var(--dashboard-active-border);
   --chart-color-1: var(--dashboard-active-chart-primary);
   --chart-color-2: var(--dashboard-active-chart-secondary);
@@ -1925,6 +1929,7 @@ button.danger-outline:hover {
   --dashboard-active-focus-ring: var(--dashboard-dark-focus-ring);
   --dashboard-active-link: var(--dashboard-dark-link);
   --dashboard-active-muted: var(--dashboard-dark-muted);
+  --dashboard-active-placeholder: var(--dashboard-dark-placeholder);
   --dashboard-active-overlay-background: var(--dashboard-dark-overlay-background);
   --dashboard-active-pill-background: var(--dashboard-dark-pill-background);
   --dashboard-active-pill-border: var(--dashboard-dark-pill-border);
@@ -2193,6 +2198,11 @@ button.danger-outline:hover {
   gap: 0.75rem;
 }
 
+.create-user-form > button {
+  align-self: flex-start;
+  width: fit-content;
+}
+
 .form-field {
   display: grid;
   gap: 0.35rem;
@@ -2313,7 +2323,7 @@ textarea {
 
 input::placeholder,
 textarea::placeholder {
-  color: var(--muted);
+  color: var(--placeholder, var(--muted));
   opacity: 1;
 }
 
@@ -2336,6 +2346,7 @@ textarea {
   --surface-strong: var(--dashboard-light-surface-strong, color-mix(in srgb, var(--sky-blue-light), white 72%));
   --text: var(--dashboard-light-text, #0b2636);
   --muted: var(--dashboard-light-muted, color-mix(in srgb, var(--dark-teal), var(--pacific-blue) 38%));
+  --placeholder: var(--dashboard-light-placeholder, color-mix(in srgb, var(--muted), var(--surface) 34%));
   --border: var(--dashboard-light-border, color-mix(in srgb, var(--pacific-blue), white 58%));
   --button-text: var(--dashboard-light-button-text, #ffffff);
   --link-color: var(--dashboard-light-link, var(--color-teal));
@@ -2477,6 +2488,7 @@ textarea {
   --dashboard-active-focus-ring: var(--dashboard-light-focus-ring);
   --dashboard-active-link: var(--dashboard-light-link);
   --dashboard-active-muted: var(--dashboard-light-muted);
+  --dashboard-active-placeholder: var(--dashboard-light-placeholder);
   --dashboard-active-overlay-background: var(--dashboard-light-overlay-background);
   --dashboard-active-pill-background: var(--dashboard-light-pill-background);
   --dashboard-active-pill-border: var(--dashboard-light-pill-border);
@@ -2527,6 +2539,7 @@ textarea {
   --link-color: var(--dashboard-active-link);
   --dark-teal: var(--dashboard-active-sidebar);
   --muted: var(--dashboard-active-muted);
+  --placeholder: var(--dashboard-active-placeholder);
   --pacific-blue: var(--dashboard-active-border);
   --chart-color-1: var(--dashboard-active-chart-primary);
   --chart-color-2: var(--dashboard-active-chart-secondary);
@@ -2603,6 +2616,7 @@ textarea {
   --dashboard-active-focus-ring: var(--dashboard-dark-focus-ring);
   --dashboard-active-link: var(--dashboard-dark-link);
   --dashboard-active-muted: var(--dashboard-dark-muted);
+  --dashboard-active-placeholder: var(--dashboard-dark-placeholder);
   --dashboard-active-overlay-background: var(--dashboard-dark-overlay-background);
   --dashboard-active-pill-background: var(--dashboard-dark-pill-background);
   --dashboard-active-pill-border: var(--dashboard-dark-pill-border);
@@ -3072,6 +3086,14 @@ th {
   width: auto;
 }
 
+.link-filter-form input,
+.link-filter-form select,
+.link-filter-form button {
+  min-height: 2.12rem;
+  padding-bottom: 0.38rem;
+  padding-top: 0.38rem;
+}
+
 .inline-field {
   align-items: center;
   color: var(--muted);
@@ -3116,13 +3138,16 @@ th {
 }
 
 .sort-badge {
+  align-items: center;
   background: var(--pill-background, var(--surface-strong));
   border: 1px solid var(--pill-border, var(--border));
-  border-radius: 999px;
+  border-radius: 5px;
   color: var(--pill-text, var(--text));
-  font-size: 0.68rem;
+  display: inline-flex;
+  font-size: 0.7rem;
   font-weight: 800;
-  padding: 0.08rem 0.32rem;
+  line-height: 1.15;
+  padding: 0.1rem 0.32rem;
   text-transform: none;
 }
 
@@ -3365,7 +3390,7 @@ th {
 .badge {
   background: var(--active-pill-background, color-mix(in srgb, var(--color-teal), transparent 84%));
   border: 1px solid var(--active-pill-border, color-mix(in srgb, var(--color-teal), transparent 45%));
-  border-radius: 999px;
+  border-radius: 8px;
   color: var(--active-pill-text, var(--text));
   display: inline-flex;
   font-size: 0.76rem;

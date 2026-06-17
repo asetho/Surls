@@ -14,7 +14,7 @@ export function CreateUserForm({ csrf }: { csrf: string }) {
   }, [state]);
 
   return (
-    <form className="form-stack" action={action}>
+    <form className="form-stack create-user-form" action={action}>
       <input type="hidden" name="csrf" value={csrf} />
       <div className="form-grid">
         <label>

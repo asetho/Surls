@@ -108,7 +108,7 @@ export default async function SettingsPage() {
           <p className="muted">Control privacy, redirect behavior, branding, and UI defaults.</p>
         </div>
         <div className="content-header-actions">
-          <Link id="theme-editor-button" className="button secondary" href="/admin?themeEditor=open">
+          <Link id="theme-editor-button" className="button secondary" href="/admin/settings?themeEditor=open">
             Theme Editor
           </Link>
           <Link id="favicon-editor-button" className="button secondary" href="/admin/settings/favicons/editor">
@@ -193,7 +193,7 @@ export default async function SettingsPage() {
             </span>
           </div>
           <p className="muted">Adjust signed-in dashboard colors, light/dark palettes, and live previews.</p>
-          <Link className="button secondary" href="/admin?themeEditor=open">
+          <Link className="button secondary" href="/admin/settings?themeEditor=open">
             Open Theme Editor
           </Link>
         </div>

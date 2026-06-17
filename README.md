@@ -1,8 +1,8 @@
 # Surls
 
-Surls is a personal short URL system for managing private links, redirects, and click statistics.
+Surls is a short URL system for managing short links, redirects, and click statistics.
 
-It is inspired by the product shape of personal URL shorteners such as YOURLS and Tiny.cc, but the code, branding, UI, and implementation are original to this project.
+It is inspired by the product shape of URL shorteners such as YOURLS and Tiny.cc, but the code, branding, UI, and implementation are original to this project.
 
 ## What It Includes
 

@@ -95,6 +95,16 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
           </div>
           <div className="link-title-row">
             <h1>/{link.code}</h1>
+            <a
+              className="button secondary icon-button icon-only-action"
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Open /${link.code} in a new tab`}
+              title={`Open /${link.code}`}
+            >
+              <ExternalLink size={16} aria-hidden />
+            </a>
             <CopyShortUrlButton url={url} />
             <EditLinkModal csrf={csrf} link={editableLink} />
           </div>
@@ -197,7 +207,15 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
       <RecentClicksPanel initialData={recentClicks} linkId={link.id} />
 
       <section className="surface surface-panel">
-        <h2>{link.archivedAt ? "Restore/Delete" : "Archive/Delete"}</h2>
+        <h2>
+          {link.archivedAt
+            ? canDeleteLinks
+              ? "Restore/Delete"
+              : "Restore"
+            : canDeleteLinks
+              ? "Archive/Delete"
+              : "Archive"}
+        </h2>
         <p className="muted">
           {link.archivedAt
             ? "This link is archived, hidden from active lists, and no longer redirects. Restore it to make it active again."
