@@ -19,17 +19,18 @@ import {
 } from "lucide-react";
 import { adminLoginPath } from "@/lib/admin-login-path";
 import { requireSiteAdmin } from "@/lib/auth";
-import { DASHBOARD_THEME_FIELD_SECTIONS } from "@/lib/dashboard-theme";
+import { DASHBOARD_THEME_FIELD_SECTIONS, type DashboardThemeKey } from "@/lib/dashboard-theme";
+import { StyleReferenceInteractions } from "./StyleReferenceInteractions";
 
 export const metadata: Metadata = {
   title: "Style Reference"
 };
 
 const typeSamples = [
-  ["Display", "Short link analytics"],
-  ["Heading", "Dashboard theme controls"],
-  ["Body", "Create, search, copy, share, edit, disable, archive, and inspect links."],
-  ["Mono", "Surls v1.11.0 git abc1234"]
+  ["Display", "Short link analytics", "text"],
+  ["Heading", "Dashboard theme controls", "text"],
+  ["Body", "Create, search, copy, share, edit, disable, archive, and inspect links.", "text"],
+  ["Mono", "Surls v1.11.0 git abc1234", "muted"]
 ] as const;
 
 function fieldKeyToToken(key: string) {
@@ -47,12 +48,17 @@ function tokenStyle(token: string) {
   return { "--token-color": `var(${token})` } as CSSProperties;
 }
 
+function themeField(field: DashboardThemeKey) {
+  return field;
+}
+
 export default async function StyleReferencePage() {
   const admin = await requireSiteAdmin();
   if (!admin) redirect(adminLoginPath("/admin/style-reference"));
 
   return (
     <main className="admin-content style-reference-page">
+      <StyleReferenceInteractions />
       <div className="content-header content-header-topbar">
         <div>
           <h1>Style Reference</h1>
@@ -69,41 +75,59 @@ export default async function StyleReferencePage() {
         </div>
       </div>
 
-      <section className="surface surface-panel">
-        <div className="settings-card-header">
+      <details className="surface surface-panel settings-collapse style-reference-token-panel" open>
+        <summary className="settings-card-header">
           <h2>Theme tokens</h2>
           <span className="status-pill status-pill-active">Live palette</span>
+        </summary>
+        <div className="settings-collapse-body">
+          <div className="style-reference-token-sections">
+            {DASHBOARD_THEME_FIELD_SECTIONS.map((section) => (
+              <details className="settings-collapse style-reference-token-section" key={section.key}>
+                <summary className="settings-card-header">
+                  <h3>{section.label}</h3>
+                </summary>
+                <div className="settings-collapse-body style-reference-token-section-body">
+                  <div className="style-reference-token-grid">
+                    {section.fields.map((field) => {
+                      const token = fieldKeyToToken(field.key);
+                      return (
+                        <div
+                          className="style-reference-token style-reference-theme-target"
+                          data-theme-field={field.key}
+                          key={token}
+                          role="button"
+                          tabIndex={0}
+                        >
+                          <span className="style-reference-swatch" style={tokenStyle(token)} aria-hidden />
+                          <span>
+                            <strong>{field.label}</strong>
+                            <code>{token}</code>
+                            <small>{field.description}</small>
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </details>
+            ))}
+          </div>
         </div>
-        <div className="style-reference-token-sections">
-          {DASHBOARD_THEME_FIELD_SECTIONS.map((section) => (
-            <div className="style-reference-token-section" key={section.key}>
-              <h3>{section.label}</h3>
-              <div className="style-reference-token-grid">
-                {section.fields.map((field) => {
-                  const token = fieldKeyToToken(field.key);
-                  return (
-                    <div className="style-reference-token" key={token}>
-                      <span className="style-reference-swatch" style={tokenStyle(token)} aria-hidden />
-                      <span>
-                        <strong>{field.label}</strong>
-                        <code>{token}</code>
-                        <small>{field.description}</small>
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      </details>
 
       <section className="style-reference-grid">
         <div className="surface surface-panel">
           <h2>Type</h2>
           <div className="style-reference-type-list">
-            {typeSamples.map(([label, text]) => (
-              <div key={label}>
+            {typeSamples.map(([label, text, field]) => (
+              <div
+                className="style-reference-theme-target"
+                data-theme-field={field}
+                key={label}
+                role="button"
+                tabIndex={0}
+              >
                 <span className="muted small">{label}</span>
                 <p className={`style-reference-type-${label.toLowerCase()}`}>{text}</p>
               </div>
@@ -114,23 +138,23 @@ export default async function StyleReferencePage() {
         <div className="surface surface-panel">
           <h2>Actions</h2>
           <div className="style-reference-button-grid">
-            <button type="button">
+            <button data-theme-field={themeField("accent")} type="button">
               <Save size={16} aria-hidden />
               Primary action
             </button>
-            <button className="secondary" type="button">
+            <button className="secondary" data-theme-field={themeField("surfaceStrong")} type="button">
               <Copy size={16} aria-hidden />
               Secondary
             </button>
-            <button className="danger" type="button">
+            <button className="danger" data-theme-field={themeField("dangerBackground")} type="button">
               <Archive size={16} aria-hidden />
               Archive
             </button>
-            <button className="danger-outline" type="button">
+            <button className="danger-outline" data-theme-field={themeField("dangerBorder")} type="button">
               <Trash2 size={16} aria-hidden />
               Delete
             </button>
-            <button className="icon-button secondary" type="button" aria-label="Share sample">
+            <button className="icon-button secondary" data-theme-field={themeField("border")} type="button" aria-label="Share sample">
               <Share2 size={16} aria-hidden />
             </button>
           </div>
@@ -172,20 +196,20 @@ export default async function StyleReferencePage() {
         <div className="surface surface-panel">
           <h2>Pills and links</h2>
           <div className="style-reference-pill-row">
-            <a className="short-url-pill" href="#reference-short-url">
+            <a className="short-url-pill" data-theme-field={themeField("shortUrlPillBackground")} href="#reference-short-url">
               qr-demo
             </a>
-            <span className="badge">Active</span>
-            <span className="badge warning">Disabled</span>
-            <a className="badge tag-link" href="#reference-tag">
+            <span className="badge style-reference-theme-target" data-theme-field={themeField("activePillBackground")} role="button" tabIndex={0}>Active</span>
+            <span className="badge warning style-reference-theme-target" data-theme-field={themeField("dangerBackground")} role="button" tabIndex={0}>Disabled</span>
+            <a className="badge tag-link" data-theme-field={themeField("pillBackground")} href="#reference-tag">
               Product
             </a>
-            <span className="sort-badge">Sort</span>
-            <span className="status-pill">Built-in</span>
-            <span className="status-pill status-pill-active">Custom</span>
+            <span className="sort-badge style-reference-theme-target" data-theme-field={themeField("pillBackground")} role="button" tabIndex={0}>Sort</span>
+            <span className="status-pill style-reference-theme-target" data-theme-field={themeField("pillBackground")} role="button" tabIndex={0}>Built-in</span>
+            <span className="status-pill status-pill-active style-reference-theme-target" data-theme-field={themeField("activePillBackground")} role="button" tabIndex={0}>Custom</span>
           </div>
           <p>
-            <a href="#reference-link">
+            <a data-theme-field={themeField("link")} href="#reference-link">
               <ExternalLink size={13} aria-hidden />
               https://example.com/surls-theme
             </a>
@@ -302,7 +326,7 @@ export default async function StyleReferencePage() {
           </button>
         </div>
         <div className="style-reference-viz-grid">
-          <div className="style-reference-chart-card">
+          <div className="style-reference-chart-card style-reference-theme-target" data-theme-field={themeField("chartPrimary")} role="button" tabIndex={0}>
             <h3>Line chart</h3>
             <svg className="style-reference-line-chart" viewBox="0 0 520 220" role="img" aria-label="Sample line chart">
               <line x1="46" y1="34" x2="486" y2="34" />
@@ -314,7 +338,7 @@ export default async function StyleReferencePage() {
               <circle cx="420" cy="62" r="5" />
             </svg>
           </div>
-          <div className="style-reference-chart-card">
+          <div className="style-reference-chart-card style-reference-theme-target" data-theme-field={themeField("chartAccent")} role="button" tabIndex={0}>
             <h3>Pie chart</h3>
             <div className="style-reference-pie" aria-label="Sample pie chart" role="img" />
             <div className="style-reference-chart-list">
@@ -328,7 +352,7 @@ export default async function StyleReferencePage() {
               </div>
             </div>
           </div>
-          <div className="style-reference-chart-card">
+          <div className="style-reference-chart-card style-reference-theme-target" data-theme-field={themeField("chartMapHigh")} role="button" tabIndex={0}>
             <h3>Map colors</h3>
             <div className="style-reference-map" aria-label="Sample map color buckets" role="img">
               <span className="bucket-1" />
@@ -349,11 +373,11 @@ export default async function StyleReferencePage() {
         <div className="surface surface-panel">
           <h2>Notices and toasts</h2>
           <div className="style-reference-toast-stack">
-            <div className="style-reference-toast style-reference-toast-success">
+            <div className="style-reference-toast style-reference-toast-success style-reference-theme-target" data-theme-field={themeField("toastSuccessBackground")} role="button" tabIndex={0}>
               <CheckCircle2 size={18} aria-hidden />
               <span>Dashboard theme saved.</span>
             </div>
-            <div className="style-reference-toast style-reference-toast-error">
+            <div className="style-reference-toast style-reference-toast-error style-reference-theme-target" data-theme-field={themeField("toastErrorBackground")} role="button" tabIndex={0}>
               <AlertTriangle size={18} aria-hidden />
               <span>Could not save dashboard theme.</span>
             </div>
@@ -370,7 +394,7 @@ export default async function StyleReferencePage() {
 
         <div className="surface surface-panel">
           <h2>Empty states</h2>
-          <div className="style-reference-empty-state">
+          <div className="style-reference-empty-state style-reference-theme-target" data-theme-field={themeField("surfaceStrong")} role="button" tabIndex={0}>
             <Info size={22} aria-hidden />
             <strong>No links yet</strong>
             <p className="muted">Create your first short URL to populate this area.</p>

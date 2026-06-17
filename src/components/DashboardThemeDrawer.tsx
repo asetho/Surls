@@ -12,8 +12,13 @@ import {
   dashboardThemeToFormData,
   isDefaultDashboardTheme,
   type DashboardTheme,
+  type DashboardThemeKey,
   type DashboardThemeMode
 } from "@/lib/dashboard-theme";
+import {
+  DASHBOARD_THEME_EDITOR_FOCUS_EVENT,
+  type DashboardThemeEditorFocusDetail
+} from "@/lib/theme-editor-events";
 
 const THEME_EDITOR_STORAGE_KEY = "surls-theme-editor-open";
 const THEME_EDITOR_MINIMIZED_STORAGE_KEY = "surls-theme-editor-minimized";
@@ -36,6 +41,12 @@ function adminPathWithoutEditor(pathname: string, searchParams: URLSearchParams)
   const params = new URLSearchParams(searchParams);
   params.delete("themeEditor");
   return `${pathname}${params.size ? `?${params.toString()}` : ""}`;
+}
+
+function adminPathWithEditor(pathname: string, searchParams: URLSearchParams) {
+  const params = new URLSearchParams(searchParams);
+  params.set("themeEditor", "open");
+  return `${pathname}?${params.toString()}`;
 }
 
 function currentDocumentThemeMode(): DashboardThemeMode {
@@ -86,6 +97,16 @@ function dashboardThemesMatch(first: DashboardTheme, second: DashboardTheme) {
   );
 }
 
+function isDashboardThemeEditorFocusDetail(value: unknown): value is DashboardThemeEditorFocusDetail {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      "field" in value &&
+      typeof value.field === "string" &&
+      (!("mode" in value) || value.mode === "light" || value.mode === "dark")
+  );
+}
+
 export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: DashboardTheme }) {
   const [savedTheme, setSavedTheme] = useState(theme);
   const [draftTheme, setDraftTheme] = useState(theme);
@@ -94,7 +115,9 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
   const savedThemeRef = useRef(savedTheme);
   const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
+  const [focusRequestId, setFocusRequestId] = useState(0);
   const previewModeActiveRef = useRef(false);
+  const pendingFocusRef = useRef<{ field: DashboardThemeKey; mode: DashboardThemeMode } | null>(null);
   const pathname = usePathname();
   const router = useRouter();
   const readonlySearchParams = useSearchParams();
@@ -134,6 +157,52 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
   useEffect(() => {
     applyThemeVariables(open ? draftTheme : savedTheme);
   }, [draftTheme, open, savedTheme]);
+
+  useEffect(() => {
+    function handleFocusRequest(event: Event) {
+      if (!(event instanceof CustomEvent) || !isDashboardThemeEditorFocusDetail(event.detail)) return;
+      const mode = event.detail.mode ?? currentDocumentThemeMode();
+      pendingFocusRef.current = { field: event.detail.field, mode };
+
+      window.sessionStorage.setItem(THEME_EDITOR_STORAGE_KEY, "1");
+      window.sessionStorage.setItem(THEME_EDITOR_MINIMIZED_STORAGE_KEY, "0");
+      setActiveMode(mode);
+      setOpen(true);
+      setMinimized(false);
+      setFocusRequestId((requestId) => requestId + 1);
+      router.replace(adminPathWithEditor(pathname, searchParams), { scroll: false });
+    }
+
+    window.addEventListener(DASHBOARD_THEME_EDITOR_FOCUS_EVENT, handleFocusRequest);
+    return () => window.removeEventListener(DASHBOARD_THEME_EDITOR_FOCUS_EVENT, handleFocusRequest);
+  }, [pathname, router, searchParams]);
+
+  useEffect(() => {
+    if (!open || minimized) return;
+    const pendingFocus = pendingFocusRef.current;
+    if (!pendingFocus || pendingFocus.mode !== activeMode) return;
+
+    const focusTimer = window.setTimeout(() => {
+      const panel = document.getElementById(`dashboard-theme-${pendingFocus.mode}-panel`);
+      const field = panel?.querySelector<HTMLElement>(
+        `[data-theme-mode-key="${pendingFocus.mode}"][data-theme-field-key="${pendingFocus.field}"]`
+      );
+      if (!field) return;
+
+      const section = field.closest<HTMLDetailsElement>("details.dashboard-theme-field-section-collapsible");
+      if (section) section.open = true;
+
+      field.scrollIntoView({ behavior: "smooth", block: "center" });
+      field.classList.remove("dashboard-theme-field-highlight");
+      void field.offsetWidth;
+      field.classList.add("dashboard-theme-field-highlight");
+      pendingFocusRef.current = null;
+
+      window.setTimeout(() => field.classList.remove("dashboard-theme-field-highlight"), 3600);
+    }, 80);
+
+    return () => window.clearTimeout(focusTimer);
+  }, [activeMode, focusRequestId, minimized, open]);
 
   useEffect(() => {
     if (open && !minimized) {

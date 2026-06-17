@@ -677,6 +677,16 @@ button.danger-outline:hover {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.style-reference-token-panel > summary h2,
+.style-reference-token-section > summary h3 {
+  margin: 0;
+  text-align: left;
+}
+
+.style-reference-token-panel > .settings-collapse-body {
+  gap: 0.75rem;
+}
+
 .style-reference-token-grid {
   display: grid;
   gap: 0.55rem;
@@ -689,12 +699,22 @@ button.danger-outline:hover {
 }
 
 .style-reference-token-section {
-  display: grid;
-  gap: 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  padding: 0;
 }
 
-.style-reference-token-section h3 {
-  margin: 0;
+.style-reference-token-section > summary {
+  background: color-mix(in srgb, var(--surface-strong), transparent 52%);
+}
+
+.style-reference-token-section > .style-reference-token-section-body {
+  padding: 0.65rem;
+}
+
+.style-reference-token-section:not([open]) > summary {
+  border-bottom: 0;
 }
 
 .style-reference-token {
@@ -706,6 +726,21 @@ button.danger-outline:hover {
   gap: 0.65rem;
   min-width: 0;
   padding: 0.65rem;
+}
+
+.style-reference-theme-target {
+  cursor: pointer;
+  position: relative;
+}
+
+.style-reference-theme-target:hover {
+  border-color: color-mix(in srgb, var(--accent), var(--border) 36%);
+}
+
+.style-reference-theme-target:focus-visible {
+  border-radius: var(--radius);
+  box-shadow: var(--focus-ring);
+  outline: none;
 }
 
 .style-reference-swatch {
@@ -1552,6 +1587,23 @@ button.danger-outline:hover {
   display: grid;
   gap: 0.48rem;
   padding: 0.62rem;
+}
+
+@keyframes dashboard-theme-field-highlight-pulse {
+  0%,
+  100% {
+    box-shadow: none;
+  }
+
+  45% {
+    border-color: var(--accent);
+    box-shadow: var(--focus-ring), 0 0 0 0.35rem color-mix(in srgb, var(--accent), transparent 74%);
+  }
+}
+
+.dashboard-theme-field-highlight {
+  animation: dashboard-theme-field-highlight-pulse 950ms ease-in-out 3;
+  border-color: var(--accent);
 }
 
 .dashboard-theme-field > span:first-child {

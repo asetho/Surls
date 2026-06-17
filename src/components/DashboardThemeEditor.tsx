@@ -309,13 +309,22 @@ export function DashboardThemeEditor({
           <h3>{mode.label}</h3>
           {DASHBOARD_THEME_FIELD_SECTIONS.map((section) => (
             variant === "drawer" ? (
-              <details className="dashboard-theme-field-section dashboard-theme-field-section-collapsible" key={section.key}>
+              <details
+                className="dashboard-theme-field-section dashboard-theme-field-section-collapsible"
+                data-theme-section-key={section.key}
+                key={section.key}
+              >
                 <summary>
                   <h4>{section.label}</h4>
                 </summary>
                 <div className="dashboard-theme-grid">
                   {section.fields.map((field) => (
-                    <label className="dashboard-theme-field" key={field.key}>
+                    <label
+                      className="dashboard-theme-field"
+                      data-theme-field-key={field.key}
+                      data-theme-mode-key={mode.key}
+                      key={field.key}
+                    >
                       <span>
                         {field.label}
                         <small>{field.description}</small>
