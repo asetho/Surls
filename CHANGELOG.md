@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.10.1 - 2026-06-17
+
+### Fixed
+
+* Updated the production dependency lockfile so Hono resolves to the patched `4.12.25` release.
+
+### Security
+
+* Cleared the npm audit finding for Hono advisories affecting CORS middleware and selected adapter/static-serving paths.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.10.0 - 2026-06-16
 
 ### Added
