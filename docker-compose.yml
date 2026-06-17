@@ -16,7 +16,10 @@ services:
 
   app:
     image: ${SURLS_IMAGE:-ghcr.io/aaronwhippo/surls:latest}
-    build: .
+    build:
+      context: .
+      args:
+        SURLS_GIT_SHA: "${SURLS_GIT_SHA:-}"
     restart: unless-stopped
     depends_on:
       db:
@@ -39,6 +42,8 @@ services:
       INITIAL_ADMIN_EMAIL: "${INITIAL_ADMIN_EMAIL:-}"
       INITIAL_ADMIN_NAME: "${INITIAL_ADMIN_NAME:-Surls Admin}"
       INITIAL_ADMIN_PASSWORD: "${INITIAL_ADMIN_PASSWORD:-}"
+      SURLS_GIT_SHA: "${SURLS_GIT_SHA:-}"
+      NEXT_PUBLIC_GIT_SHA: "${SURLS_GIT_SHA:-}"
       SURLS_RUN_MIGRATIONS: "${SURLS_RUN_MIGRATIONS:-true}"
       SURLS_RUN_BOOTSTRAP: "${SURLS_RUN_BOOTSTRAP:-true}"
     ports:

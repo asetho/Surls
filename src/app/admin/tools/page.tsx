@@ -5,7 +5,7 @@ import { revokeTokenAction } from "./actions";
 import { BookmarkletLink } from "@/components/BookmarkletLink";
 import { ApiTokenForm, ImportCsvForm, LinkCheckerForm, UtmBuilder } from "@/components/ToolsForms";
 import { ConfirmButton } from "@/components/ConfirmButton";
-import { APP_VERSION } from "@/lib/app-version";
+import { APP_BUILD_LABEL, APP_VERSION } from "@/lib/app-version";
 import { requireAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { appBaseUrl, env } from "@/lib/env";
@@ -149,6 +149,12 @@ export default async function ToolsPage() {
           <dl>
             <dt>App version</dt>
             <dd>{APP_VERSION}</dd>
+            {APP_BUILD_LABEL ? (
+              <>
+                <dt>Build</dt>
+                <dd>{APP_BUILD_LABEL}</dd>
+              </>
+            ) : null}
             <dt>Environment</dt>
             <dd>{env.NODE_ENV}</dd>
             <dt>Base URL</dt>
