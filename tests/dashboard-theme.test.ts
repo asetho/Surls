@@ -93,6 +93,7 @@ describe("dashboard theme settings", () => {
     const expectedFieldCount = DASHBOARD_THEME_MODES.length * DASHBOARD_THEME_FIELDS.length;
 
     expect(Array.from(formData.keys())).toHaveLength(expectedFieldCount);
+    expect(DASHBOARD_THEME_FIELDS.some((field) => String(field.key).startsWith("statsTab"))).toBe(false);
     expect(dashboardThemeFromFormData(formData)).toEqual(DEFAULT_DASHBOARD_THEME);
   });
 
@@ -128,6 +129,9 @@ describe("dashboard theme settings", () => {
       "--dashboard-light-shadow": `0 18px 50px ${DEFAULT_DASHBOARD_THEME.light.shadowColor}1f`,
       "--dashboard-light-shadow-color": DEFAULT_DASHBOARD_THEME.light.shadowColor,
       "--dashboard-light-sidebar-text": DEFAULT_DASHBOARD_THEME.light.sidebarText,
+      "--dashboard-light-stats-tab-active-background": DEFAULT_DASHBOARD_THEME.light.chartPrimary,
+      "--dashboard-light-stats-tab-background": `color-mix(in srgb, ${DEFAULT_DASHBOARD_THEME.light.chartAccent}, ${DEFAULT_DASHBOARD_THEME.light.surface} 50%)`,
+      "--dashboard-light-stats-tab-text": `color-mix(in srgb, ${DEFAULT_DASHBOARD_THEME.light.chartSecondary}, transparent 32%)`,
       "--dashboard-light-surface": DEFAULT_DASHBOARD_THEME.light.surface,
       "--dashboard-light-text": DEFAULT_DASHBOARD_THEME.light.text,
       "--dashboard-light-toast-success-background": DEFAULT_DASHBOARD_THEME.light.toastSuccessBackground,
@@ -150,6 +154,10 @@ describe("dashboard theme settings", () => {
       "--shadow": `0 18px 50px ${DEFAULT_DASHBOARD_THEME.light.shadowColor}1f`,
       "--sidebar-text": DEFAULT_DASHBOARD_THEME.light.sidebarText,
       "--short-url-pill-background": DEFAULT_DASHBOARD_THEME.light.shortUrlPillBackground,
+      "--stats-tab-active-background": DEFAULT_DASHBOARD_THEME.light.chartPrimary,
+      "--stats-tab-background": `color-mix(in srgb, ${DEFAULT_DASHBOARD_THEME.light.chartAccent}, ${DEFAULT_DASHBOARD_THEME.light.surface} 50%)`,
+      "--stats-tab-list-background": DEFAULT_DASHBOARD_THEME.light.chartAccent,
+      "--stats-tab-text": `color-mix(in srgb, ${DEFAULT_DASHBOARD_THEME.light.chartSecondary}, transparent 32%)`,
       "--toast-error-border": DEFAULT_DASHBOARD_THEME.light.toastErrorBorder,
       "--toast-success-background": DEFAULT_DASHBOARD_THEME.light.toastSuccessBackground
     });
