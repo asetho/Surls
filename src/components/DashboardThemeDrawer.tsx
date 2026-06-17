@@ -62,6 +62,7 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
   });
   const [minimized, setMinimized] = useState(() => {
     if (typeof window === "undefined") return false;
+    if (new URLSearchParams(window.location.search).get("themeEditor") === "open") return false;
     return window.sessionStorage.getItem(THEME_EDITOR_MINIMIZED_STORAGE_KEY) === "1";
   });
   const pathname = usePathname();
@@ -79,8 +80,10 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
     if (!requestedOpen) return;
     const openTimer = window.setTimeout(() => {
       window.sessionStorage.setItem(THEME_EDITOR_STORAGE_KEY, "1");
+      window.sessionStorage.setItem(THEME_EDITOR_MINIMIZED_STORAGE_KEY, "0");
       setActiveMode(currentDocumentThemeMode());
       setOpen(true);
+      setMinimized(false);
     }, 0);
 
     return () => window.clearTimeout(openTimer);
