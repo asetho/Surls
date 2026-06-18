@@ -175,9 +175,14 @@ async function unavailableResponse(reason: string, isHead = false) {
   );
 }
 
-export async function handleShortRedirect(request: NextRequest, code: string, isHead = false) {
+type ShortRedirectOptions = {
+  missingLinkResponse?: () => Promise<Response>;
+};
+
+export async function handleShortRedirect(request: NextRequest, code: string, isHead = false, options: ShortRedirectOptions = {}) {
   const link = await prisma.shortLink.findUnique({ where: { code } });
   if (!link) {
+    if (options.missingLinkResponse) return options.missingLinkResponse();
     return publicWebrootNotFoundResponse({ method: isHead ? "HEAD" : "GET" });
   }
 

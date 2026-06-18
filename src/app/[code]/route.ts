@@ -8,18 +8,25 @@ type Params = {
 
 export const runtime = "nodejs";
 
+async function publicWebrootFallback(code: string, method: "GET" | "HEAD") {
+  return (
+    (await publicWebrootResponse([code], { method })) ??
+    publicWebrootNotFoundResponse({ method })
+  );
+}
+
 export async function GET(request: NextRequest, { params }: Params) {
   const { code } = await params;
-  const webrootResponse = await publicWebrootResponse([code]);
-  if (webrootResponse) return webrootResponse;
   if (isBlockedPublicWebrootPath([code])) return publicWebrootNotFoundResponse({ method: "GET" });
-  return handleShortRedirect(request, code);
+  return handleShortRedirect(request, code, false, {
+    missingLinkResponse: () => publicWebrootFallback(code, "GET")
+  });
 }
 
 export async function HEAD(request: NextRequest, { params }: Params) {
   const { code } = await params;
-  const webrootResponse = await publicWebrootResponse([code], { method: "HEAD" });
-  if (webrootResponse) return webrootResponse;
   if (isBlockedPublicWebrootPath([code])) return publicWebrootNotFoundResponse({ method: "HEAD" });
-  return handleShortRedirect(request, code, true);
+  return handleShortRedirect(request, code, true, {
+    missingLinkResponse: () => publicWebrootFallback(code, "HEAD")
+  });
 }

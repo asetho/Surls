@@ -40,15 +40,43 @@ describe("single-segment public route", () => {
     routeMocks.publicWebrootResponse.mockResolvedValue(null);
   });
 
-  it("serves public webroot files before short-link redirects", async () => {
+  it("checks short links before same-name public webroot files", async () => {
+    routeMocks.publicWebrootResponse.mockResolvedValue(new Response("file", { status: 200 }));
+
+    const response = await GET(requestFor("/test.html"), paramsFor("test.html"));
+
+    expect(response.status).toBe(302);
+    await expect(response.text()).resolves.toBe("short link");
+    expect(routeMocks.isBlockedPublicWebrootPath).toHaveBeenCalledWith(["test.html"]);
+    expect(routeMocks.publicWebrootResponse).not.toHaveBeenCalled();
+    expect(routeMocks.handleShortRedirect).toHaveBeenCalledWith(
+      expect.any(Request),
+      "test.html",
+      false,
+      expect.objectContaining({ missingLinkResponse: expect.any(Function) })
+    );
+  });
+
+  it("serves public webroot files when no short link exists", async () => {
+    routeMocks.handleShortRedirect.mockImplementation((_request, _code, _isHead, options) => options.missingLinkResponse());
     routeMocks.publicWebrootResponse.mockResolvedValue(new Response("file", { status: 200 }));
 
     const response = await GET(requestFor("/test.html"), paramsFor("test.html"));
 
     expect(response.status).toBe(200);
     await expect(response.text()).resolves.toBe("file");
-    expect(routeMocks.isBlockedPublicWebrootPath).not.toHaveBeenCalled();
-    expect(routeMocks.handleShortRedirect).not.toHaveBeenCalled();
+    expect(routeMocks.publicWebrootResponse).toHaveBeenCalledWith(["test.html"], { method: "GET" });
+  });
+
+  it("serves public webroot files for missing short-link HEAD requests", async () => {
+    routeMocks.handleShortRedirect.mockImplementation((_request, _code, _isHead, options) => options.missingLinkResponse());
+    routeMocks.publicWebrootResponse.mockResolvedValue(new Response(null, { status: 200 }));
+
+    const response = await HEAD(requestFor("/test.html"), paramsFor("test.html"));
+
+    expect(response.status).toBe(200);
+    await expect(response.text()).resolves.toBe("");
+    expect(routeMocks.publicWebrootResponse).toHaveBeenCalledWith(["test.html"], { method: "HEAD" });
   });
 
   it("returns the webroot 404 for blocked public paths instead of checking short links", async () => {
