@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.12.2 - 2026-06-18
+
+### Fixed
+
+* Restored link statistics controls to a tab-strip layout while keeping their colors editable from the theme editor.
+* Made the Theme Editor drawer condense the live admin page into a mobile-style preview while it is open.
+* Matched toast notification close icons to the toast text color.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.12.1 - 2026-06-18
 
 ### Fixed

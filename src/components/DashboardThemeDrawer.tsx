@@ -176,6 +176,14 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
   }, [draftTheme, open, savedTheme]);
 
   useEffect(() => {
+    const shell = document.querySelector<HTMLElement>(".admin-shell");
+    if (!shell) return;
+
+    shell.classList.toggle("theme-editor-preview-active", open && !minimized);
+    return () => shell.classList.remove("theme-editor-preview-active");
+  }, [minimized, open]);
+
+  useEffect(() => {
     function handleFocusRequest(event: Event) {
       if (!(event instanceof CustomEvent) || !isDashboardThemeEditorFocusDetail(event.detail)) return;
       const mode = event.detail.mode ?? currentDocumentThemeMode();
