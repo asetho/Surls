@@ -1,5 +1,6 @@
 services:
   db:
+    container_name: "${SURLS_DB_CONTAINER_NAME:-surls-db}"
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
