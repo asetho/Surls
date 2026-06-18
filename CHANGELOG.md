@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.12.1 - 2026-06-18
+
+### Fixed
+
+* Made empty countries more visible on traffic maps while still using the editable map palette.
+* Increased pie-chart slice contrast for clearer chart previews and analytics charts.
+* Normalized sample pill and action-button height/radius on the style reference page.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.12.0 - 2026-06-17
 
 ### Added

@@ -365,7 +365,7 @@ export function dashboardThemePaletteCssVariables(theme: DashboardThemePalette) 
     "--chart-map-bucket-3": `color-mix(in srgb, ${theme.chartMapLow}, ${theme.chartMapHigh} 50%)`,
     "--chart-map-bucket-4": `color-mix(in srgb, ${theme.chartMapLow}, ${theme.chartMapHigh} 75%)`,
     "--chart-map-bucket-5": theme.chartMapHigh,
-    "--chart-map-empty": `color-mix(in srgb, ${theme.surface}, ${theme.background} 72%)`,
+    "--chart-map-empty": `color-mix(in srgb, ${theme.chartMapLow}, ${theme.surface} 62%)`,
     "--chart-tooltip-background": theme.surface,
     "--chart-tooltip-border": theme.border,
     "--chart-tooltip-text": theme.text,

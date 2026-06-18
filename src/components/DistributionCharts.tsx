@@ -22,11 +22,11 @@ type TooltipState = {
 
 const chartColors = [
   "var(--chart-color-1, var(--color-teal))",
-  "color-mix(in srgb, var(--chart-color-1, var(--color-teal)), var(--surface) 18%)",
-  "color-mix(in srgb, var(--chart-color-1, var(--color-teal)), var(--surface) 34%)",
-  "color-mix(in srgb, var(--chart-color-1, var(--color-teal)), var(--background) 46%)",
-  "color-mix(in srgb, var(--chart-color-1, var(--color-teal)), var(--chart-color-2, var(--color-navy)) 36%)",
-  "color-mix(in srgb, var(--chart-color-1, var(--color-teal)), var(--chart-color-2, var(--color-navy)) 58%)"
+  "color-mix(in srgb, var(--chart-color-1, var(--color-teal)), var(--surface) 32%)",
+  "color-mix(in srgb, var(--chart-color-1, var(--color-teal)), var(--surface) 58%)",
+  "color-mix(in srgb, var(--chart-color-1, var(--color-teal)), var(--background) 72%)",
+  "color-mix(in srgb, var(--chart-color-1, var(--color-teal)), var(--chart-color-2, var(--color-navy)) 48%)",
+  "color-mix(in srgb, var(--chart-color-1, var(--color-teal)), var(--chart-color-2, var(--color-navy)) 72%)"
 ];
 
 function hitLabel(count: number) {

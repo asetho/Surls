@@ -808,17 +808,36 @@ button.danger-outline:hover {
   gap: 0.5rem;
 }
 
+.style-reference-button-grid > button,
+.style-reference-button-grid > .button {
+  border-radius: 8px;
+  min-height: 2.1rem;
+  padding-block: 0.36rem;
+}
+
+.style-reference-button-grid > .icon-button {
+  flex: 0 0 2.1rem;
+  height: 2.1rem;
+  min-height: 2.1rem;
+  min-width: 2.1rem;
+  padding: 0;
+  width: 2.1rem;
+}
+
 .style-reference-pill-row > .badge,
+.style-reference-pill-row > .short-url-pill,
 .style-reference-pill-row > .sort-badge,
 .style-reference-pill-row > .status-pill,
 .style-reference-pill-row > .tag-link {
   align-items: center;
+  border-radius: 6px;
+  box-sizing: border-box;
   display: inline-flex;
   font-size: 0.78rem;
   justify-content: center;
   line-height: 1;
-  min-height: 1.55rem;
-  padding: 0.18rem 0.48rem;
+  min-height: 1.62rem;
+  padding: 0.2rem 0.52rem;
 }
 
 .style-reference-page .inline-field input[type="checkbox"] {
@@ -899,8 +918,8 @@ button.danger-outline:hover {
   aspect-ratio: 1;
   background: conic-gradient(
     var(--chart-color-1) 0 52%,
-    color-mix(in srgb, var(--chart-color-1), var(--surface) 18%) 52% 76%,
-    color-mix(in srgb, var(--chart-color-1), var(--surface) 34%) 76% 100%
+    color-mix(in srgb, var(--chart-color-1), var(--surface) 32%) 52% 76%,
+    color-mix(in srgb, var(--chart-color-1), var(--surface) 58%) 76% 100%
   );
   border: 1px solid var(--border);
   border-radius: 50%;
@@ -1865,9 +1884,9 @@ button.danger-outline:hover {
     radial-gradient(circle, var(--surface) 0 38%, transparent 39%),
     conic-gradient(
       var(--chart-color-1) 0 42%,
-      color-mix(in srgb, var(--chart-color-1), var(--surface) 18%) 42% 63%,
-      color-mix(in srgb, var(--chart-color-1), var(--surface) 34%) 63% 78%,
-      color-mix(in srgb, var(--chart-color-1), var(--background) 46%) 78% 100%
+      color-mix(in srgb, var(--chart-color-1), var(--surface) 32%) 42% 63%,
+      color-mix(in srgb, var(--chart-color-1), var(--surface) 58%) 63% 78%,
+      color-mix(in srgb, var(--chart-color-1), var(--background) 72%) 78% 100%
     );
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -2233,7 +2252,7 @@ button.danger-outline:hover {
   --chart-map-bucket-3: color-mix(in srgb, var(--dashboard-active-chart-map-low), var(--dashboard-active-chart-map-high) 50%);
   --chart-map-bucket-4: color-mix(in srgb, var(--dashboard-active-chart-map-low), var(--dashboard-active-chart-map-high) 75%);
   --chart-map-bucket-5: var(--dashboard-active-chart-map-high);
-  --chart-map-empty: color-mix(in srgb, var(--surface), var(--background) 72%);
+  --chart-map-empty: color-mix(in srgb, var(--dashboard-active-chart-map-low), var(--surface) 62%);
   --chart-tooltip-background: var(--surface);
   --chart-tooltip-border: var(--border);
   --chart-tooltip-text: var(--text);
@@ -2977,7 +2996,7 @@ textarea {
   --chart-map-bucket-3: color-mix(in srgb, var(--dashboard-active-chart-map-low), var(--dashboard-active-chart-map-high) 50%);
   --chart-map-bucket-4: color-mix(in srgb, var(--dashboard-active-chart-map-low), var(--dashboard-active-chart-map-high) 75%);
   --chart-map-bucket-5: var(--dashboard-active-chart-map-high);
-  --chart-map-empty: color-mix(in srgb, var(--surface), var(--background) 72%);
+  --chart-map-empty: color-mix(in srgb, var(--dashboard-active-chart-map-low), var(--surface) 62%);
   --chart-tooltip-background: var(--surface);
   --chart-tooltip-border: var(--border);
   --chart-tooltip-text: var(--text);
@@ -4364,9 +4383,9 @@ th {
 .map-country {
   cursor: help;
   fill: var(--chart-map-empty);
-  opacity: 0.46;
-  stroke: color-mix(in srgb, var(--border), var(--surface) 48%);
-  stroke-width: 0.55;
+  opacity: 0.72;
+  stroke: color-mix(in srgb, var(--border), var(--text) 16%);
+  stroke-width: 0.62;
 }
 
 .map-country:hover,
