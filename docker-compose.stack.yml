@@ -2,4 +2,5 @@
 # keeping an existing Postgres data volume attached.
 volumes:
   surls-postgres:
+    external: true
     name: "${SURLS_POSTGRES_VOLUME_NAME:-surls-postgres}"
