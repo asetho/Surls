@@ -1,0 +1,5 @@
+# Optional override for installs that rename the Compose project/stack while
+# keeping an existing Postgres data volume attached.
+volumes:
+  surls-postgres:
+    name: "${SURLS_POSTGRES_VOLUME_NAME:-surls-postgres}"
