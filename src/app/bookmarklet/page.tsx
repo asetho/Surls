@@ -122,8 +122,11 @@ export default async function BookmarkletPage({ searchParams }: { searchParams: 
                 <p className="muted small">/{createdLink.code}</p>
               </div>
             </div>
-            <BookmarkletPopupActions detailsHref={`/admin/links/${createdLink.id}`} url={createdUrl} />
             <dl className="bookmarklet-summary">
+              <div>
+                <dt>Title</dt>
+                <dd>{createdLink.title || "Untitled"}</dd>
+              </div>
               <div>
                 <dt>Destination</dt>
                 <dd>
@@ -132,11 +135,8 @@ export default async function BookmarkletPage({ searchParams }: { searchParams: 
                   </a>
                 </dd>
               </div>
-              <div>
-                <dt>Title</dt>
-                <dd>{createdLink.title || "Untitled"}</dd>
-              </div>
             </dl>
+            <BookmarkletPopupActions detailsHref={`/admin/links/${createdLink.id}`} />
           </div>
         ) : (
           <form className="surface bookmarklet-card form-stack" action={createBookmarkletLinkAction} data-title-autofill="true">

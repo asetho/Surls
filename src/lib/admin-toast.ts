@@ -1,6 +1,6 @@
-export type AdminToastType = "error" | "success";
+export type AdminToastType = "error" | "info" | "success";
 
-const ADMIN_TOAST_TYPES = new Set<AdminToastType>(["error", "success"]);
+const ADMIN_TOAST_TYPES = new Set<AdminToastType>(["error", "info", "success"]);
 const MAX_TOAST_MESSAGE_LENGTH = 240;
 
 function cleanAdminPath(value: unknown, fallbackPath: string) {

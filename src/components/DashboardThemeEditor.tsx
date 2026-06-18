@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, type CSSProperties, type KeyboardEvent } from "react";
-import { AlertTriangle, CheckCircle2, RotateCcw, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, RotateCcw, X } from "lucide-react";
 import {
   DASHBOARD_THEME_FIELD_SECTIONS,
   DASHBOARD_THEME_FIELDS,
@@ -176,6 +176,11 @@ function ThemeModePreview({ label, styles }: { label: string; styles: CSSPropert
               <span>Error.</span>
               <X size={14} aria-hidden />
             </div>
+            <div className="dashboard-theme-toast-preview dashboard-theme-toast-preview-info">
+              <Info size={16} aria-hidden />
+              <span>Notice.</span>
+              <X size={14} aria-hidden />
+            </div>
           </div>
           <div className="dashboard-theme-preview-actions">
             <button type="button" tabIndex={-1}>Primary action</button>
@@ -204,7 +209,7 @@ export function DashboardThemeEditor({
   initialMode?: DashboardThemeMode;
   onActiveModeChange?: (mode: DashboardThemeMode) => void;
   onDraftThemeChange?: (theme: DashboardTheme) => void;
-  onTestToast?: (type: "error" | "success") => void;
+  onTestToast?: (type: "error" | "info" | "success") => void;
   showModePreviews?: boolean;
   theme: DashboardTheme;
   variant?: "drawer" | "panel";
@@ -354,6 +359,11 @@ export function DashboardThemeEditor({
                         <span>Could not save theme.</span>
                         <X size={15} aria-hidden />
                       </div>
+                      <div className="dashboard-theme-toast-preview dashboard-theme-toast-preview-info">
+                        <Info size={18} aria-hidden />
+                        <span>Settings saved.</span>
+                        <X size={15} aria-hidden />
+                      </div>
                     </div>
                     {onTestToast ? (
                       <div className="dashboard-theme-toast-test-actions">
@@ -362,6 +372,9 @@ export function DashboardThemeEditor({
                         </button>
                         <button className="secondary" type="button" onClick={() => onTestToast("error")}>
                           Test error
+                        </button>
+                        <button className="secondary" type="button" onClick={() => onTestToast("info")}>
+                          Test notice
                         </button>
                       </div>
                     ) : null}
@@ -400,6 +413,11 @@ export function DashboardThemeEditor({
                     <div className="dashboard-theme-toast-preview dashboard-theme-toast-preview-error">
                       <AlertTriangle size={18} aria-hidden />
                       <span>Could not save theme.</span>
+                      <X size={15} aria-hidden />
+                    </div>
+                    <div className="dashboard-theme-toast-preview dashboard-theme-toast-preview-info">
+                      <Info size={18} aria-hidden />
+                      <span>Settings saved.</span>
                       <X size={15} aria-hidden />
                     </div>
                   </div>

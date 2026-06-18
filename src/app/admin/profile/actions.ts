@@ -76,6 +76,14 @@ export async function startTotpAction(formData: FormData) {
   revalidatePath("/admin/profile");
 }
 
+export async function cancelTotpSetupAction(formData: FormData) {
+  validateCsrf(formData);
+  const admin = await requireAdmin();
+  if (!admin) throw new Error("Unauthorized");
+  await prisma.totpCredential.deleteMany({ where: { userId: admin.id, enabled: false } });
+  revalidatePath("/admin/profile");
+}
+
 export async function enableTotpAction(formData: FormData) {
   validateCsrf(formData);
   const admin = await requireAdmin();

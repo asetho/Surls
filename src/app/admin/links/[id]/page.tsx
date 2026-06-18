@@ -96,14 +96,14 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
           <div className="link-title-row">
             <h1>/{link.code}</h1>
             <a
-              className="button secondary icon-button icon-only-action"
+              className="link-title-open"
               href={url}
               target="_blank"
               rel="noreferrer"
               aria-label={`Open /${link.code} in a new tab`}
               title={`Open /${link.code}`}
             >
-              <ExternalLink size={16} aria-hidden />
+              <ExternalLink size={13} aria-hidden />
             </a>
             <CopyShortUrlButton url={url} />
             <EditLinkModal csrf={csrf} link={editableLink} />

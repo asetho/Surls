@@ -23,6 +23,7 @@ const settings = vi.hoisted(() => ({
 const prisma = vi.hoisted(() => ({
   $transaction: vi.fn(),
   apiToken: {
+    deleteMany: vi.fn(),
     updateMany: vi.fn()
   },
   shortLink: {
@@ -87,6 +88,7 @@ describe("tools actions hardening", () => {
       token: "surls_plain"
     });
     prisma.shortLink.findMany.mockResolvedValue([]);
+    prisma.apiToken.deleteMany.mockResolvedValue({ count: 1 });
     prisma.$transaction.mockImplementation(async (callback) => callback({ shortLink: {} }));
     links.createShortLink.mockResolvedValue({ id: "link_123" });
     urlSafety.assertNoPrivateResolution.mockResolvedValue(true);
@@ -121,6 +123,32 @@ describe("tools actions hardening", () => {
     expect(apiTokens.createApiToken).toHaveBeenCalledWith("user_123", "Automation token", {
       expiresAt: new Date("2026-09-09T12:00:00.000Z")
     });
+  });
+
+  it("creates API tokens without expiration when forever is selected", async () => {
+    const { createTokenAction } = await import("@/app/admin/tools/actions");
+
+    await createTokenAction(null, tokenForm("forever"));
+
+    expect(apiTokens.createApiToken).toHaveBeenCalledWith("user_123", "Automation token", {
+      expiresAt: null
+    });
+  });
+
+  it("deletes API tokens from the tools page", async () => {
+    const { deleteTokenAction } = await import("@/app/admin/tools/actions");
+    const formData = new FormData();
+    formData.set("id", "token_123");
+
+    await deleteTokenAction(formData);
+
+    expect(prisma.apiToken.deleteMany).toHaveBeenCalledWith({ where: { id: "token_123" } });
+    expect(audit.auditLog).toHaveBeenCalledWith(expect.objectContaining({
+      action: "API_TOKEN_REVOKED",
+      details: { deleted: true },
+      entityId: "token_123",
+      entityType: "ApiToken"
+    }));
   });
 
   it("rejects private or internal destinations during CSV import preview", async () => {

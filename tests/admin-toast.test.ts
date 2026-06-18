@@ -22,6 +22,7 @@ describe("admin toast helpers", () => {
 
   it("normalizes unknown toast types to success", () => {
     expect(normalizeAdminToastType("error")).toBe("error");
+    expect(normalizeAdminToastType("info")).toBe("info");
     expect(normalizeAdminToastType("wat")).toBe("success");
   });
 });

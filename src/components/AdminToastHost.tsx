@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { AlertTriangle, CheckCircle2, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
 import { normalizeAdminToastType, type AdminToastType } from "@/lib/admin-toast";
 import { ADMIN_TOAST_EVENT, adminToastFromEvent } from "@/lib/admin-toast-event";
 
@@ -57,7 +57,7 @@ export function AdminToastHost() {
 
   if (!activeToast) return null;
 
-  const Icon = activeToast.type === "error" ? AlertTriangle : CheckCircle2;
+  const Icon = activeToast.type === "error" ? AlertTriangle : activeToast.type === "info" ? Info : CheckCircle2;
 
   return (
     <div className="system-toast-region" aria-live={activeToast.type === "error" ? "assertive" : "polite"} aria-atomic="true">

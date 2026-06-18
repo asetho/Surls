@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { revokeTokenAction } from "./actions";
+import { deleteTokenAction, revokeTokenAction } from "./actions";
 import { BookmarkletLink } from "@/components/BookmarkletLink";
 import { ApiTokenForm, ImportCsvForm, LinkCheckerForm, UtmBuilder } from "@/components/ToolsForms";
 import { ConfirmButton } from "@/components/ConfirmButton";
@@ -24,7 +24,7 @@ function tokenStatus(token: { expiresAt: Date | null; revokedAt: Date | null }) 
 }
 
 function tokenExpirationLabel(expiresAt: Date | null) {
-  return expiresAt ? expiresAt.toLocaleDateString("en-US", { dateStyle: "medium" }) : "No expiry";
+  return expiresAt ? expiresAt.toLocaleDateString("en-US", { dateStyle: "medium" }) : "Forever";
 }
 
 export default async function ToolsPage() {
@@ -46,7 +46,7 @@ export default async function ToolsPage() {
       take: 10
     })
   ]);
-  const bookmarklet = `javascript:(()=>{const u=encodeURIComponent(location.href);const t=encodeURIComponent(document.title);const target='${appBaseUrl()}/bookmarklet?url='+u+'&title='+t;const w=window.open(target,'surls_create','popup=yes,width=620,height=720,resizable=yes,scrollbars=yes');if(w){try{w.opener=null}catch{}w.focus()}else{location.href=target}})()`;
+  const bookmarklet = `javascript:(()=>{const u=encodeURIComponent(location.href);const t=encodeURIComponent(document.title);const target='${appBaseUrl()}/bookmarklet?url='+u+'&title='+t;const w=window.open(target,'surls_create','popup=yes,width=620,height=540,resizable=yes,scrollbars=yes');if(w){try{w.opener=null}catch{}w.focus()}else{location.href=target}})()`;
 
   return (
     <main className="admin-content">
@@ -94,7 +94,7 @@ export default async function ToolsPage() {
                   <th>Scope</th>
                   <th>Expires</th>
                   <th>Status</th>
-                  <th>Action</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -105,16 +105,25 @@ export default async function ToolsPage() {
                     <td data-label="Scope">{token.scopes}</td>
                     <td data-label="Expires">{tokenExpirationLabel(token.expiresAt)}</td>
                     <td data-label="Status">{tokenStatus(token)}</td>
-                    <td data-label="Action">
-                      {!token.revokedAt ? (
-                        <form action={revokeTokenAction}>
+                    <td data-label="Actions">
+                      <div className="row-actions small">
+                        {!token.revokedAt ? (
+                          <form action={revokeTokenAction}>
+                            <input type="hidden" name="csrf" value={csrf} />
+                            <input type="hidden" name="id" value={token.id} />
+                            <ConfirmButton className="danger icon-button" type="submit" message="Revoke this API token?">
+                              Revoke
+                            </ConfirmButton>
+                          </form>
+                        ) : null}
+                        <form action={deleteTokenAction}>
                           <input type="hidden" name="csrf" value={csrf} />
                           <input type="hidden" name="id" value={token.id} />
-                          <ConfirmButton className="danger icon-button" type="submit" message="Revoke this API token?">
-                            Revoke
+                          <ConfirmButton className="danger-outline icon-button" type="submit" message="Delete this API token permanently?">
+                            Delete
                           </ConfirmButton>
                         </form>
-                      ) : null}
+                      </div>
                     </td>
                   </tr>
                 ))}

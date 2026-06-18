@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.12.0 - 2026-06-17
+
+### Added
+
+* Added dashboard theme export and import controls.
+* Added a style reference page with live theme coverage examples and Theme Editor drawer support.
+* Added editable notice-toast colors alongside success and error toast colors.
+* Added a permanent API token expiration option plus admin token deletion.
+
+### Changed
+
+* Bookmarklet popups now use a smaller window and show created links with a cleaner ShortURL-created summary.
+* Theme graph previews now derive pie slices from the main graph color.
+* 2FA setup now has a cancel path, tighter code entry layout, and QR-only framing.
+* Backup-code results close after saved confirmation or deletion.
+
+### Fixed
+
+* Link checker results now use shared toast notifications.
+* Historical tab inactive labels and map intensity colors are clearer across themes.
+* Admin pills, settings status pills, action controls, placeholders, and form controls are more consistently themed.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.11.0 - 2026-06-17
 
 ### Added

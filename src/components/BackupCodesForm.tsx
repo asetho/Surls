@@ -19,10 +19,12 @@ export function BackupCodesForm({
 }) {
   const [state, action, pending] = useActionState(regenerateBackupCodesAction, null);
   const [acknowledgedCodesText, setAcknowledgedCodesText] = useState<string | null>(null);
+  const [dismissedCodesText, setDismissedCodesText] = useState<string | null>(null);
   const [exportState, setExportState] = useState<{ codesText: string; message: string } | null>(null);
   const codes = state?.codes;
   const codesText = useMemo(() => (codes ?? []).join("\n"), [codes]);
   const codesAcknowledged = !codesText || acknowledgedCodesText === codesText;
+  const showGeneratedCodes = Boolean(codes?.length && dismissedCodesText !== codesText);
   const exportMessage = exportState?.codesText === codesText ? exportState.message : null;
   const hasBackupCodes = backupCount > 0 || Boolean(codes?.length);
   const buttonLabel = backupCount > 0 || state?.codes?.length ? "Regenerate backup codes" : "Generate backup codes";
@@ -151,7 +153,14 @@ export function BackupCodesForm({
         </button>
       </form>
       {canDeleteBackupCodes && hasBackupCodes ? (
-        <form action={deleteBackupCodesAction}>
+        <form
+          action={deleteBackupCodesAction}
+          onSubmit={() => {
+            if (!codesText) return;
+            setAcknowledgedCodesText(codesText);
+            setDismissedCodesText(codesText);
+          }}
+        >
           <input type="hidden" name="csrf" value={csrf} />
           <ConfirmButton
             className="danger-outline"
@@ -163,7 +172,7 @@ export function BackupCodesForm({
           </ConfirmButton>
         </form>
       ) : null}
-      {codes?.length ? (
+      {showGeneratedCodes ? (
         <div className="success backup-codes-result">
           <strong>Store these backup codes now. They are shown only this once.</strong>
           <p className="muted small">Copy or download the codes, then confirm once you have saved them.</p>
@@ -178,7 +187,10 @@ export function BackupCodesForm({
             </button>
             <button
               type="button"
-              onClick={() => setAcknowledgedCodesText(codesText)}
+              onClick={() => {
+                setAcknowledgedCodesText(codesText);
+                setDismissedCodesText(codesText);
+              }}
               disabled={codesAcknowledged}
             >
               <Check size={16} aria-hidden />
@@ -191,7 +203,7 @@ export function BackupCodesForm({
             </p>
           ) : null}
           <div className="form-grid backup-code-grid">
-            {codes.map((code) => (
+            {(codes ?? []).map((code) => (
               <code key={code}>{code}</code>
             ))}
           </div>

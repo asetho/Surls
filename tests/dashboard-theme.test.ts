@@ -56,6 +56,7 @@ describe("dashboard theme settings", () => {
         sidebarText: DEFAULT_DASHBOARD_THEME.light.sidebarText,
         shortUrlPillAccent: DEFAULT_DASHBOARD_THEME.light.shortUrlPillAccent,
         text: DEFAULT_DASHBOARD_THEME.light.text,
+        toastInfoBackground: DEFAULT_DASHBOARD_THEME.light.toastInfoBackground,
         toastSuccessBackground: DEFAULT_DASHBOARD_THEME.light.toastSuccessBackground
       },
       dark: {
@@ -136,6 +137,7 @@ describe("dashboard theme settings", () => {
       "--dashboard-light-stats-tab-text": `color-mix(in srgb, ${DEFAULT_DASHBOARD_THEME.light.chartSecondary}, transparent 32%)`,
       "--dashboard-light-surface": DEFAULT_DASHBOARD_THEME.light.surface,
       "--dashboard-light-text": DEFAULT_DASHBOARD_THEME.light.text,
+      "--dashboard-light-toast-info-background": DEFAULT_DASHBOARD_THEME.light.toastInfoBackground,
       "--dashboard-light-toast-success-background": DEFAULT_DASHBOARD_THEME.light.toastSuccessBackground,
       "--dashboard-dark-toast-error-border": DEFAULT_DASHBOARD_THEME.dark.toastErrorBorder
     });
@@ -162,6 +164,7 @@ describe("dashboard theme settings", () => {
       "--stats-tab-list-background": DEFAULT_DASHBOARD_THEME.light.chartAccent,
       "--stats-tab-text": `color-mix(in srgb, ${DEFAULT_DASHBOARD_THEME.light.chartSecondary}, transparent 32%)`,
       "--toast-error-border": DEFAULT_DASHBOARD_THEME.light.toastErrorBorder,
+      "--toast-info-background": DEFAULT_DASHBOARD_THEME.light.toastInfoBackground,
       "--toast-success-background": DEFAULT_DASHBOARD_THEME.light.toastSuccessBackground
     });
   });

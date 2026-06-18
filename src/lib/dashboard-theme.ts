@@ -40,6 +40,9 @@ export type DashboardThemePalette = {
   toastErrorBackground: string;
   toastErrorBorder: string;
   toastErrorText: string;
+  toastInfoBackground: string;
+  toastInfoBorder: string;
+  toastInfoText: string;
   toastSuccessBackground: string;
   toastSuccessBorder: string;
   toastSuccessText: string;
@@ -121,7 +124,10 @@ const DASHBOARD_THEME_TOAST_FIELDS: readonly DashboardThemeField[] = [
   { key: "toastSuccessBorder", label: "Success border", description: "Accent and outline for success notifications." },
   { key: "toastErrorBackground", label: "Error background", description: "Failed action notifications." },
   { key: "toastErrorText", label: "Error text", description: "Text for error notifications." },
-  { key: "toastErrorBorder", label: "Error border", description: "Accent and outline for error notifications." }
+  { key: "toastErrorBorder", label: "Error border", description: "Accent and outline for error notifications." },
+  { key: "toastInfoBackground", label: "Notice background", description: "Neutral status and informational notifications." },
+  { key: "toastInfoText", label: "Notice text", description: "Text for neutral notifications." },
+  { key: "toastInfoBorder", label: "Notice border", description: "Accent and outline for neutral notifications." }
 ] as const;
 
 export const DASHBOARD_THEME_FIELD_SECTIONS: readonly DashboardThemeFieldSection[] = [
@@ -184,6 +190,9 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     toastErrorBackground: "#ffffff",
     toastErrorBorder: "#c81d25",
     toastErrorText: "#0b2636",
+    toastInfoBackground: "#d8edf4",
+    toastInfoBorder: "#bdd8e4",
+    toastInfoText: "#0b2636",
     toastSuccessBackground: "#ffffff",
     toastSuccessBorder: "#087e8b",
     toastSuccessText: "#0b2636"
@@ -230,6 +239,9 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     toastErrorBackground: "#0a5c70",
     toastErrorBorder: "#ff858a",
     toastErrorText: "#f3fbff",
+    toastInfoBackground: "#176d7d",
+    toastInfoBorder: "#3c8ea0",
+    toastInfoText: "#f3fbff",
     toastSuccessBackground: "#0a5c70",
     toastSuccessBorder: "#64abbb",
     toastSuccessText: "#f3fbff"
@@ -353,7 +365,7 @@ export function dashboardThemePaletteCssVariables(theme: DashboardThemePalette) 
     "--chart-map-bucket-3": `color-mix(in srgb, ${theme.chartMapLow}, ${theme.chartMapHigh} 50%)`,
     "--chart-map-bucket-4": `color-mix(in srgb, ${theme.chartMapLow}, ${theme.chartMapHigh} 75%)`,
     "--chart-map-bucket-5": theme.chartMapHigh,
-    "--chart-map-empty": `color-mix(in srgb, ${theme.surface}, ${theme.surfaceStrong} 42%)`,
+    "--chart-map-empty": `color-mix(in srgb, ${theme.surface}, ${theme.background} 72%)`,
     "--chart-tooltip-background": theme.surface,
     "--chart-tooltip-border": theme.border,
     "--chart-tooltip-text": theme.text,
@@ -392,6 +404,9 @@ export function dashboardThemePaletteCssVariables(theme: DashboardThemePalette) 
     "--toast-error-background": theme.toastErrorBackground,
     "--toast-error-border": theme.toastErrorBorder,
     "--toast-error-text": theme.toastErrorText,
+    "--toast-info-background": theme.toastInfoBackground,
+    "--toast-info-border": theme.toastInfoBorder,
+    "--toast-info-text": theme.toastInfoText,
     "--toast-success-background": theme.toastSuccessBackground,
     "--toast-success-border": theme.toastSuccessBorder,
     "--toast-success-text": theme.toastSuccessText
@@ -444,6 +459,9 @@ export function dashboardThemeCssVariables(theme: DashboardTheme) {
       [`--dashboard-${mode.key}-toast-error-background`, theme[mode.key].toastErrorBackground],
       [`--dashboard-${mode.key}-toast-error-border`, theme[mode.key].toastErrorBorder],
       [`--dashboard-${mode.key}-toast-error-text`, theme[mode.key].toastErrorText],
+      [`--dashboard-${mode.key}-toast-info-background`, theme[mode.key].toastInfoBackground],
+      [`--dashboard-${mode.key}-toast-info-border`, theme[mode.key].toastInfoBorder],
+      [`--dashboard-${mode.key}-toast-info-text`, theme[mode.key].toastInfoText],
       [`--dashboard-${mode.key}-toast-success-background`, theme[mode.key].toastSuccessBackground],
       [`--dashboard-${mode.key}-toast-success-border`, theme[mode.key].toastSuccessBorder],
       [`--dashboard-${mode.key}-toast-success-text`, theme[mode.key].toastSuccessText]

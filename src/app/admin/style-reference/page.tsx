@@ -381,13 +381,9 @@ export default async function StyleReferencePage() {
               <AlertTriangle size={18} aria-hidden />
               <span>Could not save dashboard theme.</span>
             </div>
-            <div className="success">
+            <div className="style-reference-toast style-reference-toast-info style-reference-theme-target" data-theme-field={themeField("toastInfoBackground")} role="button" tabIndex={0}>
               <Info size={18} aria-hidden />
-              Settings saved.
-            </div>
-            <div className="error">
-              <AlertTriangle size={18} aria-hidden />
-              Upload failed.
+              <span>Settings saved.</span>
             </div>
           </div>
         </div>

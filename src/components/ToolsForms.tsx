@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { createTokenAction, checkDestinationAction, importCsvAction } from "@/app/admin/tools/actions";
+import { dispatchAdminToast } from "@/lib/admin-toast-event";
 
 export function ApiTokenForm({ csrf, siteName }: { csrf: string; siteName: string }) {
   const [state, action, pending] = useActionState(createTokenAction, null);
@@ -20,8 +21,9 @@ export function ApiTokenForm({ csrf, siteName }: { csrf: string; siteName: strin
             <option value="90">90 days</option>
             <option value="180">180 days</option>
             <option value="365">1 year</option>
+            <option value="forever">Forever</option>
           </select>
-          <span className="muted small">Tokens are limited to creating links and can be revoked anytime.</span>
+          <span className="muted small">Tokens are limited to creating links and can be revoked or deleted anytime.</span>
         </label>
         <button type="submit" disabled={pending}>Generate API token</button>
       </form>
@@ -38,6 +40,13 @@ export function ApiTokenForm({ csrf, siteName }: { csrf: string; siteName: strin
 
 export function LinkCheckerForm({ csrf }: { csrf: string }) {
   const [state, action, pending] = useActionState(checkDestinationAction, null);
+
+  useEffect(() => {
+    if (state?.message) {
+      dispatchAdminToast(state.ok ? "info" : "error", state.message);
+    }
+  }, [state]);
+
   return (
     <form className="form-stack" action={action}>
       <input type="hidden" name="csrf" value={csrf} />
@@ -46,13 +55,19 @@ export function LinkCheckerForm({ csrf }: { csrf: string }) {
         <input name="url" type="url" placeholder="https://example.com" required />
       </label>
       <button type="submit" disabled={pending}>Check destination</button>
-      {state?.message ? <div className={state.ok ? "success" : "alert"}>{state.message}</div> : null}
     </form>
   );
 }
 
 export function ImportCsvForm({ csrf }: { csrf: string }) {
   const [state, action, pending] = useActionState(importCsvAction, null);
+
+  useEffect(() => {
+    if (state?.imported) {
+      dispatchAdminToast("success", `Imported ${state.imported} links.`);
+    }
+  }, [state]);
+
   return (
     <form className="form-stack" action={action}>
       <input type="hidden" name="csrf" value={csrf} />
@@ -67,7 +82,6 @@ export function ImportCsvForm({ csrf }: { csrf: string }) {
         <span className="muted small">Leave unchecked to preview validation errors without importing.</span>
       </label>
       <button type="submit" disabled={pending}>Validate or import CSV</button>
-      {state?.imported ? <div className="success">Imported {state.imported} links.</div> : null}
       {state?.errors?.length ? (
         <div className={state.errors[0]?.startsWith("Preview OK") ? "success" : "alert"}>
           {state.errors.map((error) => (

@@ -18,6 +18,7 @@ const MAX_IMPORT_ROWS = 200;
 const API_TOKEN_EXPIRATION_CHOICES = new Set([30, 90, 180, 365]);
 
 function tokenExpiresAt(value: FormDataEntryValue | null) {
+  if (value === "forever") return null;
   const days = Number.parseInt(String(value ?? ""), 10);
   const safeDays = API_TOKEN_EXPIRATION_CHOICES.has(days) ? days : env.API_TOKEN_DAYS;
   return new Date(Date.now() + safeDays * 24 * 60 * 60 * 1000);
@@ -52,10 +53,29 @@ export async function revokeTokenAction(formData: FormData) {
   if (!admin) throw new Error("Unauthorized");
   const id = String(formData.get("id") ?? "");
   await prisma.apiToken.updateMany({
-    where: { id, userId: admin.id },
+    where: { id },
     data: { revokedAt: new Date() }
   });
   await auditLog({ userId: admin.id, action: AuditAction.API_TOKEN_REVOKED, entityType: "ApiToken", entityId: id });
+  revalidatePath("/admin/tools");
+}
+
+export async function deleteTokenAction(formData: FormData) {
+  validateCsrf(formData);
+  const admin = await requireAdmin();
+  if (!admin) throw new Error("Unauthorized");
+  const id = String(formData.get("id") ?? "");
+  if (!id) throw new Error("Choose an API token to delete.");
+  const result = await prisma.apiToken.deleteMany({ where: { id } });
+  if (result.count > 0) {
+    await auditLog({
+      userId: admin.id,
+      action: AuditAction.API_TOKEN_REVOKED,
+      entityType: "ApiToken",
+      entityId: id,
+      details: { deleted: true }
+    });
+  }
   revalidatePath("/admin/tools");
 }
 

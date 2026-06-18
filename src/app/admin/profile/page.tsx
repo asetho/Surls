@@ -12,7 +12,7 @@ import { formatDateTime } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 import { getSetting, getSiteName } from "@/lib/settings";
 import { getTotpSecret, totpOtpAuthUrl } from "@/lib/totp";
-import { disableTotpAction, enableTotpAction, startTotpAction } from "./actions";
+import { cancelTotpSetupAction, disableTotpAction, enableTotpAction, startTotpAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "Profile"
@@ -87,22 +87,28 @@ export default async function ProfilePage() {
                   <button type="submit">Start TOTP setup</button>
                 </form>
               ) : (
-                <>
+                <div className="totp-setup-panel">
                   <p className="muted">Scan the QR code or enter the manual setup key, then verify a current code.</p>
-                  <div className="qr-box">
+                  <div className="qr-box totp-qr-box">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={qr ?? ""} alt="TOTP setup QR code" width={180} height={180} />
                   </div>
-                  <code>{pendingSecret}</code>
-                  <form className="form-stack" action={enableTotpAction}>
-                    <input type="hidden" name="csrf" value={csrf} />
-                    <label>
-                      Verification code
-                      <input name="code" inputMode="numeric" autoComplete="one-time-code" required />
-                    </label>
-                    <button type="submit">Verify and enable TOTP</button>
-                  </form>
-                </>
+                  <code className="totp-manual-key">{pendingSecret}</code>
+                  <div className="totp-setup-actions">
+                    <form className="form-stack totp-verify-form" action={enableTotpAction}>
+                      <input type="hidden" name="csrf" value={csrf} />
+                      <label className="totp-verification-field">
+                        Verification code
+                        <input name="code" inputMode="numeric" autoComplete="one-time-code" required />
+                      </label>
+                      <button type="submit">Verify and enable TOTP</button>
+                    </form>
+                    <form className="totp-cancel-form" action={cancelTotpSetupAction}>
+                      <input type="hidden" name="csrf" value={csrf} />
+                      <button className="secondary" type="submit">Cancel setup</button>
+                    </form>
+                  </div>
+                </div>
               )}
             </div>
           )}

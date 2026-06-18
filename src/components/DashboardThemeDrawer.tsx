@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Minus, Palette, X } from "lucide-react";
+import { Download, Minus, Palette, Upload, X } from "lucide-react";
 import { DashboardThemeEditor } from "@/components/DashboardThemeEditor";
 import { dispatchAdminToast } from "@/lib/admin-toast-event";
 import {
@@ -11,6 +11,7 @@ import {
   dashboardThemeCssVariables,
   dashboardThemeToFormData,
   isDefaultDashboardTheme,
+  normalizeDashboardTheme,
   type DashboardTheme,
   type DashboardThemeKey,
   type DashboardThemeMode
@@ -91,6 +92,21 @@ function isThemeResponse(value: unknown): value is { dashboardTheme: DashboardTh
   return Boolean(value && typeof value === "object" && "dashboardTheme" in value);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function themeImportCandidate(value: unknown) {
+  if (isRecord(value) && "dashboardTheme" in value) return value.dashboardTheme;
+  return value;
+}
+
+function hasImportableThemeShape(value: unknown) {
+  if (!isRecord(value)) return false;
+  if (isRecord(value.light) || isRecord(value.dark)) return true;
+  return DASHBOARD_THEME_FIELDS.some((field) => typeof value[field.key] === "string");
+}
+
 function dashboardThemesMatch(first: DashboardTheme, second: DashboardTheme) {
   return DASHBOARD_THEME_MODES.every((mode) =>
     DASHBOARD_THEME_FIELDS.every((field) => first[mode.key][field.key] === second[mode.key][field.key])
@@ -113,6 +129,7 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
   const [activeMode, setActiveMode] = useState<DashboardThemeMode>(() => currentDocumentThemeMode());
   const [submitting, setSubmitting] = useState<"reset" | "save" | null>(null);
   const savedThemeRef = useRef(savedTheme);
+  const importInputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [focusRequestId, setFocusRequestId] = useState(0);
@@ -297,6 +314,48 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
     void submitThemeForm(new FormData(), "reset");
   }
 
+  function exportTheme() {
+    const contents = JSON.stringify(
+      {
+        schema: "surls-dashboard-theme",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        dashboardTheme: draftTheme
+      },
+      null,
+      2
+    );
+    const blob = new Blob([contents], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `surls-dashboard-theme-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    dispatchAdminToast("success", "Theme exported.");
+  }
+
+  async function importTheme(event: ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+
+    try {
+      const parsed = JSON.parse(await file.text()) as unknown;
+      const candidate = themeImportCandidate(parsed);
+      if (!hasImportableThemeShape(candidate)) throw new Error("Choose a Surls theme JSON file.");
+      const importedTheme = normalizeDashboardTheme(candidate);
+      setDraftTheme(importedTheme);
+      applyThemeVariables(importedTheme);
+      dispatchAdminToast("info", "Theme imported. Review and save to apply it.");
+    } catch (error) {
+      dispatchAdminToast("error", error instanceof Error ? error.message : "Could not import theme.");
+    }
+  }
+
   if (!open) return null;
 
   if (minimized) {
@@ -340,7 +399,11 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
           onTestToast={(type) =>
             dispatchAdminToast(
               type,
-              type === "success" ? "Theme success toast preview." : "Theme error toast preview."
+              type === "success"
+                ? "Theme success toast preview."
+                : type === "info"
+                  ? "Theme notice toast preview."
+                  : "Theme error toast preview."
             )
           }
           onDraftThemeChange={setDraftTheme}
@@ -348,8 +411,17 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
       </form>
 
       <div className="theme-editor-drawer-actions">
+        <input ref={importInputRef} type="file" accept="application/json,.json" hidden onChange={importTheme} />
         <button type="submit" form="dashboard-theme-drawer-form" disabled={submitting !== null}>
           {submitting === "save" ? "Saving..." : "Save Theme"}
+        </button>
+        <button className="secondary" type="button" disabled={submitting !== null} onClick={() => importInputRef.current?.click()}>
+          <Upload size={16} aria-hidden />
+          Import
+        </button>
+        <button className="secondary" type="button" disabled={submitting !== null} onClick={exportTheme}>
+          <Download size={16} aria-hidden />
+          Export
         </button>
         {!isDefault ? (
           <form id="dashboard-theme-drawer-reset-form" onSubmit={handleReset}>

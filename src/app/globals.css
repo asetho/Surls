@@ -112,7 +112,7 @@ button,
     transform 150ms ease;
 }
 
-button:not(.secondary):not(.danger):not(.danger-outline):not(.dashboard-theme-mode-tab):not(.theme-editor-floating-button):not(.qr-inline-trigger),
+button:not(.secondary):not(.danger):not(.danger-outline):not(.dashboard-theme-mode-tab):not(.theme-editor-floating-button):not(.qr-inline-trigger):not(.tab-button),
 .button:not(.secondary):not(.danger):not(.danger-outline) {
   color: var(--button-text);
 }
@@ -808,6 +808,27 @@ button.danger-outline:hover {
   gap: 0.5rem;
 }
 
+.style-reference-pill-row > .badge,
+.style-reference-pill-row > .sort-badge,
+.style-reference-pill-row > .status-pill,
+.style-reference-pill-row > .tag-link {
+  align-items: center;
+  display: inline-flex;
+  font-size: 0.78rem;
+  justify-content: center;
+  line-height: 1;
+  min-height: 1.55rem;
+  padding: 0.18rem 0.48rem;
+}
+
+.style-reference-page .inline-field input[type="checkbox"] {
+  flex: 0 0 auto;
+  height: 1.1rem;
+  min-height: 0;
+  padding: 0;
+  width: 1.1rem;
+}
+
 .input-with-icon {
   align-items: center;
   display: flex;
@@ -878,8 +899,8 @@ button.danger-outline:hover {
   aspect-ratio: 1;
   background: conic-gradient(
     var(--chart-color-1) 0 52%,
-    var(--chart-color-2) 52% 76%,
-    var(--chart-color-5) 76% 100%
+    color-mix(in srgb, var(--chart-color-1), var(--surface) 18%) 52% 76%,
+    color-mix(in srgb, var(--chart-color-1), var(--surface) 34%) 76% 100%
   );
   border: 1px solid var(--border);
   border-radius: 50%;
@@ -964,6 +985,12 @@ button.danger-outline:hover {
   background: var(--toast-error-background);
   border-color: var(--toast-error-border);
   color: var(--toast-error-text);
+}
+
+.style-reference-toast-info {
+  background: var(--toast-info-background);
+  border-color: var(--toast-info-border);
+  color: var(--toast-info-text);
 }
 
 .style-reference-empty-state {
@@ -1838,9 +1865,9 @@ button.danger-outline:hover {
     radial-gradient(circle, var(--surface) 0 38%, transparent 39%),
     conic-gradient(
       var(--chart-color-1) 0 42%,
-      var(--chart-color-2) 42% 63%,
-      var(--chart-color-5) 63% 78%,
-      var(--chart-color-3) 78% 100%
+      color-mix(in srgb, var(--chart-color-1), var(--surface) 18%) 42% 63%,
+      color-mix(in srgb, var(--chart-color-1), var(--surface) 34%) 63% 78%,
+      color-mix(in srgb, var(--chart-color-1), var(--background) 46%) 78% 100%
     );
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -1937,7 +1964,7 @@ button.danger-outline:hover {
 }
 
 .dashboard-theme-preview-toast-row {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .dashboard-theme-toast-preview {
@@ -1963,6 +1990,13 @@ button.danger-outline:hover {
   border-color: var(--toast-error-border, var(--danger-border, var(--color-red)));
   border-left-color: var(--toast-error-border, var(--danger-border, var(--color-red)));
   color: var(--toast-error-text, var(--text));
+}
+
+.dashboard-theme-toast-preview-info {
+  background: var(--toast-info-background, var(--surface-strong));
+  border-color: var(--toast-info-border, var(--border));
+  border-left-color: var(--toast-info-border, var(--border));
+  color: var(--toast-info-text, var(--text));
 }
 
 .theme-editor-drawer {
@@ -2059,7 +2093,7 @@ button.danger-outline:hover {
   border-top: 1px solid var(--border);
   display: grid;
   gap: 0.55rem;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) repeat(3, auto);
   padding: 0.75rem max(0.85rem, env(safe-area-inset-right)) max(0.85rem, env(safe-area-inset-bottom)) 0.85rem;
 }
 
@@ -2161,6 +2195,9 @@ button.danger-outline:hover {
   --dashboard-active-toast-error-background: var(--dashboard-light-toast-error-background);
   --dashboard-active-toast-error-border: var(--dashboard-light-toast-error-border);
   --dashboard-active-toast-error-text: var(--dashboard-light-toast-error-text);
+  --dashboard-active-toast-info-background: var(--dashboard-light-toast-info-background);
+  --dashboard-active-toast-info-border: var(--dashboard-light-toast-info-border);
+  --dashboard-active-toast-info-text: var(--dashboard-light-toast-info-text);
   --dashboard-active-toast-success-background: var(--dashboard-light-toast-success-background);
   --dashboard-active-toast-success-border: var(--dashboard-light-toast-success-border);
   --dashboard-active-toast-success-text: var(--dashboard-light-toast-success-text);
@@ -2196,7 +2233,7 @@ button.danger-outline:hover {
   --chart-map-bucket-3: color-mix(in srgb, var(--dashboard-active-chart-map-low), var(--dashboard-active-chart-map-high) 50%);
   --chart-map-bucket-4: color-mix(in srgb, var(--dashboard-active-chart-map-low), var(--dashboard-active-chart-map-high) 75%);
   --chart-map-bucket-5: var(--dashboard-active-chart-map-high);
-  --chart-map-empty: color-mix(in srgb, var(--surface), var(--surface-strong) 42%);
+  --chart-map-empty: color-mix(in srgb, var(--surface), var(--background) 72%);
   --chart-tooltip-background: var(--surface);
   --chart-tooltip-border: var(--border);
   --chart-tooltip-text: var(--text);
@@ -2228,6 +2265,9 @@ button.danger-outline:hover {
   --toast-error-background: var(--dashboard-active-toast-error-background);
   --toast-error-border: var(--dashboard-active-toast-error-border);
   --toast-error-text: var(--dashboard-active-toast-error-text);
+  --toast-info-background: var(--dashboard-active-toast-info-background);
+  --toast-info-border: var(--dashboard-active-toast-info-border);
+  --toast-info-text: var(--dashboard-active-toast-info-text);
   --toast-success-background: var(--dashboard-active-toast-success-background);
   --toast-success-border: var(--dashboard-active-toast-success-border);
   --toast-success-text: var(--dashboard-active-toast-success-text);
@@ -2292,6 +2332,9 @@ button.danger-outline:hover {
   --dashboard-active-toast-error-background: var(--dashboard-dark-toast-error-background);
   --dashboard-active-toast-error-border: var(--dashboard-dark-toast-error-border);
   --dashboard-active-toast-error-text: var(--dashboard-dark-toast-error-text);
+  --dashboard-active-toast-info-background: var(--dashboard-dark-toast-info-background);
+  --dashboard-active-toast-info-border: var(--dashboard-dark-toast-info-border);
+  --dashboard-active-toast-info-text: var(--dashboard-dark-toast-info-text);
   --dashboard-active-toast-success-background: var(--dashboard-dark-toast-success-background);
   --dashboard-active-toast-success-border: var(--dashboard-dark-toast-success-border);
   --dashboard-active-toast-success-text: var(--dashboard-dark-toast-success-text);
@@ -2301,7 +2344,7 @@ button.danger-outline:hover {
   display: grid;
   gap: 0.75rem;
   margin: 0 auto;
-  max-width: 620px;
+  max-width: 500px;
   width: 100%;
 }
 
@@ -2606,6 +2649,51 @@ button.danger-outline:hover {
   margin: 0;
 }
 
+.profile-security-panel form > button,
+.profile-security-panel form > .button {
+  justify-self: start;
+  width: auto;
+}
+
+.totp-setup-panel {
+  align-items: start;
+  display: grid;
+  gap: 0.62rem;
+  justify-items: start;
+}
+
+.totp-setup-panel > .muted {
+  margin: 0;
+}
+
+.totp-qr-box {
+  justify-self: start;
+}
+
+.totp-manual-key {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.totp-setup-actions {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.totp-verify-form {
+  max-width: 18rem;
+}
+
+.totp-verification-field {
+  max-width: 12rem;
+}
+
+.totp-cancel-form {
+  margin: 0;
+}
+
 .backup-codes-result {
   display: grid;
   gap: 0.75rem;
@@ -2851,6 +2939,9 @@ textarea {
   --dashboard-active-toast-error-background: var(--dashboard-light-toast-error-background);
   --dashboard-active-toast-error-border: var(--dashboard-light-toast-error-border);
   --dashboard-active-toast-error-text: var(--dashboard-light-toast-error-text);
+  --dashboard-active-toast-info-background: var(--dashboard-light-toast-info-background);
+  --dashboard-active-toast-info-border: var(--dashboard-light-toast-info-border);
+  --dashboard-active-toast-info-text: var(--dashboard-light-toast-info-text);
   --dashboard-active-toast-success-background: var(--dashboard-light-toast-success-background);
   --dashboard-active-toast-success-border: var(--dashboard-light-toast-success-border);
   --dashboard-active-toast-success-text: var(--dashboard-light-toast-success-text);
@@ -2886,7 +2977,7 @@ textarea {
   --chart-map-bucket-3: color-mix(in srgb, var(--dashboard-active-chart-map-low), var(--dashboard-active-chart-map-high) 50%);
   --chart-map-bucket-4: color-mix(in srgb, var(--dashboard-active-chart-map-low), var(--dashboard-active-chart-map-high) 75%);
   --chart-map-bucket-5: var(--dashboard-active-chart-map-high);
-  --chart-map-empty: color-mix(in srgb, var(--surface), var(--surface-strong) 42%);
+  --chart-map-empty: color-mix(in srgb, var(--surface), var(--background) 72%);
   --chart-tooltip-background: var(--surface);
   --chart-tooltip-border: var(--border);
   --chart-tooltip-text: var(--text);
@@ -2918,6 +3009,9 @@ textarea {
   --toast-error-background: var(--dashboard-active-toast-error-background);
   --toast-error-border: var(--dashboard-active-toast-error-border);
   --toast-error-text: var(--dashboard-active-toast-error-text);
+  --toast-info-background: var(--dashboard-active-toast-info-background);
+  --toast-info-border: var(--dashboard-active-toast-info-border);
+  --toast-info-text: var(--dashboard-active-toast-info-text);
   --toast-success-background: var(--dashboard-active-toast-success-background);
   --toast-success-border: var(--dashboard-active-toast-success-border);
   --toast-success-text: var(--dashboard-active-toast-success-text);
@@ -2979,6 +3073,9 @@ textarea {
   --dashboard-active-toast-error-background: var(--dashboard-dark-toast-error-background);
   --dashboard-active-toast-error-border: var(--dashboard-dark-toast-error-border);
   --dashboard-active-toast-error-text: var(--dashboard-dark-toast-error-text);
+  --dashboard-active-toast-info-background: var(--dashboard-dark-toast-info-background);
+  --dashboard-active-toast-info-border: var(--dashboard-dark-toast-info-border);
+  --dashboard-active-toast-info-text: var(--dashboard-dark-toast-info-text);
   --dashboard-active-toast-success-background: var(--dashboard-dark-toast-success-background);
   --dashboard-active-toast-success-border: var(--dashboard-dark-toast-success-border);
   --dashboard-active-toast-success-text: var(--dashboard-dark-toast-success-text);
@@ -3214,6 +3311,13 @@ textarea {
 .link-title-row h1 {
   margin-right: 0.25rem;
   font-weight: 700;
+}
+
+.link-title-open {
+  align-items: center;
+  display: inline-flex;
+  line-height: 1;
+  text-decoration: none;
 }
 
 .link-summary-row {
@@ -4260,8 +4364,9 @@ th {
 .map-country {
   cursor: help;
   fill: var(--chart-map-empty);
-  stroke: var(--border);
-  stroke-width: 0.7;
+  opacity: 0.46;
+  stroke: color-mix(in srgb, var(--border), var(--surface) 48%);
+  stroke-width: 0.55;
 }
 
 .map-country:hover,
@@ -4271,7 +4376,9 @@ th {
 }
 
 .map-country.has-traffic {
+  opacity: 1;
   stroke: var(--surface);
+  stroke-width: 0.75;
 }
 
 .map-country.bucket-1 {
@@ -4554,6 +4661,13 @@ th {
   border-color: var(--toast-error-border, var(--danger-border, var(--color-red)));
   border-left-color: var(--toast-error-border, var(--danger-border, var(--color-red)));
   color: var(--toast-error-text, var(--text));
+}
+
+.system-toast-info {
+  background: var(--toast-info-background, var(--surface-strong));
+  border-color: var(--toast-info-border, var(--border));
+  border-left-color: var(--toast-info-border, var(--border));
+  color: var(--toast-info-text, var(--text));
 }
 
 .system-toast-dismiss {
