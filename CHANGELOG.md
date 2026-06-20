@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.12.6 - 2026-06-20
+
+### Fixed
+
+* Kept the admin sidebar stationary while the Theme Editor drawer is open by only tightening the main content column.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.12.3 - 2026-06-19
 
 ### Fixed

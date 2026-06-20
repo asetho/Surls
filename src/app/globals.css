@@ -2929,14 +2929,20 @@ textarea {
 @media (min-width: 861px) {
   .admin-shell.theme-editor-preview-active {
     --theme-editor-preview-drawer-width: min(25rem, calc(100vw - 1rem));
-    margin-right: var(--theme-editor-preview-drawer-width);
+    grid-template-columns:
+      var(--admin-sidebar-width)
+      minmax(0, calc(100vw - var(--admin-sidebar-width) - var(--theme-editor-preview-drawer-width)));
     min-height: 100dvh;
     overflow-x: hidden;
-    width: calc(100vw - var(--theme-editor-preview-drawer-width));
+  }
+
+  .admin-shell.theme-editor-preview-active .admin-main {
+    max-width: calc(100vw - var(--admin-sidebar-width) - var(--theme-editor-preview-drawer-width));
   }
 }
 
 .admin-shell {
+  --admin-sidebar-width: 216px;
   --dashboard-active-accent: var(--dashboard-light-accent);
   --dashboard-active-active-pill-background: var(--dashboard-light-active-pill-background);
   --dashboard-active-active-pill-border: var(--dashboard-light-active-pill-border);
@@ -3065,7 +3071,7 @@ textarea {
   background: var(--background);
   color: var(--text);
   display: grid;
-  grid-template-columns: 216px minmax(0, 1fr);
+  grid-template-columns: var(--admin-sidebar-width) minmax(0, 1fr);
   min-height: 100vh;
   min-height: 100dvh;
 }
