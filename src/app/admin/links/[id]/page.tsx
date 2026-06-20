@@ -94,7 +94,6 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
             {link.archivedAt ? <span className="badge warning">Archived</span> : null}
           </div>
           <div className="link-title-row">
-            <h1>/{link.code}</h1>
             <a
               className="link-title-open"
               href={url}
@@ -105,6 +104,7 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
             >
               <ExternalLink size={13} aria-hidden />
             </a>
+            <h1>/{link.code}</h1>
             <CopyShortUrlButton url={url} />
             <EditLinkModal csrf={csrf} link={editableLink} />
           </div>

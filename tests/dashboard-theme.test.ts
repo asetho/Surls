@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  DASHBOARD_THEME_EDITABLE_FIELDS,
   DASHBOARD_THEME_FIELDS,
   DASHBOARD_THEME_MODES,
   DEFAULT_DASHBOARD_THEME,
@@ -24,6 +25,10 @@ function dashboardThemeForm(overrides: Record<string, string> = {}) {
     }
   }
   return formData;
+}
+
+function expectedFocusRing(palette: typeof DEFAULT_DASHBOARD_THEME.light) {
+  return `0 0 0 2px color-mix(in srgb, ${palette.buttonText}, transparent 14%), 0 0 0 4px color-mix(in srgb, ${palette.accent}, ${palette.text} 30%)`;
 }
 
 describe("dashboard theme settings", () => {
@@ -92,9 +97,10 @@ describe("dashboard theme settings", () => {
 
   it("serializes every palette color for client-side theme editor saves", () => {
     const formData = dashboardThemeToFormData(DEFAULT_DASHBOARD_THEME);
-    const expectedFieldCount = DASHBOARD_THEME_MODES.length * DASHBOARD_THEME_FIELDS.length;
+    const expectedFieldCount = DASHBOARD_THEME_MODES.length * DASHBOARD_THEME_EDITABLE_FIELDS.length;
 
     expect(Array.from(formData.keys())).toHaveLength(expectedFieldCount);
+    expect(Array.from(formData.keys()).some((key) => key.endsWith("[focusRing]"))).toBe(false);
     expect(DASHBOARD_THEME_FIELDS.some((field) => String(field.key).startsWith("statsTab"))).toBe(false);
     expect(dashboardThemeFromFormData(formData)).toEqual(DEFAULT_DASHBOARD_THEME);
   });
@@ -121,7 +127,7 @@ describe("dashboard theme settings", () => {
       "--dashboard-light-chart-primary": DEFAULT_DASHBOARD_THEME.light.chartPrimary,
       "--dashboard-light-chart-map-high": DEFAULT_DASHBOARD_THEME.light.chartMapHigh,
       "--dashboard-light-danger-background": DEFAULT_DASHBOARD_THEME.light.dangerBackground,
-      "--dashboard-light-focus-ring": `0 0 0 3px ${DEFAULT_DASHBOARD_THEME.light.focusRing}55`,
+      "--dashboard-light-focus-ring": expectedFocusRing({ ...DEFAULT_DASHBOARD_THEME.light, accent: "#112233" }),
       "--dashboard-light-link": DEFAULT_DASHBOARD_THEME.light.link,
       "--dashboard-light-overlay-background": DEFAULT_DASHBOARD_THEME.light.overlayBackground,
       "--dashboard-light-placeholder": DEFAULT_DASHBOARD_THEME.light.placeholder,
@@ -151,7 +157,7 @@ describe("dashboard theme settings", () => {
       "--chart-map-bucket-5": DEFAULT_DASHBOARD_THEME.light.chartMapHigh,
       "--chart-tooltip-background": DEFAULT_DASHBOARD_THEME.light.surface,
       "--danger-background": DEFAULT_DASHBOARD_THEME.light.dangerBackground,
-      "--focus-ring": `0 0 0 3px ${DEFAULT_DASHBOARD_THEME.light.focusRing}55`,
+      "--focus-ring": expectedFocusRing(DEFAULT_DASHBOARD_THEME.light),
       "--link-color": DEFAULT_DASHBOARD_THEME.light.link,
       "--overlay-background": DEFAULT_DASHBOARD_THEME.light.overlayBackground,
       "--placeholder": DEFAULT_DASHBOARD_THEME.light.placeholder,

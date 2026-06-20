@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { cookies } from "next/headers";
-import { BarChart3, Link2, LogOut, Settings, UserRound, Users, Wrench } from "lucide-react";
+import { BarChart3, ChevronDown, Link2, LogOut, Menu, Settings, UserRound, Users, Wrench } from "lucide-react";
 import { AdminToastHost } from "@/components/AdminToastHost";
 import { DashboardThemeDrawer } from "@/components/DashboardThemeDrawer";
 import { NewShortUrlModal } from "@/components/NewShortUrlModal";
@@ -44,40 +44,56 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
   return (
     <div className="admin-shell" style={adminThemeStyle}>
       <aside className="admin-sidebar">
-        <Link className="brand" href="/admin" style={{ marginBottom: "1rem" }}>
-          <span className={hasFaviconBrandMark ? "brand-mark brand-mark-favicon" : "brand-mark"} style={{ background: hasFaviconBrandMark ? undefined : "var(--teal)" }}>
-            {hasFaviconBrandMark ? <Image src="/favicon.svg" alt="" aria-hidden="true" width={34} height={34} unoptimized /> : brandInitial}
+        <input className="admin-sidebar-toggle sr-only" type="checkbox" id="admin-sidebar-toggle" aria-label="Toggle admin navigation" />
+        <label className="admin-sidebar-drawer-trigger" htmlFor="admin-sidebar-toggle">
+          <span className="brand admin-sidebar-drawer-brand">
+            <span className={hasFaviconBrandMark ? "brand-mark brand-mark-favicon" : "brand-mark"} style={{ background: hasFaviconBrandMark ? undefined : "var(--teal)" }}>
+              {hasFaviconBrandMark ? <Image src="/favicon.svg" alt="" aria-hidden="true" width={34} height={34} unoptimized /> : brandInitial}
+            </span>
+            <span>{siteName}</span>
           </span>
-          <span>{siteName}</span>
-        </Link>
-        <nav aria-label="Admin">
-          {nav.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link href={item.href} key={item.href}>
-                <Icon size={18} aria-hidden />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="admin-sidebar-theme">
-          <ThemeToggle initialChoice={themeChoice} iconOnly />
-        </div>
-        <div className="admin-sidebar-account">
-          <span className="muted small">Signed in as</span>
-          <strong>{displayName}</strong>
-          {user.name ? <span className="admin-sidebar-email">{user.email}</span> : null}
-          <form action="/api/auth/logout" method="post">
-            <button className="admin-sidebar-logout" type="submit">
-              <LogOut size={16} aria-hidden />
-              Logout
-            </button>
-          </form>
-          <span className="admin-sidebar-version">
-            Surls v{APP_VERSION}
-            {APP_BUILD_LABEL ? ` ${APP_BUILD_LABEL}` : ""}
+          <span className="admin-sidebar-drawer-action">
+            <Menu size={18} aria-hidden />
+            Menu
+            <ChevronDown className="admin-sidebar-drawer-chevron" size={17} aria-hidden />
           </span>
+        </label>
+        <div className="admin-sidebar-drawer-content">
+          <Link className="brand admin-sidebar-brand" href="/admin" style={{ marginBottom: "1rem" }}>
+            <span className={hasFaviconBrandMark ? "brand-mark brand-mark-favicon" : "brand-mark"} style={{ background: hasFaviconBrandMark ? undefined : "var(--teal)" }}>
+              {hasFaviconBrandMark ? <Image src="/favicon.svg" alt="" aria-hidden="true" width={34} height={34} unoptimized /> : brandInitial}
+            </span>
+            <span>{siteName}</span>
+          </Link>
+          <nav aria-label="Admin">
+            {nav.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link href={item.href} key={item.href}>
+                  <Icon size={18} aria-hidden />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="admin-sidebar-theme">
+            <ThemeToggle initialChoice={themeChoice} iconOnly />
+          </div>
+          <div className="admin-sidebar-account">
+            <span className="muted small">Signed in as</span>
+            <strong>{displayName}</strong>
+            {user.name ? <span className="admin-sidebar-email">{user.email}</span> : null}
+            <form action="/api/auth/logout" method="post">
+              <button className="admin-sidebar-logout" type="submit">
+                <LogOut size={16} aria-hidden />
+                Logout
+              </button>
+            </form>
+            <span className="admin-sidebar-version">
+              Surls v{APP_VERSION}
+              {APP_BUILD_LABEL ? ` ${APP_BUILD_LABEL}` : ""}
+            </span>
+          </div>
         </div>
       </aside>
       <div className="admin-main">

@@ -84,7 +84,6 @@ const DASHBOARD_THEME_PANEL_FIELDS: readonly DashboardThemeField[] = [
   { key: "text", label: "Text", description: "Primary dashboard text." },
   { key: "muted", label: "Muted text", description: "Secondary labels and helper text." },
   { key: "border", label: "Borders", description: "Panel and field outlines." },
-  { key: "focusRing", label: "Focus ring", description: "Keyboard focus outlines and selected controls." },
   { key: "overlayBackground", label: "Overlay", description: "Modal backdrop tint." },
   { key: "placeholder", label: "Placeholder text", description: "Text inside empty form fields." },
   { key: "shadowColor", label: "Shadow", description: "Tint used for dashboard panel shadows." },
@@ -130,6 +129,12 @@ const DASHBOARD_THEME_TOAST_FIELDS: readonly DashboardThemeField[] = [
   { key: "toastInfoBorder", label: "Notice border", description: "Accent and outline for neutral notifications." }
 ] as const;
 
+const DASHBOARD_THEME_LEGACY_FOCUS_RING_FIELD: DashboardThemeField = {
+  key: "focusRing",
+  label: "Focus ring",
+  description: "Legacy saved focus color."
+};
+
 export const DASHBOARD_THEME_FIELD_SECTIONS: readonly DashboardThemeFieldSection[] = [
   { key: "sidebar", label: "Sidebar", fields: DASHBOARD_THEME_SIDEBAR_FIELDS },
   { key: "panels", label: "Panels & text", fields: DASHBOARD_THEME_PANEL_FIELDS },
@@ -138,9 +143,14 @@ export const DASHBOARD_THEME_FIELD_SECTIONS: readonly DashboardThemeFieldSection
   { key: "toasts", label: "Toast notifications", fields: DASHBOARD_THEME_TOAST_FIELDS }
 ] as const;
 
-export const DASHBOARD_THEME_FIELDS: readonly DashboardThemeField[] = DASHBOARD_THEME_FIELD_SECTIONS.flatMap(
+export const DASHBOARD_THEME_EDITABLE_FIELDS: readonly DashboardThemeField[] = DASHBOARD_THEME_FIELD_SECTIONS.flatMap(
   (section) => section.fields
 );
+
+export const DASHBOARD_THEME_FIELDS: readonly DashboardThemeField[] = [
+  ...DASHBOARD_THEME_EDITABLE_FIELDS,
+  DASHBOARD_THEME_LEGACY_FOCUS_RING_FIELD
+];
 
 export const DASHBOARD_THEME_MODES = [
   { key: "light", label: "Light mode" },
@@ -302,14 +312,17 @@ export function normalizeDashboardTheme(value: unknown): DashboardTheme {
 export function dashboardThemeFromFormData(formData: FormData): DashboardTheme {
   return Object.fromEntries(
     DASHBOARD_THEME_MODES.map((mode) => {
-      const palette = Object.fromEntries(
-        DASHBOARD_THEME_FIELDS.map((field) => {
-          const raw = formData.get(dashboardThemeFieldName(mode.key, field.key));
-          const color = typeof raw === "string" ? expandHexColor(raw) : null;
-          if (!color) throw new Error(`${mode.label} ${field.label.toLowerCase()} must be a valid hex color.`);
-          return [field.key, color];
-        })
-      ) as DashboardThemePalette;
+      const palette = {
+        ...DEFAULT_DASHBOARD_THEME[mode.key],
+        ...Object.fromEntries(
+          DASHBOARD_THEME_EDITABLE_FIELDS.map((field) => {
+            const raw = formData.get(dashboardThemeFieldName(mode.key, field.key));
+            const color = typeof raw === "string" ? expandHexColor(raw) : null;
+            if (!color) throw new Error(`${mode.label} ${field.label.toLowerCase()} must be a valid hex color.`);
+            return [field.key, color];
+          })
+        )
+      } as DashboardThemePalette;
       return [mode.key, palette];
     })
   ) as DashboardTheme;
@@ -319,7 +332,7 @@ export function dashboardThemeToFormData(theme: DashboardTheme) {
   const formData = new FormData();
 
   for (const mode of DASHBOARD_THEME_MODES) {
-    for (const field of DASHBOARD_THEME_FIELDS) {
+    for (const field of DASHBOARD_THEME_EDITABLE_FIELDS) {
       formData.set(dashboardThemeFieldName(mode.key, field.key), theme[mode.key][field.key]);
     }
   }
@@ -329,8 +342,17 @@ export function dashboardThemeToFormData(theme: DashboardTheme) {
 
 export function isDefaultDashboardTheme(theme: DashboardTheme) {
   return DASHBOARD_THEME_MODES.every((mode) =>
-    DASHBOARD_THEME_FIELDS.every((field) => theme[mode.key][field.key] === DEFAULT_DASHBOARD_THEME[mode.key][field.key])
+    DASHBOARD_THEME_EDITABLE_FIELDS.every(
+      (field) => theme[mode.key][field.key] === DEFAULT_DASHBOARD_THEME[mode.key][field.key]
+    )
   );
+}
+
+function dashboardThemeFocusRing(theme: DashboardThemePalette) {
+  return [
+    `0 0 0 2px color-mix(in srgb, ${theme.buttonText}, transparent 14%)`,
+    `0 0 0 4px color-mix(in srgb, ${theme.accent}, ${theme.text} 30%)`
+  ].join(", ");
 }
 
 function dashboardThemeStatsTabCssVariables(theme: DashboardThemePalette, prefix = "--") {
@@ -372,7 +394,7 @@ export function dashboardThemePaletteCssVariables(theme: DashboardThemePalette) 
     "--danger-background": theme.dangerBackground,
     "--danger-border": theme.dangerBorder,
     "--danger-text": theme.dangerText,
-    "--focus-ring": `0 0 0 3px ${theme.focusRing}55`,
+    "--focus-ring": dashboardThemeFocusRing(theme),
     "--link-color": theme.link,
     "--color-deep-teal": theme.sidebarHover,
     "--color-ice": theme.surfaceStrong,
@@ -432,7 +454,7 @@ export function dashboardThemeCssVariables(theme: DashboardTheme) {
       [`--dashboard-${mode.key}-danger-background`, theme[mode.key].dangerBackground],
       [`--dashboard-${mode.key}-danger-border`, theme[mode.key].dangerBorder],
       [`--dashboard-${mode.key}-danger-text`, theme[mode.key].dangerText],
-      [`--dashboard-${mode.key}-focus-ring`, `0 0 0 3px ${theme[mode.key].focusRing}55`],
+      [`--dashboard-${mode.key}-focus-ring`, dashboardThemeFocusRing(theme[mode.key])],
       [`--dashboard-${mode.key}-link`, theme[mode.key].link],
       [`--dashboard-${mode.key}-muted`, theme[mode.key].muted],
       [`--dashboard-${mode.key}-pill-background`, theme[mode.key].pillBackground],

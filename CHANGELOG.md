@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.12.3 - 2026-06-19
+
+### Fixed
+
+* Made Theme Editor hiding slide the drawer to the right while keeping a compact restore handle available.
+* Added collapsible admin navigation in mobile and Theme Editor preview layouts.
+* Derived keyboard focus rings automatically from the active theme instead of exposing them as editable colors.
+* Normalized form control heights and style-reference pill samples across narrow views.
+* Matched historical range controls to the statistics tab styling.
+* Moved the short URL external-open icon to the left of the shortcode.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.12.2 - 2026-06-18
 
 ### Fixed

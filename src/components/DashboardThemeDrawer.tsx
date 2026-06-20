@@ -6,6 +6,7 @@ import { Download, Minus, Palette, Upload, X } from "lucide-react";
 import { DashboardThemeEditor } from "@/components/DashboardThemeEditor";
 import { dispatchAdminToast } from "@/lib/admin-toast-event";
 import {
+  DASHBOARD_THEME_EDITABLE_FIELDS,
   DASHBOARD_THEME_FIELDS,
   DASHBOARD_THEME_MODES,
   dashboardThemeCssVariables,
@@ -109,7 +110,7 @@ function hasImportableThemeShape(value: unknown) {
 
 function dashboardThemesMatch(first: DashboardTheme, second: DashboardTheme) {
   return DASHBOARD_THEME_MODES.every((mode) =>
-    DASHBOARD_THEME_FIELDS.every((field) => first[mode.key][field.key] === second[mode.key][field.key])
+    DASHBOARD_THEME_EDITABLE_FIELDS.every((field) => first[mode.key][field.key] === second[mode.key][field.key])
   );
 }
 
@@ -368,9 +369,10 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
 
   if (minimized) {
     return (
-      <aside className="theme-editor-floating-launcher" aria-label="Theme Editor minimized">
-        <button className="theme-editor-floating-button" type="button" aria-label="Expand Theme Editor" onClick={expandDrawer}>
+      <aside className="theme-editor-drawer theme-editor-drawer-hidden" aria-label="Theme Editor hidden">
+        <button className="theme-editor-drawer-restore" type="button" aria-label="Show Theme Editor" onClick={expandDrawer}>
           <Palette size={20} aria-hidden />
+          <span>Theme</span>
         </button>
       </aside>
     );
@@ -386,7 +388,7 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
           </span>
         </div>
         <div className="theme-editor-drawer-header-actions">
-          <button className="icon-button secondary" type="button" aria-label="Minimize Theme Editor" onClick={minimizeDrawer}>
+          <button className="icon-button secondary" type="button" aria-label="Hide Theme Editor" onClick={minimizeDrawer}>
             <Minus size={18} aria-hidden />
           </button>
           <button className="icon-button secondary" type="button" aria-label="Close Theme Editor" onClick={closeDrawer}>

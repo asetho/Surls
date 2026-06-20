@@ -259,9 +259,16 @@ export function HistoricalClicksPanel({
         <div>
           <h2>Historical click count</h2>
         </div>
-        <div className="segmented-control" aria-label="Historical click range">
+        <div className="tab-list history-range-tabs" role="tablist" aria-label="Historical click range">
           {historyRanges.map((option) => (
-            <button type="button" aria-pressed={range === option.id} onClick={() => setRange(option.id)} key={option.id}>
+            <button
+              className="tab-button"
+              type="button"
+              role="tab"
+              aria-selected={range === option.id}
+              onClick={() => setRange(option.id)}
+              key={option.id}
+            >
               {option.label}
             </button>
           ))}
