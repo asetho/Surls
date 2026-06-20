@@ -214,16 +214,6 @@ export default async function SettingsPage() {
           </Link>
         </div>
 
-        <div className="surface surface-panel settings-editor-card">
-          <div className="settings-card-header">
-            <h2>Style reference</h2>
-            <span className="status-pill">Preview</span>
-          </div>
-          <p className="muted">Review saved theme colors across buttons, forms, tables, charts, and notices.</p>
-          <Link className="button secondary" href="/admin/style-reference">
-            Open Style Reference
-          </Link>
-        </div>
       </section>
 
       <div className="settings-status-grid">
