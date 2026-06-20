@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Download, Minus, Palette, Upload, X } from "lucide-react";
+import { ChevronLeft, Download, Minus, Upload, X } from "lucide-react";
 import { DashboardThemeEditor } from "@/components/DashboardThemeEditor";
 import { dispatchAdminToast } from "@/lib/admin-toast-event";
 import {
@@ -371,8 +371,7 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
     return (
       <aside className="theme-editor-drawer theme-editor-drawer-hidden" aria-label="Theme Editor hidden">
         <button className="theme-editor-drawer-restore" type="button" aria-label="Show Theme Editor" onClick={expandDrawer}>
-          <Palette size={20} aria-hidden />
-          <span>Theme</span>
+          <ChevronLeft size={18} aria-hidden />
         </button>
       </aside>
     );

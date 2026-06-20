@@ -2047,13 +2047,18 @@ button.danger-outline:hover {
   z-index: 70;
 }
 
-.theme-editor-drawer-hidden {
-  box-shadow: -10px 0 28px color-mix(in srgb, var(--text), transparent 88%);
-  grid-template-rows: 1fr;
-  max-width: min(25rem, calc(100vw - 1rem));
-  padding-top: max(1rem, env(safe-area-inset-top));
+.theme-editor-drawer.theme-editor-drawer-hidden {
+  background: transparent;
+  border-left: 0;
+  bottom: auto;
+  box-shadow: none;
+  display: block;
+  max-width: none;
+  padding: 0;
   pointer-events: none;
-  transform: translateX(calc(100% - 3.25rem));
+  top: 50%;
+  transform: translateY(-50%);
+  width: auto;
 }
 
 .theme-editor-drawer-header {
@@ -2089,23 +2094,18 @@ button.danger-outline:hover {
   align-items: center;
   background: var(--surface);
   border: 1px solid var(--border);
+  border-right: 0;
   border-radius: var(--radius) 0 0 var(--radius);
-  box-shadow: -8px 0 24px color-mix(in srgb, var(--text), transparent 86%);
+  box-shadow: -6px 0 18px color-mix(in srgb, var(--text), transparent 88%);
   color: var(--text);
   display: inline-flex;
-  flex-direction: column;
-  font-size: 0.7rem;
-  font-weight: 800;
-  gap: 0.25rem;
   justify-content: center;
-  justify-self: start;
   line-height: 1;
-  margin-left: 0.35rem;
-  min-height: 4.7rem;
-  padding: 0.55rem 0.45rem;
+  min-height: 3.2rem;
+  min-width: 1.45rem;
+  padding: 0;
   pointer-events: auto;
-  width: 2.45rem;
-  writing-mode: vertical-rl;
+  width: 1.45rem;
 }
 
 .theme-editor-drawer-restore.theme-editor-drawer-restore {
