@@ -1,12 +1,19 @@
 import { readFileSync } from "node:fs";
 
 const packageJson = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
+const gitSha = process.env.SURLS_GIT_SHA || process.env.NEXT_PUBLIC_GIT_SHA || "";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   env: {
     NEXT_PUBLIC_APP_VERSION: packageJson.version
   },
+  ...(gitSha
+    ? {
+        deploymentId: gitSha,
+        generateBuildId: async () => gitSha
+      }
+    : {}),
   output: "standalone",
   poweredByHeader: false,
   async headers() {

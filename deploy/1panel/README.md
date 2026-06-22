@@ -21,8 +21,9 @@ Edit `deploy/1panel/.env`.
 Generate safe values with:
 
 ```bash
-openssl rand -hex 24
-openssl rand -base64 32
+openssl rand -hex 24 # POSTGRES_PASSWORD
+openssl rand -base64 32 # AUTH_SECRET
+openssl rand -base64 32 # NEXT_SERVER_ACTIONS_ENCRYPTION_KEY
 ```
 
 Set at least:
@@ -31,6 +32,7 @@ Set at least:
 POSTGRES_PASSWORD=<hex password>
 BASE_URL=https://s.yourdomain.com
 AUTH_SECRET=<base64 secret>
+NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=<base64 server actions key>
 WEBAUTHN_RP_ID=s.yourdomain.com
 WEBAUTHN_ORIGIN=https://s.yourdomain.com
 SURLS_PUBLIC_WEBROOT_PATH=/opt/surls/www
@@ -53,7 +55,7 @@ In 1Panel:
 
 The compose file can build the Surls image from the cloned repo. It also has an `SURLS_IMAGE` setting, so after GitHub Actions publishes a GHCR image you can pull the prebuilt image instead. If the GHCR package is private, log in to GHCR from the server or keep using the local build path.
 
-The first app boot runs migrations, creates missing app settings, purges expired raw IP addresses, click events, and audit logs, and creates the initial admin if no users exist. Set `AUTH_SECRET` to a high-entropy value such as output from `openssl rand -base64 32`; placeholder values are rejected in production.
+The first app boot runs migrations, creates missing app settings, purges expired raw IP addresses, click events, and audit logs, and creates the initial admin if no users exist. Set `AUTH_SECRET` and `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` to high-entropy values such as output from `openssl rand -base64 32`; placeholder values are rejected in production for `AUTH_SECRET`. Keep `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` stable across rebuilds so self-hosted Server Action forms from an already-loaded page do not fail after a deploy.
 
 The app container healthcheck uses `/api/health/ready`, which verifies both the Surls process and PostgreSQL access.
 

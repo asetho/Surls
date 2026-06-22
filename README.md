@@ -87,14 +87,15 @@ For a local containerized run, copy the environment template and set at least `P
 
 ```bash
 cp .env.example .env
-openssl rand -hex 24
-openssl rand -base64 32
+openssl rand -hex 24 # POSTGRES_PASSWORD
+openssl rand -base64 32 # AUTH_SECRET
+openssl rand -base64 32 # NEXT_SERVER_ACTIONS_ENCRYPTION_KEY
 docker compose up --build
 ```
 
 The container runs Prisma migrations, seeds missing settings, and purges expired raw IP addresses, click events, and audit logs on startup. To create the first admin automatically, set `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` before first boot. After the first login, remove `INITIAL_ADMIN_PASSWORD` from `.env` and recreate the app container.
 
-Change `AUTH_SECRET`, database credentials, `BASE_URL`, and WebAuthn values before production. Generate `AUTH_SECRET` with a high-entropy command such as `openssl rand -base64 32`; production startup rejects documented placeholder values. Use a URL-safe PostgreSQL password, such as `openssl rand -hex 24`, because the compose file embeds it in `DATABASE_URL`.
+Change `AUTH_SECRET`, `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, database credentials, `BASE_URL`, and WebAuthn values before production. Generate `AUTH_SECRET` and `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` with a high-entropy command such as `openssl rand -base64 32`; production startup rejects documented placeholder values for `AUTH_SECRET`. Keep `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` stable across rebuilds so self-hosted Server Action forms from an already-loaded page do not fail after a deploy. Use a URL-safe PostgreSQL password, such as `openssl rand -hex 24`, because the compose file embeds it in `DATABASE_URL`.
 
 ## 1Panel Install
 
@@ -247,6 +248,7 @@ Leave “Confirm import” unchecked to preview validation without creating link
 ## Production Checklist
 
 - Use a strong `AUTH_SECRET`.
+- Set a stable `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` before building production images.
 - Set `BASE_URL` to the public HTTPS origin.
 - Set `NODE_ENV=production`.
 - Run behind HTTPS and keep HSTS enabled.
