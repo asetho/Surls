@@ -9,6 +9,7 @@ type TurnstileWidgetOptions = {
   callback: (token: string) => void;
   "expired-callback": () => void;
   "error-callback": () => void;
+  "response-field": false;
   theme: "auto";
 };
 
@@ -39,6 +40,7 @@ export function TurnstileGate({ children, siteKey }: { children: ReactNode; site
     renderedWidgetId.current = window.turnstile.render(containerRef.current, {
       sitekey: siteKey,
       theme: "auto",
+      "response-field": false,
       callback: (nextToken) => {
         setToken(nextToken);
         setStatus("verified");
@@ -77,17 +79,22 @@ export function TurnstileGate({ children, siteKey }: { children: ReactNode; site
         defer
         onLoad={() => setScriptReady(true)}
       />
-      <div className="turnstile-gate" data-surls-auth-turnstile>
+      <div
+        className="turnstile-gate"
+        data-surls-auth-turnstile
+        data-turnstile-status={status}
+        hidden={status === "verified"}
+        aria-live="polite"
+      >
         <div>
           <strong>Security check</strong>
           <p className="muted small">Complete this check to load the sign-in form.</p>
         </div>
         <div id={widgetId} ref={containerRef} className="turnstile-widget" />
-        {status === "verified" ? <p className="muted small">Security check complete.</p> : null}
         {status === "expired" ? <p className="muted small">The security check expired. Please try again.</p> : null}
         {status === "error" ? <p className="muted small">The security check could not load. Please refresh and try again.</p> : null}
       </div>
-      {token ? (
+      {status === "verified" && token ? (
         <>
           <input type="hidden" name={TURNSTILE_RESPONSE_FIELD} value={token} />
           {children}

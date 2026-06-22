@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.13.1 - 2026-06-22
+
+### Fixed
+
+* Hid password login fields until the Turnstile security check succeeds.
+* Centered the Turnstile challenge box and removed the extra completed-check message after verification.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.13.0 - 2026-06-22
 
 ### Added

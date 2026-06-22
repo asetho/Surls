@@ -2928,12 +2928,15 @@ textarea {
 }
 
 .turnstile-gate {
+  align-items: center;
   background: var(--surface-strong);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   display: grid;
   gap: 0.7rem;
+  justify-items: center;
   padding: 0.85rem;
+  text-align: center;
 }
 
 .turnstile-gate p {
@@ -2943,7 +2946,9 @@ textarea {
 .turnstile-widget {
   align-items: center;
   display: flex;
+  justify-content: center;
   min-height: 65px;
+  max-width: 100%;
 }
 
 .surls-auth-form-embedded .turnstile-gate {
