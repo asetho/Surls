@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.13.2 - 2026-06-22
+
+### Fixed
+
+* Removed the Turnstile challenge widget after successful verification so only the sign-in form remains visible.
+* Added a CSS guard so component display rules cannot keep a verified Turnstile gate visible.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.13.1 - 2026-06-22
 
 ### Fixed

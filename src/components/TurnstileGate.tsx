@@ -68,6 +68,13 @@ export function TurnstileGate({ children, siteKey }: { children: ReactNode; site
     };
   }, [renderWidget]);
 
+  useEffect(() => {
+    if (status !== "verified" || !renderedWidgetId.current) return;
+
+    window.turnstile?.remove(renderedWidgetId.current);
+    renderedWidgetId.current = null;
+  }, [status]);
+
   if (!siteKey) return <>{children}</>;
 
   return (
@@ -79,21 +86,17 @@ export function TurnstileGate({ children, siteKey }: { children: ReactNode; site
         defer
         onLoad={() => setScriptReady(true)}
       />
-      <div
-        className="turnstile-gate"
-        data-surls-auth-turnstile
-        data-turnstile-status={status}
-        hidden={status === "verified"}
-        aria-live="polite"
-      >
-        <div>
-          <strong>Security check</strong>
-          <p className="muted small">Complete this check to load the sign-in form.</p>
+      {status !== "verified" ? (
+        <div className="turnstile-gate" data-surls-auth-turnstile data-turnstile-status={status} aria-live="polite">
+          <div>
+            <strong>Security check</strong>
+            <p className="muted small">Complete this check to load the sign-in form.</p>
+          </div>
+          <div id={widgetId} ref={containerRef} className="turnstile-widget" />
+          {status === "expired" ? <p className="muted small">The security check expired. Please try again.</p> : null}
+          {status === "error" ? <p className="muted small">The security check could not load. Please refresh and try again.</p> : null}
         </div>
-        <div id={widgetId} ref={containerRef} className="turnstile-widget" />
-        {status === "expired" ? <p className="muted small">The security check expired. Please try again.</p> : null}
-        {status === "error" ? <p className="muted small">The security check could not load. Please refresh and try again.</p> : null}
-      </div>
+      ) : null}
       {status === "verified" && token ? (
         <>
           <input type="hidden" name={TURNSTILE_RESPONSE_FIELD} value={token} />

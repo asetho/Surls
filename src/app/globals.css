@@ -2939,6 +2939,11 @@ textarea {
   text-align: center;
 }
 
+.turnstile-gate[hidden],
+.turnstile-gate[data-turnstile-status="verified"] {
+  display: none !important;
+}
+
 .turnstile-gate p {
   margin: 0.15rem 0 0;
 }
