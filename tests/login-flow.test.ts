@@ -39,6 +39,10 @@ const totp = vi.hoisted(() => ({
   verifyTotpCode: vi.fn()
 }));
 
+const turnstile = vi.hoisted(() => ({
+  verifyTurnstileChallenge: vi.fn()
+}));
+
 vi.mock("@/lib/prisma", () => ({ prisma }));
 vi.mock("@/lib/auth", () => ({
   createSession: auth.createSession,
@@ -57,6 +61,7 @@ vi.mock("@/lib/request", () => ({
 }));
 vi.mock("@/lib/backup-codes", () => backupCodes);
 vi.mock("@/lib/totp", () => totp);
+vi.mock("@/lib/turnstile", () => turnstile);
 
 function formRequest(path: string, formData: FormData, cookie?: string) {
   return new NextRequest(`http://localhost:3000${path}`, {
@@ -83,6 +88,27 @@ describe("admin login flow", () => {
       expiresAt: new Date("2026-06-18T16:00:00.000Z"),
       token: "session-token"
     });
+    turnstile.verifyTurnstileChallenge.mockResolvedValue({ ok: true, skipped: true });
+  });
+
+  it("rejects password login before credential checks when the Turnstile challenge fails", async () => {
+    const { POST } = await import("@/app/api/auth/login/route");
+    turnstile.verifyTurnstileChallenge.mockResolvedValue({ ok: false, reason: "missing" });
+
+    const response = await POST(
+      formRequest(
+        "/api/auth/login",
+        loginForm({ email: "admin@example.com", next: "/admin/links", password: "correct password" })
+      )
+    );
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/admin?error=Complete+the+security+check+and+try+again.&next=%2Fadmin%2Flinks"
+    );
+    expect(rateLimit.checkRateLimit).not.toHaveBeenCalled();
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(auth.createSession).not.toHaveBeenCalled();
   });
 
   it("redirects TOTP-enabled password logins to the second step without creating a session", async () => {

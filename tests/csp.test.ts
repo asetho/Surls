@@ -8,11 +8,12 @@ describe("content security policy", () => {
     expect(csp).toContain("img-src 'self' data: https://cdn.asetho.com https://static.addtoany.com https://www.addtoany.com");
     expect(csp).toContain("script-src 'self' 'nonce-test-nonce'");
     expect(csp).toContain("https://static.addtoany.com");
+    expect(csp).toContain("https://challenges.cloudflare.com");
     expect(csp).not.toContain("script-src 'self' 'unsafe-inline'");
     expect(csp).toContain(
-      "connect-src 'self' https://cdn.asetho.com https://p.typekit.net https://cloudflareinsights.com https://static.addtoany.com https://www.addtoany.com https://stats.addtoany.com"
+      "connect-src 'self' https://cdn.asetho.com https://p.typekit.net https://challenges.cloudflare.com https://cloudflareinsights.com https://static.addtoany.com https://www.addtoany.com https://stats.addtoany.com"
     );
-    expect(csp).toContain("frame-src 'self' about: https://static.addtoany.com https://www.addtoany.com");
+    expect(csp).toContain("frame-src 'self' about: https://challenges.cloudflare.com https://static.addtoany.com https://www.addtoany.com");
     expect(csp).toContain("https://use.typekit.net");
     expect(csp).toContain("https://p.typekit.net");
     expect(csp).toContain("font-src 'self' https://cdn.asetho.com https://use.typekit.net");

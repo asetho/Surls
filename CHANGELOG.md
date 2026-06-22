@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.13.0 - 2026-06-22
+
+### Added
+
+* Added optional Cloudflare Turnstile protection before password login forms load.
+* Added server-side Turnstile verification for password login attempts when Turnstile keys are configured.
+
+### Changed
+
+* Documented Turnstile configuration for local, Docker Compose, and 1Panel installs.
+* Updated the app content security policy to allow the Cloudflare Turnstile challenge script, frame, and verification traffic.
+
+### Upgrade Notes
+
+Set both `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` to enable Turnstile. Leave both empty to keep the existing login flow.
+
 ## 1.12.6 - 2026-06-20
 
 ### Fixed

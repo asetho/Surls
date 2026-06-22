@@ -97,6 +97,8 @@ The container runs Prisma migrations, seeds missing settings, and purges expired
 
 Change `AUTH_SECRET`, `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, database credentials, `BASE_URL`, and WebAuthn values before production. Generate `AUTH_SECRET` and `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` with a high-entropy command such as `openssl rand -base64 32`; production startup rejects documented placeholder values for `AUTH_SECRET`. Keep `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` stable across rebuilds so self-hosted Server Action forms from an already-loaded page do not fail after a deploy. Use a URL-safe PostgreSQL password, such as `openssl rand -hex 24`, because the compose file embeds it in `DATABASE_URL`.
 
+To require a Cloudflare Turnstile security check before password login forms load, set both `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`. If either value is left empty, Turnstile stays disabled. If only one is configured, startup fails so the login form cannot be half-protected.
+
 ## 1Panel Install
 
 Use the production compose files in `deploy/1panel`:

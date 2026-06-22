@@ -9,6 +9,7 @@ import { auditLog } from "@/lib/audit";
 import { validateCsrf } from "@/lib/csrf";
 import { appBaseUrl } from "@/lib/env";
 import { encodePendingLogin, PENDING_LOGIN_COOKIE, pendingLoginCookieOptions } from "@/lib/pending-login";
+import { verifyTurnstileChallenge } from "@/lib/turnstile";
 
 function loginRedirect(error: string, extras?: Record<string, string>, returnPath = "/admin") {
   const url = new URL(safeRedirectPath(returnPath), appBaseUrl());
@@ -30,6 +31,11 @@ export async function POST(request: NextRequest) {
     validateCsrf(formData);
   } catch {
     return loginRedirect("The login form expired. Please try again.", failureExtras, failurePath);
+  }
+
+  const turnstile = await verifyTurnstileChallenge(formData, request);
+  if (!turnstile.ok) {
+    return loginRedirect("Complete the security check and try again.", failureExtras, failurePath);
   }
 
   const email = String(formData.get("email") ?? "").trim().toLowerCase();

@@ -49,6 +49,8 @@ const envSchema = z
         .default("false")
         .transform((value) => value === "true")
     ),
+    TURNSTILE_SITE_KEY: emptyToUndefined(z.string().optional()),
+    TURNSTILE_SECRET_KEY: emptyToUndefined(z.string().optional()),
     WEBAUTHN_RP_ID: emptyToUndefined(z.string().default("localhost")),
     WEBAUTHN_ORIGIN: emptyToUndefined(z.string().url().default("http://localhost:3000")),
     NODE_ENV: emptyToUndefined(z.enum(["development", "test", "production"]).default("development"))
@@ -59,6 +61,14 @@ const envSchema = z
         code: "custom",
         path: ["AUTH_SECRET"],
         message: "AUTH_SECRET must be changed to a high-entropy value in production."
+      });
+    }
+
+    if (Boolean(value.TURNSTILE_SITE_KEY) !== Boolean(value.TURNSTILE_SECRET_KEY)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["TURNSTILE_SITE_KEY"],
+        message: "TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY must be configured together."
       });
     }
   });

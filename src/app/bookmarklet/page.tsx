@@ -6,6 +6,7 @@ import { ExternalLink, Link2, LogIn, Plus } from "lucide-react";
 import { BookmarkletPopupActions } from "@/components/BookmarkletPopupActions";
 import { PasskeyLoginButton } from "@/components/PasskeyLoginButton";
 import { TitleAutoFill } from "@/components/TitleAutoFill";
+import { TurnstileGate } from "@/components/TurnstileGate";
 import { requireAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { dashboardThemeCssVariables } from "@/lib/dashboard-theme";
@@ -13,6 +14,7 @@ import { appBaseUrl } from "@/lib/env";
 import { shortUrl } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
+import { turnstileSiteKey } from "@/lib/turnstile";
 import { createBookmarkletLinkAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -58,6 +60,7 @@ export default async function BookmarkletPage({ searchParams }: { searchParams: 
     : null;
   const createdUrl = createdLink ? shortUrl(appBaseUrl(), createdLink.code) : null;
   const hasFaviconBrandMark = Boolean(settings.favicons?.assets.faviconSvg);
+  const loginTurnstileSiteKey = turnstileSiteKey();
 
   return (
     <main className="bookmarklet-shell" style={themeStyle}>
@@ -90,28 +93,30 @@ export default async function BookmarkletPage({ searchParams }: { searchParams: 
             <input type="hidden" name="csrf" value={csrf} />
             <input type="hidden" name="next" value={nextPath} />
             <input type="hidden" name="loginContext" value="bookmarklet" />
-            <label>
-              Email
-              <input name="email" type="email" autoComplete="username" required defaultValue={params.email ?? ""} />
-            </label>
-            <label>
-              Password
-              <input name="password" type="password" autoComplete="current-password" required minLength={12} />
-            </label>
-            <label>
-              2FA or backup code
-              <input
-                name="secondFactor"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                placeholder={needsSecondFactor ? "Required" : "Required only after 2FA is enabled"}
-              />
-            </label>
-            <button type="submit">Log in</button>
-            <div className="login-divider">
-              <span>or</span>
-            </div>
-            <PasskeyLoginButton nextPath={nextPath} />
+            <TurnstileGate siteKey={loginTurnstileSiteKey}>
+              <label>
+                Email
+                <input name="email" type="email" autoComplete="username" required defaultValue={params.email ?? ""} />
+              </label>
+              <label>
+                Password
+                <input name="password" type="password" autoComplete="current-password" required minLength={12} />
+              </label>
+              <label>
+                2FA or backup code
+                <input
+                  name="secondFactor"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  placeholder={needsSecondFactor ? "Required" : "Required only after 2FA is enabled"}
+                />
+              </label>
+              <button type="submit">Log in</button>
+              <div className="login-divider">
+                <span>or</span>
+              </div>
+              <PasskeyLoginButton nextPath={nextPath} />
+            </TurnstileGate>
           </form>
         ) : createdLink && createdUrl ? (
           <div className="surface bookmarklet-card form-stack">

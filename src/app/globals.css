@@ -2922,6 +2922,35 @@ textarea {
   height: 1px;
 }
 
+.turnstile-protected {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.turnstile-gate {
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.85rem;
+}
+
+.turnstile-gate p {
+  margin: 0.15rem 0 0;
+}
+
+.turnstile-widget {
+  align-items: center;
+  display: flex;
+  min-height: 65px;
+}
+
+.surls-auth-form-embedded .turnstile-gate {
+  background: var(--surls-login-secondary-background, transparent);
+  border-color: var(--surls-login-secondary-border, var(--border));
+}
+
 .totp-code-field {
   gap: 0.45rem;
 }
