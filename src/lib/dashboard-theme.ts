@@ -22,6 +22,11 @@ export type DashboardThemePalette = {
   pillBorder: string;
   pillText: string;
   qrBackground: string;
+  segmentedControlActiveBackground: string;
+  segmentedControlActiveText: string;
+  segmentedControlBackground: string;
+  segmentedControlBorder: string;
+  segmentedControlText: string;
   shortUrlPillAccent: string;
   shortUrlPillBackground: string;
   shortUrlPillBorder: string;
@@ -105,7 +110,16 @@ const DASHBOARD_THEME_ACTION_FIELDS: readonly DashboardThemeField[] = [
   { key: "shortUrlPillBackground", label: "Short URL pill", description: "Background behind short link codes." },
   { key: "shortUrlPillText", label: "Short URL text", description: "Text for short link codes." },
   { key: "shortUrlPillBorder", label: "Short URL border", description: "Outline around short link codes." },
-  { key: "shortUrlPillAccent", label: "Short URL accent", description: "Left accent bar for short link codes." }
+  { key: "shortUrlPillAccent", label: "Short URL accent", description: "Left accent bar for short link codes." },
+  { key: "segmentedControlBackground", label: "Segmented control", description: "Track behind compact choice buttons." },
+  { key: "segmentedControlText", label: "Segmented text", description: "Text for inactive compact choices." },
+  { key: "segmentedControlBorder", label: "Segmented border", description: "Outline for compact choice groups." },
+  {
+    key: "segmentedControlActiveBackground",
+    label: "Segmented active",
+    description: "Background for the selected compact choice."
+  },
+  { key: "segmentedControlActiveText", label: "Segmented active text", description: "Text for the selected compact choice." }
 ] as const;
 
 const DASHBOARD_THEME_GRAPH_FIELDS: readonly DashboardThemeField[] = [
@@ -182,6 +196,11 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     pillBorder: "#bdd8e4",
     pillText: "#0b2636",
     qrBackground: "#ffffff",
+    segmentedControlActiveBackground: "#087e8b",
+    segmentedControlActiveText: "#ffffff",
+    segmentedControlBackground: "#d8edf4",
+    segmentedControlBorder: "#8cc5cc",
+    segmentedControlText: "#477282",
     shortUrlPillAccent: "#087e8b",
     shortUrlPillBackground: "#eef8f9",
     shortUrlPillBorder: "#9ed1d7",
@@ -231,6 +250,11 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     pillBorder: "#3c8ea0",
     pillText: "#f3fbff",
     qrBackground: "#ffffff",
+    segmentedControlActiveBackground: "#64abbb",
+    segmentedControlActiveText: "#ffffff",
+    segmentedControlBackground: "#176d7d",
+    segmentedControlBorder: "#3c8ea0",
+    segmentedControlText: "#b7d6e2",
     shortUrlPillAccent: "#64abbb",
     shortUrlPillBackground: "#0d4a58",
     shortUrlPillBorder: "#3c8ea0",
@@ -359,11 +383,11 @@ function dashboardThemeStatsTabCssVariables(theme: DashboardThemePalette, prefix
   return {
     [`${prefix}stats-tab-active-background`]: theme.chartPrimary,
     [`${prefix}stats-tab-active-border`]: theme.chartPrimary,
-    [`${prefix}stats-tab-active-text`]: theme.buttonText,
+    [`${prefix}stats-tab-active-text`]: theme.segmentedControlActiveText,
     [`${prefix}stats-tab-background`]: `color-mix(in srgb, ${theme.chartAccent}, ${theme.surface} 50%)`,
     [`${prefix}stats-tab-border`]: `color-mix(in srgb, ${theme.chartSecondary}, ${theme.border} 45%)`,
     [`${prefix}stats-tab-list-background`]: theme.chartAccent,
-    [`${prefix}stats-tab-text`]: `color-mix(in srgb, ${theme.chartSecondary}, transparent 32%)`
+    [`${prefix}stats-tab-text`]: theme.segmentedControlText
   };
 }
 
@@ -407,6 +431,11 @@ export function dashboardThemePaletteCssVariables(theme: DashboardThemePalette) 
     "--pill-border": theme.pillBorder,
     "--pill-text": theme.pillText,
     "--qr-background": theme.qrBackground,
+    "--segmented-control-active-background": theme.segmentedControlActiveBackground,
+    "--segmented-control-active-text": theme.segmentedControlActiveText,
+    "--segmented-control-background": theme.segmentedControlBackground,
+    "--segmented-control-border": theme.segmentedControlBorder,
+    "--segmented-control-text": theme.segmentedControlText,
     "--overlay-background": theme.overlayBackground,
     "--placeholder": theme.placeholder,
     "--shadow": `0 18px 50px ${theme.shadowColor}1f`,
@@ -461,6 +490,11 @@ export function dashboardThemeCssVariables(theme: DashboardTheme) {
       [`--dashboard-${mode.key}-pill-border`, theme[mode.key].pillBorder],
       [`--dashboard-${mode.key}-pill-text`, theme[mode.key].pillText],
       [`--dashboard-${mode.key}-qr-background`, theme[mode.key].qrBackground],
+      [`--dashboard-${mode.key}-segmented-control-active-background`, theme[mode.key].segmentedControlActiveBackground],
+      [`--dashboard-${mode.key}-segmented-control-active-text`, theme[mode.key].segmentedControlActiveText],
+      [`--dashboard-${mode.key}-segmented-control-background`, theme[mode.key].segmentedControlBackground],
+      [`--dashboard-${mode.key}-segmented-control-border`, theme[mode.key].segmentedControlBorder],
+      [`--dashboard-${mode.key}-segmented-control-text`, theme[mode.key].segmentedControlText],
       [`--dashboard-${mode.key}-overlay-background`, theme[mode.key].overlayBackground],
       [`--dashboard-${mode.key}-placeholder`, theme[mode.key].placeholder],
       [`--dashboard-${mode.key}-shadow`, `0 18px 50px ${theme[mode.key].shadowColor}1f`],

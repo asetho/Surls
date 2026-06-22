@@ -59,7 +59,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
           </span>
         </label>
         <div className="admin-sidebar-drawer-content">
-          <Link className="brand admin-sidebar-brand" href="/admin" style={{ marginBottom: "1rem" }}>
+          <Link className="brand admin-sidebar-brand" href="/admin">
             <span className={hasFaviconBrandMark ? "brand-mark brand-mark-favicon" : "brand-mark"} style={{ background: hasFaviconBrandMark ? undefined : "var(--teal)" }}>
               {hasFaviconBrandMark ? <Image src="/favicon.svg" alt="" aria-hidden="true" width={34} height={34} unoptimized /> : brandInitial}
             </span>

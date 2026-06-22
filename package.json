@@ -17,7 +17,8 @@
     "prisma:studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
     "seed:demo": "node scripts/seed-demo.mjs",
-    "setup:admin": "tsx scripts/create-admin.ts"
+    "setup:admin": "tsx scripts/create-admin.ts",
+    "deploy:hmserv": "node scripts/deploy-hmserv.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

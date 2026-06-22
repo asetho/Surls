@@ -208,6 +208,42 @@ export default async function StyleReferencePage() {
             <span className="status-pill style-reference-theme-target" data-theme-field={themeField("pillBackground")} role="button" tabIndex={0}>Built-in</span>
             <span className="status-pill status-pill-active style-reference-theme-target" data-theme-field={themeField("activePillBackground")} role="button" tabIndex={0}>Custom</span>
           </div>
+          <div className="style-reference-segmented-row">
+            <span className="muted small">Segmented controls</span>
+            <div
+              className="segmented-control style-reference-theme-target"
+              data-theme-field={themeField("segmentedControlBackground")}
+            >
+              <button
+                type="button"
+                aria-pressed="false"
+                data-theme-field={themeField("segmentedControlText")}
+              >
+                L
+              </button>
+              <button
+                type="button"
+                aria-pressed="true"
+                data-theme-field={themeField("segmentedControlActiveBackground")}
+              >
+                M
+              </button>
+              <button
+                type="button"
+                aria-pressed="false"
+                data-theme-field={themeField("segmentedControlText")}
+              >
+                Q
+              </button>
+              <button
+                type="button"
+                aria-pressed="false"
+                data-theme-field={themeField("segmentedControlText")}
+              >
+                H
+              </button>
+            </div>
+          </div>
           <p>
             <a data-theme-field={themeField("link")} href="#reference-link">
               <ExternalLink size={13} aria-hidden />
