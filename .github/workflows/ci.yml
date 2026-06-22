@@ -42,7 +42,7 @@ jobs:
           --health-retries 5
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@v7.0.0
 
       - name: Set up Node.js
         uses: actions/setup-node@v6.4.0
@@ -87,7 +87,7 @@ jobs:
       INITIAL_ADMIN_PASSWORD: ci-admin-password-12345
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@v7.0.0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4.1.0
