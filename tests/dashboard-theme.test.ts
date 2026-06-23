@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   DASHBOARD_THEME_EDITABLE_FIELDS,
   DASHBOARD_THEME_FIELDS,
@@ -101,7 +103,7 @@ describe("dashboard theme settings", () => {
 
     expect(Array.from(formData.keys())).toHaveLength(expectedFieldCount);
     expect(Array.from(formData.keys()).some((key) => key.endsWith("[focusRing]"))).toBe(false);
-    expect(DASHBOARD_THEME_FIELDS.some((field) => String(field.key).startsWith("statsTab"))).toBe(false);
+    expect(DASHBOARD_THEME_EDITABLE_FIELDS.some((field) => String(field.key).startsWith("statsTab"))).toBe(true);
     expect(dashboardThemeFromFormData(formData)).toEqual(DEFAULT_DASHBOARD_THEME);
   });
 
@@ -138,10 +140,10 @@ describe("dashboard theme settings", () => {
       "--dashboard-light-shadow": `0 18px 50px ${DEFAULT_DASHBOARD_THEME.light.shadowColor}1f`,
       "--dashboard-light-shadow-color": DEFAULT_DASHBOARD_THEME.light.shadowColor,
       "--dashboard-light-sidebar-text": DEFAULT_DASHBOARD_THEME.light.sidebarText,
-      "--dashboard-light-stats-tab-active-background": DEFAULT_DASHBOARD_THEME.light.chartPrimary,
-      "--dashboard-light-stats-tab-active-text": DEFAULT_DASHBOARD_THEME.light.segmentedControlActiveText,
-      "--dashboard-light-stats-tab-background": `color-mix(in srgb, ${DEFAULT_DASHBOARD_THEME.light.chartAccent}, ${DEFAULT_DASHBOARD_THEME.light.surface} 50%)`,
-      "--dashboard-light-stats-tab-text": DEFAULT_DASHBOARD_THEME.light.segmentedControlText,
+      "--dashboard-light-stats-tab-active-background": DEFAULT_DASHBOARD_THEME.light.statsTabActiveBackground,
+      "--dashboard-light-stats-tab-active-text": DEFAULT_DASHBOARD_THEME.light.statsTabActiveText,
+      "--dashboard-light-stats-tab-background": DEFAULT_DASHBOARD_THEME.light.statsTabBackground,
+      "--dashboard-light-stats-tab-text": DEFAULT_DASHBOARD_THEME.light.statsTabText,
       "--dashboard-light-surface": DEFAULT_DASHBOARD_THEME.light.surface,
       "--dashboard-light-text": DEFAULT_DASHBOARD_THEME.light.text,
       "--dashboard-light-toast-info-background": DEFAULT_DASHBOARD_THEME.light.toastInfoBackground,
@@ -166,14 +168,57 @@ describe("dashboard theme settings", () => {
       "--shadow": `0 18px 50px ${DEFAULT_DASHBOARD_THEME.light.shadowColor}1f`,
       "--sidebar-text": DEFAULT_DASHBOARD_THEME.light.sidebarText,
       "--short-url-pill-background": DEFAULT_DASHBOARD_THEME.light.shortUrlPillBackground,
-      "--stats-tab-active-background": DEFAULT_DASHBOARD_THEME.light.chartPrimary,
-      "--stats-tab-active-text": DEFAULT_DASHBOARD_THEME.light.segmentedControlActiveText,
-      "--stats-tab-background": `color-mix(in srgb, ${DEFAULT_DASHBOARD_THEME.light.chartAccent}, ${DEFAULT_DASHBOARD_THEME.light.surface} 50%)`,
-      "--stats-tab-list-background": DEFAULT_DASHBOARD_THEME.light.chartAccent,
-      "--stats-tab-text": DEFAULT_DASHBOARD_THEME.light.segmentedControlText,
+      "--stats-tab-active-background": DEFAULT_DASHBOARD_THEME.light.statsTabActiveBackground,
+      "--stats-tab-active-text": DEFAULT_DASHBOARD_THEME.light.statsTabActiveText,
+      "--stats-tab-background": DEFAULT_DASHBOARD_THEME.light.statsTabBackground,
+      "--stats-tab-list-background": DEFAULT_DASHBOARD_THEME.light.statsTabListBackground,
+      "--stats-tab-text": DEFAULT_DASHBOARD_THEME.light.statsTabText,
       "--toast-error-border": DEFAULT_DASHBOARD_THEME.light.toastErrorBorder,
       "--toast-info-background": DEFAULT_DASHBOARD_THEME.light.toastInfoBackground,
       "--toast-success-background": DEFAULT_DASHBOARD_THEME.light.toastSuccessBackground
     });
+  });
+
+  it("keeps graph tab colors independent from QR segmented controls", () => {
+    expect(
+      dashboardThemePaletteCssVariables({
+        ...DEFAULT_DASHBOARD_THEME.light,
+        segmentedControlActiveBackground: "#111111",
+        segmentedControlActiveText: "#222222",
+        segmentedControlBackground: "#333333",
+        segmentedControlBorder: "#444444",
+        segmentedControlText: "#555555",
+        statsTabActiveBackground: "#aa1111",
+        statsTabActiveBorder: "#bb2222",
+        statsTabActiveText: "#cc3333",
+        statsTabBackground: "#dd4444",
+        statsTabBorder: "#ee5555",
+        statsTabListBackground: "#aa6666",
+        statsTabText: "#bb7777"
+      })
+    ).toMatchObject({
+      "--segmented-control-active-background": "#111111",
+      "--segmented-control-active-text": "#222222",
+      "--segmented-control-background": "#333333",
+      "--segmented-control-border": "#444444",
+      "--segmented-control-text": "#555555",
+      "--stats-tab-active-background": "#aa1111",
+      "--stats-tab-active-border": "#bb2222",
+      "--stats-tab-active-text": "#cc3333",
+      "--stats-tab-background": "#dd4444",
+      "--stats-tab-border": "#ee5555",
+      "--stats-tab-list-background": "#aa6666",
+      "--stats-tab-text": "#bb7777"
+    });
+  });
+
+  it("lets segmented controls use their theme text colors instead of primary button text", () => {
+    const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+
+    expect(css).toContain(":not(.segmented-control-option)");
+    expect(css).toMatch(/\.segmented-control button\s*{[\s\S]*color:\s*var\(--segmented-control-text/);
+    expect(css).toMatch(
+      /\.segmented-control button\[aria-pressed="true"\]\s*{[\s\S]*color:\s*var\(--segmented-control-active-text/
+    );
   });
 });

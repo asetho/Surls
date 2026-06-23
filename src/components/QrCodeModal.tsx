@@ -145,6 +145,7 @@ export function QrCodeModal({
                   {QR_ERROR_CORRECTION_LEVELS.map((option) => (
                     <button
                       type="button"
+                      className="segmented-control-option"
                       aria-pressed={level === option}
                       onClick={() => setLevel(option)}
                       key={option}
@@ -158,7 +159,13 @@ export function QrCodeModal({
                 <legend>Image size</legend>
                 <div className="segmented-control">
                   {QR_SIZES.map((option) => (
-                    <button type="button" aria-pressed={size === option} onClick={() => setSize(option)} key={option}>
+                    <button
+                      type="button"
+                      className="segmented-control-option"
+                      aria-pressed={size === option}
+                      onClick={() => setSize(option)}
+                      key={option}
+                    >
                       {option}px
                     </button>
                   ))}

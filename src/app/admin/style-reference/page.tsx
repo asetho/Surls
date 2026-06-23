@@ -216,6 +216,7 @@ export default async function StyleReferencePage() {
             >
               <button
                 type="button"
+                className="segmented-control-option"
                 aria-pressed="false"
                 data-theme-field={themeField("segmentedControlText")}
               >
@@ -223,6 +224,7 @@ export default async function StyleReferencePage() {
               </button>
               <button
                 type="button"
+                className="segmented-control-option"
                 aria-pressed="true"
                 data-theme-field={themeField("segmentedControlActiveBackground")}
               >
@@ -230,6 +232,7 @@ export default async function StyleReferencePage() {
               </button>
               <button
                 type="button"
+                className="segmented-control-option"
                 aria-pressed="false"
                 data-theme-field={themeField("segmentedControlText")}
               >
@@ -237,6 +240,7 @@ export default async function StyleReferencePage() {
               </button>
               <button
                 type="button"
+                className="segmented-control-option"
                 aria-pressed="false"
                 data-theme-field={themeField("segmentedControlText")}
               >
@@ -347,17 +351,47 @@ export default async function StyleReferencePage() {
 
       <section className="surface surface-panel">
         <h2>Tabs, graphs, and maps</h2>
-        <div className="tab-list" role="tablist" aria-label="Reference tabs">
-          <button className="tab-button" type="button" role="tab" aria-selected="true">
+        <div
+          className="tab-list style-reference-theme-target"
+          role="tablist"
+          aria-label="Reference tabs"
+          data-theme-field={themeField("statsTabListBackground")}
+          tabIndex={0}
+        >
+          <button
+            className="tab-button style-reference-theme-target"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            data-theme-field={themeField("statsTabActiveBackground")}
+          >
             Historical clicks
           </button>
-          <button className="tab-button" type="button" role="tab" aria-selected="false">
+          <button
+            className="tab-button style-reference-theme-target"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            data-theme-field={themeField("statsTabText")}
+          >
             Location
           </button>
-          <button className="tab-button" type="button" role="tab" aria-selected="false">
+          <button
+            className="tab-button style-reference-theme-target"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            data-theme-field={themeField("statsTabText")}
+          >
             Sources
           </button>
-          <button className="tab-button" type="button" role="tab" aria-selected="false">
+          <button
+            className="tab-button style-reference-theme-target"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            data-theme-field={themeField("statsTabText")}
+          >
             Browser/device
           </button>
         </div>

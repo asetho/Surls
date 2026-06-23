@@ -116,7 +116,7 @@ button,
     transform 150ms ease;
 }
 
-button:not(.secondary):not(.danger):not(.danger-outline):not(.dashboard-theme-mode-tab):not(.theme-editor-drawer-restore):not(.qr-inline-trigger):not(.tab-button):not(.system-toast-dismiss),
+button:not(.secondary):not(.danger):not(.danger-outline):not(.dashboard-theme-mode-tab):not(.theme-editor-drawer-restore):not(.qr-inline-trigger):not(.tab-button):not(.segmented-control-option):not(.system-toast-dismiss),
 .button:not(.secondary):not(.danger):not(.danger-outline) {
   color: var(--button-text);
 }

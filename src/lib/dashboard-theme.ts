@@ -36,6 +36,13 @@ export type DashboardThemePalette = {
   sidebarHover: string;
   sidebarMuted: string;
   sidebarText: string;
+  statsTabActiveBackground: string;
+  statsTabActiveBorder: string;
+  statsTabActiveText: string;
+  statsTabBackground: string;
+  statsTabBorder: string;
+  statsTabListBackground: string;
+  statsTabText: string;
   surface: string;
   surfaceStrong: string;
   text: string;
@@ -127,6 +134,13 @@ const DASHBOARD_THEME_GRAPH_FIELDS: readonly DashboardThemeField[] = [
   { key: "chartSecondary", label: "Graph secondary", description: "Secondary chart series and supporting marks." },
   { key: "chartAccent", label: "Graph fill", description: "Area fills, neutral chart marks, and soft segments." },
   { key: "chartDanger", label: "Graph warning", description: "Warning slices and high-attention chart marks." },
+  { key: "statsTabListBackground", label: "Graph tab line", description: "Underline track behind graph tabs." },
+  { key: "statsTabBackground", label: "Graph tab inactive", description: "Background for inactive graph tabs." },
+  { key: "statsTabText", label: "Graph tab inactive text", description: "Text for inactive graph tabs." },
+  { key: "statsTabBorder", label: "Graph tab border", description: "Outline and underline for graph tabs." },
+  { key: "statsTabActiveBackground", label: "Graph tab active", description: "Background for the selected graph tab." },
+  { key: "statsTabActiveText", label: "Graph tab active text", description: "Text for the selected graph tab." },
+  { key: "statsTabActiveBorder", label: "Graph tab active border", description: "Outline for the selected graph tab." },
   { key: "chartMapLow", label: "Map low", description: "Lower-traffic country map color." },
   { key: "chartMapHigh", label: "Map high", description: "Highest-traffic country map color." }
 ] as const;
@@ -210,6 +224,13 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     sidebarHover: "#087e8b",
     sidebarMuted: "#c0dde3",
     sidebarText: "#ffffff",
+    statsTabActiveBackground: "#087e8b",
+    statsTabActiveBorder: "#087e8b",
+    statsTabActiveText: "#ffffff",
+    statsTabBackground: "#d8edf4",
+    statsTabBorder: "#8cc5cc",
+    statsTabListBackground: "#d8edf4",
+    statsTabText: "#477282",
     surface: "#ffffff",
     surfaceStrong: "#d8edf4",
     text: "#0b2636",
@@ -264,6 +285,13 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     sidebarHover: "#087e8b",
     sidebarMuted: "#b7d6e2",
     sidebarText: "#f3fbff",
+    statsTabActiveBackground: "#64abbb",
+    statsTabActiveBorder: "#64abbb",
+    statsTabActiveText: "#ffffff",
+    statsTabBackground: "#176d7d",
+    statsTabBorder: "#3c8ea0",
+    statsTabListBackground: "#176d7d",
+    statsTabText: "#b7d6e2",
     surface: "#0a5c70",
     surfaceStrong: "#176d7d",
     text: "#f3fbff",
@@ -381,13 +409,13 @@ function dashboardThemeFocusRing(theme: DashboardThemePalette) {
 
 function dashboardThemeStatsTabCssVariables(theme: DashboardThemePalette, prefix = "--") {
   return {
-    [`${prefix}stats-tab-active-background`]: theme.chartPrimary,
-    [`${prefix}stats-tab-active-border`]: theme.chartPrimary,
-    [`${prefix}stats-tab-active-text`]: theme.segmentedControlActiveText,
-    [`${prefix}stats-tab-background`]: `color-mix(in srgb, ${theme.chartAccent}, ${theme.surface} 50%)`,
-    [`${prefix}stats-tab-border`]: `color-mix(in srgb, ${theme.chartSecondary}, ${theme.border} 45%)`,
-    [`${prefix}stats-tab-list-background`]: theme.chartAccent,
-    [`${prefix}stats-tab-text`]: theme.segmentedControlText
+    [`${prefix}stats-tab-active-background`]: theme.statsTabActiveBackground,
+    [`${prefix}stats-tab-active-border`]: theme.statsTabActiveBorder,
+    [`${prefix}stats-tab-active-text`]: theme.statsTabActiveText,
+    [`${prefix}stats-tab-background`]: theme.statsTabBackground,
+    [`${prefix}stats-tab-border`]: theme.statsTabBorder,
+    [`${prefix}stats-tab-list-background`]: theme.statsTabListBackground,
+    [`${prefix}stats-tab-text`]: theme.statsTabText
   };
 }
 
