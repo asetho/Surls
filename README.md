@@ -235,6 +235,37 @@ Tokens are limited to link creation by default, expire after `API_TOKEN_DAYS` un
 
 Leave “Confirm import” unchecked to preview validation without creating links.
 
+### YOURLS import
+
+Use the YOURLS importer when migrating an existing YOURLS database and preserving click history.
+Export the YOURLS `yourls_url` table with at least:
+
+```csv
+keyword,url,title,timestamp,clicks
+```
+
+Export the YOURLS `yourls_log` table with at least:
+
+```csv
+click_id,click_time,shorturl,referrer,user_agent,ip_address,country_code
+```
+
+Preview the import first:
+
+```bash
+npm run import:yourls -- --urls ./yourls_url.csv --logs ./yourls_log.csv --dry-run
+```
+
+Then import:
+
+```bash
+npm run import:yourls -- --urls ./yourls_url.csv --logs ./yourls_log.csv --created-by-email admin@example.com --confirm
+```
+
+By default, imported YOURLS click events replace existing click events for the imported short codes.
+Use `--append-clicks` to append instead. Raw imported IP addresses are not stored unless `--store-raw-ip` is passed;
+hashed IP and visitor values are still populated for statistics.
+
 ## Security Notes
 
 - Destination URLs must be absolute HTTP/HTTPS URLs.
