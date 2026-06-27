@@ -6,17 +6,19 @@ import { parseLoginTemplate } from "@/lib/login-template";
 export function LoginPageShell({
   children,
   customPage,
+  nonce,
   tagline = "",
   title = ""
 }: {
   children: ReactNode;
   customPage?: CustomHtmlPage | null;
+  nonce?: string;
   tagline?: string;
   title?: string;
 }) {
   if (customPage && parseLoginTemplate(customPage.html)) {
     return (
-      <CustomLoginPageShell html={customPage.html} tagline={tagline} title={title}>
+      <CustomLoginPageShell html={customPage.html} nonce={nonce} tagline={tagline} title={title}>
         {children}
       </CustomLoginPageShell>
     );

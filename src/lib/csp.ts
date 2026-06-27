@@ -1,9 +1,10 @@
 type CspOptions = {
   isDev?: boolean;
   nonce?: string;
+  upgradeInsecureRequests?: boolean;
 };
 
-export function buildContentSecurityPolicy({ isDev = false, nonce }: CspOptions = {}) {
+export function buildContentSecurityPolicy({ isDev = false, nonce, upgradeInsecureRequests = true }: CspOptions = {}) {
   const scriptSources = [
     "script-src",
     "'self'",
@@ -15,7 +16,7 @@ export function buildContentSecurityPolicy({ isDev = false, nonce }: CspOptions 
     isDev ? "'unsafe-eval'" : null
   ].filter(Boolean);
 
-  return [
+  const directives = [
     "default-src 'self'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -27,7 +28,12 @@ export function buildContentSecurityPolicy({ isDev = false, nonce }: CspOptions 
     "connect-src 'self' https://cdn.asetho.com https://p.typekit.net https://challenges.cloudflare.com https://cloudflareinsights.com https://static.addtoany.com https://www.addtoany.com https://stats.addtoany.com",
     "frame-src 'self' about: https://challenges.cloudflare.com https://static.addtoany.com https://www.addtoany.com",
     "font-src 'self' https://cdn.asetho.com https://use.typekit.net",
-    "media-src 'self' https://cdn.asetho.com",
-    "upgrade-insecure-requests"
-  ].join("; ");
+    "media-src 'self' https://cdn.asetho.com"
+  ];
+
+  if (upgradeInsecureRequests) {
+    directives.push("upgrade-insecure-requests");
+  }
+
+  return directives.join("; ");
 }

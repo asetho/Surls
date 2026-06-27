@@ -26,4 +26,9 @@ describe("content security policy", () => {
     expect(buildContentSecurityPolicy({ isDev: true, nonce: "dev-nonce" })).toContain("'unsafe-eval'");
     expect(buildContentSecurityPolicy({ isDev: false, nonce: "prod-nonce" })).not.toContain("'unsafe-eval'");
   });
+
+  it("can omit insecure request upgrades for direct HTTP origins", () => {
+    expect(buildContentSecurityPolicy({ nonce: "test-nonce" })).toContain("upgrade-insecure-requests");
+    expect(buildContentSecurityPolicy({ nonce: "test-nonce", upgradeInsecureRequests: false })).not.toContain("upgrade-insecure-requests");
+  });
 });

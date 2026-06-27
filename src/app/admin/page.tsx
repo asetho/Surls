@@ -1,4 +1,5 @@
 import { AlertTriangle, CalendarClock, ExternalLink, Link2, MousePointerClick } from "lucide-react";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { appBaseUrl } from "@/lib/env";
 import { formatDateTime } from "@/lib/dates";
@@ -18,7 +19,7 @@ type SearchParams = Promise<{
 }>;
 
 export default async function AdminDashboard({ searchParams }: { searchParams: SearchParams }) {
-  const [params, currentUser] = await Promise.all([searchParams, requireAdmin()]);
+  const [params, currentUser, requestHeaders] = await Promise.all([searchParams, requireAdmin(), headers()]);
   if (!currentUser) {
     const [settings, filesystemLoginPage] = await Promise.all([getSettings(), pageFromFilesystem("login")]);
     const customLoginPage = filesystemLoginPage ?? settings.customLoginPage;
@@ -26,7 +27,12 @@ export default async function AdminDashboard({ searchParams }: { searchParams: S
     const title = `${settings.siteName} login`;
     const tagline = "Sign in to manage private links, redirects, and click statistics.";
     return (
-      <LoginPageShell customPage={customLoginPage} tagline={tagline} title={title}>
+      <LoginPageShell
+        customPage={customLoginPage}
+        nonce={requestHeaders.get("x-nonce") ?? undefined}
+        tagline={tagline}
+        title={title}
+      >
         <PasswordLoginForm
           csrf={getCsrfToken()}
           embedded={Boolean(customLoginPage)}

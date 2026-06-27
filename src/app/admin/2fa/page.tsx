@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { LoginPageShell } from "@/components/LoginPageShell";
 import { TwoFactorLoginForm } from "@/components/TwoFactorLoginForm";
@@ -31,8 +31,15 @@ export default async function TwoFactorLoginPage({ searchParams }: { searchParam
   const title = "Enter your 2FA code";
   const tagline = `Finish signing in to ${settings.siteName} as\n${pendingLogin.email}.`;
 
+  const requestHeaders = await headers();
+
   return (
-    <LoginPageShell customPage={customLoginPage} tagline={tagline} title={title}>
+    <LoginPageShell
+      customPage={customLoginPage}
+      nonce={requestHeaders.get("x-nonce") ?? undefined}
+      tagline={tagline}
+      title={title}
+    >
       <TwoFactorLoginForm
         csrf={getCsrfToken()}
         embedded={Boolean(customLoginPage)}

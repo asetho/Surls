@@ -52,6 +52,8 @@ const rsyncExcludes = [
   "tsconfig.tsbuildinfo",
   "*.log",
   "www/",
+  "docker-compose.override.yml",
+  "docker-compose.*.override.yml",
   ".DS_Store"
 ];
 
@@ -77,9 +79,11 @@ run("ssh", [
     "cp .env .env.bak.$(date +%Y%m%d%H%M%S)",
     `if grep -q '^SURLS_GIT_SHA=' .env; then sed -i 's/^SURLS_GIT_SHA=.*/SURLS_GIT_SHA=${sha}/' .env; else printf '\\nSURLS_GIT_SHA=%s\\n' ${quotedSha} >> .env; fi`,
     "if ! grep -q '^NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=' .env || grep -q '^NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=$' .env; then key=$(openssl rand -base64 32); if grep -q '^NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=' .env; then sed -i \"s|^NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=.*|NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=$key|\" .env; else printf '\\nNEXT_SERVER_ACTIONS_ENCRYPTION_KEY=%s\\n' \"$key\" >> .env; fi; fi",
-    "docker compose build app",
-    "docker compose up -d --no-build --remove-orphans app",
-    `curl -fsS http://127.0.0.1:${port}/api/health/ready`,
-    "docker ps --filter name=surls-dev --format 'table {{.Names}}\\t{{.Image}}\\t{{.Status}}'"
+    "compose_files='-f docker-compose.yml'; has_compose_override=0; for override in docker-compose.override.yml docker-compose.*.override.yml; do if [ -f \"$override\" ]; then compose_files=\"$compose_files -f $override\"; has_compose_override=1; fi; done",
+    "docker compose $compose_files build app",
+    "up_flags='-d --no-build --remove-orphans'; if [ \"$has_compose_override\" = '1' ]; then up_flags=\"$up_flags --no-deps\"; fi",
+    "docker compose $compose_files up $up_flags app",
+    `for attempt in $(seq 1 30); do if health=$(curl -fsS http://127.0.0.1:${port}/api/health/ready 2>/tmp/surls-health.err); then printf '%s\\n' "$health"; break; fi; if [ "$attempt" = '30' ]; then cat /tmp/surls-health.err >&2; exit 1; fi; sleep 2; done`,
+    "docker compose $compose_files ps app"
   ].join(" && ")
 ]);

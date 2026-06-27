@@ -7,10 +7,24 @@ function nonce() {
   return btoa(String.fromCharCode(...bytes));
 }
 
+function shouldUpgradeInsecureRequests(request: NextRequest) {
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim().toLowerCase();
+
+  if (forwardedProto) {
+    return forwardedProto === "https";
+  }
+
+  return request.nextUrl.protocol === "https:";
+}
+
 export function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   const requestNonce = nonce();
-  const csp = buildContentSecurityPolicy({ isDev: process.env.NODE_ENV === "development", nonce: requestNonce });
+  const csp = buildContentSecurityPolicy({
+    isDev: process.env.NODE_ENV === "development",
+    nonce: requestNonce,
+    upgradeInsecureRequests: shouldUpgradeInsecureRequests(request)
+  });
 
   requestHeaders.set("x-nonce", requestNonce);
   requestHeaders.set("Content-Security-Policy", csp);
