@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.13.4 - 2026-06-28
+
+### Added
+
+* Added directive-specific CSP extra-source environment variables for multi-server installs.
+
+### Changed
+
+* Truncated long destination titles and URLs in admin link tables with full text available on hover.
+* Kept graph tab styling aligned with the shared segmented-control theme controls.
+
+### Fixed
+
+* Removed the extra location-chart helper line.
+* Treated imported `direct` referrer labels as Direct traffic instead of listing them as top referrers.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.13.2 - 2026-06-22
 
 ### Fixed

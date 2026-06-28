@@ -1818,9 +1818,9 @@ button.danger-outline:hover {
 
 .dashboard-theme-preview-stat-tabs {
   align-items: flex-end;
-  background: linear-gradient(to top, var(--stats-tab-list-background) 0 3px, transparent 3px);
+  background: linear-gradient(to top, var(--segmented-control-background) 0 3px, transparent 3px);
   border: 0;
-  border-bottom: 1px solid var(--stats-tab-border);
+  border-bottom: 1px solid var(--segmented-control-border);
   border-radius: 0;
   display: flex;
   flex-wrap: wrap;
@@ -1833,7 +1833,7 @@ button.danger-outline:hover {
   border: 1px solid transparent;
   border-bottom: 3px solid transparent;
   border-radius: calc(var(--radius) - 2px) calc(var(--radius) - 2px) 0 0;
-  color: var(--stats-tab-text);
+  color: var(--segmented-control-text);
   font-size: 0.72rem;
   font-weight: 800;
   line-height: 1;
@@ -1841,10 +1841,10 @@ button.danger-outline:hover {
 }
 
 .dashboard-theme-preview-stat-tabs span.is-active {
-  background: var(--stats-tab-active-background);
-  border-color: var(--stats-tab-active-border);
-  border-bottom-color: var(--stats-tab-active-background);
-  color: var(--stats-tab-active-text);
+  background: var(--segmented-control-active-background);
+  border-color: var(--segmented-control-active-background);
+  border-bottom-color: var(--segmented-control-active-background);
+  color: var(--segmented-control-active-text);
 }
 
 .dashboard-theme-preview-chart-grid {
@@ -3554,6 +3554,42 @@ textarea {
   margin-bottom: 0.15rem;
 }
 
+.link-destination-cell {
+  max-width: min(58vw, 48rem);
+  min-width: 0;
+  overflow: hidden;
+  width: 58%;
+}
+
+.link-destination-title,
+.link-destination-url,
+.link-destination-url-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.link-destination-title {
+  max-width: 100%;
+}
+
+.link-destination-url {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.18rem;
+  max-width: 100%;
+  min-width: 0;
+  vertical-align: middle;
+}
+
+.link-destination-url svg {
+  flex: 0 0 auto;
+}
+
+.link-destination-url-text {
+  min-width: 0;
+}
+
 .qr-inline-trigger {
   background: transparent;
   border: 0;
@@ -4076,9 +4112,9 @@ th {
 
 .tab-list {
   align-items: flex-end;
-  background: linear-gradient(to top, var(--stats-tab-list-background, var(--surface-strong)) 0 3px, transparent 3px);
+  background: linear-gradient(to top, var(--segmented-control-background, var(--surface-strong)) 0 3px, transparent 3px);
   border: 0;
-  border-bottom: 1px solid var(--stats-tab-border, var(--border));
+  border-bottom: 1px solid var(--segmented-control-border, var(--border));
   border-radius: 0;
   display: flex;
   flex-wrap: wrap;
@@ -4092,7 +4128,7 @@ th {
   border: 1px solid transparent;
   border-bottom: 3px solid transparent;
   border-radius: calc(var(--radius) - 2px) calc(var(--radius) - 2px) 0 0;
-  color: var(--stats-tab-text, var(--text));
+  color: var(--segmented-control-text, var(--muted));
   font-weight: 800;
   min-height: 2.15rem;
   padding: 0.42rem 0.88rem 0.36rem;
@@ -4104,17 +4140,17 @@ th {
 
 .tab-button:hover,
 .tab-button:focus-visible {
-  background: var(--stats-tab-background, var(--surface));
-  border-color: var(--stats-tab-active-border, var(--border));
-  border-bottom-color: var(--stats-tab-active-border, var(--border));
-  color: var(--stats-tab-text, var(--text));
+  background: var(--segmented-control-background, var(--surface));
+  border-color: var(--segmented-control-border, var(--border));
+  border-bottom-color: var(--segmented-control-border, var(--border));
+  color: var(--segmented-control-text, var(--text));
 }
 
 .tab-button[aria-selected="true"] {
-  background: var(--stats-tab-active-background, var(--color-teal));
-  border-color: var(--stats-tab-active-border, var(--color-teal));
-  border-bottom-color: var(--stats-tab-active-background, var(--color-teal));
-  color: var(--stats-tab-active-text, var(--button-text));
+  background: var(--segmented-control-active-background, var(--color-teal));
+  border-color: var(--segmented-control-active-background, var(--color-teal));
+  border-bottom-color: var(--segmented-control-active-background, var(--color-teal));
+  color: var(--segmented-control-active-text, var(--button-text));
 }
 
 .stats-panel,
@@ -5316,8 +5352,13 @@ th {
 
   table.responsive-table .user-agent-cell,
   table.responsive-table .ip-cell,
-  table.responsive-table a {
+  table.responsive-table a:not(.link-destination-url) {
     overflow-wrap: anywhere;
+  }
+
+  table.responsive-table .link-destination-cell {
+    max-width: 100%;
+    width: 100%;
   }
 
   .theme-toggle.icon-only {

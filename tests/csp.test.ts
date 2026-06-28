@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildContentSecurityPolicy } from "@/lib/csp";
+import { buildContentSecurityPolicy, getCspExtraSources } from "@/lib/csp";
 
 describe("content security policy", () => {
   it("allows public custom page assets used by the deployed pages", () => {
@@ -30,5 +30,38 @@ describe("content security policy", () => {
   it("can omit insecure request upgrades for direct HTTP origins", () => {
     expect(buildContentSecurityPolicy({ nonce: "test-nonce" })).toContain("upgrade-insecure-requests");
     expect(buildContentSecurityPolicy({ nonce: "test-nonce", upgradeInsecureRequests: false })).not.toContain("upgrade-insecure-requests");
+  });
+
+  it("allows installs to add directive-specific host sources", () => {
+    const csp = buildContentSecurityPolicy({
+      nonce: "test-nonce",
+      extraSources: {
+        script: ["https://scripts.example.test"],
+        connect: ["https://api.example.test"],
+        img: ["https://images.example.test"]
+      }
+    });
+
+    expect(csp).toContain("script-src 'self' 'nonce-test-nonce'");
+    expect(csp).toContain("https://scripts.example.test");
+    expect(csp).toContain("connect-src 'self'");
+    expect(csp).toContain("https://api.example.test");
+    expect(csp).toContain("img-src 'self' data:");
+    expect(csp).toContain("https://images.example.test");
+  });
+
+  it("reads extra host sources from comma or space separated env values", () => {
+    const extraSources = getCspExtraSources({
+      SURLS_CSP_SCRIPT_SRC_EXTRA: "https://scripts.example.test, https://widgets.example.test",
+      SURLS_CSP_FRAME_SRC_EXTRA: "https://frames.example.test"
+    });
+
+    expect(extraSources.script).toEqual(["https://scripts.example.test", "https://widgets.example.test"]);
+    expect(extraSources.frame).toEqual(["https://frames.example.test"]);
+  });
+
+  it("rejects unsafe script extras and directive injection", () => {
+    expect(() => getCspExtraSources({ SURLS_CSP_SCRIPT_SRC_EXTRA: "'unsafe-inline'" })).toThrow(/Invalid CSP script source/);
+    expect(() => getCspExtraSources({ SURLS_CSP_IMG_SRC_EXTRA: "https://ok.test; script-src *" })).toThrow(/Invalid CSP source/);
   });
 });

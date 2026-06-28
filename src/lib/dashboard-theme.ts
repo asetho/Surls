@@ -118,15 +118,15 @@ const DASHBOARD_THEME_ACTION_FIELDS: readonly DashboardThemeField[] = [
   { key: "shortUrlPillText", label: "Short URL text", description: "Text for short link codes." },
   { key: "shortUrlPillBorder", label: "Short URL border", description: "Outline around short link codes." },
   { key: "shortUrlPillAccent", label: "Short URL accent", description: "Left accent bar for short link codes." },
-  { key: "segmentedControlBackground", label: "Segmented control", description: "Track behind compact choice buttons." },
-  { key: "segmentedControlText", label: "Segmented text", description: "Text for inactive compact choices." },
-  { key: "segmentedControlBorder", label: "Segmented border", description: "Outline for compact choice groups." },
+  { key: "segmentedControlBackground", label: "Segmented control", description: "Track behind compact choices and graph tabs." },
+  { key: "segmentedControlText", label: "Segmented text", description: "Inactive compact choice and graph tab text." },
+  { key: "segmentedControlBorder", label: "Segmented border", description: "Outline for compact choice groups and graph tabs." },
   {
     key: "segmentedControlActiveBackground",
     label: "Segmented active",
-    description: "Background for the selected compact choice."
+    description: "Background for the selected compact choice or graph tab."
   },
-  { key: "segmentedControlActiveText", label: "Segmented active text", description: "Text for the selected compact choice." }
+  { key: "segmentedControlActiveText", label: "Segmented active text", description: "Text for the selected compact choice or graph tab." }
 ] as const;
 
 const DASHBOARD_THEME_GRAPH_FIELDS: readonly DashboardThemeField[] = [
@@ -134,15 +134,18 @@ const DASHBOARD_THEME_GRAPH_FIELDS: readonly DashboardThemeField[] = [
   { key: "chartSecondary", label: "Graph secondary", description: "Secondary chart series and supporting marks." },
   { key: "chartAccent", label: "Graph fill", description: "Area fills, neutral chart marks, and soft segments." },
   { key: "chartDanger", label: "Graph warning", description: "Warning slices and high-attention chart marks." },
+  { key: "chartMapLow", label: "Map low", description: "Lower-traffic country map color." },
+  { key: "chartMapHigh", label: "Map high", description: "Highest-traffic country map color." }
+] as const;
+
+const DASHBOARD_THEME_LEGACY_STATS_TAB_FIELDS: readonly DashboardThemeField[] = [
   { key: "statsTabListBackground", label: "Graph tab line", description: "Underline track behind graph tabs." },
   { key: "statsTabBackground", label: "Graph tab inactive", description: "Background for inactive graph tabs." },
   { key: "statsTabText", label: "Graph tab inactive text", description: "Text for inactive graph tabs." },
   { key: "statsTabBorder", label: "Graph tab border", description: "Outline and underline for graph tabs." },
   { key: "statsTabActiveBackground", label: "Graph tab active", description: "Background for the selected graph tab." },
   { key: "statsTabActiveText", label: "Graph tab active text", description: "Text for the selected graph tab." },
-  { key: "statsTabActiveBorder", label: "Graph tab active border", description: "Outline for the selected graph tab." },
-  { key: "chartMapLow", label: "Map low", description: "Lower-traffic country map color." },
-  { key: "chartMapHigh", label: "Map high", description: "Highest-traffic country map color." }
+  { key: "statsTabActiveBorder", label: "Graph tab active border", description: "Outline for the selected graph tab." }
 ] as const;
 
 const DASHBOARD_THEME_TOAST_FIELDS: readonly DashboardThemeField[] = [
@@ -177,6 +180,7 @@ export const DASHBOARD_THEME_EDITABLE_FIELDS: readonly DashboardThemeField[] = D
 
 export const DASHBOARD_THEME_FIELDS: readonly DashboardThemeField[] = [
   ...DASHBOARD_THEME_EDITABLE_FIELDS,
+  ...DASHBOARD_THEME_LEGACY_STATS_TAB_FIELDS,
   DASHBOARD_THEME_LEGACY_FOCUS_RING_FIELD
 ];
 

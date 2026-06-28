@@ -423,7 +423,6 @@ export function LocationCharts({ rows }: { rows: CountryCount[] }) {
         <div className="country-pie-wrap">
           <CountryPie rows={countryRows} />
         </div>
-        <p className="muted">Click for more details</p>
         <CountryList rows={countryRows} total={total} />
       </div>
       <div className="location-card location-map-card">

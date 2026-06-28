@@ -40,11 +40,26 @@ export type RecentClickPagination = {
 
 function displayReferrer(referrer: string | null) {
   if (!referrer) return "Direct";
+  if (isDirectReferrerLabel(referrer)) return "Direct";
   try {
     return new URL(referrer).hostname.replace(/^www\./, "") || referrer;
   } catch {
     return referrer;
   }
+}
+
+function isDirectReferrerLabel(referrer: string) {
+  return ["", "direct", "[direct]", "(direct)"].includes(referrer.trim().toLowerCase());
+}
+
+function directReferrerCondition() {
+  return Prisma.sql`
+    (
+      "referrer" IS NULL
+      OR trim("referrer") = ''
+      OR lower(trim("referrer")) IN ('direct', '[direct]', '(direct)')
+    )
+  `;
 }
 
 export function buildDailyHistory(
@@ -92,7 +107,7 @@ async function referrerCounts(shortLinkId: string) {
   const rows = await prisma.$queryRaw<Array<{ referrer: string; count: number | bigint }>>(Prisma.sql`
     SELECT "referrer", COUNT(*)::int AS count
     FROM "ClickEvent"
-    WHERE "shortLinkId" = ${shortLinkId} AND "referrer" IS NOT NULL
+    WHERE "shortLinkId" = ${shortLinkId} AND NOT ${directReferrerCondition()}
     GROUP BY "referrer"
     ORDER BY count DESC, "referrer" ASC
     LIMIT 100
@@ -255,7 +270,7 @@ export async function clickStats(
     last24Hours,
     last7Days,
     last30Days,
-    directCount,
+    directCountRows,
     referrerRows,
     countryCounts,
     browserCounts,
@@ -271,7 +286,11 @@ export async function clickStats(
     prisma.clickEvent.count({ where: { shortLinkId, occurredAt: { gte: since24Hours } } }),
     prisma.clickEvent.count({ where: { shortLinkId, occurredAt: { gte: since7Days } } }),
     prisma.clickEvent.count({ where: { shortLinkId, occurredAt: { gte: since30Days } } }),
-    prisma.clickEvent.count({ where: { shortLinkId, referrer: null } }),
+    prisma.$queryRaw<Array<{ count: number | bigint }>>(Prisma.sql`
+      SELECT COUNT(*)::int AS count
+      FROM "ClickEvent"
+      WHERE "shortLinkId" = ${shortLinkId} AND ${directReferrerCondition()}
+    `),
     referrerCounts(shortLinkId),
     groupedClickCounts(shortLinkId, "country"),
     groupedClickCounts(shortLinkId, "browser"),
@@ -292,6 +311,7 @@ export async function clickStats(
     (best, day) => (day.count > best.count ? day : best),
     { date: dailyHistory[0]?.date ?? dateKeyForTimeZone(now, timeZone), count: 0 }
   );
+  const directCount = numberCount(directCountRows[0]?.count ?? 0);
   const referrerCount = Math.max(0, total - directCount);
 
   return {

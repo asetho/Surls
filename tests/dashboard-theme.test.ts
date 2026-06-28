@@ -103,7 +103,7 @@ describe("dashboard theme settings", () => {
 
     expect(Array.from(formData.keys())).toHaveLength(expectedFieldCount);
     expect(Array.from(formData.keys()).some((key) => key.endsWith("[focusRing]"))).toBe(false);
-    expect(DASHBOARD_THEME_EDITABLE_FIELDS.some((field) => String(field.key).startsWith("statsTab"))).toBe(true);
+    expect(DASHBOARD_THEME_EDITABLE_FIELDS.some((field) => String(field.key).startsWith("statsTab"))).toBe(false);
     expect(dashboardThemeFromFormData(formData)).toEqual(DEFAULT_DASHBOARD_THEME);
   });
 

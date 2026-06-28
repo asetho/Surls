@@ -355,7 +355,7 @@ export default async function StyleReferencePage() {
           className="tab-list style-reference-theme-target"
           role="tablist"
           aria-label="Reference tabs"
-          data-theme-field={themeField("statsTabListBackground")}
+          data-theme-field={themeField("segmentedControlBackground")}
           tabIndex={0}
         >
           <button
@@ -363,7 +363,7 @@ export default async function StyleReferencePage() {
             type="button"
             role="tab"
             aria-selected="true"
-            data-theme-field={themeField("statsTabActiveBackground")}
+            data-theme-field={themeField("segmentedControlActiveBackground")}
           >
             Historical clicks
           </button>
@@ -372,7 +372,7 @@ export default async function StyleReferencePage() {
             type="button"
             role="tab"
             aria-selected="false"
-            data-theme-field={themeField("statsTabText")}
+            data-theme-field={themeField("segmentedControlText")}
           >
             Location
           </button>
@@ -381,7 +381,7 @@ export default async function StyleReferencePage() {
             type="button"
             role="tab"
             aria-selected="false"
-            data-theme-field={themeField("statsTabText")}
+            data-theme-field={themeField("segmentedControlText")}
           >
             Sources
           </button>
@@ -390,7 +390,7 @@ export default async function StyleReferencePage() {
             type="button"
             role="tab"
             aria-selected="false"
-            data-theme-field={themeField("statsTabText")}
+            data-theme-field={themeField("segmentedControlText")}
           >
             Browser/device
           </button>

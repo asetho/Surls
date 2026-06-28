@@ -251,10 +251,10 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
                           ))}
                         </div>
                       </td>
-                      <td className="small" data-label="Destination">
-                        <div className="muted small link-destination-title">{link.title || "Untitled"}</div>
-                        <a href={link.destinationUrl} target="_blank" rel="noreferrer">
-                          <ExternalLink size={13} aria-hidden /> {link.destinationUrl}
+                      <td className="small link-destination-cell" data-label="Destination">
+                        <div className="muted small link-destination-title" title={link.title || "Untitled"}>{link.title || "Untitled"}</div>
+                        <a className="link-destination-url" href={link.destinationUrl} target="_blank" rel="noreferrer" title={link.destinationUrl}>
+                          <ExternalLink size={13} aria-hidden /> <span className="link-destination-url-text">{link.destinationUrl}</span>
                         </a>
                       </td>
                       <td data-label="Status">
