@@ -222,6 +222,14 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
         ) : null}
         <div className="table-wrap">
           <table className="links-table responsive-table">
+            <colgroup>
+              <col className="links-table-short-col" />
+              <col className="links-table-destination-col" />
+              <col className="links-table-created-col" />
+              <col className="links-table-status-col" />
+              <col className="links-table-clicks-col" />
+              <col className="links-table-actions-col" />
+            </colgroup>
             <thead>
               <tr>
                 <th aria-sort={ariaSortFor("url", sort)}>{sortableHeader("url", "Short URL")}</th>

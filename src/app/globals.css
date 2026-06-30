@@ -3647,6 +3647,30 @@ table.responsive-table {
   min-width: min(780px, 100%);
 }
 
+.links-table {
+  table-layout: fixed;
+}
+
+.links-table-short-col {
+  width: 8.5rem;
+}
+
+.links-table-created-col {
+  width: 10.5rem;
+}
+
+.links-table-status-col {
+  width: 5.8rem;
+}
+
+.links-table-clicks-col {
+  width: 5rem;
+}
+
+.links-table-actions-col {
+  width: 7.1rem;
+}
+
 th,
 td {
   border-bottom: 1px solid var(--border);
@@ -3665,6 +3689,32 @@ th {
 .links-table td {
   padding-bottom: 0.46rem;
   padding-top: 0.46rem;
+}
+
+.links-table td.timestamp {
+  display: table-cell;
+  white-space: nowrap;
+}
+
+.links-table td[data-label="Short URL"],
+.links-table td[data-label="Destination"] {
+  min-width: 0;
+}
+
+.links-table .link-list-short-row {
+  min-width: 0;
+}
+
+.links-table .short-url-pill {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.links-table td[data-label="Actions"] .row-actions {
+  gap: 0.32rem;
+  justify-content: flex-end;
 }
 
 .links-table .link-list-short-row + .row-actions.small {

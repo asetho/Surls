@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.13.7 - 2026-06-30
+
+### Fixed
+
+* Fixed admin link-list column sizing so Created timestamps, status, clicks, and action controls line up while long destinations truncate.
+
 ## 1.13.6 - 2026-06-30
 
 ### Added
