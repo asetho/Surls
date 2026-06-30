@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.13.9 - 2026-06-30
+
+### Fixed
+
+* Added upload storage settings and volume wiring to the root Docker Compose deployment.
+
 ## 1.13.8 - 2026-06-30
 
 ### Added
