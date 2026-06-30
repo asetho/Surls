@@ -2,6 +2,10 @@
 
 ## 1.13.8 - 2026-06-30
 
+### Added
+
+* Added Tools upload-and-shorten support for storing admin uploads and creating short links to `/uploads` files.
+
 ### Fixed
 
 * Kept admin link-list action controls on one line at normal desktop zoom.
