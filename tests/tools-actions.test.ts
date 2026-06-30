@@ -27,12 +27,20 @@ const prisma = vi.hoisted(() => ({
     updateMany: vi.fn()
   },
   shortLink: {
+    findUnique: vi.fn(),
     findMany: vi.fn()
   }
 }));
 
 const links = vi.hoisted(() => ({
-  createShortLink: vi.fn()
+  createShortLink: vi.fn(),
+  shortUrl: vi.fn((baseUrl: string, code: string) => `${baseUrl.replace(/\/$/, "")}/${code}`)
+}));
+
+const uploads = vi.hoisted(() => ({
+  deleteUploadedFile: vi.fn(),
+  normalizeUploadFilenameMode: vi.fn((value: FormDataEntryValue | null) => (value === "random" ? "random" : "safe")),
+  storeUploadedFile: vi.fn()
 }));
 
 const urlSafety = vi.hoisted(() => ({
@@ -50,6 +58,7 @@ vi.mock("@/lib/csrf", () => csrf);
 vi.mock("@/lib/settings", () => settings);
 vi.mock("@/lib/prisma", () => ({ prisma }));
 vi.mock("@/lib/links", () => links);
+vi.mock("@/lib/uploads", () => uploads);
 vi.mock("next/cache", () => nextCache);
 vi.mock("@/lib/url-safety", async () => {
   const actual = await vi.importActual<typeof import("@/lib/url-safety")>("@/lib/url-safety");
@@ -73,6 +82,15 @@ function importForm(csv: string, confirm = false) {
   return formData;
 }
 
+function uploadForm() {
+  const formData = new FormData();
+  formData.set("file", new File(["hello"], "hello world.txt", { type: "text/plain" }));
+  formData.set("code", "doc-xyz");
+  formData.set("title", "File Doc");
+  formData.set("filenameMode", "safe");
+  return formData;
+}
+
 describe("tools actions hardening", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -88,10 +106,17 @@ describe("tools actions hardening", () => {
       token: "surls_plain"
     });
     prisma.shortLink.findMany.mockResolvedValue([]);
+    prisma.shortLink.findUnique.mockResolvedValue(null);
     prisma.apiToken.deleteMany.mockResolvedValue({ count: 1 });
     prisma.$transaction.mockImplementation(async (callback) => callback({ shortLink: {} }));
     links.createShortLink.mockResolvedValue({ id: "link_123" });
     urlSafety.assertNoPrivateResolution.mockResolvedValue(true);
+    uploads.storeUploadedFile.mockResolvedValue({
+      filePath: "/tmp/surls-upload/hello_world.txt",
+      filename: "hello_world.txt",
+      publicPath: "/uploads/hello_world.txt",
+      size: 5
+    });
   });
 
   afterEach(() => {
@@ -178,5 +203,49 @@ describe("tools actions hardening", () => {
     expect(result.errors).toEqual(["Row 2: Destination resolves to a private or internal address."]);
     expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(links.createShortLink).not.toHaveBeenCalled();
+  });
+
+  it("uploads a file and creates a short link to the uploaded file URL", async () => {
+    const { uploadAndShortenAction } = await import("@/app/admin/tools/actions");
+    links.createShortLink.mockResolvedValue({ code: "doc-xyz", id: "link_456" });
+
+    const result = await uploadAndShortenAction(null, uploadForm());
+
+    expect(uploads.storeUploadedFile).toHaveBeenCalledWith(expect.any(File), {
+      dropExtension: false,
+      filenameMode: "safe"
+    });
+    expect(links.createShortLink).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: "doc-xyz",
+        destinationUrl: "http://localhost:3000/uploads/hello_world.txt",
+        fetchTitle: false,
+        title: "File Doc"
+      }),
+      prisma,
+      expect.objectContaining({
+        allowPrivateDestination: true
+      })
+    );
+    expect(audit.auditLog).toHaveBeenCalledWith(expect.objectContaining({
+      entityType: "ShortLink",
+      details: expect.objectContaining({ filename: "hello_world.txt", size: 5, via: "upload" })
+    }));
+    expect(result).toEqual({
+      code: "doc-xyz",
+      filename: "hello_world.txt",
+      fileUrl: "http://localhost:3000/uploads/hello_world.txt",
+      shortUrl: "http://localhost:3000/doc-xyz"
+    });
+  });
+
+  it("does not store an upload when the requested short alias already exists", async () => {
+    const { uploadAndShortenAction } = await import("@/app/admin/tools/actions");
+    prisma.shortLink.findUnique.mockResolvedValue({ id: "existing" });
+
+    const result = await uploadAndShortenAction(null, uploadForm());
+
+    expect(result.error).toBe("That short alias is already in use.");
+    expect(uploads.storeUploadedFile).not.toHaveBeenCalled();
   });
 });

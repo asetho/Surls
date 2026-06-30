@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { deleteTokenAction, revokeTokenAction } from "./actions";
 import { BookmarkletLink } from "@/components/BookmarkletLink";
-import { ApiTokenForm, ImportCsvForm, LinkCheckerForm, UtmBuilder } from "@/components/ToolsForms";
+import { ApiTokenForm, ImportCsvForm, LinkCheckerForm, UploadShortenForm, UtmBuilder } from "@/components/ToolsForms";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { APP_BUILD_LABEL, APP_VERSION } from "@/lib/app-version";
 import { adminLoginPath } from "@/lib/admin-login-path";
@@ -12,6 +12,7 @@ import { getCsrfToken } from "@/lib/csrf";
 import { appBaseUrl, env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
+import { uploadMaxBytesLabel } from "@/lib/uploads";
 
 export const metadata: Metadata = {
   title: "Tools"
@@ -53,7 +54,7 @@ export default async function ToolsPage() {
       <div className="content-header content-header-topbar">
         <div>
           <h1>{settings.siteName} tools</h1>
-          <p className="muted">Bookmarklet, API tokens, import/export, link checks, UTM builder, cleanup, and system info.</p>
+          <p className="muted">Bookmarklet, file uploads, API tokens, import/export, link checks, UTM builder, cleanup, and system info.</p>
         </div>
       </div>
 
@@ -79,6 +80,16 @@ export default async function ToolsPage() {
           <p>Zero-click links: {zeroClicks}</p>
           <p>Duplicate destinations: {duplicates.length}</p>
         </div>
+      </section>
+
+      <section className="surface surface-panel">
+        <div className="content-header">
+          <div>
+            <h2>Upload & Shorten</h2>
+            <p className="muted small">Upload a file to this instance and create a short URL for it.</p>
+          </div>
+        </div>
+        <UploadShortenForm csrf={csrf} maxUploadLabel={uploadMaxBytesLabel()} />
       </section>
 
       <section className="grid-3">

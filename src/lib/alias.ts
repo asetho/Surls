@@ -2,6 +2,7 @@ export const RESERVED_ALIASES = new Set([
   "admin",
   "api",
   "assets",
+  "uploads",
   "health",
   "login",
   "logout",

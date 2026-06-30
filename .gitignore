@@ -3,6 +3,7 @@ node_modules/
 coverage/
 dist/
 custom-pages/
+/uploads/
 .DS_Store
 tsconfig.tsbuildinfo
 *.log

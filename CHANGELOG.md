@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.13.8 - 2026-06-30
+
+### Fixed
+
+* Kept admin link-list action controls on one line at normal desktop zoom.
+
 ## 1.13.7 - 2026-06-30
 
 ### Fixed

@@ -1,3 +1,4 @@
+import path from "node:path";
 import { z } from "zod";
 
 function emptyToUndefined<T extends z.ZodTypeAny>(schema: T) {
@@ -32,6 +33,8 @@ const envSchema = z
     AUTH_SECRET: emptyToUndefined(z.string().min(32).default("development-secret-change-before-production")),
     CUSTOM_PAGES_DIR: emptyToUndefined(z.string().default("/app/www")),
     PUBLIC_WEBROOT_DIR: emptyToUndefined(z.string().optional()),
+    UPLOADS_DIR: emptyToUndefined(z.string().optional()),
+    UPLOAD_MAX_BYTES: emptyToUndefined(z.coerce.number().int().positive().max(25 * 1024 * 1024).default(25 * 1024 * 1024)),
     DATABASE_URL: emptyToUndefined(z.string().optional()),
     SESSION_DAYS: emptyToUndefined(z.coerce.number().int().positive().default(14)),
     API_TOKEN_DAYS: emptyToUndefined(z.coerce.number().int().positive().default(90)),
@@ -77,7 +80,8 @@ const parsedEnv = envSchema.parse(process.env);
 
 export const env = {
   ...parsedEnv,
-  PUBLIC_WEBROOT_DIR: parsedEnv.PUBLIC_WEBROOT_DIR ?? parsedEnv.CUSTOM_PAGES_DIR
+  PUBLIC_WEBROOT_DIR: parsedEnv.PUBLIC_WEBROOT_DIR ?? parsedEnv.CUSTOM_PAGES_DIR,
+  UPLOADS_DIR: parsedEnv.UPLOADS_DIR ?? path.join(process.cwd(), "uploads")
 };
 
 export function appBaseUrl() {

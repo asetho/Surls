@@ -23,6 +23,7 @@ export type CreateShortLinkInput = {
 type ShortLinkClient = Pick<Prisma.TransactionClient, "shortLink">;
 
 type CreateShortLinkOptions = {
+  allowPrivateDestination?: boolean;
   assertSafeResolution?: typeof assertNoPrivateResolution;
 };
 
@@ -77,11 +78,11 @@ export async function createShortLink(
   db: ShortLinkClient = prisma,
   options: CreateShortLinkOptions = {}
 ) {
-  const safeUrl = parseSafeHttpUrl(input.destinationUrl);
+  const safeUrl = parseSafeHttpUrl(input.destinationUrl, options.allowPrivateDestination);
   if (!safeUrl.ok) {
     throw new Error(safeUrl.error);
   }
-  await (options.assertSafeResolution ?? assertNoPrivateResolution)(safeUrl.url);
+  await (options.assertSafeResolution ?? ((url) => assertNoPrivateResolution(url, options.allowPrivateDestination)))(safeUrl.url);
 
   const expiresAt = normalizeOptionalDate(input.expiresAt);
   const maxClicks = normalizeOptionalPositiveInt(input.maxClicks, "Max clicks");

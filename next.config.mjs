@@ -16,6 +16,11 @@ const nextConfig = {
     : {}),
   output: "standalone",
   poweredByHeader: false,
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "30mb"
+    }
+  },
   async headers() {
     const isProd = process.env.NODE_ENV === "production";
 

@@ -3,6 +3,7 @@
 node_modules
 coverage
 dist
+/uploads
 .env
 .env.*
 !.env.example

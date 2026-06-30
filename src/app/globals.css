@@ -2633,6 +2633,37 @@ button.danger-outline:hover {
   gap: 0.75rem;
 }
 
+.upload-options {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0.8rem;
+}
+
+.upload-options legend {
+  font-weight: 800;
+  padding: 0 0.28rem;
+}
+
+.choice-row {
+  align-items: center;
+  display: flex;
+  gap: 0.55rem;
+}
+
+.choice-row input {
+  flex: 0 0 auto;
+  min-height: auto;
+  width: auto;
+}
+
+.upload-result {
+  display: grid;
+  gap: 0.55rem;
+}
+
 .create-user-form > button {
   align-self: flex-start;
   width: fit-content;
@@ -3668,7 +3699,7 @@ table.responsive-table {
 }
 
 .links-table-actions-col {
-  width: 7.1rem;
+  width: 8.6rem;
 }
 
 th,
@@ -3713,6 +3744,7 @@ th {
 }
 
 .links-table td[data-label="Actions"] .row-actions {
+  flex-wrap: nowrap;
   gap: 0.32rem;
   justify-content: flex-end;
 }

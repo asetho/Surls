@@ -168,6 +168,10 @@ Admin-managed favicons can be uploaded from Settings without writing to the read
 
 Public webroot HTML is served as same-origin trusted owner content. Keep this directory writable only by trusted admins. If you want stronger isolation for arbitrary third-party HTML, serve that content from a separate domain.
 
+## Uploaded Files
+
+Admins can upload files from Tools -> Upload & Shorten. Files are stored in `UPLOADS_DIR` and served from `/uploads/:filename`; the created short link redirects to that uploaded file. `UPLOADS_DIR` defaults to `uploads` under the app working directory. Docker Compose uses a persistent `surls-uploads` volume mounted at `/app/uploads`, and `UPLOAD_MAX_BYTES` defaults to `26214400` bytes.
+
 ## Health Checks
 
 - `/api/health/live` checks that the Next.js process can answer HTTP requests.

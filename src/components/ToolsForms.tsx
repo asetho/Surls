@@ -1,8 +1,82 @@
 "use client";
 
+import { Upload } from "lucide-react";
 import { useActionState, useEffect, useMemo, useState } from "react";
-import { createTokenAction, checkDestinationAction, importCsvAction } from "@/app/admin/tools/actions";
+import { createTokenAction, checkDestinationAction, importCsvAction, uploadAndShortenAction } from "@/app/admin/tools/actions";
 import { dispatchAdminToast } from "@/lib/admin-toast-event";
+
+export function UploadShortenForm({ csrf, maxUploadLabel }: { csrf: string; maxUploadLabel: string }) {
+  const [state, action, pending] = useActionState(uploadAndShortenAction, null);
+
+  useEffect(() => {
+    if (state?.shortUrl) {
+      dispatchAdminToast("success", `Uploaded ${state.filename ?? "file"} and created ${state.code}.`);
+    } else if (state?.error) {
+      dispatchAdminToast("error", state.error);
+    }
+  }, [state]);
+
+  return (
+    <form className="form-stack" action={action} encType="multipart/form-data">
+      <input type="hidden" name="csrf" value={csrf} />
+      <label>
+        File
+        <input name="file" type="file" required />
+        <span className="muted small">Maximum upload: {maxUploadLabel}.</span>
+      </label>
+      <div className="form-grid">
+        <label>
+          Custom shortname
+          <input name="code" placeholder="optional-alias" pattern="[A-Za-z0-9_-]{3,64}" />
+        </label>
+        <label>
+          Custom title
+          <input name="title" />
+        </label>
+      </div>
+      <fieldset className="upload-options">
+        <legend>Filename conversion</legend>
+        <label className="choice-row">
+          <input name="filenameMode" type="radio" value="original" />
+          <span>Original filename</span>
+        </label>
+        <label className="choice-row">
+          <input name="filenameMode" type="radio" value="safe" defaultChecked />
+          <span>Browser-safe filename</span>
+        </label>
+        <label className="choice-row">
+          <input name="filenameMode" type="radio" value="random" />
+          <span>Randomized filename</span>
+        </label>
+        <label className="choice-row">
+          <input name="dropExtension" type="checkbox" />
+          <span>Drop extension</span>
+        </label>
+      </fieldset>
+      <button type="submit" disabled={pending}>
+        <Upload size={16} aria-hidden />
+        {pending ? "Uploading..." : "Upload & Shorten"}
+      </button>
+      {state?.shortUrl ? (
+        <div className="success upload-result">
+          <strong>Created short URL</strong>
+          <div className="bookmarklet-copy-field">
+            <input readOnly value={state.shortUrl} onFocus={(event) => event.currentTarget.select()} aria-label="Created short URL" />
+            <a className="button secondary" href={state.shortUrl} target="_blank" rel="noreferrer">
+              Open
+            </a>
+          </div>
+          {state.fileUrl ? (
+            <p className="muted small">
+              Stored file: <a href={state.fileUrl}>{state.filename}</a>
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+      {state?.error ? <div className="alert">{state.error}</div> : null}
+    </form>
+  );
+}
 
 export function ApiTokenForm({ csrf, siteName }: { csrf: string; siteName: string }) {
   const [state, action, pending] = useActionState(createTokenAction, null);

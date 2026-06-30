@@ -10,12 +10,21 @@ import { validateCsrf } from "@/lib/csrf";
 import { prisma } from "@/lib/prisma";
 import { getSiteName } from "@/lib/settings";
 import { assertNoPrivateResolution, parseSafeHttpUrl } from "@/lib/url-safety";
-import { createShortLink } from "@/lib/links";
+import { createShortLink, shortUrl } from "@/lib/links";
 import { validateAlias } from "@/lib/alias";
-import { env } from "@/lib/env";
+import { appBaseUrl, env } from "@/lib/env";
+import { deleteUploadedFile, normalizeUploadFilenameMode, storeUploadedFile } from "@/lib/uploads";
 
 const MAX_IMPORT_ROWS = 200;
 const API_TOKEN_EXPIRATION_CHOICES = new Set([30, 90, 180, 365]);
+
+export type UploadShortenState = {
+  code?: string;
+  error?: string;
+  fileUrl?: string;
+  filename?: string;
+  shortUrl?: string;
+};
 
 function tokenExpiresAt(value: FormDataEntryValue | null) {
   if (value === "forever") return null;
@@ -26,6 +35,10 @@ function tokenExpiresAt(value: FormDataEntryValue | null) {
 
 async function trustedSafeResolution() {
   return true;
+}
+
+function uploadedFormFile(value: FormDataEntryValue | null) {
+  return typeof File !== "undefined" && value instanceof File ? value : null;
 }
 
 export async function createTokenAction(_state: { token?: string; error?: string } | null, formData: FormData) {
@@ -207,4 +220,74 @@ export async function importCsvAction(_state: { imported?: number; errors?: stri
   revalidatePath("/admin");
   revalidatePath("/admin/links");
   return { imported, errors };
+}
+
+export async function uploadAndShortenAction(
+  _state: UploadShortenState | null,
+  formData: FormData
+): Promise<UploadShortenState> {
+  validateCsrf(formData);
+  const admin = await requireAdmin();
+  if (!admin) return { error: "Unauthorized" };
+
+  const file = uploadedFormFile(formData.get("file"));
+  if (!file) return { error: "Choose a file to upload." };
+
+  const code = String(formData.get("code") ?? "").trim() || null;
+  if (code) {
+    const aliasError = validateAlias(code);
+    if (aliasError) return { error: aliasError };
+    const existing = await prisma.shortLink.findUnique({ where: { code }, select: { id: true } });
+    if (existing) return { error: "That short alias is already in use." };
+  }
+
+  let stored: Awaited<ReturnType<typeof storeUploadedFile>> | null = null;
+  try {
+    stored = await storeUploadedFile(file, {
+      dropExtension: formData.get("dropExtension") === "on",
+      filenameMode: normalizeUploadFilenameMode(formData.get("filenameMode"))
+    });
+    const fileUrl = new URL(stored.publicPath, `${appBaseUrl()}/`).toString();
+    const title = String(formData.get("title") ?? "").trim() || file.name;
+    const link = await createShortLink(
+      {
+        destinationUrl: fileUrl,
+        code,
+        title,
+        createdById: admin.id,
+        fetchTitle: false
+      },
+      prisma,
+      {
+        allowPrivateDestination: true,
+        assertSafeResolution: trustedSafeResolution
+      }
+    );
+
+    await auditLog({
+      userId: admin.id,
+      action: AuditAction.SHORT_LINK_CREATED,
+      entityType: "ShortLink",
+      entityId: link.id,
+      details: {
+        code: link.code,
+        filename: stored.filename,
+        originalName: file.name,
+        via: "upload",
+        size: stored.size
+      }
+    });
+    revalidatePath("/admin");
+    revalidatePath("/admin/links");
+    revalidatePath("/admin/tools");
+    return {
+      code: link.code,
+      filename: stored.filename,
+      fileUrl,
+      shortUrl: shortUrl(appBaseUrl(), link.code)
+    };
+  } catch (error) {
+    if (stored) await deleteUploadedFile(stored.filename).catch(() => null);
+    return { error: error instanceof Error ? error.message : "Could not upload and shorten the file." };
+  }
 }

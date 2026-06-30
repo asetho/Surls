@@ -84,6 +84,10 @@ If you set `PUBLIC_WEBROOT_DIR` or `CUSTOM_PAGES_DIR` directly without Docker Co
 
 Public webroot HTML is served as same-origin trusted owner content. Keep this directory writable only by trusted admins. File contents are read at request time, so normal HTML changes do not require a container rebuild.
 
+## Uploaded Files
+
+The Tools page includes Upload & Shorten for admin-uploaded files. Files are served from `/uploads/:filename` and are stored in the persistent `surls-uploads` Docker volume mounted at `/app/uploads`. Set `UPLOAD_MAX_BYTES` in `.env` to lower the default 25 MB limit.
+
 ## 4. Add HTTPS
 
 Create a reverse proxy website in 1Panel:
