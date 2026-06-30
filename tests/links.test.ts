@@ -56,6 +56,27 @@ describe("short link creation", () => {
     expect(link.title).toBe("Manual Title");
   });
 
+  it("persists API token source snapshots when provided", async () => {
+    const assertSafeResolution = vi.fn().mockResolvedValue(true);
+
+    await createShortLink({
+      destinationUrl: "https://example.com/article",
+      code: "news",
+      title: "Manual Title",
+      createdByApiTokenName: "  WordPress publisher  ",
+      createdByApiTokenPrefix: "  surls_abc123  "
+    }, undefined, { assertSafeResolution });
+
+    expect(shortLink.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          createdByApiTokenName: "WordPress publisher",
+          createdByApiTokenPrefix: "surls_abc123"
+        })
+      })
+    );
+  });
+
   it("rejects destinations that resolve to private addresses before saving", async () => {
     const assertSafeResolution = vi.fn().mockRejectedValue(new Error("Destination resolves to a private or internal address."));
 

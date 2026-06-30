@@ -17,6 +17,10 @@ function partMap(parts: Intl.DateTimeFormatPart[]) {
   return Object.fromEntries(parts.map((part) => [part.type, part.value]));
 }
 
+function timeZoneString(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
 export function isValidTimeZone(value: string) {
   try {
     new Intl.DateTimeFormat("en-US", { timeZone: value }).format(new Date(0));
@@ -26,17 +30,38 @@ export function isValidTimeZone(value: string) {
   }
 }
 
+export function normalizeOptionalDisplayTimeZone(value: unknown) {
+  const timeZone = timeZoneString(value);
+  return timeZone && isValidTimeZone(timeZone) ? timeZone : null;
+}
+
 export function normalizeDisplayTimeZone(value: unknown) {
-  const timeZone = typeof value === "string" ? value.trim() : "";
-  return timeZone && isValidTimeZone(timeZone) ? timeZone : DEFAULT_DISPLAY_TIME_ZONE;
+  return normalizeOptionalDisplayTimeZone(value) ?? DEFAULT_DISPLAY_TIME_ZONE;
 }
 
 export function requireDisplayTimeZone(value: unknown) {
-  const timeZone = typeof value === "string" ? value.trim() : "";
-  if (!timeZone || !isValidTimeZone(timeZone)) {
+  const timeZone = normalizeOptionalDisplayTimeZone(value);
+  if (!timeZone) {
     throw new Error("Invalid display timezone.");
   }
   return timeZone;
+}
+
+export function requireOptionalDisplayTimeZone(value: unknown) {
+  const timeZone = timeZoneString(value);
+  if (!timeZone) return null;
+  if (!isValidTimeZone(timeZone)) {
+    throw new Error("Invalid display timezone.");
+  }
+  return timeZone;
+}
+
+export function resolveDisplayTimeZone(userTimeZone: unknown, siteDefaultTimeZone: unknown) {
+  return (
+    normalizeOptionalDisplayTimeZone(userTimeZone) ??
+    normalizeOptionalDisplayTimeZone(siteDefaultTimeZone) ??
+    DEFAULT_DISPLAY_TIME_ZONE
+  );
 }
 
 export function formatDateTime(date: Date, timeZone = DEFAULT_DISPLAY_TIME_ZONE) {
@@ -67,6 +92,61 @@ export function dateKeyForTimeZone(date: Date, timeZone = DEFAULT_DISPLAY_TIME_Z
   );
 
   return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function zonedDateTimeParts(date: Date, timeZone: string) {
+  const parts = partMap(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23"
+    }).formatToParts(date)
+  );
+
+  return {
+    day: Number.parseInt(parts.day, 10),
+    hour: Number.parseInt(parts.hour, 10),
+    minute: Number.parseInt(parts.minute, 10),
+    month: Number.parseInt(parts.month, 10),
+    second: Number.parseInt(parts.second, 10),
+    year: Number.parseInt(parts.year, 10)
+  };
+}
+
+function utcDateForZonedParts(
+  timeZone: string,
+  parts: { day: number; hour: number; minute: number; month: number; second: number; year: number }
+) {
+  const targetAsUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
+  let utc = targetAsUtc;
+
+  for (let index = 0; index < 3; index += 1) {
+    const actual = zonedDateTimeParts(new Date(utc), timeZone);
+    const actualAsUtc = Date.UTC(
+      actual.year,
+      actual.month - 1,
+      actual.day,
+      actual.hour,
+      actual.minute,
+      actual.second
+    );
+    const delta = targetAsUtc - actualAsUtc;
+    if (delta === 0) break;
+    utc += delta;
+  }
+
+  return new Date(utc);
+}
+
+export function startOfDayInTimeZone(date: Date, timeZone = DEFAULT_DISPLAY_TIME_ZONE) {
+  const normalizedTimeZone = normalizeDisplayTimeZone(timeZone);
+  const parts = zonedDateTimeParts(date, normalizedTimeZone);
+  return utcDateForZonedParts(normalizedTimeZone, { ...parts, hour: 0, minute: 0, second: 0 });
 }
 
 function dateKeyToUtcDate(dateKey: string) {

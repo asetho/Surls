@@ -58,8 +58,11 @@ describe("link lifecycle helpers", () => {
 
   it("normalizes list sort and returns matching order clauses", () => {
     expect(normalizeLinkListSort("clicks")).toBe("clicks_desc");
+    expect(normalizeLinkListSort("created_asc")).toBe("created_asc");
+    expect(normalizeLinkListSort("created_desc")).toBe("newest");
     expect(normalizeLinkListSort("url_asc")).toBe("url_asc");
     expect(normalizeLinkListSort("unknown")).toBe("newest");
+    expect(shortLinkListOrderBy("created_asc")).toEqual([{ createdAt: "asc" }]);
     expect(shortLinkListOrderBy("url_asc")).toEqual([{ code: "asc" }, { createdAt: "desc" }]);
     expect(shortLinkListOrderBy("clicks_desc")).toEqual([{ clickCount: "desc" }, { createdAt: "desc" }]);
     expect(shortLinkListOrderBy("status_desc")).toEqual([{ enabled: "desc" }, { code: "asc" }]);

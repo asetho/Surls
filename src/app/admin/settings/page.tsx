@@ -129,7 +129,7 @@ export default async function SettingsPage() {
             <input name="siteName" defaultValue={settings.siteName} />
           </label>
           <div className="form-field">
-            <label htmlFor="display-time-zone">Display timezone</label>
+            <label htmlFor="display-time-zone">App-wide default timezone</label>
             <input
               id="display-time-zone"
               name="displayTimeZone"
@@ -142,7 +142,7 @@ export default async function SettingsPage() {
               ))}
             </datalist>
             <span className="muted small">
-              Used for admin timestamps and historical click day buckets.{" "}
+              Used when a signed-in user has not chosen their own timestamp timezone.{" "}
               <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones" target="_blank" rel="noreferrer">
                 View supported IANA time zone names
               </a>
@@ -237,7 +237,7 @@ export default async function SettingsPage() {
               <dd>{settings.preserveRedirectQuery ? "Enabled" : "Disabled"}</dd>
             </div>
             <div>
-              <dt>Display timezone</dt>
+              <dt>App-wide default timezone</dt>
               <dd>{settings.displayTimeZone}</dd>
             </div>
           </dl>

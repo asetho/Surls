@@ -8,9 +8,9 @@ import { RememberedDetails } from "@/components/RememberedDetails";
 import { adminLoginPath } from "@/lib/admin-login-path";
 import { getCsrfToken } from "@/lib/csrf";
 import { isAdminUser, requireAdmin } from "@/lib/auth";
-import { formatDateTime } from "@/lib/dates";
+import { formatDateTime, resolveDisplayTimeZone } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
-import { getSetting, getSiteName } from "@/lib/settings";
+import { getDisplayTimeZone, getSiteName } from "@/lib/settings";
 import { getTotpSecret, totpOtpAuthUrl } from "@/lib/totp";
 import { cancelTotpSetupAction, disableTotpAction, enableTotpAction, startTotpAction } from "./actions";
 
@@ -22,13 +22,14 @@ export default async function ProfilePage() {
   const admin = await requireAdmin();
   if (!admin) redirect(adminLoginPath("/admin/profile"));
   const csrf = getCsrfToken();
-  const [credential, backupCount, passkeys, siteName, displayTimeZone] = await Promise.all([
+  const [credential, backupCount, passkeys, siteName, siteDefaultTimeZone] = await Promise.all([
     prisma.totpCredential.findUnique({ where: { userId: admin.id } }),
     prisma.backupCode.count({ where: { userId: admin.id, usedAt: null } }),
     prisma.passkey.findMany({ where: { userId: admin.id }, orderBy: { createdAt: "desc" } }),
     getSiteName(),
-    getSetting("displayTimeZone")
+    getDisplayTimeZone()
   ]);
+  const displayTimeZone = resolveDisplayTimeZone(admin.displayTimeZone, siteDefaultTimeZone);
 
   const pendingSecret = credential && !credential.enabled ? getTotpSecret(credential.secretEncrypted) : null;
   const qr = pendingSecret
@@ -55,7 +56,9 @@ export default async function ProfilePage() {
         <h2>Account information</h2>
         <ProfileIdentityForm
           csrf={csrf}
+          siteDefaultTimeZone={siteDefaultTimeZone}
           user={{
+            displayTimeZone: admin.displayTimeZone,
             email: admin.email,
             name: admin.name
           }}

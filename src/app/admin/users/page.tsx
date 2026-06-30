@@ -8,9 +8,9 @@ import { CreateUserForm } from "@/components/CreateUserForm";
 import { adminLoginPath } from "@/lib/admin-login-path";
 import { requireSiteAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
-import { formatDateTime } from "@/lib/dates";
+import { formatDateTime, resolveDisplayTimeZone } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
-import { getSetting } from "@/lib/settings";
+import { getDisplayTimeZone } from "@/lib/settings";
 import { deleteUserAction, updateUserRoleAction } from "./actions";
 
 export const metadata: Metadata = {
@@ -22,7 +22,7 @@ export default async function UsersPage() {
   if (!admin) redirect(adminLoginPath("/admin/users"));
 
   const csrf = getCsrfToken();
-  const [users, displayTimeZone] = await Promise.all([
+  const [users, siteDefaultTimeZone] = await Promise.all([
     prisma.user.findMany({
       orderBy: { createdAt: "asc" },
       include: {
@@ -36,8 +36,9 @@ export default async function UsersPage() {
         totpCredential: true
       }
     }),
-    getSetting("displayTimeZone")
+    getDisplayTimeZone()
   ]);
+  const displayTimeZone = resolveDisplayTimeZone(admin.displayTimeZone, siteDefaultTimeZone);
 
   return (
     <main className="admin-content">
@@ -74,7 +75,9 @@ export default async function UsersPage() {
                   <td data-label="User">
                     <AdminUserIdentityForm
                       csrf={csrf}
+                      siteDefaultTimeZone={siteDefaultTimeZone}
                       user={{
+                        displayTimeZone: user.displayTimeZone,
                         email: user.email,
                         id: user.id,
                         name: user.name

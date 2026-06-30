@@ -34,7 +34,9 @@ export async function POST(request: NextRequest) {
     const link = await createShortLink({
       ...parsed.data,
       expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null,
-      createdById: admin.id
+      createdById: admin.id,
+      createdByApiTokenName: apiToken?.name,
+      createdByApiTokenPrefix: apiToken?.tokenPrefix
     });
     await auditLog({
       userId: admin.id,

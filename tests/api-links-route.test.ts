@@ -78,7 +78,11 @@ describe("POST /api/links token hardening", () => {
 
   it("creates links with a valid scoped API token", async () => {
     const { POST } = await import("@/app/api/links/route");
-    apiTokens.authenticateApiToken.mockResolvedValue({ user: { id: "user_api", role: "ADMIN" } });
+    apiTokens.authenticateApiToken.mockResolvedValue({
+      name: "WordPress publisher",
+      tokenPrefix: "surls_abc123",
+      user: { id: "user_api", role: "ADMIN" }
+    });
 
     const response = await POST(
       jsonRequest({ code: "example", destinationUrl: "https://example.com", title: "Example" }, "Bearer surls_valid")
@@ -95,6 +99,8 @@ describe("POST /api/links token hardening", () => {
     expect(links.createShortLink).toHaveBeenCalledWith(
       expect.objectContaining({
         code: "example",
+        createdByApiTokenName: "WordPress publisher",
+        createdByApiTokenPrefix: "surls_abc123",
         createdById: "user_api",
         destinationUrl: "https://example.com",
         title: "Example"
@@ -115,6 +121,8 @@ describe("POST /api/links token hardening", () => {
     expect(links.createShortLink).toHaveBeenCalledWith(
       expect.objectContaining({
         createdById: "user_session",
+        createdByApiTokenName: undefined,
+        createdByApiTokenPrefix: undefined,
         destinationUrl: "https://example.com"
       })
     );

@@ -14,7 +14,7 @@ import { StatsTabs } from "@/components/StatsTabs";
 import { adminLoginPath } from "@/lib/admin-login-path";
 import { isAdminUser, requireAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
-import { formatDateTime } from "@/lib/dates";
+import { formatDateTime, resolveDisplayTimeZone } from "@/lib/dates";
 import { appBaseUrl } from "@/lib/env";
 import { clickStats, normalizeRecentClickPage, resolveRecentClickPageSize } from "@/lib/clicks";
 import { shortUrl } from "@/lib/links";
@@ -66,7 +66,8 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
   ]);
   if (!link) notFound();
   const canDeleteLinks = isAdminUser(currentUser);
-  const { displayTimeZone, siteName } = settings;
+  const { siteName } = settings;
+  const displayTimeZone = resolveDisplayTimeZone(currentUser.displayTimeZone, settings.displayTimeZone);
   const csrf = getCsrfToken();
   const baseUrl = appBaseUrl();
   const stats = await clickStats(link.id, link.createdAt, displayTimeZone, {
@@ -82,6 +83,10 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
   const maxClicksLabel = link.maxClicks ? link.maxClicks.toLocaleString() : "Unlimited";
   const descriptionLabel = link.description?.trim() || "None";
   const notesLabel = link.notes?.trim() || "None";
+  const apiSourceTooltip =
+    link.createdByApiTokenName && link.createdByApiTokenPrefix
+      ? `Created via API token: ${link.createdByApiTokenName} (${link.createdByApiTokenPrefix})`
+      : null;
   const editableLink = {
     id: link.id,
     code: link.code,
@@ -101,6 +106,17 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
           <div className="link-summary-row">
             <span className="link-summary-label">Title:</span>
             <strong>{titleLabel}</strong>
+            {apiSourceTooltip ? (
+              <span
+                aria-label={apiSourceTooltip}
+                className="badge api-source-badge"
+                data-tooltip={apiSourceTooltip}
+                tabIndex={0}
+                title={apiSourceTooltip}
+              >
+                API
+              </span>
+            ) : null}
             {link.archivedAt ? <span className="badge warning">Archived</span> : null}
           </div>
           <div className="link-title-row">

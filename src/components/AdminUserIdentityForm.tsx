@@ -4,17 +4,20 @@ import { useActionState, useEffect } from "react";
 import { Save } from "lucide-react";
 import { updateUserIdentityAction } from "@/app/admin/users/actions";
 import { dispatchAdminToast } from "@/lib/admin-toast-event";
+import { TimeZoneSelect } from "./TimeZoneSelect";
 
 type AdminUserIdentityFormProps = {
   csrf: string;
+  siteDefaultTimeZone: string;
   user: {
+    displayTimeZone: string | null;
     email: string;
     id: string;
     name: string | null;
   };
 };
 
-export function AdminUserIdentityForm({ csrf, user }: AdminUserIdentityFormProps) {
+export function AdminUserIdentityForm({ csrf, siteDefaultTimeZone, user }: AdminUserIdentityFormProps) {
   const [state, action, pending] = useActionState(updateUserIdentityAction, null);
 
   useEffect(() => {
@@ -34,6 +37,13 @@ export function AdminUserIdentityForm({ csrf, user }: AdminUserIdentityFormProps
         <span className="sr-only">Email</span>
         <input name="email" type="email" autoComplete="off" defaultValue={user.email} required />
       </label>
+      <TimeZoneSelect
+        className="user-timezone-select"
+        hideLabel
+        label="Display timezone"
+        siteDefaultTimeZone={siteDefaultTimeZone}
+        value={user.displayTimeZone}
+      />
       <button className="secondary icon-button" type="submit" disabled={pending}>
         <Save size={16} aria-hidden />
         {pending ? "Saving..." : "Save"}

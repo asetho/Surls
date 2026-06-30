@@ -15,6 +15,8 @@ export type CreateShortLinkInput = {
   maxClicks?: number | null;
   tags?: string[];
   createdById?: string | null;
+  createdByApiTokenName?: string | null;
+  createdByApiTokenPrefix?: string | null;
   fetchTitle?: boolean;
 };
 
@@ -97,6 +99,8 @@ export async function createShortLink(
   if (aliasError) throw new Error(aliasError);
 
   const title = input.title?.trim() || (input.fetchTitle === false ? null : await fetchPageTitle(safeUrl.url));
+  const createdByApiTokenName = input.createdByApiTokenName?.trim() || null;
+  const createdByApiTokenPrefix = input.createdByApiTokenPrefix?.trim() || null;
 
   try {
     const link = await db.shortLink.create({
@@ -110,6 +114,8 @@ export async function createShortLink(
         expiresAt,
         maxClicks,
         createdById: input.createdById,
+        createdByApiTokenName,
+        createdByApiTokenPrefix,
         tags: tags.length
           ? {
               create: tags.map(({ name, slug }) => {

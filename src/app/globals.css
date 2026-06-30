@@ -3785,11 +3785,12 @@ th {
   align-items: center;
   display: grid;
   gap: 0.4rem;
-  grid-template-columns: minmax(8rem, 1fr) minmax(12rem, 1.35fr) auto;
-  max-width: 34rem;
+  grid-template-columns: minmax(8rem, 1fr) minmax(12rem, 1.35fr) minmax(13rem, 1fr) auto;
+  max-width: 48rem;
 }
 
-.user-identity-form input {
+.user-identity-form input,
+.user-identity-form select {
   min-height: var(--control-height);
   width: 100%;
 }
@@ -4022,6 +4023,49 @@ th {
   background: color-mix(in srgb, var(--danger-background, var(--color-red)), transparent 86%);
   border-color: color-mix(in srgb, var(--danger-border, var(--color-red)), transparent 45%);
   color: var(--danger-background, var(--color-red));
+}
+
+.api-source-badge {
+  cursor: help;
+  outline: 0;
+  position: relative;
+}
+
+.api-source-badge::after {
+  background: var(--chart-tooltip-background, var(--surface));
+  border: 1px solid var(--chart-tooltip-border, var(--border));
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  color: var(--chart-tooltip-text, var(--text));
+  content: attr(data-tooltip);
+  font-size: 0.78rem;
+  font-weight: 650;
+  left: 50%;
+  line-height: 1.35;
+  opacity: 0;
+  padding: 0.55rem 0.65rem;
+  pointer-events: none;
+  position: absolute;
+  text-transform: none;
+  top: calc(100% + 0.45rem);
+  transform: translateX(-50%) translateY(-0.15rem);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+  visibility: hidden;
+  white-space: normal;
+  width: min(18rem, 72vw);
+  z-index: 50;
+}
+
+.api-source-badge:hover::after,
+.api-source-badge:focus::after,
+.api-source-badge:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  visibility: visible;
+}
+
+.api-source-badge:focus-visible {
+  box-shadow: var(--focus-ring);
 }
 
 .style-reference-pill-row > .badge.tag-link,

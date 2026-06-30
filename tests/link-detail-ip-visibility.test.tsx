@@ -2,8 +2,15 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const authState = vi.hoisted((): { currentUser: { id: string; role: string } } => ({
-  currentUser: { id: "admin_1", role: "ADMIN" }
+type TestUser = {
+  displayTimeZone?: string | null;
+  id: string;
+  recentClickPageSize?: number;
+  role: string;
+};
+
+const authState = vi.hoisted((): { currentUser: TestUser } => ({
+  currentUser: { displayTimeZone: "America/Los_Angeles", id: "admin_1", role: "ADMIN" }
 }));
 
 const prisma = vi.hoisted(() => ({
@@ -152,7 +159,7 @@ async function renderLinkDetail() {
 describe("link detail raw IP visibility", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    authState.currentUser = { id: "admin_1", role: "ADMIN" };
+    authState.currentUser = { displayTimeZone: "America/Los_Angeles", id: "admin_1", role: "ADMIN" };
     prisma.shortLink.findUnique.mockResolvedValue(testLink());
     settings.getSettings.mockResolvedValue({
       displayTimeZone: "America/New_York",
@@ -161,14 +168,27 @@ describe("link detail raw IP visibility", () => {
     clicks.clickStats.mockResolvedValue(testStats());
   });
 
+  it("formats link detail timestamps in the current user's timezone", async () => {
+    authState.currentUser = { displayTimeZone: "America/Los_Angeles", id: "admin_1", role: "ADMIN" };
+
+    const markup = await renderLinkDetail();
+
+    expect(clicks.clickStats).toHaveBeenCalledWith("link_123", expect.any(Date), "America/Los_Angeles", {
+      page: 1,
+      pageSize: 20
+    });
+    expect(markup).toContain("06/11/26 5:00:00 AM");
+    expect(markup).toContain("06/11/26 5:30:00 AM");
+  });
+
   it("shows raw click IP addresses to admins", async () => {
-    authState.currentUser = { id: "admin_1", role: "ADMIN" };
+    authState.currentUser = { displayTimeZone: "America/Los_Angeles", id: "admin_1", role: "ADMIN" };
 
     await expect(renderLinkDetail()).resolves.toContain("198.51.100.10");
   });
 
   it("shows raw click IP addresses to non-admin users", async () => {
-    authState.currentUser = { id: "user_1", role: "USER" };
+    authState.currentUser = { displayTimeZone: "America/Los_Angeles", id: "user_1", role: "USER" };
 
     const markup = await renderLinkDetail();
 

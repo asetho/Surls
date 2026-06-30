@@ -13,4 +13,23 @@ describe("API token hardening migration", () => {
     expect(migration).toContain('ALTER TABLE "ApiToken" ADD COLUMN "expiresAt" TIMESTAMP(3);');
     expect(migration).toContain('CREATE INDEX "ApiToken_expiresAt_idx" ON "ApiToken"("expiresAt");');
   });
+
+  it("adds nullable API source snapshot fields to short links", async () => {
+    const migration = await readFile(
+      resolve(process.cwd(), "prisma/migrations/20260630203500_add_short_link_api_source/migration.sql"),
+      "utf8"
+    );
+
+    expect(migration).toContain('ALTER TABLE "ShortLink" ADD COLUMN "createdByApiTokenName" TEXT;');
+    expect(migration).toContain('ALTER TABLE "ShortLink" ADD COLUMN "createdByApiTokenPrefix" TEXT;');
+  });
+
+  it("adds nullable user display timezone preferences", async () => {
+    const migration = await readFile(
+      resolve(process.cwd(), "prisma/migrations/20260630214500_add_user_display_time_zone/migration.sql"),
+      "utf8"
+    );
+
+    expect(migration).toContain('ALTER TABLE "User" ADD COLUMN "displayTimeZone" TEXT;');
+  });
 });

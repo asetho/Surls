@@ -44,10 +44,11 @@ vi.mock("@/lib/totp", () => ({
 }));
 vi.mock("@/lib/password", () => ({ hashPassword: vi.fn() }));
 
-function profileForm(fields: { email?: string; id?: string; name?: string } = {}) {
+function profileForm(fields: { displayTimeZone?: string; email?: string; id?: string; name?: string } = {}) {
   const formData = new FormData();
   formData.set("csrf", "csrf-token");
   if (fields.id) formData.set("id", fields.id);
+  formData.set("displayTimeZone", fields.displayTimeZone ?? "America/Los_Angeles");
   formData.set("email", fields.email ?? "  USER@Example.COM  ");
   formData.set("name", fields.name ?? "  Test User  ");
   return formData;
@@ -71,11 +72,29 @@ describe("profile identity actions", () => {
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: "user_1" },
       data: {
+        displayTimeZone: "America/Los_Angeles",
         email: "user@example.com",
         name: "Test User"
       }
     });
     expect(nextCache.revalidatePath).toHaveBeenCalledWith("/admin/profile");
+  });
+
+  it("lets signed-in users choose the site default timezone", async () => {
+    const { updateProfileAction } = await import("@/app/admin/profile/actions");
+
+    await expect(updateProfileAction(null, profileForm({ displayTimeZone: "" }))).resolves.toEqual({
+      message: "Profile updated."
+    });
+
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: "user_1" },
+      data: {
+        displayTimeZone: null,
+        email: "user@example.com",
+        name: "Test User"
+      }
+    });
   });
 
   it("rejects duplicate emails for self-updates", async () => {
@@ -99,6 +118,7 @@ describe("profile identity actions", () => {
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: "user_2" },
       data: {
+        displayTimeZone: "America/Los_Angeles",
         email: "user@example.com",
         name: "Test User"
       }
@@ -115,5 +135,24 @@ describe("profile identity actions", () => {
     });
 
     expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it("lets admins update another user's display timezone", async () => {
+    const { updateUserIdentityAction } = await import("@/app/admin/users/actions");
+
+    await expect(
+      updateUserIdentityAction(null, profileForm({ displayTimeZone: "UTC", id: "user_2" }))
+    ).resolves.toEqual({
+      message: "User updated."
+    });
+
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: "user_2" },
+      data: {
+        displayTimeZone: "UTC",
+        email: "user@example.com",
+        name: "Test User"
+      }
+    });
   });
 });

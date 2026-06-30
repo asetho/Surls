@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { recentClicksPage, resolveRecentClickPageSize } from "@/lib/clicks";
+import { resolveDisplayTimeZone } from "@/lib/dates";
 import { recentClicksView } from "@/lib/recent-clicks-view";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
@@ -29,13 +30,14 @@ export async function GET(request: NextRequest, { params }: Params) {
     });
   }
 
-  const [{ displayTimeZone }, recent] = await Promise.all([
+  const [settings, recent] = await Promise.all([
     getSettings(),
     recentClicksPage(id, {
       page: request.nextUrl.searchParams.get("page"),
       pageSize
     })
   ]);
+  const displayTimeZone = resolveDisplayTimeZone(user.displayTimeZone, settings.displayTimeZone);
 
   return NextResponse.json(recentClicksView(recent.recent, recent.recentPagination, displayTimeZone), {
     headers: { "cache-control": "no-store" }

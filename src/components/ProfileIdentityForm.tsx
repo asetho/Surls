@@ -4,16 +4,19 @@ import { useActionState, useEffect } from "react";
 import { Save } from "lucide-react";
 import { updateProfileAction } from "@/app/admin/profile/actions";
 import { dispatchAdminToast } from "@/lib/admin-toast-event";
+import { TimeZoneSelect } from "./TimeZoneSelect";
 
 type ProfileIdentityFormProps = {
   csrf: string;
+  siteDefaultTimeZone: string;
   user: {
+    displayTimeZone: string | null;
     email: string;
     name: string | null;
   };
 };
 
-export function ProfileIdentityForm({ csrf, user }: ProfileIdentityFormProps) {
+export function ProfileIdentityForm({ csrf, siteDefaultTimeZone, user }: ProfileIdentityFormProps) {
   const [state, action, pending] = useActionState(updateProfileAction, null);
 
   useEffect(() => {
@@ -33,9 +36,14 @@ export function ProfileIdentityForm({ csrf, user }: ProfileIdentityFormProps) {
           Email
           <input name="email" type="email" autoComplete="email" defaultValue={user.email} required />
         </label>
+        <TimeZoneSelect
+          className="form-field"
+          siteDefaultTimeZone={siteDefaultTimeZone}
+          value={user.displayTimeZone}
+        />
       </div>
       <div className="profile-meta-row">
-        <span className="muted small">Used for sign-in, passkeys, and account activity.</span>
+        <span className="muted small">Used for sign-in, passkeys, account activity, and timestamp display.</span>
       </div>
       <button type="submit" disabled={pending}>
         <Save size={16} aria-hidden />

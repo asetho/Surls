@@ -2,7 +2,7 @@ import { AlertTriangle, CalendarClock, ExternalLink, Link2, MousePointerClick } 
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { appBaseUrl } from "@/lib/env";
-import { formatDateTime } from "@/lib/dates";
+import { formatDateTime, resolveDisplayTimeZone, startOfDayInTimeZone } from "@/lib/dates";
 import { shortUrl } from "@/lib/links";
 import { CopyShareButtons } from "@/components/CopyShareButtons";
 import { LoginPageShell } from "@/components/LoginPageShell";
@@ -45,13 +45,14 @@ export default async function AdminDashboard({ searchParams }: { searchParams: S
     );
   }
 
+  const settings = await getSettings();
+  const { siteName } = settings;
+  const displayTimeZone = resolveDisplayTimeZone(currentUser.displayTimeZone, settings.displayTimeZone);
   const now = new Date();
-  const today = new Date(now);
-  today.setHours(0, 0, 0, 0);
-  const week = new Date(now);
-  week.setDate(now.getDate() - 7);
+  const today = startOfDayInTimeZone(now, displayTimeZone);
+  const week = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const month = new Date(now);
-  month.setMonth(now.getMonth() - 1);
+  month.setUTCMonth(now.getUTCMonth() - 1);
 
   const [
     totalLinks,
@@ -62,8 +63,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: S
     topLinks,
     recentLinks,
     recentClicks,
-    attentionLinks,
-    settings
+    attentionLinks
   ] = await Promise.all([
     prisma.shortLink.count({ where: { archivedAt: null } }),
     prisma.clickEvent.count(),
@@ -92,10 +92,8 @@ export default async function AdminDashboard({ searchParams }: { searchParams: S
       },
       orderBy: { updatedAt: "desc" },
       take: 6
-    }),
-    getSettings()
+    })
   ]);
-  const { displayTimeZone, siteName } = settings;
 
   return (
     <main className="admin-content">

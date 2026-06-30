@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.13.6 - 2026-06-30
+
+### Added
+
+* Added per-user display timezone preferences with the app-wide timezone retained as the default.
+* Added admin controls for editing user timezone preferences and profile controls for choosing a personal timezone.
+* Added API token source snapshots on links created through the API.
+* Added a WordPress link creator helper plugin for creating Surls links from WordPress.
+
+### Changed
+
+* Used the resolved viewer timezone for admin timestamps, link history, recent clicks, profile passkeys, link lists, and user dates.
+* Added created-date display and created-date sorting on the admin link list.
+* Clarified the Settings timezone field as the app-wide default timezone.
+
+### Upgrade Notes
+
+Run database migrations before starting the new version so user timezone preferences and API token source snapshots are added.
+
 ## 1.13.5 - 2026-06-29
 
 ### Added

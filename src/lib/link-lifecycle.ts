@@ -4,6 +4,7 @@ import { prisma } from "./prisma";
 export type LinkListView = "active" | "archived";
 export type LinkListSort =
   | "newest"
+  | "created_asc"
   | "url_asc"
   | "url_desc"
   | "clicks_desc"
@@ -20,6 +21,7 @@ export function normalizeLinkListView(value: unknown): LinkListView {
 
 export function normalizeLinkListSort(value: unknown): LinkListSort {
   switch (value) {
+    case "created_asc":
     case "url_asc":
     case "url_desc":
     case "clicks_desc":
@@ -27,6 +29,8 @@ export function normalizeLinkListSort(value: unknown): LinkListSort {
     case "status_asc":
     case "status_desc":
       return value;
+    case "created_desc":
+      return "newest";
     case "clicks":
       return "clicks_desc";
     default:
@@ -56,6 +60,8 @@ export function normalizeLinkListTag(value: unknown) {
 
 export function shortLinkListOrderBy(sort: LinkListSort): Prisma.ShortLinkOrderByWithRelationInput[] {
   switch (sort) {
+    case "created_asc":
+      return [{ createdAt: "asc" }];
     case "url_asc":
       return [{ code: "asc" }, { createdAt: "desc" }];
     case "url_desc":

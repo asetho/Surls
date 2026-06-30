@@ -37,6 +37,7 @@ model User {
   name          String?
   passwordHash  String
   role          UserRole         @default(USER)
+  displayTimeZone String?
   linkListPageSize Int           @default(20)
   recentClickPageSize Int        @default(20)
   createdAt     DateTime         @default(now())
@@ -121,6 +122,8 @@ model ShortLink {
   updatedAt      DateTime       @updatedAt
   lastClickedAt  DateTime?
   createdById    String?
+  createdByApiTokenName   String?
+  createdByApiTokenPrefix String?
   createdBy      User?          @relation("CreatedLinks", fields: [createdById], references: [id], onDelete: SetNull)
   clicks         ClickEvent[]
   tags           ShortLinkTag[]

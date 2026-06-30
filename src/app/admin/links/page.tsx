@@ -11,6 +11,7 @@ import { QrCodeModal } from "@/components/QrCodeModal";
 import { adminLoginPath } from "@/lib/admin-login-path";
 import { isAdminUser, requireAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
+import { formatDateTime, resolveDisplayTimeZone } from "@/lib/dates";
 import { appBaseUrl } from "@/lib/env";
 import {
   DEFAULT_LINK_PAGE_SIZE,
@@ -25,7 +26,7 @@ import {
 } from "@/lib/link-lifecycle";
 import { shortUrl } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
-import { getSiteName } from "@/lib/settings";
+import { getSettings } from "@/lib/settings";
 import { restoreLinkAction } from "./actions";
 
 export const metadata: Metadata = {
@@ -34,6 +35,7 @@ export const metadata: Metadata = {
 
 type SearchParams = Promise<{ page?: string; pageSize?: string; q?: string; sort?: string; tag?: string; view?: string }>;
 type LinkSearchParams = Awaited<SearchParams>;
+type SortableLinkColumn = "clicks" | "created" | "status" | "url";
 
 function linksNextPath(params: LinkSearchParams) {
   const urlParams = new URLSearchParams();
@@ -45,13 +47,16 @@ function linksNextPath(params: LinkSearchParams) {
   return query ? `/admin/links?${query}` : "/admin/links";
 }
 
-function nextSortFor(column: "clicks" | "status" | "url", sort: LinkListSort) {
+function nextSortFor(column: SortableLinkColumn, sort: LinkListSort) {
+  if (column === "created") return sort === "created_asc" ? "newest" : "created_asc";
   if (column === "url") return sort === "url_asc" ? "url_desc" : "url_asc";
   if (column === "clicks") return sort === "clicks_desc" ? "clicks_asc" : "clicks_desc";
   return sort === "status_desc" ? "status_asc" : "status_desc";
 }
 
-function ariaSortFor(column: "clicks" | "status" | "url", sort: LinkListSort) {
+function ariaSortFor(column: SortableLinkColumn, sort: LinkListSort) {
+  if (column === "created" && sort === "newest") return "descending" as const;
+  if (column === "created" && sort === "created_asc") return "ascending" as const;
   if (column === "url" && sort === "url_asc") return "ascending" as const;
   if (column === "url" && sort === "url_desc") return "descending" as const;
   if (column === "clicks" && sort === "clicks_asc") return "ascending" as const;
@@ -61,7 +66,9 @@ function ariaSortFor(column: "clicks" | "status" | "url", sort: LinkListSort) {
   return "none" as const;
 }
 
-function sortBadge(column: "clicks" | "status" | "url", sort: LinkListSort) {
+function sortBadge(column: SortableLinkColumn, sort: LinkListSort) {
+  if (column === "created" && sort === "newest") return "Newest";
+  if (column === "created" && sort === "created_asc") return "Oldest";
   if (column === "url" && sort === "url_asc") return "A-Z";
   if (column === "url" && sort === "url_desc") return "Z-A";
   if (column === "clicks" && sort === "clicks_asc") return "Low";
@@ -120,11 +127,13 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
     return listHref({ page: 1, view: nextView });
   };
   const where = shortLinkListWhere(view, q, tag);
-  const [totalLinks, siteName, activeTag] = await Promise.all([
+  const [totalLinks, settings, activeTag] = await Promise.all([
     prisma.shortLink.count({ where }),
-    getSiteName(),
+    getSettings(),
     tag ? prisma.tag.findUnique({ where: { slug: tag }, select: { name: true, slug: true } }) : Promise.resolve(null)
   ]);
+  const { siteName } = settings;
+  const displayTimeZone = resolveDisplayTimeZone(currentUser.displayTimeZone, settings.displayTimeZone);
   const totalPages = Math.max(1, Math.ceil(totalLinks / pageSize));
   const currentPage = Math.min(requestedPage, totalPages);
   const links = await prisma.shortLink.findMany({
@@ -139,8 +148,8 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
   const firstRow = totalLinks === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const lastRow = Math.min(totalLinks, currentPage * pageSize);
   const tagLabel = activeTag?.name ?? tag;
-  const sortHref = (column: "clicks" | "status" | "url") => listHref({ page: 1, sort: nextSortFor(column, sort) });
-  const sortableHeader = (column: "clicks" | "status" | "url", label: string) => {
+  const sortHref = (column: SortableLinkColumn) => listHref({ page: 1, sort: nextSortFor(column, sort) });
+  const sortableHeader = (column: SortableLinkColumn, label: string) => {
     const badge = sortBadge(column, sort);
     return (
       <Link className="sort-link" href={sortHref(column)}>
@@ -180,7 +189,8 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
             {tag ? <input type="hidden" name="tag" value={tag} /> : null}
             <input name="q" placeholder="Search links or tags" defaultValue={q ?? ""} />
             <AutoSubmitSelect name="sort" defaultValue={sort} aria-label="Sort links">
-              <option value="newest">Newest</option>
+              <option value="newest">Created newest</option>
+              <option value="created_asc">Created oldest</option>
               <option value="url_asc">Short URL A-Z</option>
               <option value="url_desc">Short URL Z-A</option>
               <option value="clicks_desc">Most clicks</option>
@@ -216,6 +226,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
               <tr>
                 <th aria-sort={ariaSortFor("url", sort)}>{sortableHeader("url", "Short URL")}</th>
                 <th>Destination</th>
+                <th aria-sort={ariaSortFor("created", sort)}>{sortableHeader("created", "Created")}</th>
                 <th aria-sort={ariaSortFor("status", sort)}>{sortableHeader("status", "Status")}</th>
                 <th aria-sort={ariaSortFor("clicks", sort)}>{sortableHeader("clicks", "Clicks")}</th>
                 <th>Actions</th>
@@ -264,6 +275,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
                           <ExternalLink size={13} aria-hidden /> <span className="link-destination-url-text">{link.destinationUrl}</span>
                         </a>
                       </td>
+                      <td className="small timestamp" data-label="Created">{formatDateTime(link.createdAt, displayTimeZone)}</td>
                       <td data-label="Status">
                         <span className={link.archivedAt || !link.enabled ? "badge warning" : "badge"}>
                           {link.archivedAt ? "Archived" : link.enabled ? "Active" : "Disabled"}
@@ -308,7 +320,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
                 })
               ) : (
                 <tr>
-                  <td colSpan={5}>No links match this view.</td>
+                  <td colSpan={6}>No links match this view.</td>
                 </tr>
               )}
             </tbody>
