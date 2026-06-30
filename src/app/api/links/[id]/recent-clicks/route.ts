@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/auth";
-import { recentClicksPage } from "@/lib/clicks";
+import { recentClicksPage, resolveRecentClickPageSize } from "@/lib/clicks";
 import { recentClicksView } from "@/lib/recent-clicks-view";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
@@ -20,11 +20,20 @@ export async function GET(request: NextRequest, { params }: Params) {
   });
   if (!link) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  const requestedPageSize = request.nextUrl.searchParams.get("pageSize");
+  const pageSize = resolveRecentClickPageSize(requestedPageSize ?? undefined, user.recentClickPageSize);
+  if (requestedPageSize !== null && pageSize !== user.recentClickPageSize) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { recentClickPageSize: pageSize }
+    });
+  }
+
   const [{ displayTimeZone }, recent] = await Promise.all([
     getSettings(),
     recentClicksPage(id, {
       page: request.nextUrl.searchParams.get("page"),
-      pageSize: request.nextUrl.searchParams.get("pageSize")
+      pageSize
     })
   ]);
 

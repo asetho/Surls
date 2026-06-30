@@ -19,6 +19,7 @@ import {
   normalizeLinkListSort,
   normalizeLinkListTag,
   restoreShortLink,
+  resolveLinkListPageSize,
   shortLinkListOrderBy,
   shortLinkListWhere
 } from "@/lib/link-lifecycle";
@@ -72,6 +73,13 @@ describe("link lifecycle helpers", () => {
     expect(normalizeLinkListPageSize("nope")).toBe(DEFAULT_LINK_PAGE_SIZE);
     expect(normalizeLinkListTag(" demo ")).toBe("demo");
     expect(normalizeLinkListTag(" ")).toBeUndefined();
+  });
+
+  it("resolves list page size from saved user preference unless a query value is present", () => {
+    expect(resolveLinkListPageSize(undefined, 75)).toBe(75);
+    expect(resolveLinkListPageSize(undefined, 500)).toBe(200);
+    expect(resolveLinkListPageSize("50", 75)).toBe(50);
+    expect(resolveLinkListPageSize("", 75)).toBe(DEFAULT_LINK_PAGE_SIZE);
   });
 
   it("archives links by disabling and timestamping them", async () => {

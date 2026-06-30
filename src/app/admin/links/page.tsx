@@ -16,10 +16,10 @@ import {
   DEFAULT_LINK_PAGE_SIZE,
   type LinkListSort,
   normalizeLinkListPage,
-  normalizeLinkListPageSize,
   normalizeLinkListSort,
   normalizeLinkListTag,
   normalizeLinkListView,
+  resolveLinkListPageSize,
   shortLinkListOrderBy,
   shortLinkListWhere
 } from "@/lib/link-lifecycle";
@@ -81,7 +81,14 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
   const sort = normalizeLinkListSort(params.sort);
   const tag = normalizeLinkListTag(params.tag);
   const requestedPage = normalizeLinkListPage(params.page);
-  const pageSize = normalizeLinkListPageSize(params.pageSize);
+  const hasPageSizeParam = Object.hasOwn(params, "pageSize");
+  const pageSize = resolveLinkListPageSize(hasPageSizeParam ? params.pageSize : undefined, currentUser.linkListPageSize);
+  if (hasPageSizeParam && pageSize !== currentUser.linkListPageSize) {
+    await prisma.user.update({
+      where: { id: currentUser.id },
+      data: { linkListPageSize: pageSize }
+    });
+  }
   const csrf = getCsrfToken();
   const listHref = (overrides: Partial<{
     page: number;

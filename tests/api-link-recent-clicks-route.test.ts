@@ -9,6 +9,9 @@ const auth = vi.hoisted(() => ({
 const prisma = vi.hoisted(() => ({
   shortLink: {
     findUnique: vi.fn()
+  },
+  user: {
+    update: vi.fn()
   }
 }));
 
@@ -46,8 +49,9 @@ function recentRow() {
 describe("GET /api/links/[id]/recent-clicks", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    auth.requireAdmin.mockResolvedValue({ id: "user_1", role: "USER" });
+    auth.requireAdmin.mockResolvedValue({ id: "user_1", role: "USER", recentClickPageSize: 20 });
     prisma.shortLink.findUnique.mockResolvedValue({ id: "link_123" });
+    prisma.user.update.mockResolvedValue({ id: "user_1" });
     settings.getSettings.mockResolvedValue({ displayTimeZone: "America/New_York" });
     clicks.recentClicksPage.mockResolvedValue({
       recent: [recentRow()],
@@ -68,7 +72,11 @@ describe("GET /api/links/[id]/recent-clicks", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
-    expect(clicks.recentClicksPage).toHaveBeenCalledWith("link_123", { page: "2", pageSize: "10" });
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: "user_1" },
+      data: { recentClickPageSize: 10 }
+    });
+    expect(clicks.recentClicksPage).toHaveBeenCalledWith("link_123", { page: "2", pageSize: 10 });
     expect(payload).toMatchObject({
       pagination: {
         page: 2,
@@ -93,6 +101,17 @@ describe("GET /api/links/[id]/recent-clicks", () => {
       }
     });
     expect(JSON.stringify(payload)).toContain("198.51.100.10");
+  });
+
+  it("uses the saved row count when no page size is requested", async () => {
+    const { GET } = await import("@/app/api/links/[id]/recent-clicks/route");
+    auth.requireAdmin.mockResolvedValue({ id: "user_1", role: "USER", recentClickPageSize: 30 });
+
+    const response = await GET(request("page=1"), { params: Promise.resolve({ id: "link_123" }) });
+
+    expect(response.status).toBe(200);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+    expect(clicks.recentClicksPage).toHaveBeenCalledWith("link_123", { page: "1", pageSize: 30 });
   });
 
   it("requires an authenticated user", async () => {

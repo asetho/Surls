@@ -16,7 +16,7 @@ import { isAdminUser, requireAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { formatDateTime } from "@/lib/dates";
 import { appBaseUrl } from "@/lib/env";
-import { clickStats, normalizeRecentClickPage, normalizeRecentClickPageSize } from "@/lib/clicks";
+import { clickStats, normalizeRecentClickPage, resolveRecentClickPageSize } from "@/lib/clicks";
 import { shortUrl } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
 import { recentClicksView } from "@/lib/recent-clicks-view";
@@ -46,7 +46,17 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
   if (!currentUser) redirect(adminLoginPath(linkDetailNextPath(id, query)));
 
   const recentPage = normalizeRecentClickPage(query.clickPage);
-  const recentPageSize = normalizeRecentClickPageSize(query.clickPageSize);
+  const hasRecentPageSizeParam = Object.hasOwn(query, "clickPageSize");
+  const recentPageSize = resolveRecentClickPageSize(
+    hasRecentPageSizeParam ? query.clickPageSize : undefined,
+    currentUser.recentClickPageSize
+  );
+  if (hasRecentPageSizeParam && recentPageSize !== currentUser.recentClickPageSize) {
+    await prisma.user.update({
+      where: { id: currentUser.id },
+      data: { recentClickPageSize: recentPageSize }
+    });
+  }
   const [link, settings] = await Promise.all([
     prisma.shortLink.findUnique({
       where: { id },

@@ -45,6 +45,10 @@ export function normalizeLinkListPageSize(value: unknown) {
   return Math.min(pageSize, MAX_LINK_PAGE_SIZE);
 }
 
+export function resolveLinkListPageSize(value: unknown, savedValue: unknown = DEFAULT_LINK_PAGE_SIZE) {
+  return value === undefined ? normalizeLinkListPageSize(savedValue) : normalizeLinkListPageSize(value);
+}
+
 export function normalizeLinkListTag(value: unknown) {
   const tag = String(value ?? "").trim();
   return tag || undefined;

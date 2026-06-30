@@ -31,6 +31,10 @@ export function normalizeRecentClickPageSize(value: unknown) {
   return normalizePositiveInteger(value, DEFAULT_RECENT_CLICK_PAGE_SIZE, MAX_RECENT_CLICK_PAGE_SIZE);
 }
 
+export function resolveRecentClickPageSize(value: unknown, savedValue: unknown = DEFAULT_RECENT_CLICK_PAGE_SIZE) {
+  return value === undefined ? normalizeRecentClickPageSize(savedValue) : normalizeRecentClickPageSize(value);
+}
+
 export type RecentClickPagination = {
   page: number;
   pageCount: number;

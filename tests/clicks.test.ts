@@ -22,7 +22,8 @@ import {
   purgeExpiredClickEvents,
   purgeExpiredRawIpAddresses,
   rawIpRetentionCutoff,
-  recentClicksPage
+  recentClicksPage,
+  resolveRecentClickPageSize
 } from "@/lib/clicks";
 
 beforeEach(() => {
@@ -42,6 +43,13 @@ describe("click pagination helpers", () => {
     expect(normalizeRecentClickPageSize("30")).toBe(30);
     expect(normalizeRecentClickPageSize("50")).toBe(50);
     expect(normalizeRecentClickPageSize(String(MAX_RECENT_CLICK_PAGE_SIZE + 1))).toBe(MAX_RECENT_CLICK_PAGE_SIZE);
+  });
+
+  it("resolves recent click page size from saved user preference unless a query value is present", () => {
+    expect(resolveRecentClickPageSize(undefined, 35)).toBe(35);
+    expect(resolveRecentClickPageSize(undefined, MAX_RECENT_CLICK_PAGE_SIZE + 1)).toBe(MAX_RECENT_CLICK_PAGE_SIZE);
+    expect(resolveRecentClickPageSize("10", 35)).toBe(10);
+    expect(resolveRecentClickPageSize("", 35)).toBe(DEFAULT_RECENT_CLICK_PAGE_SIZE);
   });
 
   it("loads a stable recent-click page without recalculating full stats", async () => {

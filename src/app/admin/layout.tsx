@@ -6,7 +6,7 @@ import { AdminToastHost } from "@/components/AdminToastHost";
 import { DashboardThemeDrawer } from "@/components/DashboardThemeDrawer";
 import { NewShortUrlModal } from "@/components/NewShortUrlModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { APP_BUILD_LABEL, APP_VERSION } from "@/lib/app-version";
+import { APP_VERSION } from "@/lib/app-version";
 import { isAdminUser, requireAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { dashboardThemeCssVariables } from "@/lib/dashboard-theme";
@@ -91,7 +91,6 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
             </form>
             <span className="admin-sidebar-version">
               Surls v{APP_VERSION}
-              {APP_BUILD_LABEL ? ` ${APP_BUILD_LABEL}` : ""}
             </span>
           </div>
         </div>

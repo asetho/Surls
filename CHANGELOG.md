@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.13.5 - 2026-06-29
+
+### Added
+
+* Saved each user's link-list and recent-click row counts so the chosen rows per page persist across sessions.
+
+### Changed
+
+* Removed the git hash from the admin sidebar version label.
+
+### Upgrade Notes
+
+Run database migrations before starting the new version so user row-count preferences are added.
+
 ## 1.13.4 - 2026-06-28
 
 ### Added

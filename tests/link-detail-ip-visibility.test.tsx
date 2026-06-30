@@ -45,7 +45,9 @@ vi.mock("@/lib/clicks", () => ({
   MAX_RECENT_CLICK_PAGE_SIZE: 500,
   clickStats: clicks.clickStats,
   normalizeRecentClickPage: (value: unknown) => Number(value) || 1,
-  normalizeRecentClickPageSize: (value: unknown) => Number(value) || 20
+  normalizeRecentClickPageSize: (value: unknown) => Number(value) || 20,
+  resolveRecentClickPageSize: (value: unknown, savedValue: unknown = 20) =>
+    value === undefined ? Number(savedValue) || 20 : Number(value) || 20
 }));
 vi.mock("@/app/admin/links/actions", () => ({
   archiveLinkAction: vi.fn(),
