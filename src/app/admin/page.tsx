@@ -134,7 +134,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: S
           <h2>Top links</h2>
         </div>
         <div className="table-wrap">
-          <table className="responsive-table">
+          <table className="data-table data-table-dense responsive-table">
             <thead>
               <tr>
                 <th>Short URL</th>
@@ -158,8 +158,8 @@ export default async function AdminDashboard({ searchParams }: { searchParams: S
                           <ExternalLink size={13} aria-hidden /> <span className="link-destination-url-text">{link.destinationUrl}</span>
                         </a>
                       </td>
-                      <td data-label="Clicks">{link.clickCount}</td>
-                      <td data-label="Actions">
+                      <td className="data-table-numeric" data-label="Clicks">{link.clickCount}</td>
+                      <td className="data-table-actions" data-label="Actions">
                         <CopyShareButtons url={url} title={link.title} defaultTitle={`${siteName} short link`} />
                       </td>
                     </tr>

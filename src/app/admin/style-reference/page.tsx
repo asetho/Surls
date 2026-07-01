@@ -20,6 +20,7 @@ import {
 import { adminLoginPath } from "@/lib/admin-login-path";
 import { requireSiteAdmin } from "@/lib/auth";
 import { DASHBOARD_THEME_TOKEN_REGISTRY, type DashboardThemeKey } from "@/lib/dashboard-theme";
+import { STRUCTURAL_VISUAL_TOKEN_CATEGORIES } from "@/lib/visual-tokens";
 import { StyleReferenceInteractions } from "./StyleReferenceInteractions";
 
 export const metadata: Metadata = {
@@ -118,6 +119,41 @@ export default async function StyleReferencePage() {
                         </div>
                       );
                     })}
+                  </div>
+                </div>
+              </details>
+            ))}
+          </div>
+        </div>
+      </details>
+
+      <details className="surface surface-panel settings-collapse style-reference-token-panel" open>
+        <summary className="settings-card-header">
+          <h2>Structural tokens</h2>
+          <span className="status-pill">Read-only</span>
+        </summary>
+        <div className="settings-collapse-body">
+          <div className="style-reference-token-sections">
+            {STRUCTURAL_VISUAL_TOKEN_CATEGORIES.map((section) => (
+              <details className="settings-collapse style-reference-token-section" key={section.category}>
+                <summary className="settings-card-header">
+                  <h3>{section.category}</h3>
+                  <span className="muted small">{section.tokens.length} tokens</span>
+                </summary>
+                <div className="settings-collapse-body style-reference-token-section-body">
+                  <div className="style-reference-token-grid">
+                    {section.tokens.map((token) => (
+                      <div className="style-reference-token" key={token.id}>
+                        <span>
+                          <strong>{token.label}</strong>
+                          <code>{token.cssCustomProperty ?? token.id}</code>
+                          <small>{token.valueType} / {token.scope}</small>
+                          <small>{token.description}</small>
+                          <small>Value: {token.value}</small>
+                          <small>{token.exampleUsage}</small>
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </details>
@@ -299,7 +335,7 @@ export default async function StyleReferencePage() {
           </div>
         </section>
         <div className="table-wrap">
-          <table className="responsive-table">
+          <table className="data-table data-table-dense responsive-table">
             <thead>
               <tr>
                 <th>Short URL</th>
@@ -320,8 +356,8 @@ export default async function StyleReferencePage() {
                 <td data-label="Status">
                   <span className="badge">Active</span>
                 </td>
-                <td data-label="Clicks">1,559</td>
-                <td data-label="Actions">
+                <td className="data-table-numeric" data-label="Clicks">1,559</td>
+                <td className="data-table-actions" data-label="Actions">
                   <div className="row-actions small">
                     <button className="icon-button secondary" type="button" aria-label="Copy sample">
                       <Copy size={15} aria-hidden />
@@ -342,8 +378,8 @@ export default async function StyleReferencePage() {
                 <td data-label="Status">
                   <span className="badge warning">Disabled</span>
                 </td>
-                <td data-label="Clicks">270</td>
-                <td data-label="Actions">
+                <td className="data-table-numeric" data-label="Clicks">270</td>
+                <td className="data-table-actions" data-label="Actions">
                   <div className="row-actions small">
                     <button className="icon-button secondary" type="button" aria-label="Copy disabled sample">
                       <Copy size={15} aria-hidden />

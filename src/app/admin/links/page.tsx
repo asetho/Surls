@@ -221,7 +221,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
           </div>
         ) : null}
         <div className="table-wrap">
-          <table className="links-table responsive-table">
+          <table className="links-table data-table data-table-dense data-table-links responsive-table">
             <colgroup>
               <col className="links-table-short-col" />
               <col className="links-table-destination-col" />
@@ -283,14 +283,14 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
                           <ExternalLink size={13} aria-hidden /> <span className="link-destination-url-text">{link.destinationUrl}</span>
                         </a>
                       </td>
-                      <td className="small timestamp" data-label="Created">{formatDateTime(link.createdAt, displayTimeZone)}</td>
+                      <td className="small timestamp data-table-time" data-label="Created">{formatDateTime(link.createdAt, displayTimeZone)}</td>
                       <td data-label="Status">
                         <span className={link.archivedAt || !link.enabled ? "badge warning" : "badge"}>
                           {link.archivedAt ? "Archived" : link.enabled ? "Active" : "Disabled"}
                         </span>
                       </td>
-                      <td data-label="Clicks">{link.clickCount}</td>
-                      <td data-label="Actions">
+                      <td className="data-table-numeric" data-label="Clicks">{link.clickCount}</td>
+                      <td className="data-table-actions" data-label="Actions">
                         {view === "archived" ? (
                           <div className="row-actions">
                             <form action={restoreLinkAction}>

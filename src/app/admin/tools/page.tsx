@@ -92,7 +92,7 @@ export default async function ToolsPage() {
                 <h2>API token</h2>
                 <ApiTokenForm csrf={csrf} siteName={settings.siteName} />
                 <div className="table-wrap">
-                  <table className="responsive-table">
+                  <table className="data-table data-table-dense data-table-token-list responsive-table">
                     <thead>
                       <tr>
                         <th>Name</th>
@@ -111,7 +111,7 @@ export default async function ToolsPage() {
                           <td data-label="Scope">{token.scopes}</td>
                           <td data-label="Expires">{tokenExpirationLabel(token.expiresAt)}</td>
                           <td data-label="Status">{tokenStatus(token)}</td>
-                          <td data-label="Actions">
+                          <td className="data-table-actions" data-label="Actions">
                             <div className="row-actions small">
                               {!token.revokedAt ? (
                                 <form action={revokeTokenAction}>

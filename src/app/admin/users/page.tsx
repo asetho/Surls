@@ -57,7 +57,7 @@ export default async function UsersPage() {
       <section className="surface surface-panel">
         <h2>Users</h2>
         <div className="table-wrap">
-          <table className="responsive-table">
+          <table className="data-table data-table-dense data-table-users responsive-table">
             <thead>
               <tr>
                 <th>User</th>
@@ -110,10 +110,10 @@ export default async function UsersPage() {
                       </span>
                     </div>
                   </td>
-                  <td data-label="Links">{user._count.shortLinks}</td>
-                  <td data-label="Sessions">{user._count.sessions}</td>
-                  <td data-label="Last login">{user.lastLoginAt ? formatDateTime(user.lastLoginAt, displayTimeZone) : "Never"}</td>
-                  <td data-label="Actions">
+                  <td className="data-table-numeric" data-label="Links">{user._count.shortLinks}</td>
+                  <td className="data-table-numeric" data-label="Sessions">{user._count.sessions}</td>
+                  <td className="data-table-time" data-label="Last login">{user.lastLoginAt ? formatDateTime(user.lastLoginAt, displayTimeZone) : "Never"}</td>
+                  <td className="data-table-actions" data-label="Actions">
                     {user.id === admin.id ? (
                       <span className="muted small">Current admin</span>
                     ) : (

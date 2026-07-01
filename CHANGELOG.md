@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.14.0 - 2026-07-01
+
+### Added
+
+* Added a canonical CSS and visual-style audit with a local preview artifact.
+* Added read-only structural visual-token documentation for typography, spacing, radius, controls, tables, shadows, motion, layers, and breakpoints.
+* Added Theme Editor search, group filtering, group resets, built-in default token resets, and saved-change indicators.
+* Added shared dense table variants for admin links, users, API tokens, dashboard tables, recent clicks, and style reference samples.
+
+### Changed
+
+* Grouped admin Tools into tabs for creation, tokens, import/export, utilities, and system information.
+* Split new admin table and Theme Editor styling into focused CSS layers outside the legacy global stylesheet.
+
+### Fixed
+
+* Kept link-list timestamps, numeric cells, and row actions aligned while giving destinations more space at normal zoom.
+* Derived the standalone redirect fallback palette from dashboard theme defaults.
+* Added reduced-motion and forced-colors coverage for core admin UI primitives.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.13.9 - 2026-06-30
 
 ### Fixed

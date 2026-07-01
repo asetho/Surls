@@ -36,7 +36,7 @@
         <div class="summary-card">
           <span>Hard-coded baseline</span>
           <strong>275</strong>
-          <small>tracked color literals across 6 files</small>
+          <small>tracked color literals across documented exceptions</small>
         </div>
         <div class="summary-card">
           <span>Server safety</span>
@@ -54,7 +54,8 @@
           <li><a href="#finding-css-001-before">Keep token registry, editor, and reference page in one metadata loop.</a></li>
           <li><a href="#finding-css-003-before">Keep standalone redirect styling derived from registry defaults.</a></li>
           <li><a href="#finding-css-005-before">Keep reduced-motion and forced-colors coverage in new components.</a></li>
-          <li><a href="#finding-css-008-before">Create shared dense-table variants instead of screen-specific width patches.</a></li>
+          <li><a href="#finding-css-004-before">Keep structural tokens documented before making them editable.</a></li>
+          <li><a href="#finding-css-008-before">Keep shared dense-table variants instead of screen-specific width patches.</a></li>
         </ol>
       </section>
 
@@ -105,17 +106,14 @@
           <div class="comparison-copy">
             <span class="badge high">CSS-002 high</span>
             <h3>Global stylesheet scale</h3>
-            <p>Before: 5551 lines of global CSS. After example: a layered contract separates tokens, layout, components, utilities, and route-specific exceptions.</p>
+            <p>Before: one large global CSS file handled every surface. After: new table and Theme Editor contracts live in focused CSS layers while the legacy stylesheet remains available during gradual extraction.</p>
           </div>
           <div class="before-after">
             <pre class="code-card audit-before">globals.css
 base + layout + modals + charts + theme editor + tools + tables</pre>
-            <pre class="code-card audit-after" id="finding-css-002-after">styles/
-tokens.css
-layout.css
-components/table.css
-components/modal.css
-routes/admin-tools.css</pre>
+            <pre class="code-card audit-after" id="finding-css-002-after">src/app/admin-data.css
+src/app/admin-theme-editor.css
+future: modal/chart/settings layers</pre>
           </div>
         </article>
 
@@ -143,7 +141,7 @@ routes/admin-tools.css</pre>
           <div class="comparison-copy">
             <span class="badge medium">CSS-004 medium</span>
             <h3>Structural token gaps</h3>
-            <p>Spacing, radius, type, shadows, z-index, and motion need read-only documentation before they become safe editable controls.</p>
+            <p>Spacing, radius, type, shadows, z-index, and motion now have read-only documentation before they become safe editable controls.</p>
           </div>
           <div class="before-after">
             <div class="density-card audit-before">
@@ -152,7 +150,7 @@ routes/admin-tools.css</pre>
             </div>
             <div class="density-card audit-after" id="finding-css-004-after">
               <button>Save</button><button class="secondary">Cancel</button>
-              <p>Shared control height, gap, and radius scale.</p>
+              <p>Read-only structural token registry.</p>
             </div>
           </div>
         </article>
@@ -197,7 +195,7 @@ routes/admin-tools.css</pre>
           <div class="comparison-copy">
             <span class="badge medium">CSS-008 medium</span>
             <h3>Dense data tables</h3>
-            <p>Shared table variants reduce per-page width patches and keep action controls aligned.</p>
+            <p>Shared table variants now reduce per-page width patches and keep timestamp, numeric, and action cells aligned.</p>
           </div>
           <div class="before-after">
             <table class="mock-table audit-before">
@@ -206,7 +204,7 @@ routes/admin-tools.css</pre>
             </table>
             <table class="mock-table audit-after" id="finding-css-008-after">
               <tr><th>Short URL</th><th>Destination</th><th>Created</th><th>Actions</th></tr>
-              <tr><td><b>/launch</b></td><td>example.com/releases/very-long-path</td><td>Jun 14, 5:18 PM</td><td><span class="icon-row">□ □ □</span></td></tr>
+              <tr><td><b>/launch</b></td><td>example.com/releases/very-long-path</td><td>06/14/26 5:18 PM</td><td><span class="icon-row">□ □ □</span></td></tr>
             </table>
           </div>
         </article>
@@ -221,7 +219,7 @@ routes/admin-tools.css</pre>
           </div>
           <div class="mini-grid after-links">
             <span id="finding-css-009-after">Cleanup batch candidate</span>
-            <span id="finding-css-010-after">Tokenize radius/space scale</span>
+            <span id="finding-css-010-after">Document radius/space scale</span>
             <span id="finding-css-011-after">Keep inventory current</span>
             <span id="finding-css-012-after">Share tab logic</span>
           </div>
@@ -255,10 +253,10 @@ routes/admin-tools.css</pre>
           <h2>Checks and recommendations</h2>
         </div>
         <div class="matrix">
-          <div><b>Contrast</b><span>Manual review; automated scanner not installed.</span></div>
-          <div><b>Keyboard focus</b><span>Focus token exists; forced-color mapping recommended.</span></div>
-          <div><b>Motion</b><span>Reduced-motion rule missing; preview demonstrates target behavior.</span></div>
-          <div><b>Zoom and wrapping</b><span>Dense table variants recommended.</span></div>
+          <div><b>Contrast</b><span>Manual review; automated browser scanner not installed.</span></div>
+          <div><b>Keyboard focus</b><span>Focus token and forced-color mappings are covered.</span></div>
+          <div><b>Motion</b><span>Reduced-motion guard is in the global visual layer.</span></div>
+          <div><b>Zoom and wrapping</b><span>Dense table variants cover audited admin tables.</span></div>
         </div>
       </section>
 
@@ -269,10 +267,10 @@ routes/admin-tools.css</pre>
         </div>
         <ol class="priority-list">
           <li>Keep the token registry and coverage tests from this branch.</li>
-          <li>Add reduced-motion and forced-colors rules.</li>
-          <li>Generate redirect fallback CSS from registry defaults.</li>
-          <li>Move inline visual exceptions into named utility classes.</li>
-          <li>Split the global stylesheet by layer after screenshot coverage is in place.</li>
+          <li>Keep reduced-motion and forced-colors rules in new components.</li>
+          <li>Keep redirect fallback CSS generated from registry defaults.</li>
+          <li>Keep shared dense-table variants on data-heavy pages.</li>
+          <li>Continue splitting the global stylesheet by layer after screenshot coverage is in place.</li>
           <li>Promote structural tokens from read-only documentation to safe editor controls gradually.</li>
         </ol>
       </section>

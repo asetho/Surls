@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, type CSSProperties, type KeyboardEvent } from "react";
-import { AlertTriangle, CheckCircle2, Info, RotateCcw, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, RotateCcw, Search, X } from "lucide-react";
 import {
   DASHBOARD_THEME_FIELD_SECTIONS,
   DASHBOARD_THEME_FIELDS,
@@ -16,6 +16,7 @@ import {
 } from "@/lib/dashboard-theme";
 
 const HEX_COLOR_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+type DashboardThemeSectionKey = (typeof DASHBOARD_THEME_FIELD_SECTIONS)[number]["key"];
 
 function currentDocumentThemeMode(): DashboardThemeMode {
   if (typeof document === "undefined") return "light";
@@ -39,6 +40,7 @@ function previewPalette(values: DashboardThemePalette, savedPalette: DashboardTh
 }
 
 function DashboardThemeColorField({
+  defaultValue,
   fieldKey,
   label,
   mode,
@@ -47,6 +49,7 @@ function DashboardThemeColorField({
   savedValue,
   value
 }: {
+  defaultValue: string;
   fieldKey: DashboardThemeKey;
   label: string;
   mode: DashboardThemeMode;
@@ -58,6 +61,7 @@ function DashboardThemeColorField({
   const pickerColor = expandHexColor(value) ?? savedValue;
   const comparableValue = expandHexColor(value) ?? value.trim().toLowerCase();
   const hasChanged = comparableValue !== savedValue.toLowerCase();
+  const differsFromDefault = comparableValue !== defaultValue.toLowerCase();
 
   return (
     <span className="dashboard-theme-color-row">
@@ -93,6 +97,18 @@ function DashboardThemeColorField({
           </button>
         ) : null}
       </span>
+      {differsFromDefault ? (
+        <button
+          aria-label={`Reset ${label} to built-in default`}
+          className="dashboard-theme-default-color"
+          title="Reset to built-in default"
+          type="button"
+          onClick={() => onChange(mode, fieldKey, defaultValue)}
+        >
+          <RotateCcw aria-hidden="true" size={13} strokeWidth={2.4} />
+          <span className="sr-only">Default</span>
+        </button>
+      ) : null}
       <input
         aria-label={`${label} color picker`}
         className="dashboard-theme-color-swatch"
@@ -219,6 +235,8 @@ export function DashboardThemeEditor({
   const [uncontrolledActiveMode, setUncontrolledActiveMode] = useState<DashboardThemeMode>(
     () => initialMode ?? currentDocumentThemeMode()
   );
+  const [fieldFilter, setFieldFilter] = useState("");
+  const [sectionFilter, setSectionFilter] = useState<DashboardThemeSectionKey | "all">("all");
   const draftTheme = controlledDraftTheme ?? uncontrolledDraftTheme;
   const isControlled = controlledDraftTheme !== undefined;
   const activeMode = controlledActiveMode ?? uncontrolledActiveMode;
@@ -227,6 +245,29 @@ export function DashboardThemeEditor({
     []
   );
   const readOnlyTokens = useMemo(() => DASHBOARD_THEME_TOKEN_REGISTRY.filter((token) => !token.editable), []);
+  const visibleFieldSections = useMemo(() => {
+    const query = fieldFilter.trim().toLowerCase();
+    return DASHBOARD_THEME_FIELD_SECTIONS
+      .filter((section) => sectionFilter === "all" || section.key === sectionFilter)
+      .map((section) => ({
+        ...section,
+        fields: section.fields.filter((field) => {
+          if (!query) return true;
+          const token = tokenRegistryByKey.get(field.key);
+          return [
+            field.key,
+            field.label,
+            field.description,
+            token?.category,
+            token?.subcategory,
+            token?.cssCustomProperty
+          ]
+            .filter(Boolean)
+            .some((value) => String(value).toLowerCase().includes(query));
+        })
+      }))
+      .filter((section) => section.fields.length > 0);
+  }, [fieldFilter, sectionFilter, tokenRegistryByKey]);
 
   function setNextDraftTheme(nextTheme: DashboardTheme) {
     if (isControlled) {
@@ -246,6 +287,27 @@ export function DashboardThemeEditor({
         [key]: value
       }
     });
+  }
+
+  function defaultColorFor(mode: DashboardThemeMode, key: DashboardThemeKey) {
+    const token = tokenRegistryByKey.get(key);
+    return mode === "light" ? token?.defaultLightValue : token?.defaultDarkValue;
+  }
+
+  function resetFieldsToDefaults(mode: DashboardThemeMode, fields: readonly { key: DashboardThemeKey }[]) {
+    setNextDraftTheme({
+      ...draftTheme,
+      [mode]: {
+        ...draftTheme[mode],
+        ...Object.fromEntries(
+          fields.map((field) => [field.key, defaultColorFor(mode, field.key) ?? theme[mode][field.key]])
+        )
+      }
+    });
+  }
+
+  function resetModeToDefaults(mode: DashboardThemeMode) {
+    resetFieldsToDefaults(mode, DASHBOARD_THEME_FIELD_SECTIONS.flatMap((section) => section.fields));
   }
 
   function activateMode(mode: DashboardThemeMode) {
@@ -305,6 +367,33 @@ export function DashboardThemeEditor({
         })}
       </div>
 
+      <div className="dashboard-theme-editor-toolbar" aria-label="Theme token filters">
+        <label className="dashboard-theme-filter">
+          <Search size={15} aria-hidden />
+          <span className="sr-only">Filter theme tokens</span>
+          <input
+            type="search"
+            value={fieldFilter}
+            placeholder="Filter tokens"
+            onChange={(event) => setFieldFilter(event.currentTarget.value)}
+          />
+        </label>
+        <select
+          aria-label="Filter theme token group"
+          value={sectionFilter}
+          onChange={(event) => setSectionFilter(event.currentTarget.value as DashboardThemeSectionKey | "all")}
+        >
+          <option value="all">All groups</option>
+          {DASHBOARD_THEME_FIELD_SECTIONS.map((section) => (
+            <option value={section.key} key={section.key}>{section.label}</option>
+          ))}
+        </select>
+        <button className="secondary" type="button" onClick={() => resetModeToDefaults(activeMode)}>
+          <RotateCcw size={15} aria-hidden />
+          Reset {activeMode} defaults
+        </button>
+      </div>
+
       {DASHBOARD_THEME_MODES.map((mode) => {
         const selected = activeMode === mode.key;
         return (
@@ -318,7 +407,7 @@ export function DashboardThemeEditor({
           key={mode.key}
         >
           <h3>{mode.label}</h3>
-          {DASHBOARD_THEME_FIELD_SECTIONS.map((section) => (
+          {visibleFieldSections.length ? visibleFieldSections.map((section) => (
             variant === "drawer" ? (
               <details
                 className="dashboard-theme-field-section dashboard-theme-field-section-collapsible"
@@ -328,6 +417,12 @@ export function DashboardThemeEditor({
                 <summary>
                   <h4>{section.label}</h4>
                 </summary>
+                <div className="dashboard-theme-section-actions">
+                  <button className="secondary compact-button" type="button" onClick={() => resetFieldsToDefaults(mode.key, section.fields)}>
+                    <RotateCcw size={13} aria-hidden />
+                    Reset group
+                  </button>
+                </div>
                 <div className="dashboard-theme-grid">
                   {section.fields.map((field) => (
                     <label
@@ -339,9 +434,15 @@ export function DashboardThemeEditor({
                       <span>
                         {field.label}
                         <small>{field.description}</small>
-                        <small>Default: {tokenRegistryByKey.get(field.key)?.[mode.key === "light" ? "defaultLightValue" : "defaultDarkValue"]}</small>
+                        <small>
+                          Default: {tokenRegistryByKey.get(field.key)?.[mode.key === "light" ? "defaultLightValue" : "defaultDarkValue"]}
+                        </small>
+                        <small className="dashboard-theme-field-status">
+                          {draftTheme[mode.key][field.key].toLowerCase() === theme[mode.key][field.key].toLowerCase() ? "Saved value" : "Unsaved change"}
+                        </small>
                       </span>
                       <DashboardThemeColorField
+                        defaultValue={defaultColorFor(mode.key, field.key) ?? theme[mode.key][field.key]}
                         fieldKey={field.key}
                         label={`${mode.label} ${field.label}`}
                         mode={mode.key}
@@ -390,16 +491,28 @@ export function DashboardThemeEditor({
               </details>
             ) : (
               <section className="dashboard-theme-field-section" key={section.key}>
-                <h4>{section.label}</h4>
+                <div className="dashboard-theme-section-heading">
+                  <h4>{section.label}</h4>
+                  <button className="secondary compact-button" type="button" onClick={() => resetFieldsToDefaults(mode.key, section.fields)}>
+                    <RotateCcw size={13} aria-hidden />
+                    Reset group
+                  </button>
+                </div>
                 <div className="dashboard-theme-grid">
                   {section.fields.map((field) => (
                     <label className="dashboard-theme-field" key={field.key}>
                       <span>
                         {field.label}
                         <small>{field.description}</small>
-                        <small>Default: {tokenRegistryByKey.get(field.key)?.[mode.key === "light" ? "defaultLightValue" : "defaultDarkValue"]}</small>
+                        <small>
+                          Default: {tokenRegistryByKey.get(field.key)?.[mode.key === "light" ? "defaultLightValue" : "defaultDarkValue"]}
+                        </small>
+                        <small className="dashboard-theme-field-status">
+                          {draftTheme[mode.key][field.key].toLowerCase() === theme[mode.key][field.key].toLowerCase() ? "Saved value" : "Unsaved change"}
+                        </small>
                       </span>
                       <DashboardThemeColorField
+                        defaultValue={defaultColorFor(mode.key, field.key) ?? theme[mode.key][field.key]}
                         fieldKey={field.key}
                         label={`${mode.label} ${field.label}`}
                         mode={mode.key}
@@ -432,7 +545,9 @@ export function DashboardThemeEditor({
                 ) : null}
               </section>
             )
-          ))}
+          )) : (
+            <p className="muted small">No theme tokens match the current filters.</p>
+          )}
 
           {readOnlyTokens.length ? (
             <section className="dashboard-theme-field-section dashboard-theme-readonly-section">

@@ -91,7 +91,7 @@ export function RecentClicksPanel({ initialData, linkId }: RecentClicksPanelProp
         </div>
       ) : null}
       <div className="table-wrap">
-        <table className="responsive-table">
+        <table className="data-table data-table-dense data-table-clicks responsive-table">
           <thead>
             <tr>
               <th>Timestamp</th>
@@ -104,7 +104,7 @@ export function RecentClicksPanel({ initialData, linkId }: RecentClicksPanelProp
             {data.rows.length ? (
               data.rows.map((click) => (
                 <tr key={click.id}>
-                  <td data-label="Timestamp">
+                  <td className="data-table-time" data-label="Timestamp">
                     <span className="timestamp" title={`Database ID: ${click.id}`}>
                       {click.occurredAtLabel}
                     </span>

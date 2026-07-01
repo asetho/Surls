@@ -7,7 +7,7 @@
     {
       "path": "src/app/globals.css",
       "kind": "global-css",
-      "lineCount": 5680,
+      "lineCount": 5679,
       "customPropertyDefinitions": 152,
       "customPropertyReferences": 273,
       "colorLiteralCount": 151,
@@ -25,7 +25,19 @@
       "keyframes": [
         "dashboard-theme-field-highlight-pulse"
       ],
-      "notes": "Primary source for reset, layout, admin shell, components, dashboard theme variables, responsive rules, accessibility media queries, style reference, tools tabs, charts, and modals."
+      "notes": "Primary legacy source for reset, layout, admin shell, components, dashboard theme variables, responsive rules, accessibility media queries, style reference, tools tabs, charts, and modals."
+    },
+    {
+      "path": "src/app/admin-data.css",
+      "kind": "component-css-layer",
+      "lineCount": 127,
+      "notes": "Shared dense data-table, timestamp, numeric, action-cell, and mobile-card contracts for admin tables."
+    },
+    {
+      "path": "src/app/admin-theme-editor.css",
+      "kind": "component-css-layer",
+      "lineCount": 109,
+      "notes": "Theme Editor search, group reset, default reset, and field-status controls."
     },
     {
       "path": "src/lib/dashboard-theme.ts",
@@ -34,6 +46,12 @@
       "editableTokens": 51,
       "readOnlyTokens": 8,
       "notes": "Canonical dashboard theme defaults, normalizer, CSS variable emitters, and token registry metadata."
+    },
+    {
+      "path": "src/lib/visual-tokens.ts",
+      "kind": "structural-token-registry",
+      "structuralTokens": 20,
+      "notes": "Read-only and derived typography, spacing, radius, controls, tables, shadow, motion, layer, and breakpoint metadata."
     },
     {
       "path": "src/components/DashboardThemeEditor.tsx",
@@ -86,15 +104,16 @@
       "statsTabActiveText",
       "statsTabActiveBorder"
     ],
-    "missingThemeFamilies": [
-      "Typography scale",
-      "Spacing scale",
-      "Radius scale",
-      "Elevation/shadow scale",
-      "Icon size/stroke scale",
-      "Z-index layers",
-      "Motion duration/easing",
-      "Responsive breakpoints"
+    "readOnlyStructuralFamilies": [
+      "Typography",
+      "Spacing",
+      "Radius",
+      "Controls",
+      "Tables",
+      "Shadows",
+      "Motion",
+      "Layers",
+      "Breakpoints"
     ]
   },
   "hardCodedValueInventory": {
@@ -108,27 +127,27 @@
   "routeCoverageMatrix": [
     {
       "route": "/admin",
-      "status": "reviewed-source-and-previewed",
+      "status": "reviewed-source-and-shared-table-updated",
       "surfaces": ["metrics", "recent link table", "charts", "topbar", "sidebar"]
     },
     {
       "route": "/admin/links",
-      "status": "reviewed-source-and-previous-browser-verified",
+      "status": "reviewed-source-and-shared-table-updated",
       "surfaces": ["filter toolbar", "responsive link table", "badges", "icon actions", "pagination"]
     },
     {
       "route": "/admin/links/[id]",
-      "status": "reviewed-source",
+      "status": "reviewed-source-and-shared-table-updated",
       "surfaces": ["metrics", "tabs", "charts", "recent clicks", "modals", "QR controls"]
     },
     {
       "route": "/admin/tools",
-      "status": "local-browser-verified",
+      "status": "local-browser-verified-and-tabs-updated",
       "surfaces": ["tabs", "upload form", "bookmarklet", "API token table", "import/export", "utilities", "system info"]
     },
     {
       "route": "/admin/users",
-      "status": "reviewed-source",
+      "status": "reviewed-source-and-shared-table-updated",
       "surfaces": ["user creation form", "user table", "status badges", "admin actions"]
     },
     {
@@ -139,7 +158,7 @@
     {
       "route": "/admin/style-reference",
       "status": "updated-source",
-      "surfaces": ["token registry", "typography", "buttons", "forms", "tables", "charts", "notices", "empty states"]
+      "surfaces": ["token registry", "structural tokens", "typography", "buttons", "forms", "tables", "charts", "notices", "empty states"]
     },
     {
       "route": "/admin/profile",
@@ -194,10 +213,10 @@
   ],
   "accessibilityInventory": {
     "contrast": "Token contrast reviewed manually in preview; full automated contrast scanner is not installed in this repo.",
-    "focus": "Focus-ring tokens exist, but forced-colors coverage is missing.",
+    "focus": "Focus-ring tokens exist with forced-colors coverage for core controls.",
     "motion": "prefers-reduced-motion now disables nonessential transitions and animation.",
     "forcedColors": "forced-colors rules now cover core controls, surfaces, tables, focus, and feedback primitives.",
-    "touchTargets": "Controls use --control-height in many places; icon-only and table actions need a shared density contract."
+    "touchTargets": "Controls use --control-height in many places; icon-only and table actions now use a shared dense-table sizing contract."
   },
   "limitations": [
     "No production data was used.",

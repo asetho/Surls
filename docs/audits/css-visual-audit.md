@@ -12,7 +12,7 @@ Machine-readable inventory: `docs/audits/css-visual-inventory.json`
 
 The app has a coherent admin visual identity built around a blue/teal dashboard palette, compact controls, rounded panels, dense data tables, and a configurable light/dark dashboard theme. The biggest risk is not the visual direction; it is that the styling system grew organically into a large global stylesheet with theme metadata split across defaults, emitters, editor controls, and documentation.
 
-This branch records the current behavior, adds a canonical dashboard theme-token registry, updates the style reference to document registry entries, exposes read-only compatibility tokens in the theme editor, adds coverage tests so emitted dashboard variables, editor/reference coverage, and hard-coded visual exceptions cannot silently drift, and fixes the lowest-risk issues identified by the audit.
+This branch records the current behavior, adds a canonical dashboard theme-token registry, updates the style reference to document registry entries, exposes read-only compatibility tokens in the theme editor, adds read-only structural visual tokens, introduces shared dense-table variants, adds coverage tests so emitted dashboard variables, editor/reference coverage, responsive table contracts, and hard-coded visual exceptions cannot silently drift, and fixes the lowest-risk issues identified by the audit.
 
 The standalone preview demonstrates proposed improvements without importing them into production styling.
 
@@ -45,9 +45,9 @@ No production data was used. No commands, deployments, requests, health checks, 
 1. Keep the canonical `DASHBOARD_THEME_TOKEN_REGISTRY` and coverage tests from this branch.
 2. Keep the new global `prefers-reduced-motion` and `forced-colors` rules in future component work.
 3. Keep standalone redirect fallback CSS derived from registry defaults instead of hard-coded duplicated palettes.
-4. Create shared dense-table variants for link/user/token/click tables.
-5. Continue limiting inline visual styles to data-driven chart positions or CSS-variable bridges.
-6. Split `globals.css` by layer or component family only after screenshot coverage is in place.
+4. Keep the shared dense-table variants for link/user/token/click tables.
+5. Keep structural tokens read-only until a focused migration can safely expose editable spacing, radius, and type controls.
+6. Continue extracting `globals.css` by component family only after screenshot coverage is in place.
 
 ## Design-Token Inventory
 
@@ -62,7 +62,7 @@ Dashboard theme registry: 59 tokens.
 | Status and feedback | 9 | Success, error, and info toast tokens. |
 | Borders and focus | 1 | Derived focus ring compatibility token. |
 
-Missing structural token families: typography scale, spacing scale, radius scale, shadow/elevation scale, icon size/stroke scale, z-index layers, motion timings, and responsive breakpoints.
+Structural token families are now documented in `src/lib/visual-tokens.ts` as read-only or derived values for typography, spacing, radius, controls, tables, shadows, motion, layers, and breakpoints.
 
 ## Hard-Coded-Value Inventory
 
@@ -86,18 +86,18 @@ This is a baseline, not an endorsement. `tests/theme-token-coverage.test.ts` fai
 | Theme editor read-only compatibility fields | 8/8 listed with reason. |
 | Style reference token list | 59/59 dashboard tokens rendered from registry. |
 | Saved theme compatibility | Preserved through `normalizeDashboardTheme`; missing/invalid values fall back to defaults. |
-| Structural tokens | Documented gap; not fully editable yet. |
+| Structural tokens | Documented as read-only/derived values; not fully editable yet. |
 
 Theme-editor coverage: 100% for current dashboard color/compatibility token registry.  
 Style-reference coverage: 100% for current dashboard color/compatibility token registry.  
-Remaining undocumented structural token families: 8.
+Structural token families not yet editable: 8 intentionally read-only families.
 
 ## Component and Route Coverage Matrix
 
 | Route or component | Audit status | Notes |
 | --- | --- | --- |
 | `/admin` | Source reviewed, represented in preview | Metrics, topbar, sidebar, dashboard density. |
-| `/admin/links` | Source reviewed, previous browser evidence considered | Dense table and action alignment remain a priority. |
+| `/admin/links` | Source reviewed, previous browser evidence considered | Uses shared dense-table variant with stable timestamp, numeric, and action cells. |
 | `/admin/links/[id]` | Source reviewed | Chart tabs, recent clicks, QR/modal surfaces. |
 | `/admin/tools` | Local browser verified | Tools are grouped into tabs on this branch. |
 | `/admin/users` | Source reviewed | Table, status badges, admin controls. |
@@ -132,11 +132,12 @@ Screenshot artifacts:
 - `forced-colors` now covers core controls, surfaces, tables, focus, and feedback primitives.
 - The focus-ring token exists and now has a forced-colors system-color fallback.
 - Muted and placeholder colors are themeable, but full contrast automation is not installed in this repository.
-- Dense table and icon-action touch targets need a shared sizing contract.
+- Dense table and icon-action touch targets now use a shared sizing contract for the audited admin tables.
 
 ## CSS Maintenance Findings
 
-- `src/app/globals.css` is the dominant styling surface at 5680 lines.
+- `src/app/globals.css` is the dominant styling surface at 5679 lines.
+- New focused CSS layers were added for dense data tables and Theme Editor controls: `src/app/admin-data.css` and `src/app/admin-theme-editor.css`.
 - The stylesheet contains 30 `!important` declarations, mostly compatibility overrides plus reduced-motion overrides.
 - Static inline style exceptions were converted into named classes; remaining inline styles are data-driven chart positions or CSS-variable bridges.
 - The redirect fallback document now derives its fallback colors from `DEFAULT_DASHBOARD_THEME`.
@@ -184,16 +185,15 @@ Proposed styles are namespaced under `.audit-after` and are not imported by the 
 - No production server was accessed.
 - The repository does not include an installed automated accessibility scanner such as `axe-core`; accessibility checks were source-based and visual-preview based.
 - The audit does not claim every possible authenticated runtime state was exercised in a live browser. It covers reachable source routes, local fixtures, and the static review site.
-- Structural tokens are inventoried as gaps rather than fully implemented as editable production controls.
+- Structural tokens are implemented as read-only documentation and tests rather than editable production controls.
 
 ## Implementation Sequence
 
 1. Merge registry, coverage tests, reduced-motion, forced-colors, redirect fallback, and inline-style cleanup from this branch.
-2. Add screenshot/a11y tooling before broad stylesheet refactors.
-3. Create shared dense-table variants and migrate data-heavy pages.
-4. Split global CSS into layered files or component families.
-5. Add read-only structural token documentation.
-6. Promote safe structural tokens to theme-editor controls gradually.
+2. Keep static visual/a11y guards for reduced motion, forced colors, structural-token coverage, and responsive table contracts.
+3. Keep shared dense-table variants on data-heavy pages.
+4. Split more global CSS into layered files or component families.
+5. Promote safe structural tokens to theme-editor controls gradually.
 7. Remove deprecated graph-tab compatibility tokens only with an explicit migration plan.
 
 ## Findings

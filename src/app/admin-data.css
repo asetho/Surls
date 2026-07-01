@@ -1,0 +1,127 @@
+.data-table {
+  --data-table-action-size: 1.86rem;
+  --data-table-cell-x: 0.6rem;
+  --data-table-cell-y: 0.52rem;
+  --data-table-min-width: 780px;
+  min-width: min(var(--data-table-min-width), 100%);
+}
+
+.data-table-dense {
+  --data-table-cell-x: 0.56rem;
+  --data-table-cell-y: 0.46rem;
+}
+
+.data-table th,
+.data-table td {
+  padding: var(--data-table-cell-y) var(--data-table-cell-x);
+}
+
+.data-table-time,
+.data-table-numeric {
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table-time {
+  white-space: nowrap;
+}
+
+.data-table-numeric {
+  text-align: right;
+}
+
+.data-table-actions {
+  text-align: right;
+}
+
+.data-table-actions .row-actions {
+  flex-wrap: nowrap;
+  gap: 0.32rem;
+  justify-content: flex-end;
+}
+
+.data-table-actions .icon-button,
+.data-table-actions .button.icon-only-action,
+.data-table-actions .icon-button.icon-only-action,
+.data-table-actions .addtoany-share .addtoany-share-button.icon-only-action {
+  flex: 0 0 var(--data-table-action-size);
+  height: var(--data-table-action-size);
+  min-height: var(--data-table-action-size);
+  min-width: var(--data-table-action-size);
+  padding: 0;
+  width: var(--data-table-action-size);
+}
+
+.data-table .link-destination-cell {
+  max-width: none;
+  width: auto;
+}
+
+.data-table-links {
+  --data-table-min-width: 760px;
+  --links-table-actions-col: 7.35rem;
+  --links-table-clicks-col: 4.35rem;
+  --links-table-created-col: 10.75rem;
+  --links-table-short-col: 6.75rem;
+  --links-table-status-col: 5.35rem;
+}
+
+.links-table-short-col {
+  width: var(--links-table-short-col, 8.5rem);
+}
+
+.links-table-created-col {
+  width: var(--links-table-created-col, 10.5rem);
+}
+
+.links-table-status-col {
+  width: var(--links-table-status-col, 5.8rem);
+}
+
+.links-table-clicks-col {
+  width: var(--links-table-clicks-col, 5rem);
+}
+
+.links-table-actions-col {
+  width: var(--links-table-actions-col, 8.6rem);
+}
+
+.data-table-links .short-url-pill {
+  max-width: min(100%, 6.2rem);
+}
+
+.data-table-users {
+  --data-table-min-width: 850px;
+}
+
+.data-table-clicks {
+  --data-table-min-width: 720px;
+}
+
+.data-table-token-list {
+  --data-table-min-width: 720px;
+}
+
+@media (max-width: 700px) {
+  table.responsive-table td[data-label]::before {
+    letter-spacing: 0;
+  }
+
+  .data-table,
+  .data-table-dense {
+    --data-table-cell-x: 0;
+    --data-table-cell-y: 0;
+  }
+
+  .data-table-numeric,
+  .data-table-actions {
+    text-align: left;
+  }
+
+  .data-table-actions .row-actions {
+    justify-content: flex-start;
+  }
+
+  .data-table-links .short-url-pill {
+    max-width: 100%;
+  }
+}
