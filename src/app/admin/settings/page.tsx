@@ -120,7 +120,7 @@ export default async function SettingsPage() {
         </div>
       </div>
 
-      <section className="surface" style={{ padding: "1rem" }}>
+      <section className="surface settings-primary-card">
         <form className="form-stack" action={updateSettingsAction}>
           <input type="hidden" name="csrf" value={csrf} />
           <input type="hidden" name="returnTo" value="/admin/settings" />
@@ -152,10 +152,10 @@ export default async function SettingsPage() {
           <label>
             <span>
               <input
+                className="inline-control"
                 name="trackAdminClicks"
                 type="checkbox"
                 defaultChecked={settings.trackAdminClicks}
-                style={{ width: "auto", minHeight: "auto" }}
               />{" "}
               Track admin clicks
             </span>
@@ -167,10 +167,10 @@ export default async function SettingsPage() {
           <label>
             <span>
               <input
+                className="inline-control"
                 name="preserveRedirectQuery"
                 type="checkbox"
                 defaultChecked={settings.preserveRedirectQuery}
-                style={{ width: "auto", minHeight: "auto" }}
               />{" "}
               Preserve incoming redirect query strings
             </span>

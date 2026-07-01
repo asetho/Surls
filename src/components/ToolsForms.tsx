@@ -104,7 +104,7 @@ export function ApiTokenForm({ csrf, siteName }: { csrf: string; siteName: strin
       {state?.token ? (
         <div className="success">
           <strong>Copy this token now. It will not be shown again.</strong>
-          <code style={{ display: "block", overflowWrap: "anywhere" }}>{state.token}</code>
+          <code className="code-block">{state.token}</code>
         </div>
       ) : null}
       {state?.error ? <div className="alert">{state.error}</div> : null}
@@ -151,7 +151,7 @@ export function ImportCsvForm({ csrf }: { csrf: string }) {
       </label>
       <label>
         <span>
-          <input name="confirm" type="checkbox" style={{ width: "auto", minHeight: "auto" }} /> Confirm import
+          <input className="inline-control" name="confirm" type="checkbox" /> Confirm import
         </span>
         <span className="muted small">Leave unchecked to preview validation errors without importing.</span>
       </label>
@@ -204,7 +204,7 @@ export function UtmBuilder() {
           <input value={campaign} onChange={(event) => setCampaign(event.target.value)} />
         </label>
       </div>
-      {built ? <code style={{ overflowWrap: "anywhere" }}>{built}</code> : <p className="muted">Enter a valid URL to build UTM parameters.</p>}
+      {built ? <code className="code-wrap">{built}</code> : <p className="muted">Enter a valid URL to build UTM parameters.</p>}
     </div>
   );
 }

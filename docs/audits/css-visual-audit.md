@@ -12,7 +12,7 @@ Machine-readable inventory: `docs/audits/css-visual-inventory.json`
 
 The app has a coherent admin visual identity built around a blue/teal dashboard palette, compact controls, rounded panels, dense data tables, and a configurable light/dark dashboard theme. The biggest risk is not the visual direction; it is that the styling system grew organically into a large global stylesheet with theme metadata split across defaults, emitters, editor controls, and documentation.
 
-This branch records the current behavior, adds a canonical dashboard theme-token registry, updates the style reference to document registry entries, exposes read-only compatibility tokens in the theme editor, and adds coverage tests so emitted dashboard variables, editor/reference coverage, and hard-coded visual exceptions cannot silently drift.
+This branch records the current behavior, adds a canonical dashboard theme-token registry, updates the style reference to document registry entries, exposes read-only compatibility tokens in the theme editor, adds coverage tests so emitted dashboard variables, editor/reference coverage, and hard-coded visual exceptions cannot silently drift, and fixes the lowest-risk issues identified by the audit.
 
 The standalone preview demonstrates proposed improvements without importing them into production styling.
 
@@ -43,10 +43,10 @@ No production data was used. No commands, deployments, requests, health checks, 
 ## Top-Priority Recommendations
 
 1. Keep the canonical `DASHBOARD_THEME_TOKEN_REGISTRY` and coverage tests from this branch.
-2. Add global `prefers-reduced-motion` and `forced-colors` rules.
-3. Generate standalone redirect fallback CSS from registry defaults instead of hard-coded duplicated palettes.
+2. Keep the new global `prefers-reduced-motion` and `forced-colors` rules in future component work.
+3. Keep standalone redirect fallback CSS derived from registry defaults instead of hard-coded duplicated palettes.
 4. Create shared dense-table variants for link/user/token/click tables.
-5. Convert repeated inline visual exceptions into named utility classes.
+5. Continue limiting inline visual styles to data-driven chart positions or CSS-variable bridges.
 6. Split `globals.css` by layer or component family only after screenshot coverage is in place.
 
 ## Design-Token Inventory
@@ -70,10 +70,10 @@ The tracked baseline is in `docs/audits/css-hardcoded-exceptions.json`.
 
 | Metric | Count |
 | --- | ---: |
-| Files with documented visual literals or inline styles | 15 |
-| Color literals | 291 |
-| Inline style attributes | 18 |
-| `!important` declarations | 25 |
+| Files with documented visual literals or inline styles | 7 |
+| Color literals | 275 |
+| Inline style attributes | 6 |
+| `!important` declarations | 30 |
 
 This is a baseline, not an endorsement. `tests/theme-token-coverage.test.ts` fails if these counts grow without documenting the exception.
 
@@ -128,19 +128,18 @@ Screenshot artifacts:
 
 ## Accessibility Findings
 
-- No `prefers-reduced-motion` media query was found, while transitions and one keyframe animation exist.
-- No `forced-colors` or `prefers-contrast` rules were found.
-- The focus-ring token exists and is derived, but system-color fallback behavior is not documented in CSS.
+- `prefers-reduced-motion` now disables nonessential transitions and animation.
+- `forced-colors` now covers core controls, surfaces, tables, focus, and feedback primitives.
+- The focus-ring token exists and now has a forced-colors system-color fallback.
 - Muted and placeholder colors are themeable, but full contrast automation is not installed in this repository.
 - Dense table and icon-action touch targets need a shared sizing contract.
 
 ## CSS Maintenance Findings
 
-- `src/app/globals.css` is the dominant styling surface at 5551 lines.
-- The stylesheet contains 25 `!important` declarations, mostly compatibility and compact-control overrides.
-- A duplicate `transform: rotate(-45deg);` declaration exists in the theme editor disclosure chevron rule.
-- Inline style exceptions are now documented and gated, but should be converted into reusable classes over time.
-- The redirect fallback document carries duplicated hard-coded theme colors outside the registry.
+- `src/app/globals.css` is the dominant styling surface at 5680 lines.
+- The stylesheet contains 30 `!important` declarations, mostly compatibility overrides plus reduced-motion overrides.
+- Static inline style exceptions were converted into named classes; remaining inline styles are data-driven chart positions or CSS-variable bridges.
+- The redirect fallback document now derives its fallback colors from `DEFAULT_DASHBOARD_THEME`.
 
 ## Canonical Theme Token Registry
 
@@ -189,16 +188,13 @@ Proposed styles are namespaced under `.audit-after` and are not imported by the 
 
 ## Implementation Sequence
 
-1. Merge registry and coverage tests.
-2. Add reduced-motion and forced-colors CSS.
-3. Generate redirect fallback colors from registry defaults.
-4. Replace inline style exceptions with named utility classes.
-5. Add screenshot/a11y tooling before broad stylesheet refactors.
-6. Split global CSS into layered files or component families.
-7. Add read-only structural token documentation.
-8. Promote safe structural tokens to theme-editor controls gradually.
-9. Add dense-table variants and migrate data-heavy pages.
-10. Remove deprecated graph-tab compatibility tokens only with an explicit migration plan.
+1. Merge registry, coverage tests, reduced-motion, forced-colors, redirect fallback, and inline-style cleanup from this branch.
+2. Add screenshot/a11y tooling before broad stylesheet refactors.
+3. Create shared dense-table variants and migrate data-heavy pages.
+4. Split global CSS into layered files or component families.
+5. Add read-only structural token documentation.
+6. Promote safe structural tokens to theme-editor controls gradually.
+7. Remove deprecated graph-tab compatibility tokens only with an explicit migration plan.
 
 ## Findings
 

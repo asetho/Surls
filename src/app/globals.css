@@ -93,6 +93,19 @@ samp {
   font-family: var(--font-mono);
 }
 
+.code-block {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.code-wrap {
+  overflow-wrap: anywhere;
+}
+
+.scrollable-code {
+  overflow-x: auto;
+}
+
 button,
 .button {
   align-items: center;
@@ -233,6 +246,10 @@ button.danger-outline:hover {
   height: 2.15rem;
   justify-content: center;
   width: 2.15rem;
+}
+
+.brand-mark-fallback {
+  background: var(--teal);
 }
 
 .brand-mark-favicon {
@@ -377,6 +394,14 @@ button.danger-outline:hover {
 
 .surface-panel > .content-header:first-child {
   padding-top: 0.12rem;
+}
+
+.not-found-panel {
+  max-width: 680px;
+}
+
+.settings-primary-card {
+  padding: 1rem;
 }
 
 .settings-status-grid {
@@ -2595,6 +2620,10 @@ button.danger-outline:hover {
   white-space: nowrap;
 }
 
+.timestamp-metric-value {
+  font-size: 1rem;
+}
+
 .alert {
   background: color-mix(in srgb, var(--danger-background, var(--color-red)), transparent 88%);
   border: 1px solid color-mix(in srgb, var(--danger-border, var(--color-red)), transparent 50%);
@@ -2679,6 +2708,11 @@ button.danger-outline:hover {
 
 .choice-row input {
   flex: 0 0 auto;
+  min-height: auto;
+  width: auto;
+}
+
+.inline-control {
   min-height: auto;
   width: auto;
 }
@@ -5570,5 +5604,76 @@ th {
 
   .theme-editor-drawer-actions {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+
+  .dashboard-theme-field-highlight {
+    animation: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :root {
+    --focus-ring: 0 0 0 2px Canvas, 0 0 0 4px Highlight;
+  }
+
+  a {
+    color: LinkText;
+  }
+
+  button,
+  .button {
+    background: ButtonFace;
+    border-color: ButtonText;
+    color: ButtonText;
+    forced-color-adjust: auto;
+  }
+
+  input,
+  select,
+  textarea,
+  .surface,
+  .surface-panel,
+  .metric,
+  .badge,
+  .status-pill,
+  .sort-badge,
+  .short-url-pill,
+  .system-toast,
+  .modal-card,
+  .theme-editor-drawer,
+  table,
+  th,
+  td {
+    border-color: CanvasText;
+  }
+
+  button:focus-visible,
+  .button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 3px;
+  }
+
+  .danger,
+  .danger-outline,
+  .badge.warning,
+  .alert {
+    border-color: CanvasText;
+    color: CanvasText;
   }
 }

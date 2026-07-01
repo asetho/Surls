@@ -8,6 +8,7 @@ import { checkRateLimit } from "./rate-limit";
 import { requestIpHash } from "./request";
 import { appendForwardedQuery } from "./url-safety";
 import { appBaseUrl } from "./env";
+import { DEFAULT_DASHBOARD_THEME } from "./dashboard-theme";
 import { publicWebrootNotFoundResponse, publicWebrootResponse } from "./webroot";
 
 export const REDIRECT_ANALYTICS_RATE_LIMIT = {
@@ -68,16 +69,29 @@ function escapeHtml(value: string) {
   });
 }
 
+function unavailableFallbackThemeCss() {
+  const light = DEFAULT_DASHBOARD_THEME.light;
+  const dark = DEFAULT_DASHBOARD_THEME.dark;
+
+  return {
+    dark,
+    darkShadow: `0 18px 50px ${dark.shadowColor}47`,
+    light,
+    lightShadow: `0 18px 50px ${light.shadowColor}1f`
+  };
+}
+
 function unavailableFallbackHtml(siteName: string, reason: string) {
   const escapedSiteName = escapeHtml(siteName);
+  const theme = unavailableFallbackThemeCss();
   return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#e9f2f6">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#052f3b">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="${theme.light.background}">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="${theme.dark.background}">
   <title>Short URL unavailable | ${escapedSiteName}</title>
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -85,23 +99,23 @@ function unavailableFallbackHtml(siteName: string, reason: string) {
   <style>
     :root {
       color-scheme: light dark;
-      --background: #e9f2f6;
-      --surface: #ffffff;
-      --text: #0b2636;
-      --muted: #477282;
-      --border: #bdd8e4;
-      --accent: #087e8b;
-      --shadow: 0 18px 50px #0a5c701f;
+      --background: ${theme.light.background};
+      --surface: ${theme.light.surface};
+      --text: ${theme.light.text};
+      --muted: ${theme.light.muted};
+      --border: ${theme.light.border};
+      --accent: ${theme.light.accent};
+      --shadow: ${theme.lightShadow};
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --background: #052f3b;
-        --surface: #0a5c70;
-        --text: #f3fbff;
-        --muted: #92c1d3;
-        --border: #3c8ea0;
-        --accent: #64abbb;
-        --shadow: 0 18px 50px #00000047;
+        --background: ${theme.dark.background};
+        --surface: ${theme.dark.surface};
+        --text: ${theme.dark.text};
+        --muted: ${theme.dark.muted};
+        --border: ${theme.dark.border};
+        --accent: ${theme.dark.accent};
+        --shadow: ${theme.darkShadow};
       }
     }
     * { box-sizing: border-box; }

@@ -47,16 +47,16 @@
       "affectedRouteOrComponent": "Standalone redirect fallback page",
       "source": "src/lib/redirect.ts",
       "line": 79,
-      "currentBehavior": "The generated redirect fallback document contains its own hard-coded light and dark color palette.",
+      "currentBehavior": "The generated redirect fallback document previously contained its own hard-coded light and dark color palette; this branch derives it from DEFAULT_DASHBOARD_THEME.",
       "problem": "The fallback page can visually drift from the admin theme and custom palette because it does not consume the dashboard token registry.",
       "accessibilityOrUsabilityImpact": "Contrast and brand consistency can diverge on error or redirect states, which are high-friction moments.",
-      "recommendedChange": "Generate redirect fallback CSS from registry defaults or a sanitized exported palette rather than copying colors.",
+      "recommendedChange": "Keep redirect fallback CSS derived from registry defaults or a sanitized exported palette rather than copying colors.",
       "relevantThemeToken": "background, surface, text, muted, border, accent, shadowColor",
       "beforeScreenshotOrPreviewAnchor": "visual-audit-preview/index.html#finding-css-003-before",
       "afterExampleOrPreviewAnchor": "visual-audit-preview/index.html#finding-css-003-after",
       "affectsProductionBehavior": true,
       "implementationRisk": "medium",
-      "status": "previewed"
+      "status": "resolved-in-branch"
     },
     {
       "id": "CSS-004",
@@ -83,16 +83,16 @@
       "affectedRouteOrComponent": "Motion and transient UI",
       "source": "src/app/globals.css",
       "line": 4126,
-      "currentBehavior": "Transitions and one keyframe animation are defined, but no prefers-reduced-motion handling is present.",
+      "currentBehavior": "Transitions and one keyframe animation are defined; this branch adds prefers-reduced-motion handling that disables nonessential motion.",
       "problem": "Users who request reduced motion still receive opacity/transform transitions and highlight pulses.",
       "accessibilityOrUsabilityImpact": "Motion-sensitive users may experience discomfort, and focus highlight animation can be distracting.",
-      "recommendedChange": "Add a global reduced-motion media query that disables nonessential transitions and animations.",
+      "recommendedChange": "Keep the global reduced-motion media query and include it in future screenshot/a11y checks.",
       "relevantThemeToken": "Proposed: motion.duration, motion.easing",
       "beforeScreenshotOrPreviewAnchor": "visual-audit-preview/index.html#finding-css-005-before",
       "afterExampleOrPreviewAnchor": "visual-audit-preview/index.html#finding-css-005-after",
       "affectsProductionBehavior": true,
       "implementationRisk": "low",
-      "status": "previewed"
+      "status": "resolved-in-branch"
     },
     {
       "id": "CSS-006",
@@ -101,16 +101,16 @@
       "affectedRouteOrComponent": "High contrast and forced colors",
       "source": "src/app/globals.css",
       "line": 1,
-      "currentBehavior": "No forced-colors or prefers-contrast media queries were found.",
+      "currentBehavior": "This branch adds forced-colors rules for core controls, surfaces, tables, focus, and feedback primitives.",
       "problem": "Custom backgrounds, borders, and focus rings may not adapt well in Windows High Contrast or user contrast modes.",
       "accessibilityOrUsabilityImpact": "Controls and badges can lose visible boundaries for users relying on system contrast settings.",
-      "recommendedChange": "Add forced-colors rules for buttons, links, inputs, badges, table borders, focus rings, and modals.",
+      "recommendedChange": "Expand forced-colors coverage as new components are added.",
       "relevantThemeToken": "focusRing, border, text, background",
       "beforeScreenshotOrPreviewAnchor": "visual-audit-preview/index.html#finding-css-006-before",
       "afterExampleOrPreviewAnchor": "visual-audit-preview/index.html#finding-css-006-after",
       "affectsProductionBehavior": true,
       "implementationRisk": "medium",
-      "status": "proposed"
+      "status": "resolved-in-branch"
     },
     {
       "id": "CSS-007",
@@ -119,16 +119,16 @@
       "affectedRouteOrComponent": "Inline styles in components and pages",
       "source": "src/components/ToolsForms.tsx",
       "line": 107,
-      "currentBehavior": "Fifteen inline style attributes are currently documented across tool forms, settings, layout, charts, modals, and one-off pages.",
+      "currentBehavior": "Static inline visual declarations were replaced with named classes; six remaining inline styles are data-driven chart positioning or CSS-variable bridges.",
       "problem": "Inline declarations bypass reusable classes, are harder to theme, and can hide repeated layout primitives.",
       "accessibilityOrUsabilityImpact": "One-off sizing can create inconsistent touch targets and wrapping behavior.",
-      "recommendedChange": "Move repeated inline visual values into named utility classes or component variants with token-backed values.",
+      "recommendedChange": "Keep remaining inline styles limited to data-driven chart positioning or CSS-variable bridges.",
       "relevantThemeToken": "controlHeight, controlPaddingX, controlPaddingY, proposed size utilities",
       "beforeScreenshotOrPreviewAnchor": "visual-audit-preview/index.html#finding-css-007-before",
       "afterExampleOrPreviewAnchor": "visual-audit-preview/index.html#finding-css-007-after",
       "affectsProductionBehavior": true,
       "implementationRisk": "low",
-      "status": "proposed"
+      "status": "resolved-in-branch"
     },
     {
       "id": "CSS-008",
@@ -155,16 +155,16 @@
       "affectedRouteOrComponent": "Theme editor disclosure chevrons",
       "source": "src/app/globals.css",
       "line": 1586,
-      "currentBehavior": "The same transform declaration appears twice in the summary chevron rule.",
+      "currentBehavior": "The duplicate transform declaration identified during audit is no longer present.",
       "problem": "Duplicate declarations are harmless here but indicate stylesheet drift.",
       "accessibilityOrUsabilityImpact": "No direct user impact.",
-      "recommendedChange": "Remove duplicate declarations during the first CSS-health cleanup batch.",
+      "recommendedChange": "Keep duplicate declaration checks in future CSS-health cleanup batches.",
       "relevantThemeToken": "none",
       "beforeScreenshotOrPreviewAnchor": "visual-audit-preview/index.html#finding-css-009-before",
       "afterExampleOrPreviewAnchor": "visual-audit-preview/index.html#finding-css-009-after",
       "affectsProductionBehavior": false,
       "implementationRisk": "low",
-      "status": "observed"
+      "status": "resolved-in-branch"
     },
     {
       "id": "CSS-010",
@@ -191,7 +191,7 @@
       "affectedRouteOrComponent": "Author-controlled styling sources",
       "source": "src/app/globals.css",
       "line": 1,
-      "currentBehavior": "Inventory found 152 custom-property definitions, 273 unique custom-property references, 151 CSS color literals, and six media-query groups in globals.css.",
+      "currentBehavior": "Inventory found 152 custom-property definitions, 273 unique custom-property references, 151 CSS color literals, and eight media-query groups in globals.css.",
       "problem": "This is not a defect by itself, but it sets the baseline for future coverage work.",
       "accessibilityOrUsabilityImpact": "None directly.",
       "recommendedChange": "Keep css-visual-inventory.json updated when token or styling architecture changes.",

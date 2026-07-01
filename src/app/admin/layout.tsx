@@ -47,7 +47,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
         <input className="admin-sidebar-toggle sr-only" type="checkbox" id="admin-sidebar-toggle" aria-label="Toggle admin navigation" />
         <label className="admin-sidebar-drawer-trigger" htmlFor="admin-sidebar-toggle">
           <span className="brand admin-sidebar-drawer-brand">
-            <span className={hasFaviconBrandMark ? "brand-mark brand-mark-favicon" : "brand-mark"} style={{ background: hasFaviconBrandMark ? undefined : "var(--teal)" }}>
+            <span className={hasFaviconBrandMark ? "brand-mark brand-mark-favicon" : "brand-mark brand-mark-fallback"}>
               {hasFaviconBrandMark ? <Image src="/favicon.svg" alt="" aria-hidden="true" width={34} height={34} unoptimized /> : brandInitial}
             </span>
             <span>{siteName}</span>
@@ -60,7 +60,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
         </label>
         <div className="admin-sidebar-drawer-content">
           <Link className="brand admin-sidebar-brand" href="/admin">
-            <span className={hasFaviconBrandMark ? "brand-mark brand-mark-favicon" : "brand-mark"} style={{ background: hasFaviconBrandMark ? undefined : "var(--teal)" }}>
+            <span className={hasFaviconBrandMark ? "brand-mark brand-mark-favicon" : "brand-mark brand-mark-fallback"}>
               {hasFaviconBrandMark ? <Image src="/favicon.svg" alt="" aria-hidden="true" width={34} height={34} unoptimized /> : brandInitial}
             </span>
             <span>{siteName}</span>

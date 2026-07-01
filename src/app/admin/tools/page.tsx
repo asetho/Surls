@@ -190,7 +190,7 @@ export default async function ToolsPage() {
                 <section className="surface tools-card">
                   <h2>API docs</h2>
                   <p className="muted small">Create a short URL with a bearer token:</p>
-                  <pre style={{ overflowX: "auto" }}>{`curl -X POST ${appBaseUrl()}/api/links \\
+                  <pre className="scrollable-code">{`curl -X POST ${appBaseUrl()}/api/links \\
   -H "Authorization: Bearer surls_..." \\
   -H "Content-Type: application/json" \\
   -d '{"destinationUrl":"https://example.com","code":"example"}'`}</pre>

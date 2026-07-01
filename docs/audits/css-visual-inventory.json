@@ -7,23 +7,25 @@
     {
       "path": "src/app/globals.css",
       "kind": "global-css",
-      "lineCount": 5551,
+      "lineCount": 5680,
       "customPropertyDefinitions": 152,
       "customPropertyReferences": 273,
       "colorLiteralCount": 151,
-      "importantDeclarations": 25,
+      "importantDeclarations": 30,
       "mediaQueries": [
         "(max-width: 1320px)",
         "(max-width: 720px)",
         "(max-width: 520px)",
         "(min-width: 861px)",
         "(max-width: 980px)",
-        "(max-width: 860px)"
+        "(max-width: 860px)",
+        "(prefers-reduced-motion: reduce)",
+        "(forced-colors: active)"
       ],
       "keyframes": [
         "dashboard-theme-field-highlight-pulse"
       ],
-      "notes": "Primary source for reset, layout, admin shell, components, dashboard theme variables, responsive rules, style reference, tools tabs, charts, and modals."
+      "notes": "Primary source for reset, layout, admin shell, components, dashboard theme variables, responsive rules, accessibility media queries, style reference, tools tabs, charts, and modals."
     },
     {
       "path": "src/lib/dashboard-theme.ts",
@@ -46,8 +48,8 @@
     {
       "path": "src/lib/redirect.ts",
       "kind": "standalone-template-css",
-      "colorLiteralCount": 16,
-      "notes": "Generated fallback redirect HTML carries an isolated light/dark palette."
+      "colorLiteralCount": 0,
+      "notes": "Generated fallback redirect HTML derives its isolated light/dark palette from DEFAULT_DASHBOARD_THEME."
     },
     {
       "path": "src/components/DistributionCharts.tsx",
@@ -97,10 +99,10 @@
   },
   "hardCodedValueInventory": {
     "source": "docs/audits/css-hardcoded-exceptions.json",
-    "trackedFiles": 15,
-    "colorLiteralTotal": 291,
-    "inlineStyleAttributeTotal": 18,
-    "importantDeclarationTotal": 25,
+    "trackedFiles": 7,
+    "colorLiteralTotal": 275,
+    "inlineStyleAttributeTotal": 6,
+    "importantDeclarationTotal": 30,
     "notes": "Counts are documented as an audit baseline; coverage tests fail if they grow without updating the exception file."
   },
   "routeCoverageMatrix": [
@@ -193,8 +195,8 @@
   "accessibilityInventory": {
     "contrast": "Token contrast reviewed manually in preview; full automated contrast scanner is not installed in this repo.",
     "focus": "Focus-ring tokens exist, but forced-colors coverage is missing.",
-    "motion": "No prefers-reduced-motion rule found.",
-    "forcedColors": "No forced-colors rule found.",
+    "motion": "prefers-reduced-motion now disables nonessential transitions and animation.",
+    "forcedColors": "forced-colors rules now cover core controls, surfaces, tables, focus, and feedback primitives.",
     "touchTargets": "Controls use --control-height in many places; icon-only and table actions need a shared density contract."
   },
   "limitations": [

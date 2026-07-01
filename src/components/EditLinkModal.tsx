@@ -141,10 +141,10 @@ export function EditLinkModal({
               <label>
                 <span>
                   <input
+                    className="inline-control"
                     name="enabled"
                     type="checkbox"
                     defaultChecked={link.enabled}
-                    style={{ width: "auto", minHeight: "auto" }}
                   />{" "}
                   Enabled
                 </span>

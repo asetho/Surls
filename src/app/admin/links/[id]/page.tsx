@@ -187,7 +187,7 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
         </div>
         <div className="metric">
           <span className="muted">Last clicked</span>
-          <strong className="timestamp" style={{ fontSize: "1rem" }}>
+          <strong className="timestamp timestamp-metric-value">
             {link.lastClickedAt ? formatDateTime(link.lastClickedAt, displayTimeZone) : "Never"}
           </strong>
         </div>
