@@ -152,9 +152,9 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
   const sortableHeader = (column: SortableLinkColumn, label: string) => {
     const badge = sortBadge(column, sort);
     return (
-      <Link className="sort-link" href={sortHref(column)}>
+      <Link className="sort-link" href={sortHref(column)} aria-label={`Sort links by ${label}`}>
         <span>{label}</span>
-        {badge ? <span className="sort-badge">{badge}</span> : <span className="sort-badge muted">Sort</span>}
+        {badge ? <span className="sort-badge">{badge}</span> : null}
       </Link>
     );
   };

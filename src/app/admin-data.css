@@ -65,10 +65,18 @@
   --data-table-cell-x: 0.48rem;
   --data-table-min-width: 720px;
   --links-table-actions-col: 6.62rem;
-  --links-table-clicks-col: 4.72rem;
+  --links-table-clicks-col: 6rem;
   --links-table-created-col: 10.5rem;
-  --links-table-short-col: 5.95rem;
-  --links-table-status-col: 5.15rem;
+  --links-table-short-col: 12.25rem;
+  --links-table-status-col: 6.2rem;
+}
+
+.data-table-links .sort-link {
+  white-space: nowrap;
+}
+
+.data-table-links .sort-badge {
+  flex: 0 0 auto;
 }
 
 .links-table-short-col {
@@ -92,7 +100,7 @@
 }
 
 .data-table-links .short-url-pill {
-  max-width: min(100%, 6.2rem);
+  max-width: 100%;
 }
 
 .data-table-links .link-destination-cell {

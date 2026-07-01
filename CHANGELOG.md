@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.14.3 - 2026-07-01
+
+### Fixed
+
+* Cleaned up admin links table sort headers so inactive sort controls no longer crowd adjacent column labels.
+* Widened the admin links Short URL column so keyword-style aliases remain readable alongside QR actions.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.14.2 - 2026-07-01
 
 ### Changed
