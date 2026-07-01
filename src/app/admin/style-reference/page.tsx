@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { adminLoginPath } from "@/lib/admin-login-path";
 import { requireSiteAdmin } from "@/lib/auth";
-import { DASHBOARD_THEME_FIELD_SECTIONS, type DashboardThemeKey } from "@/lib/dashboard-theme";
+import { DASHBOARD_THEME_TOKEN_REGISTRY, type DashboardThemeKey } from "@/lib/dashboard-theme";
 import { StyleReferenceInteractions } from "./StyleReferenceInteractions";
 
 export const metadata: Metadata = {
@@ -32,10 +32,6 @@ const typeSamples = [
   ["Body", "Create, search, copy, share, edit, disable, archive, and inspect links.", "text"],
   ["Mono", "Surls v1.11.0 git abc1234", "muted"]
 ] as const;
-
-function fieldKeyToToken(key: string) {
-  return `--dashboard-active-${key.replace(/[A-Z]/g, "-$&").toLowerCase()}`;
-}
 
 function tokenStyle(token: string) {
   if (token.endsWith("focus-ring")) {
@@ -51,6 +47,11 @@ function tokenStyle(token: string) {
 function themeField(field: DashboardThemeKey) {
   return field;
 }
+
+const tokenCategories = Array.from(new Set(DASHBOARD_THEME_TOKEN_REGISTRY.map((token) => token.category))).map((category) => ({
+  category,
+  tokens: DASHBOARD_THEME_TOKEN_REGISTRY.filter((token) => token.category === category)
+}));
 
 export default async function StyleReferencePage() {
   const admin = await requireSiteAdmin();
@@ -82,15 +83,16 @@ export default async function StyleReferencePage() {
         </summary>
         <div className="settings-collapse-body">
           <div className="style-reference-token-sections">
-            {DASHBOARD_THEME_FIELD_SECTIONS.map((section) => (
-              <details className="settings-collapse style-reference-token-section" key={section.key}>
+            {tokenCategories.map((section) => (
+              <details className="settings-collapse style-reference-token-section" key={section.category}>
                 <summary className="settings-card-header">
-                  <h3>{section.label}</h3>
+                  <h3>{section.category}</h3>
+                  <span className="muted small">{section.tokens.length} tokens</span>
                 </summary>
                 <div className="settings-collapse-body style-reference-token-section-body">
                   <div className="style-reference-token-grid">
-                    {section.fields.map((field) => {
-                      const token = fieldKeyToToken(field.key);
+                    {section.tokens.map((field) => {
+                      const token = field.cssCustomProperty;
                       return (
                         <div
                           className="style-reference-token style-reference-theme-target"
@@ -103,7 +105,15 @@ export default async function StyleReferencePage() {
                           <span>
                             <strong>{field.label}</strong>
                             <code>{token}</code>
+                            <small>{field.subcategory}</small>
                             <small>{field.description}</small>
+                            <small>
+                              {field.editable ? "Editable" : `Read-only: ${field.readOnlyReason}`}
+                              {field.deprecated && field.replacementToken ? ` Replaced by ${field.replacementToken}.` : ""}
+                            </small>
+                            <small>
+                              Defaults: light {field.defaultLightValue}, dark {field.defaultDarkValue}
+                            </small>
                           </span>
                         </div>
                       );

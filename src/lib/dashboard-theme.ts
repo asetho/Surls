@@ -74,6 +74,24 @@ export type DashboardThemeField = {
   label: string;
 };
 
+export type DashboardThemeTokenRegistryEntry = DashboardThemeField & {
+  category: string;
+  cssCustomProperty: `--${string}`;
+  defaultDarkValue: string;
+  defaultLightValue: string;
+  deprecated?: boolean;
+  editable: boolean;
+  editorControl: "color" | "readonly";
+  exampleUsage: string;
+  fallbackBehavior: string;
+  id: string;
+  readOnlyReason?: string;
+  replacementToken?: DashboardThemeKey;
+  scope: "admin-shell" | "bookmarklet-shell" | "global";
+  subcategory: string;
+  valueType: "color" | "shadow";
+};
+
 type DashboardThemeFieldSection = {
   fields: readonly DashboardThemeField[];
   key: "actions" | "graphs" | "panels" | "sidebar" | "toasts";
@@ -313,6 +331,168 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     toastSuccessText: "#f3fbff"
   }
 };
+
+const DASHBOARD_THEME_SECTION_METADATA: Record<DashboardThemeFieldSection["key"], { category: string; subcategory: string; exampleUsage: string }> = {
+  actions: {
+    category: "Buttons and controls",
+    subcategory: "Actions, pills, and tabs",
+    exampleUsage: "Buttons, badges, short URL pills, segmented controls, and graph tabs."
+  },
+  graphs: {
+    category: "Tables and data views",
+    subcategory: "Charts and maps",
+    exampleUsage: "Historical click charts, distribution charts, map buckets, and tooltips."
+  },
+  panels: {
+    category: "Surfaces and backgrounds",
+    subcategory: "Panels, fields, and text",
+    exampleUsage: "Admin content background, panels, form fields, inline links, and modal overlays."
+  },
+  sidebar: {
+    category: "Navigation",
+    subcategory: "Sidebar and brand",
+    exampleUsage: "Admin sidebar, mobile navigation drawer, account area, and primary accent color."
+  },
+  toasts: {
+    category: "Status and feedback",
+    subcategory: "Toast notifications",
+    exampleUsage: "Success, error, and informational toast messages."
+  }
+};
+
+const DASHBOARD_THEME_COMPATIBILITY_FIELDS = new Map<DashboardThemeKey, Pick<DashboardThemeTokenRegistryEntry, "category" | "deprecated" | "exampleUsage" | "readOnlyReason" | "replacementToken" | "subcategory">>([
+  [
+    "focusRing",
+    {
+      category: "Borders and focus",
+      subcategory: "Focus rings",
+      exampleUsage: "Derived focus outline used by interactive admin controls.",
+      readOnlyReason: "The rendered focus ring is derived from button text, accent, and text colors so it keeps contrast in both modes."
+    }
+  ],
+  [
+    "statsTabListBackground",
+    {
+      category: "Buttons and controls",
+      deprecated: true,
+      exampleUsage: "Compatibility value for older saved graph-tab themes.",
+      readOnlyReason: "Graph tabs now share segmented-control tokens; this alias remains for saved theme compatibility.",
+      replacementToken: "segmentedControlBackground",
+      subcategory: "Legacy graph tabs"
+    }
+  ],
+  [
+    "statsTabBackground",
+    {
+      category: "Buttons and controls",
+      deprecated: true,
+      exampleUsage: "Compatibility value for older saved graph-tab themes.",
+      readOnlyReason: "Graph tabs now share segmented-control tokens; this alias remains for saved theme compatibility.",
+      replacementToken: "segmentedControlBackground",
+      subcategory: "Legacy graph tabs"
+    }
+  ],
+  [
+    "statsTabText",
+    {
+      category: "Buttons and controls",
+      deprecated: true,
+      exampleUsage: "Compatibility value for older saved graph-tab themes.",
+      readOnlyReason: "Graph tabs now share segmented-control tokens; this alias remains for saved theme compatibility.",
+      replacementToken: "segmentedControlText",
+      subcategory: "Legacy graph tabs"
+    }
+  ],
+  [
+    "statsTabBorder",
+    {
+      category: "Buttons and controls",
+      deprecated: true,
+      exampleUsage: "Compatibility value for older saved graph-tab themes.",
+      readOnlyReason: "Graph tabs now share segmented-control tokens; this alias remains for saved theme compatibility.",
+      replacementToken: "segmentedControlBorder",
+      subcategory: "Legacy graph tabs"
+    }
+  ],
+  [
+    "statsTabActiveBackground",
+    {
+      category: "Buttons and controls",
+      deprecated: true,
+      exampleUsage: "Compatibility value for older saved graph-tab themes.",
+      readOnlyReason: "Graph tabs now share segmented-control tokens; this alias remains for saved theme compatibility.",
+      replacementToken: "segmentedControlActiveBackground",
+      subcategory: "Legacy graph tabs"
+    }
+  ],
+  [
+    "statsTabActiveText",
+    {
+      category: "Buttons and controls",
+      deprecated: true,
+      exampleUsage: "Compatibility value for older saved graph-tab themes.",
+      readOnlyReason: "Graph tabs now share segmented-control tokens; this alias remains for saved theme compatibility.",
+      replacementToken: "segmentedControlActiveText",
+      subcategory: "Legacy graph tabs"
+    }
+  ],
+  [
+    "statsTabActiveBorder",
+    {
+      category: "Buttons and controls",
+      deprecated: true,
+      exampleUsage: "Compatibility value for older saved graph-tab themes.",
+      readOnlyReason: "Graph tabs now share segmented-control tokens; this alias remains for saved theme compatibility.",
+      replacementToken: "segmentedControlActiveBackground",
+      subcategory: "Legacy graph tabs"
+    }
+  ]
+]);
+
+function dashboardThemeCssCustomPropertyName(key: DashboardThemeKey) {
+  return `--dashboard-active-${key.replace(/[A-Z]/g, "-$&").toLowerCase()}` as const;
+}
+
+function dashboardThemeFieldSection(fieldKey: DashboardThemeKey) {
+  return DASHBOARD_THEME_FIELD_SECTIONS.find((section) => section.fields.some((field) => field.key === fieldKey));
+}
+
+export const DASHBOARD_THEME_TOKEN_REGISTRY: readonly DashboardThemeTokenRegistryEntry[] = DASHBOARD_THEME_FIELDS.map(
+  (field) => {
+    const section = dashboardThemeFieldSection(field.key);
+    const sectionMetadata = section ? DASHBOARD_THEME_SECTION_METADATA[section.key] : null;
+    const compatibilityMetadata = DASHBOARD_THEME_COMPATIBILITY_FIELDS.get(field.key);
+    const editable = DASHBOARD_THEME_EDITABLE_FIELDS.some((editableField) => editableField.key === field.key);
+    const valueType = field.key === "shadowColor" || field.key === "focusRing" ? "shadow" : "color";
+
+    return {
+      ...field,
+      category: compatibilityMetadata?.category ?? sectionMetadata?.category ?? "Advanced structural values",
+      cssCustomProperty: dashboardThemeCssCustomPropertyName(field.key),
+      defaultDarkValue: DEFAULT_DASHBOARD_THEME.dark[field.key],
+      defaultLightValue: DEFAULT_DASHBOARD_THEME.light[field.key],
+      deprecated: compatibilityMetadata?.deprecated,
+      editable,
+      editorControl: editable ? "color" : "readonly",
+      exampleUsage: compatibilityMetadata?.exampleUsage ?? sectionMetadata?.exampleUsage ?? "Derived dashboard styling value.",
+      fallbackBehavior: "Missing or invalid saved values fall back to DEFAULT_DASHBOARD_THEME during normalization.",
+      id: `dashboard.${field.key}`,
+      readOnlyReason: editable
+        ? undefined
+        : compatibilityMetadata?.readOnlyReason ?? "Read-only compatibility token derived from editable theme values.",
+      replacementToken: compatibilityMetadata?.replacementToken,
+      scope: "admin-shell",
+      subcategory: compatibilityMetadata?.subcategory ?? sectionMetadata?.subcategory ?? "Compatibility",
+      valueType
+    };
+  }
+);
+
+export const DASHBOARD_THEME_EDITABLE_TOKEN_REGISTRY = DASHBOARD_THEME_TOKEN_REGISTRY.filter((token) => token.editable);
+
+export function dashboardThemeTokenByKey(key: DashboardThemeKey) {
+  return DASHBOARD_THEME_TOKEN_REGISTRY.find((token) => token.key === key);
+}
 
 const HEX_COLOR_RE = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 

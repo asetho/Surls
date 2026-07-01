@@ -1,0 +1,111 @@
+{
+  "description": "Current documented baseline for visual literals that are not yet fully tokenized. Coverage tests fail if these counts grow without updating this audit exception file.",
+  "generatedFrom": "audit/css-visual-preview",
+  "exceptions": [
+    {
+      "file": "src/app/globals.css",
+      "colorLiterals": 151,
+      "importantDeclarations": 25,
+      "inlineStyleAttributes": 0,
+      "reason": "Legacy global stylesheet contains the current visual system, component rules, theme variable fallbacks, and compatibility overrides."
+    },
+    {
+      "file": "src/lib/dashboard-theme.ts",
+      "colorLiterals": 118,
+      "importantDeclarations": 0,
+      "inlineStyleAttributes": 0,
+      "reason": "Canonical dashboard theme defaults and token registry metadata."
+    },
+    {
+      "file": "src/lib/redirect.ts",
+      "colorLiterals": 16,
+      "importantDeclarations": 0,
+      "inlineStyleAttributes": 0,
+      "reason": "Standalone redirect fallback document cannot depend on the admin CSS bundle."
+    },
+    {
+      "file": "src/components/DashboardThemeEditor.tsx",
+      "colorLiterals": 2,
+      "importantDeclarations": 0,
+      "inlineStyleAttributes": 0,
+      "reason": "HEX input placeholder and title examples."
+    },
+    {
+      "file": "src/lib/favicons.ts",
+      "colorLiterals": 2,
+      "importantDeclarations": 0,
+      "inlineStyleAttributes": 0,
+      "reason": "Manifest fallback colors when no dashboard theme is available."
+    },
+    {
+      "file": "src/components/LocationCharts.tsx",
+      "colorLiterals": 1,
+      "importantDeclarations": 0,
+      "inlineStyleAttributes": 3,
+      "reason": "Chart color interpolation and positioned tooltip/legend styles."
+    },
+    {
+      "file": "src/components/DistributionCharts.tsx",
+      "colorLiterals": 1,
+      "importantDeclarations": 0,
+      "inlineStyleAttributes": 2,
+      "reason": "Chart color interpolation and positioned tooltip/bar-width styles."
+    },
+    {
+      "file": "src/app/admin/settings/page.tsx",
+      "colorLiterals": 0,
+      "importantDeclarations": 0,
+      "inlineStyleAttributes": 3,
+      "reason": "Current compact form exceptions on the Settings page."
+    },
+    {
+      "file": "src/components/ToolsForms.tsx",
+      "colorLiterals": 0,
+      "importantDeclarations": 0,
+      "inlineStyleAttributes": 3,
+      "reason": "Current compact form and overflow-wrap exceptions in tool forms."
+    },
+    {
+      "file": "src/app/admin/layout.tsx",
+      "colorLiterals": 0,
+      "importantDeclarations": 0,
+      "inlineStyleAttributes": 2,
+      "reason": "Dynamic brand-mark fallback background and scoped dashboard theme CSS variables."
+    },
+    {
+      "file": "src/app/admin/links/[id]/page.tsx",
+      "colorLiterals": 0,
+      "importantDeclarations": 0,
+      "inlineStyleAttributes": 1,
+      "reason": "Current timestamp sizing exception."
+    },
+    {
+      "file": "src/app/admin/tools/page.tsx",
+      "colorLiterals": 0,
+      "importantDeclarations": 0,
+      "inlineStyleAttributes": 1,
+      "reason": "Current code-block overflow exception."
+    },
+    {
+      "file": "src/app/not-found.tsx",
+      "colorLiterals": 0,
+      "importantDeclarations": 0,
+      "inlineStyleAttributes": 1,
+      "reason": "One-off narrow not-found panel width."
+    },
+    {
+      "file": "src/components/EditLinkModal.tsx",
+      "colorLiterals": 0,
+      "importantDeclarations": 0,
+      "inlineStyleAttributes": 1,
+      "reason": "Current checkbox sizing exception."
+    },
+    {
+      "file": "src/components/HistoricalClicksPanel.tsx",
+      "colorLiterals": 0,
+      "importantDeclarations": 0,
+      "inlineStyleAttributes": 1,
+      "reason": "Chart custom-property bridge for dynamic history rendering."
+    }
+  ]
+}

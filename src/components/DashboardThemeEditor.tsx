@@ -6,6 +6,7 @@ import {
   DASHBOARD_THEME_FIELD_SECTIONS,
   DASHBOARD_THEME_FIELDS,
   DASHBOARD_THEME_MODES,
+  DASHBOARD_THEME_TOKEN_REGISTRY,
   dashboardThemeFieldName,
   dashboardThemePaletteCssVariables,
   type DashboardTheme,
@@ -221,6 +222,11 @@ export function DashboardThemeEditor({
   const draftTheme = controlledDraftTheme ?? uncontrolledDraftTheme;
   const isControlled = controlledDraftTheme !== undefined;
   const activeMode = controlledActiveMode ?? uncontrolledActiveMode;
+  const tokenRegistryByKey = useMemo(
+    () => new Map(DASHBOARD_THEME_TOKEN_REGISTRY.map((token) => [token.key, token])),
+    []
+  );
+  const readOnlyTokens = useMemo(() => DASHBOARD_THEME_TOKEN_REGISTRY.filter((token) => !token.editable), []);
 
   function setNextDraftTheme(nextTheme: DashboardTheme) {
     if (isControlled) {
@@ -333,6 +339,7 @@ export function DashboardThemeEditor({
                       <span>
                         {field.label}
                         <small>{field.description}</small>
+                        <small>Default: {tokenRegistryByKey.get(field.key)?.[mode.key === "light" ? "defaultLightValue" : "defaultDarkValue"]}</small>
                       </span>
                       <DashboardThemeColorField
                         fieldKey={field.key}
@@ -390,6 +397,7 @@ export function DashboardThemeEditor({
                       <span>
                         {field.label}
                         <small>{field.description}</small>
+                        <small>Default: {tokenRegistryByKey.get(field.key)?.[mode.key === "light" ? "defaultLightValue" : "defaultDarkValue"]}</small>
                       </span>
                       <DashboardThemeColorField
                         fieldKey={field.key}
@@ -425,6 +433,24 @@ export function DashboardThemeEditor({
               </section>
             )
           ))}
+
+          {readOnlyTokens.length ? (
+            <section className="dashboard-theme-field-section dashboard-theme-readonly-section">
+              <h4>Read-only compatibility tokens</h4>
+              <div className="dashboard-theme-readonly-grid">
+                {readOnlyTokens.map((token) => (
+                  <div className="dashboard-theme-readonly-token" key={token.id}>
+                    <span>
+                      <strong>{token.label}</strong>
+                      <small>{token.readOnlyReason}</small>
+                    </span>
+                    <code>{token.cssCustomProperty}</code>
+                    <small>Default: {mode.key === "light" ? token.defaultLightValue : token.defaultDarkValue}</small>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           {showModePreviews ? <ThemeModePreview label={mode.label} styles={previewStyles[mode.key]} /> : null}
         </section>
