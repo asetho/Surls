@@ -54,6 +54,99 @@ const tokenCategories = Array.from(new Set(DASHBOARD_THEME_TOKEN_REGISTRY.map((t
   tokens: DASHBOARD_THEME_TOKEN_REGISTRY.filter((token) => token.category === category)
 }));
 
+function ThemeTokenPanel() {
+  return (
+    <details className="surface surface-panel settings-collapse style-reference-token-panel">
+      <summary className="settings-card-header">
+        <h2>Theme tokens</h2>
+        <span className="status-pill status-pill-active">Live palette</span>
+      </summary>
+      <div className="settings-collapse-body">
+        <div className="style-reference-token-sections">
+          {tokenCategories.map((section) => (
+            <details className="settings-collapse style-reference-token-section" key={section.category}>
+              <summary className="settings-card-header">
+                <h3>{section.category}</h3>
+                <span className="muted small">{section.tokens.length} tokens</span>
+              </summary>
+              <div className="settings-collapse-body style-reference-token-section-body">
+                <div className="style-reference-token-grid">
+                  {section.tokens.map((field) => {
+                    const token = field.cssCustomProperty;
+                    return (
+                      <div
+                        className="style-reference-token style-reference-theme-target"
+                        data-theme-field={field.key}
+                        key={token}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        <span className="style-reference-swatch" style={tokenStyle(token)} aria-hidden />
+                        <span>
+                          <strong>{field.label}</strong>
+                          <code>{token}</code>
+                          <small>{field.subcategory}</small>
+                          <small>{field.description}</small>
+                          <small>
+                            {field.editable ? "Editable" : `Read-only: ${field.readOnlyReason}`}
+                            {field.deprecated && field.replacementToken ? ` Replaced by ${field.replacementToken}.` : ""}
+                          </small>
+                          <small>
+                            Defaults: light {field.defaultLightValue}, dark {field.defaultDarkValue}
+                          </small>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </details>
+  );
+}
+
+function StructuralTokenPanel() {
+  return (
+    <details className="surface surface-panel settings-collapse style-reference-token-panel">
+      <summary className="settings-card-header">
+        <h2>Structural tokens</h2>
+        <span className="status-pill">Read-only</span>
+      </summary>
+      <div className="settings-collapse-body">
+        <div className="style-reference-token-sections">
+          {STRUCTURAL_VISUAL_TOKEN_CATEGORIES.map((section) => (
+            <details className="settings-collapse style-reference-token-section" key={section.category}>
+              <summary className="settings-card-header">
+                <h3>{section.category}</h3>
+                <span className="muted small">{section.tokens.length} tokens</span>
+              </summary>
+              <div className="settings-collapse-body style-reference-token-section-body">
+                <div className="style-reference-token-grid">
+                  {section.tokens.map((token) => (
+                    <div className="style-reference-token" key={token.id}>
+                      <span>
+                        <strong>{token.label}</strong>
+                        <code>{token.cssCustomProperty ?? token.id}</code>
+                        <small>{token.valueType} / {token.scope}</small>
+                        <small>{token.description}</small>
+                        <small>Value: {token.value}</small>
+                        <small>{token.exampleUsage}</small>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </details>
+  );
+}
+
 export default async function StyleReferencePage() {
   const admin = await requireSiteAdmin();
   if (!admin) redirect(adminLoginPath("/admin/style-reference"));
@@ -76,91 +169,6 @@ export default async function StyleReferencePage() {
           </Link>
         </div>
       </div>
-
-      <details className="surface surface-panel settings-collapse style-reference-token-panel" open>
-        <summary className="settings-card-header">
-          <h2>Theme tokens</h2>
-          <span className="status-pill status-pill-active">Live palette</span>
-        </summary>
-        <div className="settings-collapse-body">
-          <div className="style-reference-token-sections">
-            {tokenCategories.map((section) => (
-              <details className="settings-collapse style-reference-token-section" key={section.category}>
-                <summary className="settings-card-header">
-                  <h3>{section.category}</h3>
-                  <span className="muted small">{section.tokens.length} tokens</span>
-                </summary>
-                <div className="settings-collapse-body style-reference-token-section-body">
-                  <div className="style-reference-token-grid">
-                    {section.tokens.map((field) => {
-                      const token = field.cssCustomProperty;
-                      return (
-                        <div
-                          className="style-reference-token style-reference-theme-target"
-                          data-theme-field={field.key}
-                          key={token}
-                          role="button"
-                          tabIndex={0}
-                        >
-                          <span className="style-reference-swatch" style={tokenStyle(token)} aria-hidden />
-                          <span>
-                            <strong>{field.label}</strong>
-                            <code>{token}</code>
-                            <small>{field.subcategory}</small>
-                            <small>{field.description}</small>
-                            <small>
-                              {field.editable ? "Editable" : `Read-only: ${field.readOnlyReason}`}
-                              {field.deprecated && field.replacementToken ? ` Replaced by ${field.replacementToken}.` : ""}
-                            </small>
-                            <small>
-                              Defaults: light {field.defaultLightValue}, dark {field.defaultDarkValue}
-                            </small>
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </details>
-            ))}
-          </div>
-        </div>
-      </details>
-
-      <details className="surface surface-panel settings-collapse style-reference-token-panel" open>
-        <summary className="settings-card-header">
-          <h2>Structural tokens</h2>
-          <span className="status-pill">Read-only</span>
-        </summary>
-        <div className="settings-collapse-body">
-          <div className="style-reference-token-sections">
-            {STRUCTURAL_VISUAL_TOKEN_CATEGORIES.map((section) => (
-              <details className="settings-collapse style-reference-token-section" key={section.category}>
-                <summary className="settings-card-header">
-                  <h3>{section.category}</h3>
-                  <span className="muted small">{section.tokens.length} tokens</span>
-                </summary>
-                <div className="settings-collapse-body style-reference-token-section-body">
-                  <div className="style-reference-token-grid">
-                    {section.tokens.map((token) => (
-                      <div className="style-reference-token" key={token.id}>
-                        <span>
-                          <strong>{token.label}</strong>
-                          <code>{token.cssCustomProperty ?? token.id}</code>
-                          <small>{token.valueType} / {token.scope}</small>
-                          <small>{token.description}</small>
-                          <small>Value: {token.value}</small>
-                          <small>{token.exampleUsage}</small>
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </details>
-            ))}
-          </div>
-        </div>
-      </details>
 
       <section className="style-reference-grid">
         <div className="surface surface-panel">
@@ -514,6 +522,9 @@ export default async function StyleReferencePage() {
           </div>
         </div>
       </section>
+
+      <ThemeTokenPanel />
+      <StructuralTokenPanel />
     </main>
   );
 }

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.14.2 - 2026-07-01
+
+### Changed
+
+* Moved Style Reference theme and structural token panels below the component examples and collapsed them by default.
+* Tightened the admin links table so destination text truncates before fixed metadata and action columns drift out of alignment.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.14.1 - 2026-07-01
 
 ### Fixed
