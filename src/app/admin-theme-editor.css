@@ -44,42 +44,11 @@
   outline: 0;
 }
 
-.dashboard-theme-section-heading,
-.dashboard-theme-section-actions {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  justify-content: space-between;
-}
-
-.dashboard-theme-section-actions {
-  justify-content: flex-end;
-  padding: 0.62rem 0.62rem 0;
-}
-
 .dashboard-theme-color-row {
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.dashboard-theme-default-color {
-  align-items: center;
-  background: var(--surface-strong);
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 2px);
-  color: var(--muted);
-  display: inline-flex;
-  height: 2rem;
-  justify-content: center;
-  min-height: 2rem;
-  min-width: 2rem;
-  padding: 0;
-  width: 2rem;
-}
-
-.dashboard-theme-default-color:hover,
 .dashboard-theme-reset-color:hover,
-.dashboard-theme-default-color:focus-visible,
 .dashboard-theme-reset-color:focus-visible {
   background: var(--surface);
   color: var(--text);

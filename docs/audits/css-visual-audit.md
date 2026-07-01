@@ -12,7 +12,7 @@ Machine-readable inventory: `docs/audits/css-visual-inventory.json`
 
 The app has a coherent admin visual identity built around a blue/teal dashboard palette, compact controls, rounded panels, dense data tables, and a configurable light/dark dashboard theme. The biggest risk is not the visual direction; it is that the styling system grew organically into a large global stylesheet with theme metadata split across defaults, emitters, editor controls, and documentation.
 
-This branch records the current behavior, adds a canonical dashboard theme-token registry, updates the style reference to document registry entries, exposes read-only compatibility tokens in the theme editor, adds read-only structural visual tokens, introduces shared dense-table variants, adds coverage tests so emitted dashboard variables, editor/reference coverage, responsive table contracts, and hard-coded visual exceptions cannot silently drift, and fixes the lowest-risk issues identified by the audit.
+This branch records the current behavior, adds a canonical dashboard theme-token registry, updates the style reference to document registry entries, keeps deprecated compatibility tokens out of the Theme Editor drawer, adds read-only structural visual tokens, introduces shared dense-table variants, adds coverage tests so emitted dashboard variables, editor/reference coverage, responsive table contracts, and hard-coded visual exceptions cannot silently drift, and fixes the lowest-risk issues identified by the audit.
 
 The standalone preview demonstrates proposed improvements without importing them into production styling.
 
@@ -83,7 +83,7 @@ This is a baseline, not an endorsement. `tests/theme-token-coverage.test.ts` fai
 | --- | --- |
 | CSS variable emitters | Covered by registry and test. |
 | Theme editor editable color fields | 51/51 editable dashboard tokens covered. |
-| Theme editor read-only compatibility fields | 8/8 listed with reason. |
+| Theme editor compatibility fields | Hidden from editor controls; documented in registry/style reference only. |
 | Style reference token list | 59/59 dashboard tokens rendered from registry. |
 | Saved theme compatibility | Preserved through `normalizeDashboardTheme`; missing/invalid values fall back to defaults. |
 | Structural tokens | Documented as read-only/derived values; not fully editable yet. |

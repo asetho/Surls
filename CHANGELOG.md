@@ -1,12 +1,24 @@
 # Changelog
 
+## 1.14.1 - 2026-07-01
+
+### Fixed
+
+* Restored normal Copy and Share button icon/text layout in dense admin table action cells.
+* Removed deprecated compatibility-token cards from the Theme Editor drawer.
+* Removed Theme Editor reset-to-built-in-default controls, keeping only reset controls for unsaved field changes.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.14.0 - 2026-07-01
 
 ### Added
 
 * Added a canonical CSS and visual-style audit with a local preview artifact.
 * Added read-only structural visual-token documentation for typography, spacing, radius, controls, tables, shadows, motion, layers, and breakpoints.
-* Added Theme Editor search, group filtering, group resets, built-in default token resets, and saved-change indicators.
+* Added Theme Editor search, group filtering, and saved-change indicators.
 * Added shared dense table variants for admin links, users, API tokens, dashboard tables, recent clicks, and style reference samples.
 
 ### Changed

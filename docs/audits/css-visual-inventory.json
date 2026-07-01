@@ -30,14 +30,14 @@
     {
       "path": "src/app/admin-data.css",
       "kind": "component-css-layer",
-      "lineCount": 127,
+      "lineCount": 126,
       "notes": "Shared dense data-table, timestamp, numeric, action-cell, and mobile-card contracts for admin tables."
     },
     {
       "path": "src/app/admin-theme-editor.css",
       "kind": "component-css-layer",
-      "lineCount": 109,
-      "notes": "Theme Editor search, group reset, default reset, and field-status controls."
+      "lineCount": 78,
+      "notes": "Theme Editor search, group filtering, and field-status controls."
     },
     {
       "path": "src/lib/dashboard-theme.ts",
@@ -56,7 +56,7 @@
     {
       "path": "src/components/DashboardThemeEditor.tsx",
       "kind": "theme-editor",
-      "notes": "Renders editable color controls from theme sections and read-only compatibility tokens from DASHBOARD_THEME_TOKEN_REGISTRY."
+      "notes": "Renders editable color controls from theme sections; compatibility tokens remain documented in the registry and style reference only."
     },
     {
       "path": "src/app/admin/style-reference/page.tsx",
