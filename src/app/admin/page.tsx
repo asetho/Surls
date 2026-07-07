@@ -134,13 +134,19 @@ export default async function AdminDashboard({ searchParams }: { searchParams: S
           <h2>Top links</h2>
         </div>
         <div className="table-wrap">
-          <table className="data-table data-table-dense responsive-table">
+          <table className="dashboard-top-links-table data-table data-table-dense responsive-table">
+            <colgroup>
+              <col className="dashboard-top-links-short-col" />
+              <col className="dashboard-top-links-destination-col" />
+              <col className="dashboard-top-links-clicks-col" />
+              <col className="dashboard-top-links-actions-col" />
+            </colgroup>
             <thead>
               <tr>
                 <th>Short URL</th>
                 <th>Destination</th>
-                <th>Clicks</th>
-                <th>Actions</th>
+                <th className="data-table-numeric">Clicks</th>
+                <th className="data-table-actions">Actions</th>
               </tr>
             </thead>
             <tbody>

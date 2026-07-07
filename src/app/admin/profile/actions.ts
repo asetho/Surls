@@ -7,6 +7,7 @@ import { auditLog } from "@/lib/audit";
 import { requireAdmin, requireSiteAdmin } from "@/lib/auth";
 import { generateBackupCodes, hashBackupCode } from "@/lib/backup-codes";
 import { validateCsrf } from "@/lib/csrf";
+import { normalizeMobileMenuSide } from "@/lib/mobile-menu";
 import { prisma } from "@/lib/prisma";
 import { getSiteName } from "@/lib/settings";
 import { createTotpSecret, verifyTotpCode } from "@/lib/totp";
@@ -37,7 +38,10 @@ export async function updateProfileAction(
   const parsed = normalizeUserProfileFormData(formData);
   if (parsed.error) return { error: parsed.error };
   if (!parsed.data) return { error: "Enter a valid email address." };
-  const profile = parsed.data;
+  const profile = {
+    ...parsed.data,
+    mobileMenuSide: normalizeMobileMenuSide(formData.get("mobileMenuSide"))
+  };
 
   const existing = await prisma.user.findFirst({
     where: {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { cookies } from "next/headers";
-import { BarChart3, ChevronDown, Link2, LogOut, Menu, Settings, UserRound, Users, Wrench } from "lucide-react";
+import { BarChart3, ChevronDown, Link2, LogOut, Menu, Settings, UserRound, Users, Wrench, X } from "lucide-react";
 import { AdminToastHost } from "@/components/AdminToastHost";
 import { DashboardThemeDrawer } from "@/components/DashboardThemeDrawer";
 import { NewShortUrlModal } from "@/components/NewShortUrlModal";
@@ -10,6 +10,7 @@ import { APP_VERSION } from "@/lib/app-version";
 import { isAdminUser, requireAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { dashboardThemeCssVariables } from "@/lib/dashboard-theme";
+import { normalizeMobileMenuSide } from "@/lib/mobile-menu";
 import { getSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
   const themeChoice = isThemeChoice(cookieChoice) ? cookieChoice : "auto";
   const siteName = settings.siteName;
   const adminThemeStyle = dashboardThemeCssVariables(settings.dashboardTheme) as React.CSSProperties;
+  const mobileMenuSide = normalizeMobileMenuSide(user.mobileMenuSide);
   const brandInitial = siteName.slice(0, 1).toUpperCase() || "S";
   const hasFaviconBrandMark = Boolean(settings.favicons?.assets.faviconSvg);
   const displayName = user.name || user.email;
@@ -42,7 +44,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
   ];
 
   return (
-    <div className="admin-shell" style={adminThemeStyle}>
+    <div className="admin-shell" data-mobile-menu-side={mobileMenuSide} style={adminThemeStyle}>
       <aside className="admin-sidebar">
         <input className="admin-sidebar-toggle sr-only" type="checkbox" id="admin-sidebar-toggle" aria-label="Toggle admin navigation" />
         <label className="admin-sidebar-drawer-trigger" htmlFor="admin-sidebar-toggle">
@@ -58,7 +60,14 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
             <ChevronDown className="admin-sidebar-drawer-chevron" size={17} aria-hidden />
           </span>
         </label>
+        <label className="admin-sidebar-drawer-backdrop" htmlFor="admin-sidebar-toggle" aria-label="Close admin navigation" />
         <div className="admin-sidebar-drawer-content">
+          <div className="admin-sidebar-drawer-panel-header">
+            <span className="muted small">Menu</span>
+            <label className="admin-sidebar-drawer-close" htmlFor="admin-sidebar-toggle" aria-label="Close admin navigation">
+              <X size={17} aria-hidden />
+            </label>
+          </div>
           <Link className="brand admin-sidebar-brand" href="/admin">
             <span className={hasFaviconBrandMark ? "brand-mark brand-mark-favicon" : "brand-mark brand-mark-fallback"}>
               {hasFaviconBrandMark ? <Image src="/favicon.svg" alt="" aria-hidden="true" width={34} height={34} unoptimized /> : brandInitial}

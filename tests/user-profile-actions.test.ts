@@ -44,12 +44,15 @@ vi.mock("@/lib/totp", () => ({
 }));
 vi.mock("@/lib/password", () => ({ hashPassword: vi.fn() }));
 
-function profileForm(fields: { displayTimeZone?: string; email?: string; id?: string; name?: string } = {}) {
+function profileForm(
+  fields: { displayTimeZone?: string; email?: string; id?: string; mobileMenuSide?: string; name?: string } = {}
+) {
   const formData = new FormData();
   formData.set("csrf", "csrf-token");
   if (fields.id) formData.set("id", fields.id);
   formData.set("displayTimeZone", fields.displayTimeZone ?? "America/Los_Angeles");
   formData.set("email", fields.email ?? "  USER@Example.COM  ");
+  formData.set("mobileMenuSide", fields.mobileMenuSide ?? "left");
   formData.set("name", fields.name ?? "  Test User  ");
   return formData;
 }
@@ -74,6 +77,7 @@ describe("profile identity actions", () => {
       data: {
         displayTimeZone: "America/Los_Angeles",
         email: "user@example.com",
+        mobileMenuSide: "left",
         name: "Test User"
       }
     });
@@ -92,6 +96,25 @@ describe("profile identity actions", () => {
       data: {
         displayTimeZone: null,
         email: "user@example.com",
+        mobileMenuSide: "left",
+        name: "Test User"
+      }
+    });
+  });
+
+  it("falls back to the right-side mobile menu when profile input is invalid", async () => {
+    const { updateProfileAction } = await import("@/app/admin/profile/actions");
+
+    await expect(updateProfileAction(null, profileForm({ mobileMenuSide: "top" }))).resolves.toEqual({
+      message: "Profile updated."
+    });
+
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: "user_1" },
+      data: {
+        displayTimeZone: "America/Los_Angeles",
+        email: "user@example.com",
+        mobileMenuSide: "right",
         name: "Test User"
       }
     });

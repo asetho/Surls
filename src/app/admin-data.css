@@ -33,7 +33,7 @@
   text-align: right;
 }
 
-.data-table-actions .row-actions {
+.data-table-actions > .row-actions {
   flex-wrap: nowrap;
   gap: 0.32rem;
   justify-content: flex-end;
@@ -58,6 +58,49 @@
 .data-table .link-destination-cell {
   max-width: none;
   width: auto;
+}
+
+.link-list-content-header > .link-list-heading {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.link-list-summary {
+  justify-self: end;
+  text-align: right;
+}
+
+.dashboard-top-links-table {
+  --dashboard-top-links-actions-col: 10rem;
+  --dashboard-top-links-clicks-col: 6rem;
+  --dashboard-top-links-short-col: 11rem;
+  --data-table-min-width: 720px;
+  table-layout: fixed;
+}
+
+.dashboard-top-links-short-col {
+  width: var(--dashboard-top-links-short-col);
+}
+
+.dashboard-top-links-clicks-col {
+  width: var(--dashboard-top-links-clicks-col);
+}
+
+.dashboard-top-links-actions-col {
+  width: var(--dashboard-top-links-actions-col);
+}
+
+.dashboard-top-links-table .data-table-numeric,
+.dashboard-top-links-table .data-table-actions {
+  text-align: left;
+}
+
+.dashboard-top-links-table .data-table-actions > .row-actions {
+  justify-content: flex-start;
+}
+
+.dashboard-top-links-table .link-destination-cell {
+  overflow: hidden;
 }
 
 .data-table-links {
@@ -139,11 +182,45 @@
     text-align: left;
   }
 
-  .data-table-actions .row-actions {
+  .data-table-actions > .row-actions {
+    justify-content: flex-start;
+  }
+
+  .data-table-links td[data-label="Actions"] > .row-actions {
     justify-content: flex-start;
   }
 
   .data-table-links .short-url-pill {
     max-width: 100%;
+  }
+
+  .data-table-users td[data-label="Security"] > .row-actions {
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .data-table-users td[data-label="Security"] > .row-actions > .badge {
+    flex: 0 0 auto;
+    width: auto;
+  }
+
+  .dashboard-top-links-table .data-table-actions > .row-actions {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .dashboard-top-links-table .data-table-actions > .row-actions > *,
+  .dashboard-top-links-table .data-table-actions .addtoany-share {
+    flex: 0 0 auto;
+    width: auto;
+  }
+
+  .dashboard-top-links-table .data-table-actions .icon-button,
+  .dashboard-top-links-table .data-table-actions .addtoany-share-button {
+    min-width: 5.7rem;
+    overflow-wrap: normal;
+    white-space: nowrap;
   }
 }

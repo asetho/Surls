@@ -48,8 +48,20 @@ describe("visual system accessibility guards", () => {
     const dataTables = readFileSync("src/app/admin-data.css", "utf8");
 
     expect(globals).toMatch(/\.form-grid\s*>\s*label\s*{[\s\S]*text-align:\s*left;/);
+    expect(globals).toMatch(/\.modal-panel\s*{[\s\S]*text-align:\s*left;/);
+    expect(globals).toMatch(/\.links-table\s+td\[data-label="Actions"\]\s*>\s*\.row-actions\s*{[\s\S]*justify-content:\s*flex-end;/);
+    expect(dataTables).toMatch(/\.data-table-actions\s*>\s*\.row-actions\s*{[\s\S]*justify-content:\s*flex-end;/);
     expect(dataTables).toMatch(/\.data-table-links\s+\.data-table-numeric\s*{[\s\S]*text-align:\s*left;/);
+    expect(dataTables).toMatch(/\.data-table-links\s+td\[data-label="Actions"\]\s*>\s*\.row-actions\s*{[\s\S]*justify-content:\s*flex-start;/);
+    expect(dataTables).toMatch(/\.data-table-users\s+td\[data-label="Security"\]\s*>\s*\.row-actions\s*>\s*\.badge\s*{[\s\S]*flex:\s*0\s+0\s+auto;[\s\S]*width:\s*auto;/);
+    expect(dataTables).toMatch(/\.link-list-summary\s*{[\s\S]*text-align:\s*right;/);
+    expect(dataTables).toMatch(/\.dashboard-top-links-table\s+\.data-table-actions\s*{[\s\S]*text-align:\s*left;/);
+    expect(dataTables).toMatch(/\.dashboard-top-links-table\s+\.data-table-actions\s+\.addtoany-share-button\s*{[\s\S]*overflow-wrap:\s*normal;[\s\S]*white-space:\s*nowrap;/);
     expect(globals).toMatch(/\.info-tooltip\s*{[\s\S]*border:\s*1px solid var\(--border\);/);
     expect(globals).toMatch(/\.info-tooltip\s*{[\s\S]*color:\s*var\(--link-color, var\(--color-teal\)\);/);
+    expect(globals).toMatch(/\.admin-shell\[data-mobile-menu-side="right"\]\s+\.admin-sidebar-drawer-content\s*{[\s\S]*right:\s*0;[\s\S]*transform:\s*translateX\(104%\);/);
+    expect(globals).toMatch(/\.admin-shell\[data-mobile-menu-side="left"\]\s+\.admin-sidebar-drawer-content\s*{[\s\S]*left:\s*0;[\s\S]*transform:\s*translateX\(-104%\);/);
+    expect(globals).toMatch(/\.admin-sidebar-drawer-content\s*{[\s\S]*width:\s*min\(17rem,\s*76vw\);/);
+    expect(globals).toMatch(/\.admin-shell\s+\.admin-sidebar-toggle:checked\s*~\s*\.admin-sidebar-drawer-content\s*{[\s\S]*transform:\s*translateX\(0\);/);
   });
 });

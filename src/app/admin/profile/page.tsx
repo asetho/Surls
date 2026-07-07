@@ -60,6 +60,7 @@ export default async function ProfilePage() {
           user={{
             displayTimeZone: admin.displayTimeZone,
             email: admin.email,
+            mobileMenuSide: admin.mobileMenuSide,
             name: admin.name
           }}
         />

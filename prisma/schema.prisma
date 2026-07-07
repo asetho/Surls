@@ -38,6 +38,7 @@ model User {
   passwordHash  String
   role          UserRole         @default(USER)
   displayTimeZone String?
+  mobileMenuSide String          @default("right")
   linkListPageSize Int           @default(20)
   recentClickPageSize Int        @default(20)
   createdAt     DateTime         @default(now())

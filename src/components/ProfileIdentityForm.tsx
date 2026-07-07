@@ -4,6 +4,7 @@ import { useActionState, useEffect } from "react";
 import { Save } from "lucide-react";
 import { updateProfileAction } from "@/app/admin/profile/actions";
 import { dispatchAdminToast } from "@/lib/admin-toast-event";
+import { DEFAULT_MOBILE_MENU_SIDE, normalizeMobileMenuSide } from "@/lib/mobile-menu";
 import { TimeZoneSelect } from "./TimeZoneSelect";
 
 type ProfileIdentityFormProps = {
@@ -12,12 +13,14 @@ type ProfileIdentityFormProps = {
   user: {
     displayTimeZone: string | null;
     email: string;
+    mobileMenuSide?: string | null;
     name: string | null;
   };
 };
 
 export function ProfileIdentityForm({ csrf, siteDefaultTimeZone, user }: ProfileIdentityFormProps) {
   const [state, action, pending] = useActionState(updateProfileAction, null);
+  const mobileMenuSide = normalizeMobileMenuSide(user.mobileMenuSide ?? DEFAULT_MOBILE_MENU_SIDE);
 
   useEffect(() => {
     if (state?.message) dispatchAdminToast("success", state.message);
@@ -41,6 +44,13 @@ export function ProfileIdentityForm({ csrf, siteDefaultTimeZone, user }: Profile
           siteDefaultTimeZone={siteDefaultTimeZone}
           value={user.displayTimeZone}
         />
+        <label className="form-field">
+          Mobile menu side
+          <select name="mobileMenuSide" defaultValue={mobileMenuSide}>
+            <option value="right">Right side</option>
+            <option value="left">Left side</option>
+          </select>
+        </label>
       </div>
       <div className="profile-meta-row">
         <span className="muted small">Used for sign-in, passkeys, account activity, and timestamp display.</span>

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { normalizeMobileMenuSide } from "@/lib/mobile-menu";
 import { normalizeUserProfileInput } from "@/lib/user-profile";
 
 describe("user profile input normalization", () => {
@@ -63,5 +64,12 @@ describe("user profile input normalization", () => {
     ).toEqual({
       error: "Choose a valid display timezone."
     });
+  });
+
+  it("normalizes mobile menu side preferences", () => {
+    expect(normalizeMobileMenuSide("left")).toBe("left");
+    expect(normalizeMobileMenuSide(" RIGHT ")).toBe("right");
+    expect(normalizeMobileMenuSide("bottom")).toBe("right");
+    expect(normalizeMobileMenuSide(null)).toBe("right");
   });
 });

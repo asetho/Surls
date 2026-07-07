@@ -32,4 +32,13 @@ describe("API token hardening migration", () => {
 
     expect(migration).toContain('ALTER TABLE "User" ADD COLUMN "displayTimeZone" TEXT;');
   });
+
+  it("adds defaulted user mobile menu side preferences", async () => {
+    const migration = await readFile(
+      resolve(process.cwd(), "prisma/migrations/20260707142000_add_user_mobile_menu_side/migration.sql"),
+      "utf8"
+    );
+
+    expect(migration).toContain('ALTER TABLE "User" ADD COLUMN "mobileMenuSide" TEXT NOT NULL DEFAULT \'right\';');
+  });
 });

@@ -1,0 +1,1 @@
+ALTER TABLE "User" ADD COLUMN "mobileMenuSide" TEXT NOT NULL DEFAULT 'right';

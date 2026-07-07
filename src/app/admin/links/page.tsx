@@ -177,10 +177,10 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
       </div>
 
       <section className="surface surface-panel">
-        <div className="content-header">
-          <div>
+        <div className="content-header link-list-content-header">
+          <div className="link-list-heading">
             <h2>{view === "archived" ? "Archived links" : "Active links"}</h2>
-            <p className="muted small">
+            <p className="muted small link-list-summary">
               Showing {firstRow}-{lastRow} of {totalLinks} {totalLinks === 1 ? "link" : "links"}.
             </p>
           </div>
