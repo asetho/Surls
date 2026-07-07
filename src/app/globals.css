@@ -2270,7 +2270,6 @@ button.danger-outline:hover {
   --dashboard-active-segmented-control-border: var(--dashboard-light-segmented-control-border);
   --dashboard-active-segmented-control-text: var(--dashboard-light-segmented-control-text);
   --dashboard-active-shadow: var(--dashboard-light-shadow);
-  --dashboard-active-shadow-color: var(--dashboard-light-shadow-color);
   --dashboard-active-stats-tab-active-background: var(--dashboard-light-stats-tab-active-background);
   --dashboard-active-stats-tab-active-border: var(--dashboard-light-stats-tab-active-border);
   --dashboard-active-stats-tab-active-text: var(--dashboard-light-stats-tab-active-text);
@@ -2417,7 +2416,6 @@ button.danger-outline:hover {
   --dashboard-active-segmented-control-border: var(--dashboard-dark-segmented-control-border);
   --dashboard-active-segmented-control-text: var(--dashboard-dark-segmented-control-text);
   --dashboard-active-shadow: var(--dashboard-dark-shadow);
-  --dashboard-active-shadow-color: var(--dashboard-dark-shadow-color);
   --dashboard-active-stats-tab-active-background: var(--dashboard-dark-stats-tab-active-background);
   --dashboard-active-stats-tab-active-border: var(--dashboard-dark-stats-tab-active-border);
   --dashboard-active-stats-tab-active-text: var(--dashboard-dark-stats-tab-active-text);
@@ -2760,6 +2758,67 @@ button.danger-outline:hover {
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
+}
+
+.profile-mobile-menu-side-field {
+  border: 0;
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.profile-mobile-menu-side-field legend {
+  font-weight: 700;
+}
+
+.profile-mobile-menu-side-options {
+  background: var(--color-navy);
+  border: 1px solid var(--sidebar-border);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 0.24rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 0.28rem;
+}
+
+.profile-mobile-menu-side-option {
+  cursor: pointer;
+  min-width: 0;
+}
+
+.profile-mobile-menu-side-option-label {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius) - 2px);
+  color: var(--sidebar-muted);
+  display: flex;
+  gap: 0.38rem;
+  justify-content: center;
+  min-height: 2.12rem;
+  padding: 0.34rem 0.5rem;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.profile-mobile-menu-side-option:hover .profile-mobile-menu-side-option-label {
+  background: var(--color-deep-teal);
+  border-color: var(--sidebar-border);
+  color: var(--sidebar-text);
+}
+
+.profile-mobile-menu-side-option input:focus-visible + .profile-mobile-menu-side-option-label {
+  outline: 2px solid var(--color-teal);
+  outline-offset: 2px;
+}
+
+.profile-mobile-menu-side-option input:checked + .profile-mobile-menu-side-option-label {
+  background: var(--color-teal);
+  border-color: var(--color-teal);
+  color: var(--button-text);
 }
 
 .profile-card.surface-panel,
@@ -3128,7 +3187,6 @@ textarea {
   --dashboard-active-segmented-control-border: var(--dashboard-light-segmented-control-border);
   --dashboard-active-segmented-control-text: var(--dashboard-light-segmented-control-text);
   --dashboard-active-shadow: var(--dashboard-light-shadow);
-  --dashboard-active-shadow-color: var(--dashboard-light-shadow-color);
   --dashboard-active-stats-tab-active-background: var(--dashboard-light-stats-tab-active-background);
   --dashboard-active-stats-tab-active-border: var(--dashboard-light-stats-tab-active-border);
   --dashboard-active-stats-tab-active-text: var(--dashboard-light-stats-tab-active-text);
@@ -3272,7 +3330,6 @@ textarea {
   --dashboard-active-segmented-control-border: var(--dashboard-dark-segmented-control-border);
   --dashboard-active-segmented-control-text: var(--dashboard-dark-segmented-control-text);
   --dashboard-active-shadow: var(--dashboard-dark-shadow);
-  --dashboard-active-shadow-color: var(--dashboard-dark-shadow-color);
   --dashboard-active-stats-tab-active-background: var(--dashboard-dark-stats-tab-active-background);
   --dashboard-active-stats-tab-active-border: var(--dashboard-dark-stats-tab-active-border);
   --dashboard-active-stats-tab-active-text: var(--dashboard-dark-stats-tab-active-text);
@@ -5424,14 +5481,12 @@ th {
 
   .admin-shell[data-mobile-menu-side="right"] .admin-sidebar-drawer-content {
     border-left: 1px solid var(--sidebar-border);
-    box-shadow: -1rem 0 2rem var(--dashboard-active-shadow-color);
     right: 0;
     transform: translateX(104%);
   }
 
   .admin-shell[data-mobile-menu-side="left"] .admin-sidebar-drawer-content {
     border-right: 1px solid var(--sidebar-border);
-    box-shadow: 1rem 0 2rem var(--dashboard-active-shadow-color);
     left: 0;
     transform: translateX(-104%);
   }

@@ -138,7 +138,6 @@ describe("dashboard theme settings", () => {
       "--dashboard-light-pill-background": DEFAULT_DASHBOARD_THEME.light.pillBackground,
       "--dashboard-light-qr-background": DEFAULT_DASHBOARD_THEME.light.qrBackground,
       "--dashboard-light-shadow": `0 18px 50px ${DEFAULT_DASHBOARD_THEME.light.shadowColor}1f`,
-      "--dashboard-light-shadow-color": DEFAULT_DASHBOARD_THEME.light.shadowColor,
       "--dashboard-light-sidebar-text": DEFAULT_DASHBOARD_THEME.light.sidebarText,
       "--dashboard-light-stats-tab-active-background": DEFAULT_DASHBOARD_THEME.light.statsTabActiveBackground,
       "--dashboard-light-stats-tab-active-text": DEFAULT_DASHBOARD_THEME.light.statsTabActiveText,

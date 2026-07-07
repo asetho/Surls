@@ -710,7 +710,6 @@ export function dashboardThemeCssVariables(theme: DashboardTheme) {
       [`--dashboard-${mode.key}-overlay-background`, theme[mode.key].overlayBackground],
       [`--dashboard-${mode.key}-placeholder`, theme[mode.key].placeholder],
       [`--dashboard-${mode.key}-shadow`, `0 18px 50px ${theme[mode.key].shadowColor}1f`],
-      [`--dashboard-${mode.key}-shadow-color`, theme[mode.key].shadowColor],
       ...Object.entries(dashboardThemeStatsTabCssVariables(theme[mode.key], `--dashboard-${mode.key}-`)),
       [`--dashboard-${mode.key}-short-url-pill-accent`, theme[mode.key].shortUrlPillAccent],
       [`--dashboard-${mode.key}-short-url-pill-background`, theme[mode.key].shortUrlPillBackground],

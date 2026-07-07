@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
-import { Save } from "lucide-react";
+import { PanelLeftOpen, PanelRightOpen, Save } from "lucide-react";
 import { updateProfileAction } from "@/app/admin/profile/actions";
 import { dispatchAdminToast } from "@/lib/admin-toast-event";
 import { DEFAULT_MOBILE_MENU_SIDE, normalizeMobileMenuSide } from "@/lib/mobile-menu";
@@ -44,13 +44,37 @@ export function ProfileIdentityForm({ csrf, siteDefaultTimeZone, user }: Profile
           siteDefaultTimeZone={siteDefaultTimeZone}
           value={user.displayTimeZone}
         />
-        <label className="form-field">
-          Mobile menu side
-          <select name="mobileMenuSide" defaultValue={mobileMenuSide}>
-            <option value="right">Right side</option>
-            <option value="left">Left side</option>
-          </select>
-        </label>
+        <fieldset className="profile-mobile-menu-side-field">
+          <legend>Mobile menu side</legend>
+          <div className="profile-mobile-menu-side-options">
+            <label className="profile-mobile-menu-side-option">
+              <input
+                className="sr-only"
+                type="radio"
+                name="mobileMenuSide"
+                value="left"
+                defaultChecked={mobileMenuSide === "left"}
+              />
+              <span className="profile-mobile-menu-side-option-label">
+                <PanelLeftOpen size={16} aria-hidden />
+                Left
+              </span>
+            </label>
+            <label className="profile-mobile-menu-side-option">
+              <input
+                className="sr-only"
+                type="radio"
+                name="mobileMenuSide"
+                value="right"
+                defaultChecked={mobileMenuSide === "right"}
+              />
+              <span className="profile-mobile-menu-side-option-label">
+                <PanelRightOpen size={16} aria-hidden />
+                Right
+              </span>
+            </label>
+          </div>
+        </fieldset>
       </div>
       <div className="profile-meta-row">
         <span className="muted small">Used for sign-in, passkeys, account activity, and timestamp display.</span>
