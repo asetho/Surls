@@ -39,8 +39,8 @@ vi.mock("next/cache", () => nextCache);
 vi.mock("next/navigation", () => navigation);
 vi.mock("@/lib/audit", () => ({ auditLog: vi.fn() }));
 const backupCodes = vi.hoisted(() => ({
-  generateBackupCodes: vi.fn(() => []),
-  hashBackupCode: vi.fn()
+  generateBackupCodes: vi.fn<() => string[]>(() => []),
+  hashBackupCode: vi.fn<(code: string) => Promise<string>>()
 }));
 
 vi.mock("@/lib/backup-codes", () => backupCodes);
