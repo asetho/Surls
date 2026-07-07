@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.14.5 - 2026-07-07
+
+### Added
+
+* Added a profile setting for choosing which side the mobile admin menu opens from.
+* Added backup-code last-generated timestamps and confirmation before regenerating backup codes.
+
+### Changed
+
+* Refined mobile admin navigation styling so the drawer follows the saved sidebar theme colors more closely.
+* Dimmed page content behind the mobile admin menu and removed the old active-shadow styling token.
+* Improved responsive admin table actions, dashboard table alignment, link-list summaries, and user security pills.
+* Showed full recent-click referrer URLs instead of reducing them to the referring domain.
+
+### Fixed
+
+* Kept profile security success messages and backup-code result panels from stretching across the full section.
+* Fixed backup-code action test typing after the profile security updates.
+
+### Upgrade Notes
+
+Run database migrations before starting the new version so mobile menu side preferences can be stored.
+
 ## 1.14.4 - 2026-07-06
 
 ### Fixed
