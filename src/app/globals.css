@@ -5050,6 +5050,18 @@ th {
   text-decoration: underline;
 }
 
+.admin-content .referrer-link {
+  color: inherit;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.admin-content .referrer-link:hover,
+.admin-content .referrer-link:focus-visible {
+  color: var(--link-color, var(--color-teal));
+  text-decoration: underline;
+}
+
 .user-agent-cell {
   display: grid;
   gap: 0.25rem;

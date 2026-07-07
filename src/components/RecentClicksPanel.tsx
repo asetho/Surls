@@ -41,6 +41,35 @@ function IpAddressValue({ ipAddressLabel }: { ipAddressLabel: string }) {
   );
 }
 
+function referrerHref(referrerLabel: string) {
+  const value = referrerLabel.trim();
+  if (!value || ["direct", "[direct]", "(direct)"].includes(value.toLowerCase())) return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
+function ReferrerValue({ referrerLabel }: { referrerLabel: string }) {
+  const lookupHref = referrerHref(referrerLabel);
+  if (!lookupHref) return <>[{referrerLabel}]</>;
+
+  return (
+    <a
+      className="referrer-link"
+      href={lookupHref}
+      target="_blank"
+      rel="noreferrer"
+      title={referrerLabel}
+    >
+      [{referrerLabel}]
+    </a>
+  );
+}
+
 export function RecentClicksPanel({ initialData, linkId }: RecentClicksPanelProps) {
   const [data, setData] = useState(initialData);
   const [pageSizeInput, setPageSizeInput] = useState(String(initialData.pagination.pageSize));
@@ -137,7 +166,9 @@ export function RecentClicksPanel({ initialData, linkId }: RecentClicksPanelProp
                   </td>
                   <td className="user-agent-cell" data-label="User Agent [Referrer]">
                     <span>{click.userAgentLabel}</span>
-                    <span className="muted small">[{click.referrerLabel}]</span>
+                    <span className="muted small">
+                      <ReferrerValue referrerLabel={click.referrerLabel} />
+                    </span>
                   </td>
                 </tr>
               ))

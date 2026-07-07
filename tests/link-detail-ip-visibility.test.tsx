@@ -108,7 +108,7 @@ function testLink() {
   };
 }
 
-function testStats() {
+function testStats({ referrer = null }: { referrer?: string | null } = {}) {
   return {
     byBrowser: [],
     byDevice: [],
@@ -127,7 +127,7 @@ function testStats() {
         id: "click_1",
         ipAddress: "198.51.100.10",
         occurredAt: new Date("2026-06-11T12:30:00.000Z"),
-        referrer: null,
+        referrer,
         userAgent: "Mozilla/5.0"
       }
     ],
@@ -197,5 +197,16 @@ describe("link detail raw IP visibility", () => {
 
     expect(markup).toContain("198.51.100.10");
     expect(markup).not.toContain("Hidden");
+  });
+
+  it("renders the full recent-click referrer URL when the browser sends it", async () => {
+    clicks.clickStats.mockResolvedValue(
+      testStats({ referrer: "https://referrer.example/docs/page" })
+    );
+
+    const markup = await renderLinkDetail();
+
+    expect(markup).toContain("[https://referrer.example/docs/page]");
+    expect(markup).toContain('href="https://referrer.example/docs/page"');
   });
 });
