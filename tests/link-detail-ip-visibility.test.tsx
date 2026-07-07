@@ -184,7 +184,10 @@ describe("link detail raw IP visibility", () => {
   it("shows raw click IP addresses to admins", async () => {
     authState.currentUser = { displayTimeZone: "America/Los_Angeles", id: "admin_1", role: "ADMIN" };
 
-    await expect(renderLinkDetail()).resolves.toContain("198.51.100.10");
+    const markup = await renderLinkDetail();
+
+    expect(markup).toContain("198.51.100.10");
+    expect(markup).toContain('href="https://ip-lookup.net/?ip=198.51.100.10"');
   });
 
   it("shows raw click IP addresses to non-admin users", async () => {

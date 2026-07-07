@@ -19,6 +19,28 @@ function isRecentClicksView(payload: unknown): payload is RecentClicksView {
   );
 }
 
+function ipLookupHref(ipAddressLabel: string) {
+  if (ipAddressLabel === "Unknown") return null;
+  return `https://ip-lookup.net/?ip=${encodeURIComponent(ipAddressLabel)}`;
+}
+
+function IpAddressValue({ ipAddressLabel }: { ipAddressLabel: string }) {
+  const lookupHref = ipLookupHref(ipAddressLabel);
+  if (!lookupHref) return ipAddressLabel;
+
+  return (
+    <a
+      className="ip-lookup-link"
+      href={lookupHref}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={`Look up IP address ${ipAddressLabel}`}
+    >
+      {ipAddressLabel}
+    </a>
+  );
+}
+
 export function RecentClicksPanel({ initialData, linkId }: RecentClicksPanelProps) {
   const [data, setData] = useState(initialData);
   const [pageSizeInput, setPageSizeInput] = useState(String(initialData.pagination.pageSize));
@@ -110,7 +132,9 @@ export function RecentClicksPanel({ initialData, linkId }: RecentClicksPanelProp
                     </span>
                   </td>
                   <td data-label="Country">{click.countryLabel}</td>
-                  <td className="ip-cell" data-label="IP Address">{click.ipAddressLabel}</td>
+                  <td className="ip-cell" data-label="IP Address">
+                    <IpAddressValue ipAddressLabel={click.ipAddressLabel} />
+                  </td>
                   <td className="user-agent-cell" data-label="User Agent [Referrer]">
                     <span>{click.userAgentLabel}</span>
                     <span className="muted small">[{click.referrerLabel}]</span>

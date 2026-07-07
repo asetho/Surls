@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.14.4 - 2026-07-06
+
+### Fixed
+
+* Kept admin link form labels left-aligned in modal layouts.
+* Made recent-click IP addresses quiet links to IP lookup details.
+* Left-aligned click counts in the admin links table.
+* Restored QR help icon contrast in light-mode modals.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.14.3 - 2026-07-01
 
 ### Fixed

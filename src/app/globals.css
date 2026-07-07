@@ -2738,6 +2738,10 @@ button.danger-outline:hover {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.form-grid > label {
+  text-align: left;
+}
+
 .sr-only {
   border: 0;
   clip: rect(0 0 0 0);
@@ -4917,18 +4921,24 @@ th {
 
 .info-tooltip {
   align-items: center;
-  background: transparent;
-  border: 0;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
   border-radius: 999px;
-  color: var(--muted);
+  color: var(--link-color, var(--color-teal));
   cursor: help;
   display: inline-flex;
   justify-content: center;
   margin: 0;
-  min-height: 1rem;
+  min-height: 1.05rem;
+  min-width: 1.05rem;
   outline: 0;
   padding: 0;
   position: relative;
+}
+
+.info-tooltip svg {
+  flex: 0 0 auto;
+  stroke-width: 2.4;
 }
 
 .info-tooltip::after {
@@ -4959,7 +4969,9 @@ th {
 .info-tooltip:hover,
 .info-tooltip:focus,
 .info-tooltip:focus-visible {
-  color: var(--color-teal);
+  background: var(--surface);
+  border-color: var(--link-color, var(--color-teal));
+  color: var(--link-color, var(--color-teal));
 }
 
 .info-tooltip:hover::after,
@@ -5025,6 +5037,17 @@ th {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: 0.82rem;
   min-width: 10rem;
+}
+
+.admin-content .ip-lookup-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.admin-content .ip-lookup-link:hover,
+.admin-content .ip-lookup-link:focus-visible {
+  color: var(--link-color, var(--color-teal));
+  text-decoration: underline;
 }
 
 .user-agent-cell {

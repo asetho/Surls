@@ -42,4 +42,14 @@ describe("visual system accessibility guards", () => {
     expect(dataTables).toContain("table.responsive-table td[data-label]::before");
     expect(themeEditor).toContain(".dashboard-theme-editor-toolbar");
   });
+
+  it("keeps admin form and links-table alignment scoped", () => {
+    const globals = readFileSync("src/app/globals.css", "utf8");
+    const dataTables = readFileSync("src/app/admin-data.css", "utf8");
+
+    expect(globals).toMatch(/\.form-grid\s*>\s*label\s*{[\s\S]*text-align:\s*left;/);
+    expect(dataTables).toMatch(/\.data-table-links\s+\.data-table-numeric\s*{[\s\S]*text-align:\s*left;/);
+    expect(globals).toMatch(/\.info-tooltip\s*{[\s\S]*border:\s*1px solid var\(--border\);/);
+    expect(globals).toMatch(/\.info-tooltip\s*{[\s\S]*color:\s*var\(--link-color, var\(--color-teal\)\);/);
+  });
 });

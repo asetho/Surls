@@ -79,6 +79,10 @@
   flex: 0 0 auto;
 }
 
+.data-table-links .data-table-numeric {
+  text-align: left;
+}
+
 .links-table-short-col {
   width: var(--links-table-short-col, 8.5rem);
 }
