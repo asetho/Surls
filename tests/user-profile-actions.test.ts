@@ -20,6 +20,11 @@ const navigation = vi.hoisted(() => ({
 }));
 
 const prisma = vi.hoisted(() => ({
+  $transaction: vi.fn(),
+  backupCode: {
+    create: vi.fn(),
+    deleteMany: vi.fn()
+  },
   user: {
     findFirst: vi.fn(),
     findUnique: vi.fn(),
@@ -33,10 +38,12 @@ vi.mock("@/lib/prisma", () => ({ prisma }));
 vi.mock("next/cache", () => nextCache);
 vi.mock("next/navigation", () => navigation);
 vi.mock("@/lib/audit", () => ({ auditLog: vi.fn() }));
-vi.mock("@/lib/backup-codes", () => ({
+const backupCodes = vi.hoisted(() => ({
   generateBackupCodes: vi.fn(() => []),
   hashBackupCode: vi.fn()
 }));
+
+vi.mock("@/lib/backup-codes", () => backupCodes);
 vi.mock("@/lib/settings", () => ({ getSiteName: vi.fn() }));
 vi.mock("@/lib/totp", () => ({
   createTotpSecret: vi.fn(),
@@ -62,6 +69,11 @@ describe("profile identity actions", () => {
     vi.clearAllMocks();
     auth.requireAdmin.mockResolvedValue({ id: "user_1", role: "USER" });
     auth.requireSiteAdmin.mockResolvedValue({ id: "admin_1", role: "ADMIN" });
+    backupCodes.generateBackupCodes.mockReturnValue([]);
+    backupCodes.hashBackupCode.mockResolvedValue("hashed-backup-code");
+    prisma.$transaction.mockResolvedValue([]);
+    prisma.backupCode.create.mockResolvedValue({});
+    prisma.backupCode.deleteMany.mockResolvedValue({ count: 0 });
     prisma.user.findFirst.mockResolvedValue(null);
     prisma.user.findUnique.mockResolvedValue({ id: "user_1" });
     prisma.user.update.mockResolvedValue({});
@@ -177,5 +189,33 @@ describe("profile identity actions", () => {
         name: "Test User"
       }
     });
+  });
+
+  it("regenerates backup codes with a shared generated timestamp", async () => {
+    const { regenerateBackupCodesAction } = await import("@/app/admin/profile/actions");
+    const formData = new FormData();
+    formData.set("csrf", "csrf-token");
+    backupCodes.generateBackupCodes.mockReturnValue(["ABCDE-FGHIJ", "KLMNO-PQRST"]);
+    backupCodes.hashBackupCode.mockImplementation(async (code: string) => `hash:${code}`);
+
+    const result = await regenerateBackupCodesAction(null, formData);
+
+    expect(result.codes).toEqual(["ABCDE-FGHIJ", "KLMNO-PQRST"]);
+    const generatedAt = new Date(result.generatedAt);
+    expect(Number.isNaN(generatedAt.getTime())).toBe(false);
+    expect(prisma.backupCode.deleteMany).toHaveBeenCalledWith({ where: { userId: "user_1" } });
+    expect(prisma.backupCode.create).toHaveBeenCalledTimes(2);
+    expect(prisma.backupCode.create).toHaveBeenNthCalledWith(1, {
+      data: { userId: "user_1", codeHash: "hash:ABCDE-FGHIJ", createdAt: generatedAt }
+    });
+    expect(prisma.backupCode.create).toHaveBeenNthCalledWith(2, {
+      data: { userId: "user_1", codeHash: "hash:KLMNO-PQRST", createdAt: generatedAt }
+    });
+    expect(prisma.$transaction).toHaveBeenCalledWith([
+      prisma.backupCode.deleteMany.mock.results[0]?.value,
+      prisma.backupCode.create.mock.results[0]?.value,
+      prisma.backupCode.create.mock.results[1]?.value
+    ]);
+    expect(nextCache.revalidatePath).toHaveBeenCalledWith("/admin/profile");
   });
 });

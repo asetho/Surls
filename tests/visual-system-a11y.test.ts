@@ -61,6 +61,9 @@ describe("visual system accessibility guards", () => {
     expect(globals).toMatch(/\.info-tooltip\s*{[\s\S]*color:\s*var\(--link-color, var\(--color-teal\)\);/);
     expect(globals).toMatch(/\.admin-shell\[data-mobile-menu-side="right"\]\s+\.admin-sidebar-drawer-content\s*{[\s\S]*right:\s*0;[\s\S]*transform:\s*translateX\(104%\);/);
     expect(globals).toMatch(/\.admin-shell\[data-mobile-menu-side="left"\]\s+\.admin-sidebar-drawer-content\s*{[\s\S]*left:\s*0;[\s\S]*transform:\s*translateX\(-104%\);/);
+    expect(globals).toMatch(/\.admin-sidebar-drawer-backdrop\s*{[\s\S]*background:\s*var\(--overlay-background\);/);
+    expect(globals).toMatch(/\.admin-sidebar-toggle:checked\s*~\s*\.admin-sidebar-drawer-backdrop\s*{[\s\S]*opacity:\s*0\.62;/);
+    expect(globals).toMatch(/\.admin-sidebar-drawer-content\s*{[\s\S]*background:\s*var\(--color-navy\);[\s\S]*color:\s*var\(--sidebar-text\);/);
     const deprecatedActiveShadowColorToken = ["--dashboard", "active", "shadow", "color"].join("-");
     expect(globals).not.toContain(deprecatedActiveShadowColorToken);
     expect(globals).not.toMatch(/\.admin-shell\[data-mobile-menu-side="right"\]\s+\.admin-sidebar-drawer-content\s*{[^}]*box-shadow:/);
@@ -70,5 +73,19 @@ describe("visual system accessibility guards", () => {
     expect(globals).toMatch(/\.profile-mobile-menu-side-options\s*{[\s\S]*background:\s*var\(--color-navy\);[\s\S]*border:\s*1px solid var\(--sidebar-border\);/);
     expect(globals).toMatch(/\.profile-mobile-menu-side-option input:checked\s*\+\s*\.profile-mobile-menu-side-option-label\s*{[\s\S]*background:\s*var\(--color-teal\);/);
     expect(globals).not.toMatch(/\.profile-mobile-menu-side-option input:focus-visible\s*\+\s*\.profile-mobile-menu-side-option-label\s*{[^}]*box-shadow:/);
+  });
+
+  it("keeps profile security confirmations and compact success callouts", () => {
+    const globals = readFileSync("src/app/globals.css", "utf8");
+    const backupCodesForm = readFileSync("src/components/BackupCodesForm.tsx", "utf8");
+    const profilePage = readFileSync("src/app/admin/profile/page.tsx", "utf8");
+
+    expect(backupCodesForm).toContain("REGENERATE_BACKUP_CODES_CONFIRMATION");
+    expect(backupCodesForm).toContain("<ConfirmButton type=\"submit\" disabled={pending} message={REGENERATE_BACKUP_CODES_CONFIRMATION}>");
+    expect(backupCodesForm).toContain("Last generated: {generatedAtLabel}");
+    expect(profilePage).toContain("success profile-status-success");
+    expect(globals).toMatch(/\.profile-status-success,\s*\n\.backup-codes-result\s*{[\s\S]*max-width:\s*min\(100%,\s*34rem\);[\s\S]*width:\s*fit-content;/);
+    expect(globals).toMatch(/\.profile-status-success\s*{[\s\S]*overflow-wrap:\s*anywhere;/);
+    expect(globals).toMatch(/\.backup-codes-meta\s*{[\s\S]*justify-self:\s*start;[\s\S]*margin:\s*0;/);
   });
 });

@@ -113,23 +113,24 @@ export async function disableTotpAction(formData: FormData) {
   revalidatePath("/admin/profile");
 }
 
-export async function regenerateBackupCodesAction(_state: { codes: string[] } | null, formData: FormData) {
+export async function regenerateBackupCodesAction(_state: { codes: string[]; generatedAt: string } | null, formData: FormData) {
   validateCsrf(formData);
   const admin = await requireAdmin();
   if (!admin) throw new Error("Unauthorized");
+  const generatedAt = new Date();
   const codes = generateBackupCodes();
   const hashedCodes = await Promise.all(codes.map(async (code) => ({ code, codeHash: await hashBackupCode(code) })));
   await prisma.$transaction([
     prisma.backupCode.deleteMany({ where: { userId: admin.id } }),
     ...hashedCodes.map((code) =>
       prisma.backupCode.create({
-        data: { userId: admin.id, codeHash: code.codeHash }
+        data: { userId: admin.id, codeHash: code.codeHash, createdAt: generatedAt }
       })
     )
   ]);
   await auditLog({ userId: admin.id, action: AuditAction.BACKUP_CODES_REGENERATED });
   revalidatePath("/admin/profile");
-  return { codes };
+  return { codes, generatedAt: generatedAt.toISOString() };
 }
 
 export async function deleteBackupCodesAction(formData: FormData) {

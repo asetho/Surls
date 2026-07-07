@@ -22,9 +22,14 @@ export default async function ProfilePage() {
   const admin = await requireAdmin();
   if (!admin) redirect(adminLoginPath("/admin/profile"));
   const csrf = getCsrfToken();
-  const [credential, backupCount, passkeys, siteName, siteDefaultTimeZone] = await Promise.all([
+  const [credential, backupCount, latestBackupCode, passkeys, siteName, siteDefaultTimeZone] = await Promise.all([
     prisma.totpCredential.findUnique({ where: { userId: admin.id } }),
     prisma.backupCode.count({ where: { userId: admin.id, usedAt: null } }),
+    prisma.backupCode.findFirst({
+      where: { userId: admin.id },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true }
+    }),
     prisma.passkey.findMany({ where: { userId: admin.id }, orderBy: { createdAt: "desc" } }),
     getSiteName(),
     getDisplayTimeZone()
@@ -77,7 +82,7 @@ export default async function ProfilePage() {
           <h3>TOTP 2FA</h3>
           {credential?.enabled ? (
             <div className="form-stack">
-              <p className="success">TOTP is enabled for {admin.email}.</p>
+              <p className="success profile-status-success">TOTP is enabled for {admin.email}.</p>
               <form action={disableTotpAction}>
                 <input type="hidden" name="csrf" value={csrf} />
                 <button className="danger" type="submit">Disable TOTP</button>
@@ -124,7 +129,13 @@ export default async function ProfilePage() {
             You currently have {backupCount} unused backup {backupCount === 1 ? "code" : "codes"}. Codes are stored only
             as hashes and are consumed after one successful use.
           </p>
-          <BackupCodesForm backupCount={backupCount} canDeleteBackupCodes={isAdminUser(admin)} csrf={csrf} />
+          <BackupCodesForm
+            backupCount={backupCount}
+            canDeleteBackupCodes={isAdminUser(admin)}
+            csrf={csrf}
+            displayTimeZone={displayTimeZone}
+            lastGeneratedAt={latestBackupCode?.createdAt.toISOString() ?? null}
+          />
         </section>
 
         <section className="profile-security-panel">

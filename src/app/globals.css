@@ -2905,9 +2905,23 @@ button.danger-outline:hover {
   margin: 0;
 }
 
+.profile-status-success,
 .backup-codes-result {
   display: grid;
   gap: 0.75rem;
+  justify-self: start;
+  max-width: min(100%, 34rem);
+  width: fit-content;
+}
+
+.profile-status-success {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.backup-codes-meta {
+  justify-self: start;
+  margin: 0;
 }
 
 .backup-codes-result p {
@@ -5451,7 +5465,7 @@ th {
   }
 
   .admin-sidebar-toggle:checked ~ .admin-sidebar-drawer-backdrop {
-    opacity: 1;
+    opacity: 0.62;
     pointer-events: auto;
   }
 
@@ -5465,7 +5479,9 @@ th {
   }
 
   .admin-sidebar-drawer-content {
+    background: var(--color-navy);
     bottom: 0;
+    color: var(--sidebar-text);
     display: flex;
     height: 100dvh;
     max-width: calc(100vw - 2.75rem);

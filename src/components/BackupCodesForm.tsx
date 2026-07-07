@@ -3,19 +3,26 @@
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { Check, Copy, Download, KeyRound, Trash2 } from "lucide-react";
 import { deleteBackupCodesAction, regenerateBackupCodesAction } from "@/app/admin/profile/actions";
+import { formatDateTime } from "@/lib/dates";
 import { ConfirmButton } from "./ConfirmButton";
 
 const BACKUP_CODES_CONFIRMATION =
   "These backup codes are shown only once. Confirm you have saved, downloaded, or copied them before leaving this page.";
+const REGENERATE_BACKUP_CODES_CONFIRMATION =
+  "Regenerate backup codes? Your existing backup codes will stop working immediately.";
 
 export function BackupCodesForm({
   backupCount,
   canDeleteBackupCodes,
-  csrf
+  csrf,
+  displayTimeZone,
+  lastGeneratedAt
 }: {
   backupCount: number;
   canDeleteBackupCodes: boolean;
   csrf: string;
+  displayTimeZone: string;
+  lastGeneratedAt: string | null;
 }) {
   const [state, action, pending] = useActionState(regenerateBackupCodesAction, null);
   const [acknowledgedCodesText, setAcknowledgedCodesText] = useState<string | null>(null);
@@ -29,6 +36,12 @@ export function BackupCodesForm({
   const hasBackupCodes = backupCount > 0 || Boolean(codes?.length);
   const buttonLabel = backupCount > 0 || state?.codes?.length ? "Regenerate backup codes" : "Generate backup codes";
   const shouldWarnBeforeLeaving = Boolean(codesText) && !codesAcknowledged;
+  const generatedAt = state?.generatedAt ?? lastGeneratedAt;
+  const generatedAtLabel = useMemo(() => {
+    if (!generatedAt) return "Never generated";
+    const date = new Date(generatedAt);
+    return Number.isNaN(date.getTime()) ? "Never generated" : formatDateTime(date, displayTimeZone);
+  }, [displayTimeZone, generatedAt]);
 
   useEffect(() => {
     if (!shouldWarnBeforeLeaving) return;
@@ -147,11 +160,19 @@ export function BackupCodesForm({
     <div className="form-stack">
       <form action={action}>
         <input type="hidden" name="csrf" value={csrf} />
-        <button type="submit" disabled={pending}>
-          <KeyRound size={16} aria-hidden />
-          {buttonLabel}
-        </button>
+        {hasBackupCodes ? (
+          <ConfirmButton type="submit" disabled={pending} message={REGENERATE_BACKUP_CODES_CONFIRMATION}>
+            <KeyRound size={16} aria-hidden />
+            {buttonLabel}
+          </ConfirmButton>
+        ) : (
+          <button type="submit" disabled={pending}>
+            <KeyRound size={16} aria-hidden />
+            {buttonLabel}
+          </button>
+        )}
       </form>
+      <p className="backup-codes-meta muted small">Last generated: {generatedAtLabel}</p>
       {canDeleteBackupCodes && hasBackupCodes ? (
         <form
           action={deleteBackupCodesAction}
