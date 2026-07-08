@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.14.6 - 2026-07-07
+
+### Changed
+
+* Updated Dependabot-managed development dependencies and CI actions: @types/node 25.9.3, eslint-config-next 16.2.9, lucide-react 1.18.0, vitest 4.1.9, and @vitest/coverage-v8 4.1.9.
+* Updated GitHub Actions used by CI and Docker publishing: actions/checkout 7.0.0, docker/metadata-action 6.2.0, docker/build-push-action 7.3.0, docker/setup-buildx-action 4.2.0, and docker/login-action 4.4.0.
+
+### Security
+
+* Enabled GitHub Dependabot vulnerability alerts and automated security update PRs for the repository.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.14.5 - 2026-07-07
 
 ### Added
