@@ -117,10 +117,11 @@ See `deploy/1panel/README.md` for the exact 1Panel steps, including the reverse 
 
 ## Docker Image
 
-Build a production image locally:
+Build a production image locally. Supply the Server Actions key as a BuildKit secret so it is not recorded in the image configuration:
 
 ```bash
-docker build -t surls:latest .
+NEXT_SERVER_ACTIONS_ENCRYPTION_KEY="$(openssl rand -base64 32)" \
+  docker build --secret id=next_server_actions_encryption_key,env=NEXT_SERVER_ACTIONS_ENCRYPTION_KEY -t surls:latest .
 ```
 
 Run the image against a PostgreSQL database:
@@ -285,7 +286,7 @@ hashed IP and visitor values are still populated for statistics.
 ## Production Checklist
 
 - Use a strong `AUTH_SECRET`.
-- Set a stable `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` before building production images.
+- Set a stable `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` before building production images and pass it as the `next_server_actions_encryption_key` BuildKit secret.
 - Set `BASE_URL` to the public HTTPS origin.
 - Set `NODE_ENV=production`.
 - Run behind HTTPS and keep HSTS enabled.

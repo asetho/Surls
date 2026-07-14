@@ -1,7 +1,20 @@
 import { spawn } from "node:child_process";
+import { readFile } from "node:fs/promises";
 
 const defaultCommand = ["node", "server.js"];
 const command = process.argv.slice(2);
+const serverActionsKeyPath = "/run/secrets/next_server_actions_encryption_key";
+
+async function loadServerActionsEncryptionKey() {
+  if (process.env.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY) return;
+
+  try {
+    const value = (await readFile(serverActionsKeyPath, "utf8")).trim();
+    if (value) process.env.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY = value;
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+}
 
 function isEnabled(name, defaultValue = true) {
   const value = process.env[name];
@@ -87,6 +100,7 @@ async function runWithRetries(label, commandName, args) {
 }
 
 async function main() {
+  await loadServerActionsEncryptionKey();
   validateEnvironment();
 
   if (isEnabled("SURLS_RUN_MIGRATIONS")) {

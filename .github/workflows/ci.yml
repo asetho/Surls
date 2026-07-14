@@ -95,9 +95,10 @@ jobs:
       - name: Build smoke image
         run: |
           NEXT_SERVER_ACTIONS_ENCRYPTION_KEY="$(openssl rand -base64 32)"
+          echo "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY}" >> "$GITHUB_ENV"
           docker build \
             --build-arg SURLS_GIT_SHA="${GITHUB_SHA}" \
-            --build-arg NEXT_SERVER_ACTIONS_ENCRYPTION_KEY="${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY}" \
+            --secret id=next_server_actions_encryption_key,env=NEXT_SERVER_ACTIONS_ENCRYPTION_KEY \
             -t surls:ci .
 
       - name: Create public webroot mount
@@ -150,6 +151,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             SURLS_GIT_SHA=${{ github.sha }}
-            NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=${{ secrets.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY }}
+          secrets: |
+            next_server_actions_encryption_key=${{ secrets.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

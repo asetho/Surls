@@ -53,7 +53,7 @@ In 1Panel:
 5. Name the project `surls`.
 6. Start it.
 
-The compose file can build the Surls image from the cloned repo. It also has an `SURLS_IMAGE` setting, so after GitHub Actions publishes a GHCR image you can pull the prebuilt image instead. If the GHCR package is private, log in to GHCR from the server or keep using the local build path.
+The compose file can build the Surls image from the cloned repo. It passes `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` to that build and running container as a Compose secret, so the key is not recorded in image build arguments or environment metadata. It also has an `SURLS_IMAGE` setting, so after GitHub Actions publishes a GHCR image you can pull the prebuilt image instead. If the GHCR package is private, log in to GHCR from the server or keep using the local build path.
 
 The first app boot runs migrations, creates missing app settings, purges expired raw IP addresses, click events, and audit logs, and creates the initial admin if no users exist. Set `AUTH_SECRET` and `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` to high-entropy values such as output from `openssl rand -base64 32`; placeholder values are rejected in production for `AUTH_SECRET`. Keep `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` stable across rebuilds so self-hosted Server Action forms from an already-loaded page do not fail after a deploy.
 

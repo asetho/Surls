@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.14.7 - 2026-07-14
+
+### Security
+
+* Removed `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` from Docker build arguments and image environment metadata. Production builds now use BuildKit secrets, and Compose deployments mount the key at runtime.
+
+### Fixed
+
+* Added regression coverage for Docker, Compose, CI, and entrypoint secret handling.
+
+### Upgrade Notes
+
+No manual upgrade steps required. Set `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` in the deployment environment before building or starting the Compose stack.
+
 ## 1.14.6 - 2026-07-07
 
 ### Changed
