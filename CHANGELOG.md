@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.14.8 - 2026-07-15
+
+### Security
+
+* Scoped link archive and restore mutations to the owning user while preserving site-admin management.
+* Forced uploaded active content to download instead of rendering in the browser.
+* Hardened pending-login redirect validation against slash-backslash redirects.
+
+### Fixed
+
+* Added regression coverage for link ownership, upload download disposition, and pending-login redirect handling.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 1.14.7 - 2026-07-14
 
 ### Security

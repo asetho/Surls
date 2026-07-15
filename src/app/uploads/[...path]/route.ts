@@ -19,12 +19,21 @@ function notFound(method: "GET" | "HEAD") {
   });
 }
 
+function downloadResponse(response: Response | null, method: "GET" | "HEAD") {
+  if (!response) return notFound(method);
+  response.headers.set("Content-Disposition", "attachment");
+  return response;
+}
+
 export async function GET(_request: Request, { params }: Params) {
   const { path } = await params;
-  return (await publicWebrootResponse(path, { allowReservedPath: true, rootDir: env.UPLOADS_DIR })) ?? notFound("GET");
+  return downloadResponse(await publicWebrootResponse(path, { allowReservedPath: true, rootDir: env.UPLOADS_DIR }), "GET");
 }
 
 export async function HEAD(_request: Request, { params }: Params) {
   const { path } = await params;
-  return (await publicWebrootResponse(path, { allowReservedPath: true, method: "HEAD", rootDir: env.UPLOADS_DIR })) ?? notFound("HEAD");
+  return downloadResponse(
+    await publicWebrootResponse(path, { allowReservedPath: true, method: "HEAD", rootDir: env.UPLOADS_DIR }),
+    "HEAD"
+  );
 }

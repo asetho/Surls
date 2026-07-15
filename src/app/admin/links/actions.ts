@@ -70,7 +70,7 @@ export async function archiveLinkAction(formData: FormData) {
   const admin = await requireAdmin();
   if (!admin) redirect("/admin");
   const id = String(formData.get("id") ?? "");
-  const link = await archiveShortLink(id);
+  const link = await archiveShortLink(id, admin);
   await auditLog({
     userId: admin.id,
     action: AuditAction.SHORT_LINK_ARCHIVED,
@@ -89,7 +89,7 @@ export async function restoreLinkAction(formData: FormData) {
   const admin = await requireAdmin();
   if (!admin) redirect("/admin");
   const id = String(formData.get("id") ?? "");
-  const link = await restoreShortLink(id);
+  const link = await restoreShortLink(id, admin);
   await auditLog({
     userId: admin.id,
     action: AuditAction.SHORT_LINK_UPDATED,

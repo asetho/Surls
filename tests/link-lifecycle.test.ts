@@ -87,7 +87,17 @@ describe("link lifecycle helpers", () => {
 
   it("archives links by disabling and timestamping them", async () => {
     shortLink.update.mockResolvedValue({ id: "link_1", code: "demo" });
-    await archiveShortLink("link_1");
+    await archiveShortLink("link_1", { id: "user_1", role: "USER" });
+
+    expect(shortLink.update).toHaveBeenCalledWith({
+      where: { id: "link_1", createdById: "user_1" },
+      data: { archivedAt: expect.any(Date), enabled: false }
+    });
+  });
+
+  it("allows site admins to archive any link", async () => {
+    shortLink.update.mockResolvedValue({ id: "link_1", code: "demo" });
+    await archiveShortLink("link_1", { id: "admin_1", role: "ADMIN" });
 
     expect(shortLink.update).toHaveBeenCalledWith({
       where: { id: "link_1" },
@@ -97,7 +107,17 @@ describe("link lifecycle helpers", () => {
 
   it("restores archived links by clearing archivedAt and enabling them", async () => {
     shortLink.update.mockResolvedValue({ id: "link_1", code: "demo" });
-    await restoreShortLink("link_1");
+    await restoreShortLink("link_1", { id: "user_1", role: "USER" });
+
+    expect(shortLink.update).toHaveBeenCalledWith({
+      where: { id: "link_1", createdById: "user_1" },
+      data: { archivedAt: null, enabled: true }
+    });
+  });
+
+  it("allows site admins to restore any link", async () => {
+    shortLink.update.mockResolvedValue({ id: "link_1", code: "demo" });
+    await restoreShortLink("link_1", { id: "admin_1", role: "ADMIN" });
 
     expect(shortLink.update).toHaveBeenCalledWith({
       where: { id: "link_1" },
