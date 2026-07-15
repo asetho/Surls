@@ -50,20 +50,27 @@ describe("auth helpers", () => {
     vi.useFakeTimers();
     vi.setSystemTime(now);
     try {
-      const signed = encodePendingLogin({
+      for (const nextPath of ["//evil.example/admin", "/\\evil.example/admin"]) {
+        const signed = encodePendingLogin({
+          email: "admin@example.com",
+          nextPath,
+          userId: "user_123"
+        });
+        expect(decodePendingLogin(signed)).toMatchObject({
+          email: "admin@example.com",
+          nextPath: "/admin",
+          userId: "user_123"
+        });
+        expect(decodePendingLogin(`${signed}x`)).toBeNull();
+      }
+      const expiring = encodePendingLogin({
         email: "admin@example.com",
-        nextPath: "//evil.example/admin",
+        nextPath: "/admin/links",
         userId: "user_123"
       });
-      expect(decodePendingLogin(signed)).toMatchObject({
-        email: "admin@example.com",
-        nextPath: "/admin",
-        userId: "user_123"
-      });
-      expect(decodePendingLogin(`${signed}x`)).toBeNull();
 
       vi.setSystemTime(new Date(now.getTime() + PENDING_LOGIN_MAX_AGE_SECONDS * 1000 + 1));
-      expect(decodePendingLogin(signed)).toBeNull();
+      expect(decodePendingLogin(expiring)).toBeNull();
     } finally {
       vi.useRealTimers();
     }

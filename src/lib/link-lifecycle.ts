@@ -99,16 +99,25 @@ export function shortLinkListWhere(view: LinkListView, query?: string, tagSlug?:
   };
 }
 
-export async function archiveShortLink(id: string) {
+export type LinkMutationActor = {
+  id: string;
+  role: string;
+};
+
+function linkMutationWhere(id: string, actor: LinkMutationActor): Prisma.ShortLinkWhereUniqueInput {
+  return actor.role === "ADMIN" ? { id } : { id, createdById: actor.id };
+}
+
+export async function archiveShortLink(id: string, actor: LinkMutationActor) {
   return prisma.shortLink.update({
-    where: { id },
+    where: linkMutationWhere(id, actor),
     data: { archivedAt: new Date(), enabled: false }
   });
 }
 
-export async function restoreShortLink(id: string) {
+export async function restoreShortLink(id: string, actor: LinkMutationActor) {
   return prisma.shortLink.update({
-    where: { id },
+    where: linkMutationWhere(id, actor),
     data: { archivedAt: null, enabled: true }
   });
 }
