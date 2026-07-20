@@ -56,8 +56,12 @@ function tagSlug(name: string) {
 }
 
 export function normalizeShortLinkTags(tags: string[] | undefined) {
+  const supplied = tags ?? [];
+  if (supplied.length > 100 || supplied.reduce((total, tag) => total + tag.length, 0) > 8_000) {
+    throw new Error("Too many tags.");
+  }
   const seen = new Set<string>();
-  return (tags ?? [])
+  return supplied
     .map((tagName) => tagName.trim())
     .filter(Boolean)
     .map((name) => {

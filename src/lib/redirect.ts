@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getCurrentSession } from "./auth";
+import { getCurrentSession, isAdminUser } from "./auth";
 import { getSetting, getSiteName } from "./settings";
 import { prisma } from "./prisma";
 import { linkUnavailableReason } from "./links";
@@ -210,7 +210,7 @@ export async function handleShortRedirect(request: NextRequest, code: string, is
     getSetting("trackAdminClicks"),
     getSetting("preserveRedirectQuery")
   ]);
-  const isAdminClick = Boolean(session);
+  const isAdminClick = isAdminUser(session?.user);
   const adminReferrer = isAdminReferrer(request.headers.get("referer"));
   const adminIgnored = (isAdminClick || adminReferrer) && !trackAdminClicks;
   const optOutReason = analyticsOptOutReason(request.headers);
@@ -222,7 +222,9 @@ export async function handleShortRedirect(request: NextRequest, code: string, is
     isAdminReferrer: adminReferrer,
     trackAdminClicks
   });
-  let shouldStoreAggregateOnly = !shouldStoreEvent && Boolean(optOutReason) && !isHead && !adminIgnored;
+  let shouldStoreAggregateOnly =
+    !shouldStoreEvent &&
+    (link.maxClicks !== null || (!isHead && Boolean(optOutReason) && !adminIgnored));
 
   if (!shouldStoreEvent) {
     if (isHead) {

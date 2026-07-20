@@ -65,11 +65,13 @@ export async function revokeTokenAction(formData: FormData) {
   const admin = await requireAdmin();
   if (!admin) throw new Error("Unauthorized");
   const id = String(formData.get("id") ?? "");
-  await prisma.apiToken.updateMany({
-    where: { id },
+  const result = await prisma.apiToken.updateMany({
+    where: { id, userId: admin.id },
     data: { revokedAt: new Date() }
   });
-  await auditLog({ userId: admin.id, action: AuditAction.API_TOKEN_REVOKED, entityType: "ApiToken", entityId: id });
+  if (result.count > 0) {
+    await auditLog({ userId: admin.id, action: AuditAction.API_TOKEN_REVOKED, entityType: "ApiToken", entityId: id });
+  }
   revalidatePath("/admin/tools");
 }
 
@@ -79,7 +81,7 @@ export async function deleteTokenAction(formData: FormData) {
   if (!admin) throw new Error("Unauthorized");
   const id = String(formData.get("id") ?? "");
   if (!id) throw new Error("Choose an API token to delete.");
-  const result = await prisma.apiToken.deleteMany({ where: { id } });
+  const result = await prisma.apiToken.deleteMany({ where: { id, userId: admin.id } });
   if (result.count > 0) {
     await auditLog({
       userId: admin.id,

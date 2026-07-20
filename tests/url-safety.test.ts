@@ -15,6 +15,9 @@ describe("URL safety", () => {
     expect(parseSafeHttpUrl("http://localhost:3000").ok).toBe(false);
     expect(parseSafeHttpUrl("http://127.0.0.1").ok).toBe(false);
     expect(parseSafeHttpUrl("http://192.168.1.5").ok).toBe(false);
+    expect(parseSafeHttpUrl("http://100.64.0.1").ok).toBe(false);
+    expect(parseSafeHttpUrl("http://192.0.2.1").ok).toBe(false);
+    expect(parseSafeHttpUrl("http://198.18.0.1").ok).toBe(false);
     expect(parseSafeHttpUrl("http://[::1]/").ok).toBe(false);
     expect(parseSafeHttpUrl("http://[fe80::1]/").ok).toBe(false);
     expect(parseSafeHttpUrl("http://[fd00::1]/").ok).toBe(false);
@@ -27,6 +30,8 @@ describe("URL safety", () => {
     expect(isPrivateAddress("10.0.0.1")).toBe(true);
     expect(isPrivateAddress("172.16.0.1")).toBe(true);
     expect(isPrivateAddress("192.168.1.1")).toBe(true);
+    expect(isPrivateAddress("100.64.0.1")).toBe(true);
+    expect(isPrivateAddress("198.51.100.1")).toBe(true);
     expect(isPrivateAddress("[::1]")).toBe(true);
     expect(isPrivateAddress("fd00::1")).toBe(true);
     expect(isPrivateAddress("fe90::1")).toBe(true);

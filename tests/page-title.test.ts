@@ -1,3 +1,4 @@
+import http from "node:http";
 import { describe, expect, it, vi } from "vitest";
 import { extractHtmlTitle, fetchPageTitle } from "@/lib/page-title";
 
@@ -13,7 +14,7 @@ describe("page title fetching", () => {
 
     await expect(
       fetchPageTitle("https://example.com/data", {
-        assertSafeResolution: async () => true,
+        resolveSafeAddress: async () => ({ address: "203.0.113.10", family: 4 }),
         fetchImpl
       })
     ).resolves.toBeNull();
@@ -29,10 +30,53 @@ describe("page title fetching", () => {
 
     await expect(
       fetchPageTitle("https://example.com/start", {
-        assertSafeResolution: async () => true,
+        resolveSafeAddress: async () => ({ address: "203.0.113.10", family: 4 }),
         fetchImpl
       })
     ).resolves.toBe("Final Page");
     expect(fetchImpl).toHaveBeenLastCalledWith("https://example.com/final", expect.any(Object));
+  });
+
+  it("aborts a stalled HTML response body when the title deadline expires", async () => {
+    const fetchImpl = vi.fn(async (_input: string | URL, init?: RequestInit) => {
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          init?.signal?.addEventListener(
+            "abort",
+            () => controller.error(new DOMException("The operation was aborted.", "AbortError")),
+            { once: true }
+          );
+        }
+      });
+      return new Response(body, { headers: { "content-type": "text/html" } });
+    });
+
+    await expect(
+      fetchPageTitle("https://example.com/stalled", {
+        resolveSafeAddress: async () => ({ address: "203.0.113.10", family: 4 }),
+        fetchImpl,
+        timeoutMs: 20
+      })
+    ).resolves.toBeNull();
+  });
+
+  it("pins the request to the address validated for the hostname", async () => {
+    const server = http.createServer((_request, response) => {
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end("<!doctype html><title>Pinned Title</title>");
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("Expected a TCP listener");
+
+    try {
+      await expect(
+        fetchPageTitle(`http://rebound.example:${address.port}/`, {
+          resolveSafeAddress: async () => ({ address: "127.0.0.1", family: 4 })
+        })
+      ).resolves.toBe("Pinned Title");
+    } finally {
+      await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    }
   });
 });

@@ -56,6 +56,13 @@ describe("link lifecycle helpers", () => {
     });
   });
 
+  it("scopes non-admin link lists to their creator", () => {
+    expect(shortLinkListWhere("active", undefined, undefined, "user_1")).toEqual({
+      archivedAt: null,
+      createdById: "user_1"
+    });
+  });
+
   it("normalizes list sort and returns matching order clauses", () => {
     expect(normalizeLinkListSort("clicks")).toBe("clicks_desc");
     expect(normalizeLinkListSort("created_asc")).toBe("created_asc");

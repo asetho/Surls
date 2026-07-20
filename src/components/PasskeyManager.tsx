@@ -25,6 +25,7 @@ function initialPasskeySupport() {
 export function PasskeyManager({ csrf, passkeys }: { csrf: string; passkeys: PasskeyItem[] }) {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
   const [supportsPasskeys] = useState<boolean | null>(initialPasskeySupport);
   const [pending, setPending] = useState(false);
 
@@ -38,7 +39,7 @@ export function PasskeyManager({ csrf, passkeys }: { csrf: string; passkeys: Pas
       const optionsResponse = await fetch("/api/auth/passkey/register/options", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ csrf, name })
+        body: JSON.stringify({ csrf, name, password })
       });
       const options = await optionsResponse.json();
       if (!optionsResponse.ok) throw new Error(options.error || "Could not start passkey setup.");
@@ -54,6 +55,7 @@ export function PasskeyManager({ csrf, passkeys }: { csrf: string; passkeys: Pas
 
       dispatchAdminToast("success", "Passkey added.");
       setName("");
+      setPassword("");
       router.refresh();
     } catch (registrationError) {
       dispatchAdminToast(
@@ -77,8 +79,22 @@ export function PasskeyManager({ csrf, passkeys }: { csrf: string; passkeys: Pas
             placeholder={PASSKEY_NAME_PLACEHOLDER}
           />
         </label>
+        <label>
+          Current password
+          <input
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            type="password"
+            autoComplete="current-password"
+            required
+          />
+        </label>
         <div className="field-action">
-          <button type="button" onClick={registerPasskey} disabled={pending || supportsPasskeys === false}>
+          <button
+            type="button"
+            onClick={registerPasskey}
+            disabled={pending || !password || supportsPasskeys === false}
+          >
             <KeyRound size={16} aria-hidden />
             {pending ? "Waiting..." : "Add passkey"}
           </button>

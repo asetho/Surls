@@ -1,4 +1,7 @@
-import { assertNoPrivateResolution, parseSafeHttpUrl } from "./url-safety";
+import http from "node:http";
+import https from "node:https";
+import { Readable } from "node:stream";
+import { parseSafeHttpUrl, resolveSafeHttpAddress, type ResolvedHttpAddress } from "./url-safety";
 
 const FETCH_TIMEOUT_MS = 3500;
 const MAX_TITLE_BYTES = 64 * 1024;
@@ -6,11 +9,15 @@ const MAX_REDIRECTS = 3;
 const MAX_TITLE_LENGTH = 180;
 const HTML_CONTENT_TYPE = /\b(?:text\/html|application\/xhtml\+xml)\b/i;
 
-type FetchLike = (input: string | URL, init?: RequestInit) => Promise<Response>;
+type PinnedRequestInit = RequestInit & {
+  resolvedAddress: ResolvedHttpAddress;
+};
+
+type FetchLike = (input: string | URL, init: PinnedRequestInit) => Promise<Response>;
 
 type FetchPageTitleOptions = {
   fetchImpl?: FetchLike;
-  assertSafeResolution?: typeof assertNoPrivateResolution;
+  resolveSafeAddress?: typeof resolveSafeHttpAddress;
   timeoutMs?: number;
   maxBytes?: number;
   maxRedirects?: number;
@@ -24,6 +31,46 @@ const HTML_ENTITIES: Record<string, string> = {
   nbsp: " ",
   quot: "\""
 };
+
+function fetchWithPinnedAddress(input: string | URL, init: PinnedRequestInit) {
+  const url = new URL(input);
+  const client = url.protocol === "https:" ? https : http;
+
+  return new Promise<Response>((resolve, reject) => {
+    const request = client.request(
+      url,
+      {
+        headers: Object.fromEntries(new Headers(init.headers)),
+        lookup: (_hostname, options, callback) => {
+          if (options.all) {
+            callback(null, [init.resolvedAddress]);
+            return;
+          }
+          callback(null, init.resolvedAddress.address, init.resolvedAddress.family);
+        },
+        servername: url.hostname,
+        signal: init.signal ?? undefined
+      },
+      (response) => {
+        const headers = new Headers();
+        for (const [name, value] of Object.entries(response.headers)) {
+          if (value !== undefined) headers.set(name, Array.isArray(value) ? value.join(", ") : value);
+        }
+
+        resolve(
+          new Response(Readable.toWeb(response) as ReadableStream<Uint8Array>, {
+            headers,
+            status: response.statusCode ?? 500,
+            statusText: response.statusMessage
+          })
+        );
+      }
+    );
+
+    request.once("error", reject);
+    request.end();
+  });
+}
 
 function decodeHtmlEntities(value: string) {
   return value.replace(/&(#(\d+)|#x([\da-f]+)|[a-z][\w-]*);/gi, (match, entity, decimal, hex) => {
@@ -84,8 +131,8 @@ function redirectUrl(currentUrl: string, location: string) {
 }
 
 export async function fetchPageTitle(destinationUrl: string, options: FetchPageTitleOptions = {}) {
-  const fetchImpl = options.fetchImpl ?? fetch;
-  const assertSafeResolution = options.assertSafeResolution ?? assertNoPrivateResolution;
+  const fetchImpl = options.fetchImpl ?? fetchWithPinnedAddress;
+  const resolveSafeAddress = options.resolveSafeAddress ?? resolveSafeHttpAddress;
   const timeoutMs = options.timeoutMs ?? FETCH_TIMEOUT_MS;
   const maxBytes = options.maxBytes ?? MAX_TITLE_BYTES;
   const maxRedirects = options.maxRedirects ?? MAX_REDIRECTS;
@@ -95,44 +142,45 @@ export async function fetchPageTitle(destinationUrl: string, options: FetchPageT
     const safe = parseSafeHttpUrl(currentUrl);
     if (!safe.ok) return null;
 
+    let resolvedAddress: ResolvedHttpAddress;
     try {
-      await assertSafeResolution(safe.url);
+      resolvedAddress = await resolveSafeAddress(safe.url);
     } catch {
       return null;
     }
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
-    let response: Response;
     try {
-      response = await fetchImpl(safe.url, {
+      const response = await fetchImpl(safe.url, {
         headers: {
           accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.1",
           "user-agent": "Surls title fetcher"
         },
         redirect: "manual",
+        resolvedAddress,
         signal: controller.signal
       });
+
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get("location");
+        if (!location) return null;
+        const nextUrl = redirectUrl(safe.url, location);
+        if (!nextUrl) return null;
+        currentUrl = nextUrl;
+        continue;
+      }
+
+      if (!response.ok) return null;
+      const contentType = response.headers.get("content-type") ?? "";
+      if (!HTML_CONTENT_TYPE.test(contentType)) return null;
+
+      return extractHtmlTitle(await readTextPrefix(response, maxBytes));
     } catch {
       return null;
     } finally {
       clearTimeout(timeout);
     }
-
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get("location");
-      if (!location) return null;
-      const nextUrl = redirectUrl(safe.url, location);
-      if (!nextUrl) return null;
-      currentUrl = nextUrl;
-      continue;
-    }
-
-    if (!response.ok) return null;
-    const contentType = response.headers.get("content-type") ?? "";
-    if (!HTML_CONTENT_TYPE.test(contentType)) return null;
-
-    return extractHtmlTitle(await readTextPrefix(response, maxBytes));
   }
 
   return null;

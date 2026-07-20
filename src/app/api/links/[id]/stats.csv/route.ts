@@ -13,6 +13,11 @@ export async function GET(_request: NextRequest, { params }: Params) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
+  const link = await prisma.shortLink.findFirst({
+    where: admin.role === "ADMIN" ? { id } : { id, createdById: admin.id },
+    select: { id: true }
+  });
+  if (!link) return NextResponse.json({ error: "Not found" }, { status: 404 });
   let cursor: string | undefined;
   let sentHeader = false;
   const encoder = new TextEncoder();
@@ -24,7 +29,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
       }
 
       const rows = await prisma.clickEvent.findMany({
-        where: { shortLinkId: id },
+        where: { shortLinkId: link.id },
         orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
         take: STATS_EXPORT_PAGE_SIZE,
         ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {})

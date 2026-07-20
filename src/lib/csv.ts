@@ -1,9 +1,10 @@
 export function csvEscape(value: unknown) {
   const text = value === null || value === undefined ? "" : String(value);
-  if (/[",\n\r]/.test(text)) {
-    return `"${text.replace(/"/g, '""')}"`;
+  const safeText = /^[\t ]*[=+\-@]/.test(text) ? `'${text}` : text;
+  if (/[",\n\r]/.test(safeText)) {
+    return `"${safeText.replace(/"/g, '""')}"`;
   }
-  return text;
+  return safeText;
 }
 
 export function toCsv(rows: unknown[][]) {

@@ -96,4 +96,9 @@ describe("short link creation", () => {
     expect(() => normalizeOptionalPositiveInt("0", "Max clicks")).toThrow(/positive whole number/i);
     expect(() => normalizeShortLinkTags(["!!!"])).toThrow(/letter or number/i);
   });
+
+  it("rejects tag arrays with excessive count or aggregate input", () => {
+    expect(() => normalizeShortLinkTags(Array.from({ length: 101 }, () => "tag"))).toThrow(/too many tags/i);
+    expect(() => normalizeShortLinkTags(["x".repeat(8_001)])).toThrow(/too many tags/i);
+  });
 });

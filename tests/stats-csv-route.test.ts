@@ -7,6 +7,7 @@ const auth = vi.hoisted(() => ({
 }));
 
 const prisma = vi.hoisted(() => ({
+  shortLink: { findFirst: vi.fn() },
   clickEvent: {
     findMany: vi.fn()
   }
@@ -37,6 +38,7 @@ describe("stats CSV raw IP visibility", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prisma.clickEvent.findMany.mockResolvedValueOnce([clickRow()]).mockResolvedValueOnce([]);
+    prisma.shortLink.findFirst.mockResolvedValue({ id: "link_123" });
   });
 
   it("includes raw IP addresses for admins", async () => {
@@ -57,5 +59,13 @@ describe("stats CSV raw IP visibility", () => {
 
     expect(text).toContain("198.51.100.10");
     expect(text).not.toContain("Hidden");
+  });
+
+  it("does not export another user's link", async () => {
+    prisma.shortLink.findFirst.mockResolvedValue(null);
+    auth.requireAdmin.mockResolvedValue({ id: "user_1", role: "USER" });
+    const { GET } = await import("@/app/api/links/[id]/stats.csv/route");
+    await expect(GET(request(), { params: Promise.resolve({ id: "link_123" }) })).resolves.toMatchObject({ status: 404 });
+    expect(prisma.clickEvent.findMany).not.toHaveBeenCalled();
   });
 });

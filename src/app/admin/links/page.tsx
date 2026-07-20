@@ -126,7 +126,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
   const viewHref = (nextView: "active" | "archived") => {
     return listHref({ page: 1, view: nextView });
   };
-  const where = shortLinkListWhere(view, q, tag);
+  const where = shortLinkListWhere(view, q, tag, isAdminUser(currentUser) ? undefined : currentUser.id);
   const [totalLinks, settings, activeTag] = await Promise.all([
     prisma.shortLink.count({ where }),
     getSettings(),

@@ -7,5 +7,10 @@ type Params = {
 
 export async function GET(request: NextRequest, { params }: Params) {
   const { code } = await params;
-  return handleShortRedirect(request, code);
+  return handleShortRedirect(request, code, false);
+}
+
+export async function HEAD(request: NextRequest, { params }: Params) {
+  const { code } = await params;
+  return handleShortRedirect(request, code, true);
 }

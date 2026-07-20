@@ -58,8 +58,8 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
     });
   }
   const [link, settings] = await Promise.all([
-    prisma.shortLink.findUnique({
-      where: { id },
+    prisma.shortLink.findFirst({
+      where: isAdminUser(currentUser) ? { id } : { id, createdById: currentUser.id },
       include: { tags: { include: { tag: true } } }
     }),
     getSettings()

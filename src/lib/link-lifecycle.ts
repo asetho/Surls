@@ -80,10 +80,16 @@ export function shortLinkListOrderBy(sort: LinkListSort): Prisma.ShortLinkOrderB
   }
 }
 
-export function shortLinkListWhere(view: LinkListView, query?: string, tagSlug?: string): Prisma.ShortLinkWhereInput {
+export function shortLinkListWhere(
+  view: LinkListView,
+  query?: string,
+  tagSlug?: string,
+  createdById?: string
+): Prisma.ShortLinkWhereInput {
   const q = query?.trim();
   return {
     archivedAt: view === "archived" ? { not: null } : null,
+    ...(createdById ? { createdById } : {}),
     ...(tagSlug ? { tags: { some: { tag: { slug: tagSlug } } } } : {}),
     ...(q
       ? {

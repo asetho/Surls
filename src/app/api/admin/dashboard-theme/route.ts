@@ -18,6 +18,9 @@ function errorMessage(error: unknown, fallback: string) {
 }
 
 export async function POST(request: Request) {
+  const admin = await requireSiteAdmin();
+  if (!admin) return NextResponse.json({ error: "Sign in again to continue." }, { status: 401 });
+
   const formData = await request.formData();
 
   try {
@@ -25,9 +28,6 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "The form expired. Please try again." }, { status: 400 });
   }
-
-  const admin = await requireSiteAdmin();
-  if (!admin) return NextResponse.json({ error: "Sign in again to continue." }, { status: 401 });
 
   const intent = formData.get("intent") === "reset" ? "reset" : "save";
   let dashboardTheme = DEFAULT_DASHBOARD_THEME;

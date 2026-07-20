@@ -144,7 +144,7 @@ export default async function BookmarkletPage({ searchParams }: { searchParams: 
             <BookmarkletPopupActions detailsHref={`/admin/links/${createdLink.id}`} />
           </div>
         ) : (
-          <form className="surface bookmarklet-card form-stack" action={createBookmarkletLinkAction} data-title-autofill="true">
+          <form className="surface bookmarklet-card form-stack" action={createBookmarkletLinkAction}>
             <div className="bookmarklet-card-header">
               <Plus size={20} aria-hidden />
               <div>

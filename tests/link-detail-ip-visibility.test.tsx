@@ -15,7 +15,7 @@ const authState = vi.hoisted((): { currentUser: TestUser } => ({
 
 const prisma = vi.hoisted(() => ({
   shortLink: {
-    findUnique: vi.fn()
+    findFirst: vi.fn()
   }
 }));
 
@@ -160,7 +160,7 @@ describe("link detail raw IP visibility", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     authState.currentUser = { displayTimeZone: "America/Los_Angeles", id: "admin_1", role: "ADMIN" };
-    prisma.shortLink.findUnique.mockResolvedValue(testLink());
+    prisma.shortLink.findFirst.mockResolvedValue(testLink());
     settings.getSettings.mockResolvedValue({
       displayTimeZone: "America/New_York",
       siteName: "Surls"
@@ -197,6 +197,30 @@ describe("link detail raw IP visibility", () => {
 
     expect(markup).toContain("198.51.100.10");
     expect(markup).not.toContain("Hidden");
+  });
+
+  it("scopes a non-admin detail lookup to the authenticated owner", async () => {
+    authState.currentUser = { displayTimeZone: "America/Los_Angeles", id: "user_1", role: "USER" };
+
+    await renderLinkDetail();
+
+    expect(prisma.shortLink.findFirst).toHaveBeenCalledWith({
+      where: { id: "link_123", createdById: "user_1" },
+      include: { tags: { include: { tag: true } } }
+    });
+  });
+
+  it("does not load another user's detail analytics when the owner-scoped lookup misses", async () => {
+    authState.currentUser = { displayTimeZone: "America/Los_Angeles", id: "user_1", role: "USER" };
+    prisma.shortLink.findFirst.mockResolvedValue(null);
+
+    await expect(renderLinkDetail()).rejects.toThrow("not found");
+
+    expect(prisma.shortLink.findFirst).toHaveBeenCalledWith({
+      where: { id: "link_123", createdById: "user_1" },
+      include: { tags: { include: { tag: true } } }
+    });
+    expect(clicks.clickStats).not.toHaveBeenCalled();
   });
 
   it("renders the full recent-click referrer URL when the browser sends it", async () => {

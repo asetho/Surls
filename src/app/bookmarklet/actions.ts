@@ -8,8 +8,12 @@ import { requireAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
 import { createShortLink } from "@/lib/links";
 
+const MAX_TAGS_FIELD_LENGTH = 8_000;
+
 function tagList(value: FormDataEntryValue | null) {
-  return String(value ?? "")
+  const raw = String(value ?? "");
+  if (raw.length > MAX_TAGS_FIELD_LENGTH) throw new Error("Tags are too long.");
+  return raw
     .split(",")
     .map((tag) => tag.trim())
     .filter(Boolean);

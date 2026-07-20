@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { isAdminUser, requireAdmin } from "@/lib/auth";
 import { appBaseUrl } from "@/lib/env";
 import { shortUrl } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
@@ -37,7 +37,9 @@ export async function GET(request: NextRequest, { params }: Params) {
   const searchParams = request.nextUrl.searchParams;
   const size = normalizeQrSize(searchParams.get("size"));
   const level = normalizeQrErrorCorrectionLevel(searchParams.get("level"));
-  const link = await prisma.shortLink.findUnique({ where: { id }, select: { code: true } });
+  const link = isAdminUser(admin)
+    ? await prisma.shortLink.findUnique({ where: { id }, select: { code: true } })
+    : await prisma.shortLink.findFirst({ where: { id, createdById: admin.id }, select: { code: true } });
   if (!link) {
     return NextResponse.json({ error: "Link not found." }, { status: 404 });
   }

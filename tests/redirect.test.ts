@@ -9,6 +9,7 @@ const redirectMocks = vi.hoisted(() => ({
   getSetting: vi.fn(),
   getSiteName: vi.fn(),
   getCurrentSession: vi.fn(),
+  isAdminUser: vi.fn(),
   recordClick: vi.fn(),
   publicWebrootNotFoundResponse: vi.fn(),
   publicWebrootResponse: vi.fn()
@@ -28,7 +29,8 @@ vi.mock("@/lib/settings", () => ({
 }));
 
 vi.mock("@/lib/auth", () => ({
-  getCurrentSession: redirectMocks.getCurrentSession
+  getCurrentSession: redirectMocks.getCurrentSession,
+  isAdminUser: redirectMocks.isAdminUser
 }));
 
 vi.mock("@/lib/clicks", () => ({
@@ -57,11 +59,13 @@ describe("redirect behavior", () => {
     redirectMocks.getSetting.mockReset();
     redirectMocks.getSiteName.mockReset();
     redirectMocks.getCurrentSession.mockReset();
+    redirectMocks.isAdminUser.mockReset();
     redirectMocks.recordClick.mockReset();
     redirectMocks.publicWebrootNotFoundResponse.mockReset();
     redirectMocks.publicWebrootResponse.mockReset();
     redirectMocks.checkRateLimit.mockResolvedValue({ allowed: true, remaining: 119, resetAt: new Date("2026-06-11T12:01:00.000Z") });
     redirectMocks.getCurrentSession.mockResolvedValue(null);
+    redirectMocks.isAdminUser.mockImplementation((user: { role?: string } | null | undefined) => user?.role === "ADMIN");
     redirectMocks.getSetting.mockImplementation((key: string) => {
       if (key === "trackAdminClicks") return Promise.resolve(false);
       if (key === "preserveRedirectQuery") return Promise.resolve(false);
@@ -279,6 +283,105 @@ describe("redirect behavior", () => {
     expect(response.status).toBe(302);
     expect(response.headers.get("x-shorturl-analytics")).toBe("rate-limited");
     expect(redirectMocks.recordClick).not.toHaveBeenCalled();
+  });
+
+  it("keeps max-click enforcement for a spoofed admin referrer", async () => {
+    redirectMocks.findUnique.mockResolvedValue({
+      id: "link_1",
+      code: "abc",
+      destinationUrl: "https://example.com",
+      enabled: true,
+      archivedAt: null,
+      expiresAt: null,
+      maxClicks: 3,
+      clickCount: 1
+    });
+
+    const response = await handleShortRedirect(
+      requestFor("/abc", { referer: "http://localhost:3000/admin-spoof" }),
+      "abc"
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("x-shorturl-admin-click")).toBe("ignored");
+    expect(redirectMocks.recordClick).toHaveBeenCalledWith(
+      expect.objectContaining({
+        shortLinkId: "link_1",
+        storeEvent: false
+      })
+    );
+  });
+
+  it("keeps admin-referrer analytics suppression for links without a max-click limit", async () => {
+    redirectMocks.findUnique.mockResolvedValue({
+      id: "link_1",
+      code: "abc",
+      destinationUrl: "https://example.com",
+      enabled: true,
+      archivedAt: null,
+      expiresAt: null,
+      maxClicks: null,
+      clickCount: 0
+    });
+
+    const response = await handleShortRedirect(
+      requestFor("/abc", { referer: "http://localhost:3000/admin-spoof" }),
+      "abc"
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("x-shorturl-admin-click")).toBe("ignored");
+    expect(redirectMocks.recordClick).not.toHaveBeenCalled();
+  });
+
+  it("counts authenticated non-admin requests against finite-use links", async () => {
+    redirectMocks.getCurrentSession.mockResolvedValue({ user: { role: "USER" } });
+    redirectMocks.findUnique.mockResolvedValue({
+      id: "link_1",
+      code: "abc",
+      destinationUrl: "https://example.com",
+      enabled: true,
+      archivedAt: null,
+      expiresAt: null,
+      maxClicks: 3,
+      clickCount: 1
+    });
+
+    const response = await handleShortRedirect(requestFor("/abc"), "abc");
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("x-shorturl-admin-click")).toBeNull();
+    expect(redirectMocks.recordClick).toHaveBeenCalledWith(
+      expect.objectContaining({
+        shortLinkId: "link_1",
+        storeEvent: true
+      })
+    );
+  });
+
+  it("keeps max-click enforcement for HEAD redirects without storing a detailed event", async () => {
+    redirectMocks.findUnique.mockResolvedValue({
+      id: "link_1",
+      code: "abc",
+      destinationUrl: "https://example.com",
+      enabled: true,
+      archivedAt: null,
+      expiresAt: null,
+      maxClicks: 3,
+      clickCount: 1
+    });
+
+    const response = await handleShortRedirect(requestFor("/abc"), "abc", true);
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("https://example.com/");
+    expect(response.headers.get("x-shorturl-analytics")).toBe("head");
+    expect(redirectMocks.recordClick).toHaveBeenCalledWith(
+      expect.objectContaining({
+        shortLinkId: "link_1",
+        storeEvent: false
+      })
+    );
   });
 
   it("keeps max-click enforcement when detailed analytics are rate limited", async () => {

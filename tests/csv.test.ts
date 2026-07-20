@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseCsvRows } from "@/lib/csv";
+import { csvEscape, csvLine, parseCsvRows, toCsv } from "@/lib/csv";
 
 describe("CSV parsing", () => {
   it("parses quoted commas and escaped quotes", () => {
@@ -10,5 +10,20 @@ describe("CSV parsing", () => {
 
   it("rejects unclosed quoted fields", () => {
     expect(() => parseCsvRows('"https://example.com')).toThrow(/unclosed/i);
+  });
+});
+
+describe("CSV escaping", () => {
+  it("neutralizes spreadsheet formulas before serializing values", () => {
+    for (const value of ["=1+1", "+1+1", "-1+1", "@SUM(A1:A2)", "  =1+1", "\t@SUM(A1:A2)"]) {
+      expect(csvEscape(value)).toBe(`'${value}`);
+    }
+  });
+
+  it("preserves ordinary CSV quoting and safe values", () => {
+    expect(csvEscape("hello")).toBe("hello");
+    expect(csvEscape('a,"b"')).toBe('"a,""b"""');
+    expect(csvLine(["=1+1", "hello"])).toBe("'=1+1,hello\n");
+    expect(toCsv([["@SUM(A1:A2)", "hello"]])).toBe("'@SUM(A1:A2),hello");
   });
 });

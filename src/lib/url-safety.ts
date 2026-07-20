@@ -15,6 +15,10 @@ function isPrivateIPv4(ip: string) {
     (a === 169 && b === 254) ||
     (a === 172 && b >= 16 && b <= 31) ||
     (a === 192 && b === 168) ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    (a === 192 && b === 0 && (parts[2] === 0 || parts[2] === 2)) ||
+    (a === 198 && (b === 18 || b === 19 || b === 51)) ||
+    (a === 203 && b === 0 && parts[2] === 113) ||
     (a === 0) ||
     (a >= 224)
   );
@@ -23,6 +27,11 @@ function isPrivateIPv4(ip: string) {
 function normalizeIpLiteral(ip: string) {
   return ip.toLowerCase().replace(/^\[|\]$/g, "");
 }
+
+export type ResolvedHttpAddress = {
+  address: string;
+  family: 4 | 6;
+};
 
 function ipv4FromMappedIPv6(ip: string) {
   const normalized = normalizeIpLiteral(ip);
@@ -92,13 +101,27 @@ export function parseSafeHttpUrl(value: string, allowPrivate = env.ALLOW_PRIVATE
   return { ok: true as const, url: url.toString() };
 }
 
-export async function assertNoPrivateResolution(urlText: string, allowPrivate = env.ALLOW_PRIVATE_DESTINATIONS) {
-  if (allowPrivate) return true;
+export async function resolveSafeHttpAddress(
+  urlText: string,
+  allowPrivate = env.ALLOW_PRIVATE_DESTINATIONS
+): Promise<ResolvedHttpAddress> {
   const parsed = new URL(urlText);
   const records = await dns.lookup(normalizeIpLiteral(parsed.hostname), { all: true, verbatim: true });
-  if (records.some((record) => isPrivateAddress(record.address))) {
+  if (!records.length || (!allowPrivate && records.some((record) => isPrivateAddress(record.address)))) {
     throw new Error("Destination resolves to a private or internal address.");
   }
+
+  const record = records[0];
+  const family = net.isIP(record.address);
+  if (family !== 4 && family !== 6) {
+    throw new Error("Destination did not resolve to an IP address.");
+  }
+
+  return { address: record.address, family };
+}
+
+export async function assertNoPrivateResolution(urlText: string, allowPrivate = env.ALLOW_PRIVATE_DESTINATIONS) {
+  await resolveSafeHttpAddress(urlText, allowPrivate);
   return true;
 }
 

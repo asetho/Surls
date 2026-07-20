@@ -107,6 +107,7 @@ describe("tools actions hardening", () => {
     });
     prisma.shortLink.findMany.mockResolvedValue([]);
     prisma.shortLink.findUnique.mockResolvedValue(null);
+    prisma.apiToken.updateMany.mockResolvedValue({ count: 1 });
     prisma.apiToken.deleteMany.mockResolvedValue({ count: 1 });
     prisma.$transaction.mockImplementation(async (callback) => callback({ shortLink: {} }));
     links.createShortLink.mockResolvedValue({ id: "link_123" });
@@ -160,6 +161,39 @@ describe("tools actions hardening", () => {
     });
   });
 
+  it("revokes an API token owned by the current user", async () => {
+    const { revokeTokenAction } = await import("@/app/admin/tools/actions");
+    const formData = new FormData();
+    formData.set("id", "token_123");
+
+    await revokeTokenAction(formData);
+
+    expect(prisma.apiToken.updateMany).toHaveBeenCalledWith({
+      where: { id: "token_123", userId: "user_123" },
+      data: { revokedAt: expect.any(Date) }
+    });
+    expect(audit.auditLog).toHaveBeenCalledWith(expect.objectContaining({
+      action: "API_TOKEN_REVOKED",
+      entityId: "token_123",
+      entityType: "ApiToken"
+    }));
+  });
+
+  it("does not revoke an API token owned by another user", async () => {
+    const { revokeTokenAction } = await import("@/app/admin/tools/actions");
+    const formData = new FormData();
+    formData.set("id", "victim_token");
+    prisma.apiToken.updateMany.mockResolvedValue({ count: 0 });
+
+    await revokeTokenAction(formData);
+
+    expect(prisma.apiToken.updateMany).toHaveBeenCalledWith({
+      where: { id: "victim_token", userId: "user_123" },
+      data: { revokedAt: expect.any(Date) }
+    });
+    expect(audit.auditLog).not.toHaveBeenCalled();
+  });
+
   it("deletes API tokens from the tools page", async () => {
     const { deleteTokenAction } = await import("@/app/admin/tools/actions");
     const formData = new FormData();
@@ -167,13 +201,25 @@ describe("tools actions hardening", () => {
 
     await deleteTokenAction(formData);
 
-    expect(prisma.apiToken.deleteMany).toHaveBeenCalledWith({ where: { id: "token_123" } });
+    expect(prisma.apiToken.deleteMany).toHaveBeenCalledWith({ where: { id: "token_123", userId: "user_123" } });
     expect(audit.auditLog).toHaveBeenCalledWith(expect.objectContaining({
       action: "API_TOKEN_REVOKED",
       details: { deleted: true },
       entityId: "token_123",
       entityType: "ApiToken"
     }));
+  });
+
+  it("does not delete an API token owned by another user", async () => {
+    const { deleteTokenAction } = await import("@/app/admin/tools/actions");
+    const formData = new FormData();
+    formData.set("id", "victim_token");
+    prisma.apiToken.deleteMany.mockResolvedValue({ count: 0 });
+
+    await deleteTokenAction(formData);
+
+    expect(prisma.apiToken.deleteMany).toHaveBeenCalledWith({ where: { id: "victim_token", userId: "user_123" } });
+    expect(audit.auditLog).not.toHaveBeenCalled();
   });
 
   it("rejects private or internal destinations during CSV import preview", async () => {

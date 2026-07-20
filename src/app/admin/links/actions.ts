@@ -4,7 +4,7 @@ import { AuditAction } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auditLog } from "@/lib/audit";
-import { requireAdmin, requireSiteAdmin } from "@/lib/auth";
+import { isAdminUser, requireAdmin, requireSiteAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
 import { archiveShortLink, deleteShortLink, restoreShortLink } from "@/lib/link-lifecycle";
 import { normalizeOptionalDate, normalizeOptionalPositiveInt } from "@/lib/links";
@@ -41,7 +41,8 @@ export async function updateLinkAction(formData: FormData) {
   await assertNoPrivateResolution(safe.url);
 
   const link = await prisma.shortLink.update({
-    where: { id },
+    // Keep the owner predicate in the database update so a guessed link ID cannot cross accounts.
+    where: isAdminUser(admin) ? { id } : { id, createdById: admin.id },
     data: {
       destinationUrl: safe.url,
       title: String(formData.get("title") ?? "") || null,

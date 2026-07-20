@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { isAdminUser, requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { csvLine } from "@/lib/csv";
 import { appBaseUrl } from "@/lib/env";
@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const format = request.nextUrl.searchParams.get("format") ?? "csv";
   if (format === "json") {
+    if (!isAdminUser(admin)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     const links = await prisma.shortLink.findMany({
       where: { archivedAt: null },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
