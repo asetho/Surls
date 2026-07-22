@@ -2539,6 +2539,11 @@ button.danger-outline:hover {
   font-weight: 700;
 }
 
+.bookmarklet-short-url-value > a {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .bookmarklet-copy-field {
   align-items: stretch;
   display: flex;
@@ -2551,6 +2556,10 @@ button.danger-outline:hover {
 
 .bookmarklet-copy-field button {
   flex: 0 0 auto;
+}
+
+.bookmarklet-copy-field.bookmarklet-short-url-value {
+  align-items: center;
 }
 
 .bookmarklet-popup-actions {

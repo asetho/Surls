@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ExternalLink, Link2, LogIn, Plus } from "lucide-react";
 import { BookmarkletPopupActions } from "@/components/BookmarkletPopupActions";
+import { BookmarkletShortUrl } from "@/components/BookmarkletShortUrl";
 import { PasskeyLoginButton } from "@/components/PasskeyLoginButton";
 import { TitleAutoFill } from "@/components/TitleAutoFill";
 import { TurnstileGate } from "@/components/TurnstileGate";
@@ -124,13 +125,18 @@ export default async function BookmarkletPage({ searchParams }: { searchParams: 
               <Link2 size={20} aria-hidden />
               <div>
                 <h1>Short URL created</h1>
-                <p className="muted small">/{createdLink.code}</p>
               </div>
             </div>
             <dl className="bookmarklet-summary">
               <div>
                 <dt>Title</dt>
                 <dd>{createdLink.title || "Untitled"}</dd>
+              </div>
+              <div className="bookmarklet-short-url-field">
+                <dt>Short URL</dt>
+                <dd>
+                  <BookmarkletShortUrl url={createdUrl} />
+                </dd>
               </div>
               <div>
                 <dt>Destination</dt>
