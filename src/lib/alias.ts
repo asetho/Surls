@@ -19,7 +19,7 @@ export const RESERVED_ALIASES = new Set([
 ]);
 
 const ALIAS_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{2,63}$/;
-const CONFUSING_CHARS = /[IlO0]/;
+const CONFUSING_CHARS = /[IO0]/;
 
 export function normalizeAlias(alias: string) {
   return alias.trim();
@@ -41,7 +41,7 @@ export function validateAlias(alias: string) {
     return "This alias is reserved for Surls system routes.";
   }
   if (CONFUSING_CHARS.test(normalized)) {
-    return "Avoid visually confusing characters like I, l, O, or 0.";
+    return "Avoid visually confusing characters like I, O, or 0.";
   }
   return null;
 }

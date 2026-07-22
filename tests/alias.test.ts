@@ -14,11 +14,12 @@ describe("alias validation", () => {
     expect(validateAlias("../etc")).toMatch(/characters/i);
     expect(validateAlias("test.html")).toMatch(/letters, numbers, underscores, or hyphens/i);
     expect(validateAlias("ab")).toMatch(/3-64/);
-    expect(validateAlias("O0Il")).toMatch(/confusing/i);
+    expect(validateAlias("O0I")).toMatch(/confusing/i);
   });
 
   it("accepts simple safe aliases", () => {
     expect(validateAlias("docs-24")).toBeNull();
     expect(validateAlias("team-tags")).toBeNull();
+    expect(validateAlias("hetrixtools")).toBeNull();
   });
 });
