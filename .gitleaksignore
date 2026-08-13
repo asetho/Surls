@@ -1,0 +1,3 @@
+# Synthetic test-only AUTH_SECRET values in the first CI workflow commit.
+5a6f4415bd886356d700f88f919c454f58dfbaa7:.github/workflows/ci.yml:generic-api-key:20
+5a6f4415bd886356d700f88f919c454f58dfbaa7:.github/workflows/ci.yml:generic-api-key:81
