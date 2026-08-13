@@ -3,6 +3,7 @@ import { UserRole } from "@prisma/client";
 import { generateBackupCode, hashBackupCode, verifyBackupCode } from "@/lib/backup-codes";
 import { createPlainApiToken } from "@/lib/api-tokens";
 import { isAdminUser } from "@/lib/auth";
+import { decryptSecret, encryptSecret } from "@/lib/crypto";
 import { decodePasskeyChallenge, encodePasskeyChallenge } from "@/lib/passkeys";
 import { decodePendingLogin, encodePendingLogin, PENDING_LOGIN_MAX_AGE_SECONDS } from "@/lib/pending-login";
 import { hashPassword, verifyPassword } from "@/lib/password";
@@ -81,5 +82,16 @@ describe("auth helpers", () => {
     expect(decodeURIComponent(setup.otpauthUrl)).toContain("issuer=Test Links");
     const token = await generate({ secret: getTotpSecret(setup.encryptedSecret), period: 30, digits: 6 });
     await expect(verifyTotpCode(setup.encryptedSecret, token)).resolves.toBe(true);
+  });
+
+  it("requires full-length authentication tags for encrypted secrets", () => {
+    const encrypted = encryptSecret("test secret");
+    expect(decryptSecret(encrypted)).toBe("test secret");
+
+    const [iv, tag, ciphertext] = encrypted.split(".");
+    const shortenedTag = Buffer.from(tag, "base64url").subarray(0, 12).toString("base64url");
+    expect(() => decryptSecret(`${iv}.${shortenedTag}.${ciphertext}`)).toThrow(
+      "Invalid encrypted secret payload."
+    );
   });
 });

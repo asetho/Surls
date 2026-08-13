@@ -35,8 +35,14 @@ export function decryptSecret(value: string) {
   if (!ivText || !tagText || !encryptedText) {
     throw new Error("Invalid encrypted secret payload.");
   }
-  const decipher = crypto.createDecipheriv("aes-256-gcm", key(), Buffer.from(ivText, "base64url"));
-  decipher.setAuthTag(Buffer.from(tagText, "base64url"));
+  const tag = Buffer.from(tagText, "base64url");
+  if (tag.length !== 16) {
+    throw new Error("Invalid encrypted secret payload.");
+  }
+  const decipher = crypto.createDecipheriv("aes-256-gcm", key(), Buffer.from(ivText, "base64url"), {
+    authTagLength: 16
+  });
+  decipher.setAuthTag(tag);
   const decrypted = Buffer.concat([
     decipher.update(Buffer.from(encryptedText, "base64url")),
     decipher.final()

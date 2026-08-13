@@ -1,0 +1,7 @@
+misconfigurations:
+  - id: AVD-DS-0002
+    paths:
+      - "Dockerfile"
+    statement: >-
+      Existing deployments may have root-owned persistent upload volumes. Moving the
+      runtime to a non-root user needs a separately tested storage migration.

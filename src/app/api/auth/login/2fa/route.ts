@@ -104,6 +104,8 @@ export async function POST(request: NextRequest) {
     details: { secondFactor: method }
   });
 
+  // The signed pending-login decoder normalizes nextPath with safeRedirectPath.
+  // nosemgrep: javascript.express.open-redirect-deepsemgrep.open-redirect-deepsemgrep
   const response = NextResponse.redirect(new URL(pendingLogin.nextPath, appBaseUrl()), 303);
   response.cookies.set(PENDING_LOGIN_COOKIE, "", expiredPendingLoginCookieOptions());
   setSessionCookie(response, token, expiresAt);
