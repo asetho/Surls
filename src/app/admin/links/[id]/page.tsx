@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Archive, Download, ExternalLink, RotateCcw } from "lucide-react";
 import { ConfirmButton } from "@/components/ConfirmButton";
@@ -96,7 +97,8 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
     maxClicks: link.maxClicks,
     enabled: link.enabled,
     description: link.description ?? "",
-    notes: link.notes ?? ""
+    notes: link.notes ?? "",
+    tags: link.tags.map(({ tag }) => tag.name).join(", ")
   };
 
   return (
@@ -142,6 +144,27 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
                   <ExternalLink size={13} aria-hidden />
                   {link.destinationUrl}
                 </a>
+              </dd>
+            </div>
+            <div className="link-summary-wide">
+              <dt>Tags:</dt>
+              <dd>
+                {link.tags.length ? (
+                  <span className="link-summary-tags">
+                    {link.tags.map(({ tag }) => (
+                      <Link
+                        className="badge tag-link"
+                        href={`/admin/links?tag=${encodeURIComponent(tag.slug)}`}
+                        key={tag.id}
+                        title={`Show links tagged ${tag.name}`}
+                      >
+                        {tag.name}
+                      </Link>
+                    ))}
+                  </span>
+                ) : (
+                  "None"
+                )}
               </dd>
             </div>
             <div className="link-summary-meta-item">

@@ -462,7 +462,7 @@ export default async function StyleReferencePage() {
               <circle cx="420" cy="62" r="5" />
             </svg>
           </div>
-          <div className="style-reference-chart-card style-reference-theme-target" data-theme-field={themeField("chartAccent")} role="button" tabIndex={0}>
+          <div className="style-reference-chart-card style-reference-theme-target" data-theme-field={themeField("chartPiePrimary")} role="button" tabIndex={0}>
             <h3>Pie chart</h3>
             <div className="style-reference-pie" aria-label="Sample pie chart" role="img" />
             <div className="style-reference-chart-list">

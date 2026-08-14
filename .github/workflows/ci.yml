@@ -79,6 +79,7 @@ jobs:
       SURLS_IMAGE: surls:ci
       SURLS_PORT: "3000"
       SURLS_PUBLIC_WEBROOT_PATH: ./www
+      SURLS_UPLOADS_PATH: ./uploads
       AUTH_SECRET: ci-8Vx2pK7mQ4rT9nL6yB3sW0zF5hD1aC
       BASE_URL: http://localhost:3000
       WEBAUTHN_RP_ID: localhost
@@ -101,8 +102,8 @@ jobs:
             --secret id=next_server_actions_encryption_key,env=NEXT_SERVER_ACTIONS_ENCRYPTION_KEY \
             -t surls:ci .
 
-      - name: Create public webroot mount
-        run: mkdir -p www
+      - name: Create host mounts
+        run: mkdir -p www uploads
 
       - name: Start smoke stack
         run: docker compose up -d --no-build

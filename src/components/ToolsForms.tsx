@@ -21,7 +21,7 @@ export function UploadShortenForm({ csrf, maxUploadLabel }: { csrf: string; maxU
       <input type="hidden" name="csrf" value={csrf} />
       <label>
         File
-        <input name="file" type="file" required />
+        <input className="upload-file-input" name="file" type="file" required />
         <span className="muted small">Maximum upload: {maxUploadLabel}.</span>
       </label>
       <div className="form-grid">

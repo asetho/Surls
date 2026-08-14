@@ -1,4 +1,6 @@
 import { env } from "@/lib/env";
+import { prisma } from "@/lib/prisma";
+import { uploadedFileUrl } from "@/lib/uploads";
 import { publicWebrootResponse } from "@/lib/webroot";
 
 type Params = {
@@ -25,15 +27,42 @@ function downloadResponse(response: Response | null, method: "GET" | "HEAD") {
   return response;
 }
 
+async function activeUploadExists(path: string[]) {
+  if (path.length !== 1 || !path[0]) return false;
+  const link = await prisma.shortLink.findFirst({
+    where: {
+      archivedAt: null,
+      destinationUrl: uploadedFileUrl(path[0]),
+      enabled: true
+    },
+    select: { id: true }
+  });
+  return Boolean(link);
+}
+
 export async function GET(_request: Request, { params }: Params) {
   const { path } = await params;
-  return downloadResponse(await publicWebrootResponse(path, { allowReservedPath: true, rootDir: env.UPLOADS_DIR }), "GET");
+  if (!(await activeUploadExists(path))) return notFound("GET");
+  return downloadResponse(
+    await publicWebrootResponse(path, {
+      allowReservedPath: true,
+      cacheControl: "private, no-store",
+      rootDir: env.UPLOADS_DIR
+    }),
+    "GET"
+  );
 }
 
 export async function HEAD(_request: Request, { params }: Params) {
   const { path } = await params;
+  if (!(await activeUploadExists(path))) return notFound("HEAD");
   return downloadResponse(
-    await publicWebrootResponse(path, { allowReservedPath: true, method: "HEAD", rootDir: env.UPLOADS_DIR }),
+    await publicWebrootResponse(path, {
+      allowReservedPath: true,
+      cacheControl: "private, no-store",
+      method: "HEAD",
+      rootDir: env.UPLOADS_DIR
+    }),
     "HEAD"
   );
 }

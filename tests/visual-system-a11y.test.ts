@@ -43,6 +43,16 @@ describe("visual system accessibility guards", () => {
     expect(themeEditor).toContain(".dashboard-theme-editor-toolbar");
   });
 
+  it("styles the upload file control without replacing its native semantics", () => {
+    const globals = readFileSync("src/app/globals.css", "utf8");
+    const toolsForms = readFileSync("src/components/ToolsForms.tsx", "utf8");
+
+    expect(toolsForms).toContain('className="upload-file-input"');
+    expect(toolsForms).toContain('name="file" type="file" required');
+    expect(globals).toMatch(/\.upload-file-input::file-selector-button\s*{[\s\S]*background:\s*var\(--color-teal\);/);
+    expect(globals).toMatch(/\.upload-file-input:hover::file-selector-button\s*{[\s\S]*background:\s*var\(--color-deep-teal\);/);
+  });
+
   it("keeps admin form and links-table alignment scoped", () => {
     const globals = readFileSync("src/app/globals.css", "utf8");
     const dataTables = readFileSync("src/app/admin-data.css", "utf8");

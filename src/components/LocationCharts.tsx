@@ -33,12 +33,12 @@ type MapTooltipState = {
 };
 
 const chartColors = [
-  "var(--chart-color-1, var(--color-teal))",
-  "color-mix(in srgb, var(--chart-color-1, var(--color-teal)), var(--surface) 32%)",
-  "color-mix(in srgb, var(--chart-color-1, var(--color-teal)), var(--surface) 58%)",
-  "color-mix(in srgb, var(--chart-color-1, var(--color-teal)), var(--background) 72%)",
-  "color-mix(in srgb, var(--chart-color-1, var(--color-teal)), var(--chart-color-2, var(--color-navy)) 48%)",
-  "color-mix(in srgb, var(--chart-color-1, var(--color-teal)), var(--chart-color-2, var(--color-navy)) 72%)"
+  "var(--chart-pie-slice-1, var(--chart-color-1, var(--color-teal)))",
+  "var(--chart-pie-slice-2, color-mix(in srgb, var(--chart-color-1, var(--color-teal)), var(--surface) 32%))",
+  "var(--chart-pie-slice-3, color-mix(in srgb, var(--chart-color-1, var(--color-teal)), var(--surface) 58%))",
+  "var(--chart-pie-slice-4, color-mix(in srgb, var(--chart-color-1, var(--color-teal)), var(--background) 72%))",
+  "var(--chart-pie-slice-5, color-mix(in srgb, var(--chart-color-1, var(--color-teal)), var(--chart-color-2, var(--color-navy)) 48%))",
+  "var(--chart-pie-slice-6, color-mix(in srgb, var(--chart-color-1, var(--color-teal)), var(--chart-color-2, var(--color-navy)) 72%))"
 ];
 const topology = countries110m as unknown as Topology<{ countries: GeometryCollection }>;
 const countryFeatures = feature(topology, topology.objects.countries) as FeatureCollection<Geometry, GeoJsonProperties>;
