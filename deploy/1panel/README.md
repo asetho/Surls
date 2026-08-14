@@ -36,6 +36,7 @@ NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=<base64 server actions key>
 WEBAUTHN_RP_ID=s.yourdomain.com
 WEBAUTHN_ORIGIN=https://s.yourdomain.com
 SURLS_PUBLIC_WEBROOT_PATH=/opt/surls/www
+SURLS_UPLOADS_PATH=/opt/surls/uploads
 INITIAL_ADMIN_EMAIL=you@example.com
 INITIAL_ADMIN_PASSWORD=<temporary 12+ character password>
 ```
@@ -86,7 +87,28 @@ Public webroot HTML is served as same-origin trusted owner content. Keep this di
 
 ## Uploaded Files
 
-The Tools page includes Upload & Shorten for admin-uploaded files. Files are served from `/uploads/:filename` and are stored in the persistent `surls-uploads` Docker volume mounted at `/app/uploads`. Set `UPLOAD_MAX_BYTES` in `.env` to lower the default 25 MB limit.
+The Tools page includes Upload & Shorten for admin-uploaded files. Files are served from `/uploads/:filename`. Set `SURLS_UPLOADS_PATH` to the host directory that should hold them; the compose file bind-mounts that directory at `/app/uploads`.
+
+Create the directory before starting or recreating the app:
+
+```bash
+mkdir -p /opt/surls/uploads
+```
+
+Use a different directory for every Surls instance. For example, the two `mn` stacks can use `/opt/surls-asetho/uploads` for asetho.link and `/opt/surls-aswonl/uploads` for asw.onl.
+
+The bind mount uses `create_host_path: false`, so Docker fails fast if the path is missing. Set `UPLOAD_MAX_BYTES` in `.env` to lower the default 25 MB limit.
+
+To migrate an installation that still uses the former named volume, stop writes to the app, create the host directory, and copy the volume contents before recreating the app. Replace the example volume name if the Compose project has a different name:
+
+```bash
+docker run --rm \
+  --mount type=volume,src=surls_surls-uploads,dst=/from,readonly \
+  --mount type=bind,src=/opt/surls/uploads,dst=/to \
+  alpine sh -c 'cp -a /from/. /to/'
+```
+
+Verify the files through the application before removing the old Docker volume. Keeping it temporarily provides a rollback copy.
 
 ## 4. Add HTTPS
 

@@ -18,6 +18,7 @@ type EditableLink = {
   enabled: boolean;
   description: string;
   notes: string;
+  tags: string;
 };
 
 export function EditLinkModal({
@@ -104,7 +105,7 @@ export function EditLinkModal({
             <div className="modal-header">
               <div>
                 <h2 id={titleId}>Edit /{link.code}</h2>
-                <p className="muted small">Update the destination, title, limits, and notes for this short URL.</p>
+                <p className="muted small">Update the destination, title, tags, limits, and notes for this short URL.</p>
               </div>
               <button type="button" className="icon-button secondary" onClick={closeDialog} aria-label="Close edit link dialog">
                 <X size={16} aria-hidden />
@@ -128,6 +129,10 @@ export function EditLinkModal({
                 <label>
                   Title
                   <input name="title" defaultValue={link.title} />
+                </label>
+                <label>
+                  Tags
+                  <input name="tags" defaultValue={link.tags} placeholder="work, docs, client" />
                 </label>
                 <label>
                   Expiration date

@@ -29,4 +29,15 @@ describe("container deployment secrets", () => {
     expect(entrypoint).toContain('const serverActionsKeyPath = "/run/secrets/next_server_actions_encryption_key";');
     expect(entrypoint).toContain("process.env.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY = value;");
   });
+
+  it.each(composeFiles)("bind-mounts uploaded files from an explicit host path in %s", async (composeFile) => {
+    const compose = await readFile(resolve(process.cwd(), composeFile), "utf8");
+
+    expect(compose).toContain(
+      'source: "${SURLS_UPLOADS_PATH:?Set SURLS_UPLOADS_PATH to an existing host directory for uploaded files}"'
+    );
+    expect(compose).toContain("target: /app/uploads");
+    expect(compose).toContain("create_host_path: false");
+    expect(compose).not.toContain("surls-uploads:/app/uploads");
+  });
 });

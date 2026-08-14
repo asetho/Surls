@@ -10,6 +10,8 @@ export type DashboardThemePalette = {
   chartDanger: string;
   chartMapHigh: string;
   chartMapLow: string;
+  chartPiePrimary: string;
+  chartPieSecondary: string;
   chartPrimary: string;
   chartSecondary: string;
   dangerBackground: string;
@@ -152,6 +154,8 @@ const DASHBOARD_THEME_GRAPH_FIELDS: readonly DashboardThemeField[] = [
   { key: "chartSecondary", label: "Graph secondary", description: "Secondary chart series and supporting marks." },
   { key: "chartAccent", label: "Graph fill", description: "Area fills, neutral chart marks, and soft segments." },
   { key: "chartDanger", label: "Graph warning", description: "Warning slices and high-attention chart marks." },
+  { key: "chartPiePrimary", label: "Pie primary", description: "First and strongest pie slice color." },
+  { key: "chartPieSecondary", label: "Pie secondary", description: "End color used to derive the remaining pie slices." },
   { key: "chartMapLow", label: "Map low", description: "Lower-traffic country map color." },
   { key: "chartMapHigh", label: "Map high", description: "Highest-traffic country map color." }
 ] as const;
@@ -220,6 +224,8 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     chartDanger: "#c81d25",
     chartMapHigh: "#0a5c70",
     chartMapLow: "#d8edf4",
+    chartPiePrimary: "#087e8b",
+    chartPieSecondary: "#ffffff",
     chartPrimary: "#087e8b",
     chartSecondary: "#0a5c70",
     dangerBackground: "#c81d25",
@@ -281,6 +287,8 @@ export const DEFAULT_DASHBOARD_THEME: DashboardTheme = {
     chartDanger: "#e65057",
     chartMapHigh: "#92c1d3",
     chartMapLow: "#176d7d",
+    chartPiePrimary: "#64abbb",
+    chartPieSecondary: "#0a5c70",
     chartPrimary: "#64abbb",
     chartSecondary: "#087e8b",
     dangerBackground: "#e65057",
@@ -516,13 +524,22 @@ export function dashboardThemeFieldName(mode: DashboardThemeMode, key: Dashboard
 
 function normalizeDashboardThemePalette(value: unknown, fallback: DashboardThemePalette): DashboardThemePalette {
   if (!isRecord(value)) return fallback;
-  return Object.fromEntries(
+  const palette = Object.fromEntries(
     DASHBOARD_THEME_FIELDS.map((field) => {
       const storedColor = value[field.key];
       const color = typeof storedColor === "string" ? expandHexColor(storedColor) : null;
       return [field.key, color ?? fallback[field.key]];
     })
   ) as DashboardThemePalette;
+
+  if (!expandHexColor(typeof value.chartPiePrimary === "string" ? value.chartPiePrimary : "")) {
+    palette.chartPiePrimary = palette.chartPrimary;
+  }
+  if (!expandHexColor(typeof value.chartPieSecondary === "string" ? value.chartPieSecondary : "")) {
+    palette.chartPieSecondary = palette.surface;
+  }
+
+  return palette;
 }
 
 function isFlatDashboardTheme(value: unknown) {
@@ -618,6 +635,12 @@ export function dashboardThemePaletteCssVariables(theme: DashboardThemePalette) 
     "--chart-color-5": theme.chartDanger,
     "--chart-color-6": `color-mix(in srgb, ${theme.chartAccent}, ${theme.surface} 35%)`,
     "--chart-color-7": `color-mix(in srgb, ${theme.chartPrimary}, ${theme.surface} 45%)`,
+    "--chart-pie-slice-1": theme.chartPiePrimary,
+    "--chart-pie-slice-2": `color-mix(in srgb, ${theme.chartPiePrimary}, ${theme.chartPieSecondary} 32%)`,
+    "--chart-pie-slice-3": `color-mix(in srgb, ${theme.chartPiePrimary}, ${theme.chartPieSecondary} 58%)`,
+    "--chart-pie-slice-4": `color-mix(in srgb, ${theme.chartPiePrimary}, ${theme.chartPieSecondary} 72%)`,
+    "--chart-pie-slice-5": `color-mix(in srgb, ${theme.chartPiePrimary}, ${theme.chartPieSecondary} 86%)`,
+    "--chart-pie-slice-6": theme.chartPieSecondary,
     "--chart-map-bucket-1": theme.chartMapLow,
     "--chart-map-bucket-2": `color-mix(in srgb, ${theme.chartMapLow}, ${theme.chartMapHigh} 25%)`,
     "--chart-map-bucket-3": `color-mix(in srgb, ${theme.chartMapLow}, ${theme.chartMapHigh} 50%)`,
@@ -690,6 +713,8 @@ export function dashboardThemeCssVariables(theme: DashboardTheme) {
       [`--dashboard-${mode.key}-chart-danger`, theme[mode.key].chartDanger],
       [`--dashboard-${mode.key}-chart-map-high`, theme[mode.key].chartMapHigh],
       [`--dashboard-${mode.key}-chart-map-low`, theme[mode.key].chartMapLow],
+      [`--dashboard-${mode.key}-chart-pie-primary`, theme[mode.key].chartPiePrimary],
+      [`--dashboard-${mode.key}-chart-pie-secondary`, theme[mode.key].chartPieSecondary],
       [`--dashboard-${mode.key}-chart-primary`, theme[mode.key].chartPrimary],
       [`--dashboard-${mode.key}-chart-secondary`, theme[mode.key].chartSecondary],
       [`--dashboard-${mode.key}-danger-background`, theme[mode.key].dangerBackground],

@@ -62,4 +62,15 @@ describe("uploaded files", () => {
 
     await expect(storeUploadedFile(new File(["ok"], "ok.txt"))).rejects.toThrow(/absolute path/i);
   });
+
+  it("recognizes uploaded destinations only on this instance", async () => {
+    vi.resetModules();
+    vi.stubEnv("BASE_URL", "https://asetho.link");
+    const { uploadedFilenameFromDestination, uploadedFileUrl } = await import("@/lib/uploads");
+
+    expect(uploadedFileUrl("Report Final.pdf")).toBe("https://asetho.link/uploads/Report%20Final.pdf");
+    expect(uploadedFilenameFromDestination("https://asetho.link/uploads/Report%20Final.pdf")).toBe("Report Final.pdf");
+    expect(uploadedFilenameFromDestination("https://files.example/uploads/Report%20Final.pdf")).toBeNull();
+    expect(uploadedFilenameFromDestination("https://asetho.link/uploads/folder/report.pdf")).toBeNull();
+  });
 });

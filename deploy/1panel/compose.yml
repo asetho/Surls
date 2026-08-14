@@ -61,7 +61,11 @@ services:
         read_only: true
         bind:
           create_host_path: false
-      - surls-uploads:/app/uploads
+      - type: bind
+        source: "${SURLS_UPLOADS_PATH:?Set SURLS_UPLOADS_PATH to an existing host directory for uploaded files}"
+        target: /app/uploads
+        bind:
+          create_host_path: false
     secrets:
       - next_server_actions_encryption_key
     healthcheck:
@@ -73,7 +77,6 @@ services:
 
 volumes:
   surls-postgres:
-  surls-uploads:
 
 secrets:
   next_server_actions_encryption_key:

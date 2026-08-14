@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { mkdir, open, rm } from "node:fs/promises";
 import path from "node:path";
-import { env } from "./env";
+import { appBaseUrl, env } from "./env";
 
 export const UPLOAD_ROUTE_SEGMENT = "uploads";
 export const UPLOAD_FILENAME_MODES = ["original", "safe", "random"] as const;
@@ -104,6 +104,29 @@ function filePathInside(root: string, filename: string) {
     throw new Error("Upload filename resolves outside the upload directory.");
   }
   return target;
+}
+
+export function uploadedFileUrl(filename: string) {
+  return new URL(`/${UPLOAD_ROUTE_SEGMENT}/${encodeURIComponent(filename)}`, `${appBaseUrl()}/`).toString();
+}
+
+export function uploadedFilenameFromDestination(destinationUrl: string) {
+  try {
+    const destination = new URL(destinationUrl);
+    const base = new URL(appBaseUrl());
+    if (destination.origin !== base.origin) return null;
+
+    const prefix = `/${UPLOAD_ROUTE_SEGMENT}/`;
+    if (!destination.pathname.startsWith(prefix)) return null;
+    const encodedFilename = destination.pathname.slice(prefix.length);
+    if (!encodedFilename || encodedFilename.includes("/")) return null;
+
+    const filename = decodeURIComponent(encodedFilename);
+    if (!filename || filename.includes("/") || filename.includes("\\")) return null;
+    return filename;
+  } catch {
+    return null;
+  }
 }
 
 async function writeUniqueFile(root: string, filename: string, bytes: Uint8Array) {

@@ -266,6 +266,7 @@ describe("tools actions hardening", () => {
         code: "doc-xyz",
         destinationUrl: "http://localhost:3000/uploads/hello_world.txt",
         fetchTitle: false,
+        tags: ["Upload"],
         title: "File Doc"
       }),
       prisma,

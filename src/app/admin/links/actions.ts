@@ -7,7 +7,7 @@ import { auditLog } from "@/lib/audit";
 import { isAdminUser, requireAdmin, requireSiteAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
 import { archiveShortLink, deleteShortLink, restoreShortLink } from "@/lib/link-lifecycle";
-import { normalizeOptionalDate, normalizeOptionalPositiveInt } from "@/lib/links";
+import { normalizeOptionalDate, normalizeOptionalPositiveInt, normalizeShortLinkTags } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
 import { assertNoPrivateResolution, parseSafeHttpUrl } from "@/lib/url-safety";
 import { createLinkFromFormData } from "./create-link";
@@ -18,6 +18,13 @@ function optionalDate(value: FormDataEntryValue | null) {
 
 function optionalInt(value: FormDataEntryValue | null) {
   return normalizeOptionalPositiveInt(value, "Max clicks");
+}
+
+function tagList(value: FormDataEntryValue | null) {
+  return String(value ?? "")
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
 }
 
 function safeInternalPath(value: FormDataEntryValue | string | null, fallback: string) {
@@ -39,6 +46,7 @@ export async function updateLinkAction(formData: FormData) {
   const safe = parseSafeHttpUrl(String(formData.get("destinationUrl") ?? ""));
   if (!safe.ok) throw new Error(safe.error);
   await assertNoPrivateResolution(safe.url);
+  const tags = normalizeShortLinkTags(tagList(formData.get("tags")));
 
   const link = await prisma.shortLink.update({
     // Keep the owner predicate in the database update so a guessed link ID cannot cross accounts.
@@ -50,7 +58,22 @@ export async function updateLinkAction(formData: FormData) {
       notes: String(formData.get("notes") ?? "") || null,
       enabled: formData.get("enabled") === "on",
       expiresAt: optionalDate(formData.get("expiresAt")),
-      maxClicks: optionalInt(formData.get("maxClicks"))
+      maxClicks: optionalInt(formData.get("maxClicks")),
+      tags: {
+        deleteMany: {},
+        ...(tags.length
+          ? {
+              create: tags.map(({ name, slug }) => ({
+                tag: {
+                  connectOrCreate: {
+                    where: { slug },
+                    create: { name, slug }
+                  }
+                }
+              }))
+            }
+          : {})
+      }
     }
   });
 
@@ -59,7 +82,7 @@ export async function updateLinkAction(formData: FormData) {
     action: AuditAction.SHORT_LINK_UPDATED,
     entityType: "ShortLink",
     entityId: link.id,
-    details: { code: link.code }
+    details: { code: link.code, tags: tags.map(({ name }) => name) }
   });
   revalidatePath("/admin");
   revalidatePath("/admin/links");

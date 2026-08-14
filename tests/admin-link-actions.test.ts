@@ -35,6 +35,7 @@ function updateForm(id: string) {
   formData.set("id", id);
   formData.set("destinationUrl", "https://example.com/destination");
   formData.set("title", "Updated link");
+  formData.set("tags", "Upload, Client Docs");
   formData.set("enabled", "on");
   return formData;
 }
@@ -65,6 +66,38 @@ describe("link update authorization", () => {
 
     expect(prisma.shortLink.update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: "link_123" }
+    }));
+  });
+
+  it("replaces a link's tags with normalized tag relationships", async () => {
+    const { updateLinkAction } = await import("@/app/admin/links/actions");
+
+    await updateLinkAction(updateForm("link_123"));
+
+    expect(prisma.shortLink.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        tags: {
+          deleteMany: {},
+          create: [
+            {
+              tag: {
+                connectOrCreate: {
+                  where: { slug: "upload" },
+                  create: { name: "Upload", slug: "upload" }
+                }
+              }
+            },
+            {
+              tag: {
+                connectOrCreate: {
+                  where: { slug: "client-docs" },
+                  create: { name: "Client Docs", slug: "client-docs" }
+                }
+              }
+            }
+          ]
+        }
+      })
     }));
   });
 });

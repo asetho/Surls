@@ -50,6 +50,8 @@ describe("dashboard theme settings", () => {
       light: {
         accent: "#aabbcc",
         background: "#123456",
+        chartPiePrimary: DEFAULT_DASHBOARD_THEME.light.chartPrimary,
+        chartPieSecondary: DEFAULT_DASHBOARD_THEME.light.surface,
         chartPrimary: DEFAULT_DASHBOARD_THEME.light.chartPrimary,
         dangerBackground: DEFAULT_DASHBOARD_THEME.light.dangerBackground,
         focusRing: DEFAULT_DASHBOARD_THEME.light.focusRing,
@@ -80,6 +82,18 @@ describe("dashboard theme settings", () => {
         background: "#123456"
       },
       dark: DEFAULT_DASHBOARD_THEME.dark
+    });
+  });
+
+  it("derives missing pie colors from existing custom chart and surface colors", () => {
+    expect(
+      normalizeDashboardTheme({
+        light: { chartPrimary: "#123456", surface: "#abcdef" },
+        dark: { chartPrimary: "#654321", surface: "#fedcba" }
+      })
+    ).toMatchObject({
+      light: { chartPiePrimary: "#123456", chartPieSecondary: "#abcdef" },
+      dark: { chartPiePrimary: "#654321", chartPieSecondary: "#fedcba" }
     });
   });
 
@@ -128,6 +142,8 @@ describe("dashboard theme settings", () => {
       "--dashboard-light-active-pill-background": DEFAULT_DASHBOARD_THEME.light.activePillBackground,
       "--dashboard-light-chart-primary": DEFAULT_DASHBOARD_THEME.light.chartPrimary,
       "--dashboard-light-chart-map-high": DEFAULT_DASHBOARD_THEME.light.chartMapHigh,
+      "--dashboard-light-chart-pie-primary": DEFAULT_DASHBOARD_THEME.light.chartPiePrimary,
+      "--dashboard-light-chart-pie-secondary": DEFAULT_DASHBOARD_THEME.light.chartPieSecondary,
       "--dashboard-light-danger-background": DEFAULT_DASHBOARD_THEME.light.dangerBackground,
       "--dashboard-light-focus-ring": expectedFocusRing({ ...DEFAULT_DASHBOARD_THEME.light, accent: "#112233" }),
       "--dashboard-light-link": DEFAULT_DASHBOARD_THEME.light.link,
@@ -155,6 +171,8 @@ describe("dashboard theme settings", () => {
     expect(dashboardThemePaletteCssVariables(DEFAULT_DASHBOARD_THEME.light)).toMatchObject({
       "--chart-color-1": DEFAULT_DASHBOARD_THEME.light.chartPrimary,
       "--chart-color-5": DEFAULT_DASHBOARD_THEME.light.chartDanger,
+      "--chart-pie-slice-1": DEFAULT_DASHBOARD_THEME.light.chartPiePrimary,
+      "--chart-pie-slice-6": DEFAULT_DASHBOARD_THEME.light.chartPieSecondary,
       "--chart-map-bucket-1": DEFAULT_DASHBOARD_THEME.light.chartMapLow,
       "--chart-map-bucket-5": DEFAULT_DASHBOARD_THEME.light.chartMapHigh,
       "--chart-tooltip-background": DEFAULT_DASHBOARD_THEME.light.surface,

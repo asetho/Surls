@@ -4,14 +4,14 @@
   "exceptions": [
     {
       "file": "src/app/globals.css",
-      "colorLiterals": 151,
+      "colorLiterals": 159,
       "importantDeclarations": 30,
       "inlineStyleAttributes": 0,
       "reason": "Legacy global stylesheet contains the current visual system, component rules, theme variable fallbacks, compatibility overrides, and forced reduced-motion overrides."
     },
     {
       "file": "src/lib/dashboard-theme.ts",
-      "colorLiterals": 118,
+      "colorLiterals": 122,
       "importantDeclarations": 0,
       "inlineStyleAttributes": 0,
       "reason": "Canonical dashboard theme defaults and token registry metadata."

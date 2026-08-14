@@ -255,6 +255,7 @@ export async function uploadAndShortenAction(
       {
         destinationUrl: fileUrl,
         code,
+        tags: ["Upload"],
         title,
         createdById: admin.id,
         fetchTitle: false

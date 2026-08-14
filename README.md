@@ -171,7 +171,13 @@ Public webroot HTML is served as same-origin trusted owner content. Keep this di
 
 ## Uploaded Files
 
-Admins can upload files from Tools -> Upload & Shorten. Files are stored in `UPLOADS_DIR` and served from `/uploads/:filename`; the created short link redirects to that uploaded file. `UPLOADS_DIR` defaults to `uploads` under the app working directory. Docker Compose uses a persistent `surls-uploads` volume mounted at `/app/uploads`, and `UPLOAD_MAX_BYTES` defaults to `26214400` bytes.
+Admins can upload files from Tools -> Upload & Shorten. Files are stored in `UPLOADS_DIR` and served from `/uploads/:filename`; the created short link redirects to that uploaded file. `UPLOADS_DIR` defaults to `uploads` under the app working directory. Docker Compose bind-mounts the host directory configured by `SURLS_UPLOADS_PATH` at `/app/uploads`, and `UPLOAD_MAX_BYTES` defaults to `26214400` bytes.
+
+```env
+SURLS_UPLOADS_PATH="./uploads"
+```
+
+Create the host directory before starting Docker. The upload bind mount uses `create_host_path: false`, so a missing or incorrect path fails fast instead of creating an unintended directory. If an existing installation still uses the former `surls-uploads` named volume, copy its contents into the configured host directory before recreating the app container and keep the old volume until the migrated files have been verified.
 
 ## Health Checks
 

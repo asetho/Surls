@@ -956,9 +956,9 @@ button.danger-outline:hover {
 .style-reference-pie {
   aspect-ratio: 1;
   background: conic-gradient(
-    var(--chart-color-1) 0 52%,
-    color-mix(in srgb, var(--chart-color-1), var(--surface) 32%) 52% 76%,
-    color-mix(in srgb, var(--chart-color-1), var(--surface) 58%) 76% 100%
+    var(--chart-pie-slice-1, var(--chart-color-1)) 0 52%,
+    var(--chart-pie-slice-2, color-mix(in srgb, var(--chart-color-1), var(--surface) 32%)) 52% 76%,
+    var(--chart-pie-slice-3, color-mix(in srgb, var(--chart-color-1), var(--surface) 58%)) 76% 100%
   );
   border: 1px solid var(--border);
   border-radius: 50%;
@@ -1949,10 +1949,10 @@ button.danger-outline:hover {
   background:
     radial-gradient(circle, var(--surface) 0 38%, transparent 39%),
     conic-gradient(
-      var(--chart-color-1) 0 42%,
-      color-mix(in srgb, var(--chart-color-1), var(--surface) 32%) 42% 63%,
-      color-mix(in srgb, var(--chart-color-1), var(--surface) 58%) 63% 78%,
-      color-mix(in srgb, var(--chart-color-1), var(--background) 72%) 78% 100%
+      var(--chart-pie-slice-1, var(--chart-color-1)) 0 42%,
+      var(--chart-pie-slice-2, color-mix(in srgb, var(--chart-color-1), var(--surface) 32%)) 42% 63%,
+      var(--chart-pie-slice-3, color-mix(in srgb, var(--chart-color-1), var(--surface) 58%)) 63% 78%,
+      var(--chart-pie-slice-4, color-mix(in srgb, var(--chart-color-1), var(--surface) 72%)) 78% 100%
     );
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -2250,6 +2250,8 @@ button.danger-outline:hover {
   --dashboard-active-chart-danger: var(--dashboard-light-chart-danger);
   --dashboard-active-chart-map-high: var(--dashboard-light-chart-map-high);
   --dashboard-active-chart-map-low: var(--dashboard-light-chart-map-low);
+  --dashboard-active-chart-pie-primary: var(--dashboard-light-chart-pie-primary);
+  --dashboard-active-chart-pie-secondary: var(--dashboard-light-chart-pie-secondary);
   --dashboard-active-chart-primary: var(--dashboard-light-chart-primary);
   --dashboard-active-chart-secondary: var(--dashboard-light-chart-secondary);
   --dashboard-active-danger-background: var(--dashboard-light-danger-background);
@@ -2325,6 +2327,12 @@ button.danger-outline:hover {
   --chart-color-5: var(--dashboard-active-chart-danger);
   --chart-color-6: color-mix(in srgb, var(--dashboard-active-chart-accent), var(--surface) 35%);
   --chart-color-7: color-mix(in srgb, var(--dashboard-active-chart-primary), var(--surface) 45%);
+  --chart-pie-slice-1: var(--dashboard-active-chart-pie-primary);
+  --chart-pie-slice-2: color-mix(in srgb, var(--dashboard-active-chart-pie-primary), var(--dashboard-active-chart-pie-secondary) 32%);
+  --chart-pie-slice-3: color-mix(in srgb, var(--dashboard-active-chart-pie-primary), var(--dashboard-active-chart-pie-secondary) 58%);
+  --chart-pie-slice-4: color-mix(in srgb, var(--dashboard-active-chart-pie-primary), var(--dashboard-active-chart-pie-secondary) 72%);
+  --chart-pie-slice-5: color-mix(in srgb, var(--dashboard-active-chart-pie-primary), var(--dashboard-active-chart-pie-secondary) 86%);
+  --chart-pie-slice-6: var(--dashboard-active-chart-pie-secondary);
   --chart-map-bucket-1: var(--dashboard-active-chart-map-low);
   --chart-map-bucket-2: color-mix(in srgb, var(--dashboard-active-chart-map-low), var(--dashboard-active-chart-map-high) 25%);
   --chart-map-bucket-3: color-mix(in srgb, var(--dashboard-active-chart-map-low), var(--dashboard-active-chart-map-high) 50%);
@@ -2396,6 +2404,8 @@ button.danger-outline:hover {
   --dashboard-active-chart-danger: var(--dashboard-dark-chart-danger);
   --dashboard-active-chart-map-high: var(--dashboard-dark-chart-map-high);
   --dashboard-active-chart-map-low: var(--dashboard-dark-chart-map-low);
+  --dashboard-active-chart-pie-primary: var(--dashboard-dark-chart-pie-primary);
+  --dashboard-active-chart-pie-secondary: var(--dashboard-dark-chart-pie-secondary);
   --dashboard-active-chart-primary: var(--dashboard-dark-chart-primary);
   --dashboard-active-chart-secondary: var(--dashboard-dark-chart-secondary);
   --dashboard-active-danger-background: var(--dashboard-dark-danger-background);
@@ -2691,6 +2701,38 @@ button.danger-outline:hover {
 .form-stack {
   display: grid;
   gap: 0.75rem;
+}
+
+.upload-file-input {
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+.upload-file-input::file-selector-button {
+  background: var(--color-teal);
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius) - 2px);
+  color: var(--button-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  margin-right: 0.7rem;
+  min-height: calc(var(--control-height) - 0.5rem);
+  padding: 0.28rem 0.62rem;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.upload-file-input:hover::file-selector-button {
+  background: var(--color-deep-teal);
+}
+
+.upload-file-input:disabled::file-selector-button {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .upload-options {
@@ -3190,6 +3232,8 @@ textarea {
   --dashboard-active-chart-danger: var(--dashboard-light-chart-danger);
   --dashboard-active-chart-map-high: var(--dashboard-light-chart-map-high);
   --dashboard-active-chart-map-low: var(--dashboard-light-chart-map-low);
+  --dashboard-active-chart-pie-primary: var(--dashboard-light-chart-pie-primary);
+  --dashboard-active-chart-pie-secondary: var(--dashboard-light-chart-pie-secondary);
   --dashboard-active-chart-primary: var(--dashboard-light-chart-primary);
   --dashboard-active-chart-secondary: var(--dashboard-light-chart-secondary);
   --dashboard-active-danger-background: var(--dashboard-light-danger-background);
@@ -3265,6 +3309,12 @@ textarea {
   --chart-color-5: var(--dashboard-active-chart-danger);
   --chart-color-6: color-mix(in srgb, var(--dashboard-active-chart-accent), var(--surface) 35%);
   --chart-color-7: color-mix(in srgb, var(--dashboard-active-chart-primary), var(--surface) 45%);
+  --chart-pie-slice-1: var(--dashboard-active-chart-pie-primary);
+  --chart-pie-slice-2: color-mix(in srgb, var(--dashboard-active-chart-pie-primary), var(--dashboard-active-chart-pie-secondary) 32%);
+  --chart-pie-slice-3: color-mix(in srgb, var(--dashboard-active-chart-pie-primary), var(--dashboard-active-chart-pie-secondary) 58%);
+  --chart-pie-slice-4: color-mix(in srgb, var(--dashboard-active-chart-pie-primary), var(--dashboard-active-chart-pie-secondary) 72%);
+  --chart-pie-slice-5: color-mix(in srgb, var(--dashboard-active-chart-pie-primary), var(--dashboard-active-chart-pie-secondary) 86%);
+  --chart-pie-slice-6: var(--dashboard-active-chart-pie-secondary);
   --chart-map-bucket-1: var(--dashboard-active-chart-map-low);
   --chart-map-bucket-2: color-mix(in srgb, var(--dashboard-active-chart-map-low), var(--dashboard-active-chart-map-high) 25%);
   --chart-map-bucket-3: color-mix(in srgb, var(--dashboard-active-chart-map-low), var(--dashboard-active-chart-map-high) 50%);
@@ -3333,6 +3383,8 @@ textarea {
   --dashboard-active-chart-danger: var(--dashboard-dark-chart-danger);
   --dashboard-active-chart-map-high: var(--dashboard-dark-chart-map-high);
   --dashboard-active-chart-map-low: var(--dashboard-dark-chart-map-low);
+  --dashboard-active-chart-pie-primary: var(--dashboard-dark-chart-pie-primary);
+  --dashboard-active-chart-pie-secondary: var(--dashboard-dark-chart-pie-secondary);
   --dashboard-active-chart-primary: var(--dashboard-dark-chart-primary);
   --dashboard-active-chart-secondary: var(--dashboard-dark-chart-secondary);
   --dashboard-active-danger-background: var(--dashboard-dark-danger-background);
@@ -3696,6 +3748,12 @@ textarea {
 .link-summary-wide a svg {
   margin-right: 0.18rem;
   vertical-align: -0.12em;
+}
+
+.link-summary-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
 }
 
 .link-summary-meta-item {

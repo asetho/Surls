@@ -253,7 +253,8 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
                     maxClicks: link.maxClicks,
                     enabled: link.enabled,
                     description: link.description ?? "",
-                    notes: link.notes ?? ""
+                    notes: link.notes ?? "",
+                    tags: link.tags.map(({ tag }) => tag.name).join(", ")
                   };
                   return (
                     <tr key={link.id}>

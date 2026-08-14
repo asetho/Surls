@@ -233,4 +233,17 @@ describe("link detail raw IP visibility", () => {
     expect(markup).toContain("[https://referrer.example/docs/page]");
     expect(markup).toContain('href="https://referrer.example/docs/page"');
   });
+
+  it("shows link tags on the detail page", async () => {
+    prisma.shortLink.findFirst.mockResolvedValue({
+      ...testLink(),
+      tags: [{ tag: { id: "tag_1", name: "Upload", slug: "upload" } }]
+    });
+
+    const markup = await renderLinkDetail();
+
+    expect(markup).toContain("Tags:");
+    expect(markup).toContain('href="/admin/links?tag=upload"');
+    expect(markup).toContain(">Upload</a>");
+  });
 });
