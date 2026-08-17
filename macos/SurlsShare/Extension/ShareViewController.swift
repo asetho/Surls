@@ -235,7 +235,10 @@ private struct MultipartBody {
 
     func file(name: String, filename: String, mimeType: String, data fileData: Data) -> MultipartBody {
         var copy = self
-        let safeFilename = filename.replacingOccurrences(of: "\\", with: "_").replacingOccurrences(of: "\"", with: "_")
+        let unsafeCharacters = CharacterSet.controlCharacters.union(CharacterSet(charactersIn: "\\\""))
+        let safeFilename = filename.unicodeScalars
+            .map { unsafeCharacters.contains($0) ? "_" : String($0) }
+            .joined()
         copy.append("--\(boundary)\r\n")
         copy.append("Content-Disposition: form-data; name=\"\(name)\"; filename=\"\(safeFilename)\"\r\n")
         copy.append("Content-Type: \(mimeType)\r\n\r\n")
