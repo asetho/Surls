@@ -136,7 +136,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
 
       - name: Log in to GitHub Container Registry
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         uses: docker/login-action@v4.6.0
         with:
           registry: ghcr.io
@@ -147,7 +147,7 @@ jobs:
         uses: docker/build-push-action@v7.3.0
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' }}
+          push: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
@@ -156,3 +156,128 @@ jobs:
             next_server_actions_encryption_key=${{ secrets.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  release:
+    name: Version and publish
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs:
+      - verify
+      - docker
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    concurrency:
+      group: surls-auto-version
+      cancel-in-progress: false
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: "26"
+          cache: npm
+
+      - name: Bump patch version
+        id: version
+        env:
+          RELEASE_ACTOR_NAME: github-actions[bot]
+          RELEASE_ACTOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: |
+          set -euo pipefail
+
+          event_sha="${GITHUB_SHA}"
+          current_version="$(node -p "require('./package.json').version")"
+          current_tag="v${current_version}"
+          [[ "${current_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+
+          git fetch --force origin main --tags
+          origin_main="$(git rev-parse refs/remotes/origin/main)"
+
+          if git tag --points-at HEAD | grep -Fxq "${current_tag}"; then
+            release_version="${current_version}"
+          elif [[ "${origin_main}" != "${event_sha}" ]]; then
+            release_parent="$(git rev-parse "${origin_main}^")"
+            release_version="$(git show "${origin_main}:package.json" | node -e "let json = ''; process.stdin.on('data', chunk => json += chunk); process.stdin.on('end', () => process.stdout.write(JSON.parse(json).version));")"
+            release_tag="v${release_version}"
+            tagged_sha="$(git rev-list -n 1 "${release_tag}" 2>/dev/null || true)"
+            release_subject="$(git log -1 --format=%s "${origin_main}")"
+
+            if [[ "${release_parent}" != "${event_sha}" || "${tagged_sha}" != "${origin_main}" || "${release_subject}" != "Release ${release_tag} [skip ci]" ]]; then
+              echo "main advanced beyond this workflow's revision; a newer CI run will create the release" >&2
+              exit 1
+            fi
+
+            git checkout --detach "${origin_main}"
+          else
+            git config user.name "${RELEASE_ACTOR_NAME}"
+            git config user.email "${RELEASE_ACTOR_EMAIL}"
+            npm version patch -m "Release v%s [skip ci]"
+            release_version="$(node -p "require('./package.json').version")"
+            git push --atomic origin HEAD:main "refs/tags/v${release_version}"
+          fi
+
+          [[ "${release_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          release_sha="$(git rev-parse HEAD)"
+          major_minor="$(node -e "const [major, minor] = process.argv[1].split('.'); process.stdout.write(major + '.' + minor)" "${release_version}")"
+
+          {
+            echo "version=${release_version}"
+            echo "major_minor=${major_minor}"
+            echo "tag=v${release_version}"
+            echo "sha=${release_sha}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.2.0
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6.2.0
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/surls
+          tags: |
+            type=raw,value=latest
+            type=raw,value=main
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=${{ steps.version.outputs.major_minor }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish release image
+        uses: docker/build-push-action@v7.3.0
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            SURLS_GIT_SHA=${{ steps.version.outputs.sha }}
+          secrets: |
+            next_server_actions_encryption_key=${{ secrets.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ steps.version.outputs.sha }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            exit 0
+          fi
+          gh release create "${RELEASE_TAG}" \
+            --target "${RELEASE_SHA}" \
+            --title "Surls ${RELEASE_TAG}" \
+            --generate-notes
