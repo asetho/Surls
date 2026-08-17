@@ -97,7 +97,7 @@ export function ApiTokenForm({ csrf, siteName }: { csrf: string; siteName: strin
             <option value="365">1 year</option>
             <option value="forever">Forever</option>
           </select>
-          <span className="muted small">Tokens are limited to creating links and can be revoked or deleted anytime.</span>
+          <span className="muted small">Tokens are limited to creating links and file uploads, and can be revoked or deleted anytime.</span>
         </label>
         <button type="submit" disabled={pending}>Generate API token</button>
       </form>

@@ -231,8 +231,17 @@ curl -X POST http://localhost:3000/api/links \
   -d '{"destinationUrl":"https://example.com","code":"example","title":"Example"}'
 ```
 
+Upload a file and create its short URL:
+
+```bash
+curl -X POST http://localhost:3000/api/uploads \
+  -H "Authorization: Bearer surls_..." \
+  -F "file=@./document.pdf" \
+  -F "filenameMode=safe"
+```
+
 API token hashes are stored in the database. The plain token is shown once.
-Tokens are limited to link creation by default, expire after `API_TOKEN_DAYS` unless a shorter supported lifetime is selected, and can be revoked from `Admin -> Tools`.
+New tokens are limited to link and upload creation, expire after `API_TOKEN_DAYS` unless a shorter supported lifetime is selected, and can be revoked from `Admin -> Tools`. Existing tokens keep their original scopes; generate a new token for the macOS Share extension.
 
 ## Import And Export
 

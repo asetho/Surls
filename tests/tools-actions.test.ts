@@ -118,6 +118,7 @@ describe("tools actions hardening", () => {
       publicPath: "/uploads/hello_world.txt",
       size: 5
     });
+    uploads.deleteUploadedFile.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -294,5 +295,15 @@ describe("tools actions hardening", () => {
 
     expect(result.error).toBe("That short alias is already in use.");
     expect(uploads.storeUploadedFile).not.toHaveBeenCalled();
+  });
+
+  it("removes a stored file when short-link creation fails", async () => {
+    const { uploadAndShortenAction } = await import("@/app/admin/tools/actions");
+    links.createShortLink.mockRejectedValue(new Error("Could not create link"));
+
+    const result = await uploadAndShortenAction(null, uploadForm());
+
+    expect(result).toEqual({ error: "Could not create link" });
+    expect(uploads.deleteUploadedFile).toHaveBeenCalledWith("hello_world.txt");
   });
 });

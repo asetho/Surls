@@ -3,14 +3,18 @@ import { hashToken, randomToken } from "./crypto";
 import { env } from "./env";
 
 export const API_TOKEN_SCOPE_LINKS_CREATE = "links:create";
+export const API_TOKEN_SCOPE_UPLOADS_CREATE = "uploads:create";
+
+const DEFAULT_API_TOKEN_SCOPES = [API_TOKEN_SCOPE_LINKS_CREATE, API_TOKEN_SCOPE_UPLOADS_CREATE];
 
 function defaultApiTokenExpiresAt(now = new Date()) {
   return new Date(now.getTime() + env.API_TOKEN_DAYS * 24 * 60 * 60 * 1000);
 }
 
 function normalizeScopes(scopes: string[] | undefined) {
-  const cleaned = Array.from(new Set((scopes?.length ? scopes : [API_TOKEN_SCOPE_LINKS_CREATE]).map((scope) => scope.trim()).filter(Boolean)));
-  return cleaned.includes(API_TOKEN_SCOPE_LINKS_CREATE) ? cleaned : [API_TOKEN_SCOPE_LINKS_CREATE];
+  return Array.from(
+    new Set((scopes?.length ? scopes : DEFAULT_API_TOKEN_SCOPES).map((scope) => scope.trim()).filter(Boolean))
+  );
 }
 
 export function tokenHasScope(scopes: string | null | undefined, requiredScope: string) {
