@@ -1,0 +1,67 @@
+name: SurlsShare
+options:
+  bundleIdPrefix: cc.aarn
+  deploymentTarget:
+    macOS: "14.0"
+settings:
+  base:
+    CODE_SIGN_STYLE: Automatic
+    CURRENT_PROJECT_VERSION: 1
+    MARKETING_VERSION: 1.0.0
+    SWIFT_VERSION: 5.0
+targets:
+  SurlsShare:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+      - path: Shared
+    settings:
+      base:
+        CODE_SIGN_ENTITLEMENTS: Configuration/SurlsShare.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: cc.aarn.SurlsShare
+        PRODUCT_NAME: Surls Share
+    info:
+      path: Configuration/SurlsShare-Info.plist
+      properties:
+        CFBundleDisplayName: Surls Share
+        LSApplicationCategoryType: public.app-category.utilities
+        NSHumanReadableCopyright: Copyright © 2026
+    dependencies:
+      - target: SurlsShareExtension
+        embed: true
+  SurlsShareExtension:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: Extension
+      - path: Shared
+    settings:
+      base:
+        CODE_SIGN_ENTITLEMENTS: Configuration/SurlsShareExtension.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: cc.aarn.SurlsShare.Extension
+        PRODUCT_NAME: Share with Surls
+        SKIP_INSTALL: true
+    info:
+      path: Configuration/SurlsShareExtension-Info.plist
+      properties:
+        CFBundleDisplayName: Share with Surls
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        NSExtension:
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsFileWithMaxCount: 1
+              NSExtensionActivationSupportsImageWithMaxCount: 1
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+schemes:
+  SurlsShare:
+    build:
+      targets:
+        SurlsShare: all
+        SurlsShareExtension: all
+    run:
+      config: Debug
+    archive:
+      config: Release

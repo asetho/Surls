@@ -194,6 +194,11 @@ export default async function ToolsPage() {
   -H "Authorization: Bearer surls_..." \\
   -H "Content-Type: application/json" \\
   -d '{"destinationUrl":"https://example.com","code":"example"}'`}</pre>
+                  <p className="muted small">Upload a file and create its short URL:</p>
+                  <pre className="scrollable-code">{`curl -X POST ${appBaseUrl()}/api/uploads \\
+  -H "Authorization: Bearer surls_..." \\
+  -F "file=@./document.pdf" \\
+  -F "filenameMode=safe"`}</pre>
                 </section>
                 <section className="surface tools-card">
                   <h2>System info</h2>
