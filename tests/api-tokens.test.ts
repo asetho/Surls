@@ -12,6 +12,7 @@ vi.mock("@/lib/prisma", () => ({
 
 import {
   API_TOKEN_SCOPE_LINKS_CREATE,
+  API_TOKEN_SCOPE_UPLOADS_CREATE,
   authenticateApiToken,
   createApiToken,
   tokenHasScope
@@ -46,13 +47,13 @@ describe("API token hardening", () => {
     const { row, token } = await createApiToken("user-1", "Automation");
 
     expect(token).toMatch(/^surls_/);
-    expect(row.scopes).toBe(API_TOKEN_SCOPE_LINKS_CREATE);
+    expect(row.scopes).toBe(`${API_TOKEN_SCOPE_LINKS_CREATE},${API_TOKEN_SCOPE_UPLOADS_CREATE}`);
     expect(row.expiresAt?.toISOString()).toBe("2026-09-09T12:00:00.000Z");
     expect(apiTokenModel.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         expiresAt: new Date("2026-09-09T12:00:00.000Z"),
         name: "Automation",
-        scopes: API_TOKEN_SCOPE_LINKS_CREATE,
+        scopes: `${API_TOKEN_SCOPE_LINKS_CREATE},${API_TOKEN_SCOPE_UPLOADS_CREATE}`,
         tokenHash: expect.any(String),
         tokenPrefix: expect.any(String),
         userId: "user-1"
@@ -63,6 +64,7 @@ describe("API token hardening", () => {
 
   it("recognizes exact token scopes", () => {
     expect(tokenHasScope("links:create,links:read", API_TOKEN_SCOPE_LINKS_CREATE)).toBe(true);
+    expect(tokenHasScope("links:create,uploads:create", API_TOKEN_SCOPE_UPLOADS_CREATE)).toBe(true);
     expect(tokenHasScope("links:read", API_TOKEN_SCOPE_LINKS_CREATE)).toBe(false);
   });
 

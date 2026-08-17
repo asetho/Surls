@@ -1,0 +1,447 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		2B81346CD66FAF76F0CEEDF5 /* SharedSiteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F569440001364D51E409132F /* SharedSiteStore.swift */; };
+		4CFE8EED34126551CB8C302E /* SiteTokenKeychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8FE5044CDBC4A1AC35F4DB4 /* SiteTokenKeychain.swift */; };
+		68694B24137F916F1D91C80E /* SurlsShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 9437CCCCC20462889F736FE9 /* SurlsShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		87B51EB53F28EE5BB9349BE7 /* SharedSiteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F569440001364D51E409132F /* SharedSiteStore.swift */; };
+		8E4E48152517206B3603356F /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 566DAC71B936C83274596F79 /* ShareViewController.swift */; };
+		8E4F4B53655890F66519815A /* SurlsShareApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A3E625A8C01F27CEE54FF08 /* SurlsShareApp.swift */; };
+		90571E156BEC76869C33CFC3 /* SiteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD00B8ACB59CC503DB1F7D08 /* SiteStore.swift */; };
+		B8D1E741CE13B027B13A9989 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9979D59EA1D1335B2A61200E /* ContentView.swift */; };
+		BC689EFE35E583EF47D1A3F2 /* SiteTokenKeychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8FE5044CDBC4A1AC35F4DB4 /* SiteTokenKeychain.swift */; };
+		D656666CBCBAD7E0E578AF36 /* SiteProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18AED6C79E805A7F1C59947B /* SiteProfile.swift */; };
+		E1002EBFA63CF3A9E4C56664 /* SiteProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18AED6C79E805A7F1C59947B /* SiteProfile.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		1C7FCBCB92BE5062A788556E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 859E72D1B802C519D4311B06 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 693E2806637E57AE910AB540;
+			remoteInfo = SurlsShareExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		8FE6482BFB2CEE69A71016D9 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				68694B24137F916F1D91C80E /* SurlsShareExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		18AED6C79E805A7F1C59947B /* SiteProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiteProfile.swift; sourceTree = "<group>"; };
+		1A3E625A8C01F27CEE54FF08 /* SurlsShareApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurlsShareApp.swift; sourceTree = "<group>"; };
+		566DAC71B936C83274596F79 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		8D7FCAF1F56956711A84E7D6 /* SurlsShare.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SurlsShare.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9437CCCCC20462889F736FE9 /* SurlsShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SurlsShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		9979D59EA1D1335B2A61200E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		C8FE5044CDBC4A1AC35F4DB4 /* SiteTokenKeychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiteTokenKeychain.swift; sourceTree = "<group>"; };
+		F569440001364D51E409132F /* SharedSiteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedSiteStore.swift; sourceTree = "<group>"; };
+		FD00B8ACB59CC503DB1F7D08 /* SiteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiteStore.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		09AD3DA5D93BC5FACE31013B /* App */ = {
+			isa = PBXGroup;
+			children = (
+				9979D59EA1D1335B2A61200E /* ContentView.swift */,
+				FD00B8ACB59CC503DB1F7D08 /* SiteStore.swift */,
+				1A3E625A8C01F27CEE54FF08 /* SurlsShareApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		3C0B9BE59098D1A0C39E3EE6 = {
+			isa = PBXGroup;
+			children = (
+				09AD3DA5D93BC5FACE31013B /* App */,
+				DBAF3CFDC1F35922C308607D /* Extension */,
+				CD1F538241783805BB014A77 /* Shared */,
+				AA4456810AB7A786E87A2172 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AA4456810AB7A786E87A2172 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				8D7FCAF1F56956711A84E7D6 /* SurlsShare.app */,
+				9437CCCCC20462889F736FE9 /* SurlsShareExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CD1F538241783805BB014A77 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				F569440001364D51E409132F /* SharedSiteStore.swift */,
+				18AED6C79E805A7F1C59947B /* SiteProfile.swift */,
+				C8FE5044CDBC4A1AC35F4DB4 /* SiteTokenKeychain.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		DBAF3CFDC1F35922C308607D /* Extension */ = {
+			isa = PBXGroup;
+			children = (
+				566DAC71B936C83274596F79 /* ShareViewController.swift */,
+			);
+			path = Extension;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		693E2806637E57AE910AB540 /* SurlsShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3B816D8B9F4C17BF82E64218 /* Build configuration list for PBXNativeTarget "SurlsShareExtension" */;
+			buildPhases = (
+				ED05950049A808E8F8858A0A /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SurlsShareExtension;
+			packageProductDependencies = (
+			);
+			productName = SurlsShareExtension;
+			productReference = 9437CCCCC20462889F736FE9 /* SurlsShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		6CBD504163298FB931D80CA4 /* SurlsShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 40BCFA1E3565C58B585DD06C /* Build configuration list for PBXNativeTarget "SurlsShare" */;
+			buildPhases = (
+				56E6695AB5102536CCEF3DA1 /* Sources */,
+				8FE6482BFB2CEE69A71016D9 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				887814AE6719657FF99B5CDC /* PBXTargetDependency */,
+			);
+			name = SurlsShare;
+			packageProductDependencies = (
+			);
+			productName = SurlsShare;
+			productReference = 8D7FCAF1F56956711A84E7D6 /* SurlsShare.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		859E72D1B802C519D4311B06 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					693E2806637E57AE910AB540 = {
+						ProvisioningStyle = Automatic;
+					};
+					6CBD504163298FB931D80CA4 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 02FD40445CD9E61E1C8D794E /* Build configuration list for PBXProject "SurlsShare" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 3C0B9BE59098D1A0C39E3EE6;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = AA4456810AB7A786E87A2172 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				6CBD504163298FB931D80CA4 /* SurlsShare */,
+				693E2806637E57AE910AB540 /* SurlsShareExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		56E6695AB5102536CCEF3DA1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B8D1E741CE13B027B13A9989 /* ContentView.swift in Sources */,
+				87B51EB53F28EE5BB9349BE7 /* SharedSiteStore.swift in Sources */,
+				E1002EBFA63CF3A9E4C56664 /* SiteProfile.swift in Sources */,
+				90571E156BEC76869C33CFC3 /* SiteStore.swift in Sources */,
+				4CFE8EED34126551CB8C302E /* SiteTokenKeychain.swift in Sources */,
+				8E4F4B53655890F66519815A /* SurlsShareApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ED05950049A808E8F8858A0A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8E4E48152517206B3603356F /* ShareViewController.swift in Sources */,
+				2B81346CD66FAF76F0CEEDF5 /* SharedSiteStore.swift in Sources */,
+				D656666CBCBAD7E0E578AF36 /* SiteProfile.swift in Sources */,
+				BC689EFE35E583EF47D1A3F2 /* SiteTokenKeychain.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		887814AE6719657FF99B5CDC /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 693E2806637E57AE910AB540 /* SurlsShareExtension */;
+			targetProxy = 1C7FCBCB92BE5062A788556E /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		3E8B403F390FA008C0CEC8F7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Configuration/SurlsShare.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "Configuration/SurlsShare-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = cc.aarn.SurlsShare;
+				PRODUCT_NAME = "Surls Share";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		3EC7BCFF3D61B560DEAD7A9E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Configuration/SurlsShare.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "Configuration/SurlsShare-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = cc.aarn.SurlsShare;
+				PRODUCT_NAME = "Surls Share";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		5383A97C5E1082557F308267 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		55203B840B43B168D15BAF63 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Configuration/SurlsShareExtension.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "Configuration/SurlsShareExtension-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = cc.aarn.SurlsShare.Extension;
+				PRODUCT_NAME = "Share with Surls";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		55EF682DE30A855186855420 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Configuration/SurlsShareExtension.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = "Configuration/SurlsShareExtension-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = cc.aarn.SurlsShare.Extension;
+				PRODUCT_NAME = "Share with Surls";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		B9EDF27543CA0844609F6998 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		02FD40445CD9E61E1C8D794E /* Build configuration list for PBXProject "SurlsShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5383A97C5E1082557F308267 /* Debug */,
+				B9EDF27543CA0844609F6998 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		3B816D8B9F4C17BF82E64218 /* Build configuration list for PBXNativeTarget "SurlsShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				55203B840B43B168D15BAF63 /* Debug */,
+				55EF682DE30A855186855420 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		40BCFA1E3565C58B585DD06C /* Build configuration list for PBXNativeTarget "SurlsShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3E8B403F390FA008C0CEC8F7 /* Debug */,
+				3EC7BCFF3D61B560DEAD7A9E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 859E72D1B802C519D4311B06 /* Project object */;
+}
