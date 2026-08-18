@@ -7,6 +7,7 @@ final class ShareViewController: NSViewController {
     private let progress = NSProgressIndicator()
     private let closeButton = NSButton(title: "Close", target: nil, action: nil)
     private let retryButton = NSButton(title: "Try Again", target: nil, action: nil)
+    private var uploadTask: URLSessionDataTask?
     private var started = false
 
     override func loadView() {
@@ -61,7 +62,10 @@ final class ShareViewController: NSViewController {
     }
 
     private func beginUpload() {
-        closeButton.isHidden = true
+        uploadTask?.cancel()
+        uploadTask = nil
+        closeButton.title = "Cancel"
+        closeButton.isHidden = false
         retryButton.isHidden = true
         progress.isHidden = false
         progress.startAnimation(nil)
@@ -137,7 +141,7 @@ final class ShareViewController: NSViewController {
         let boundary = "SurlsBoundary-\(UUID().uuidString)"
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.timeoutInterval = 120
+        request.timeoutInterval = 30
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         request.httpBody = MultipartBody(boundary: boundary)
@@ -146,8 +150,9 @@ final class ShareViewController: NSViewController {
             .file(name: "file", filename: file.name, mimeType: file.mimeType, data: file.data)
             .finish()
 
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+        uploadTask = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             DispatchQueue.main.async {
+                self?.uploadTask = nil
                 if let error {
                     self?.showFailure(error.localizedDescription)
                     return
@@ -160,7 +165,8 @@ final class ShareViewController: NSViewController {
                 }
                 self?.copyAndFinish(shortURL, siteName: site.name)
             }
-        }.resume()
+        }
+        uploadTask?.resume()
     }
 
     private func copyAndFinish(_ shortURL: String, siteName: String) {
@@ -168,6 +174,7 @@ final class ShareViewController: NSViewController {
         NSPasteboard.general.setString(shortURL, forType: .string)
         progress.stopAnimation(nil)
         progress.isHidden = true
+        closeButton.isHidden = true
         statusLabel.stringValue = "Short URL copied"
         detailLabel.stringValue = "\(shortURL)\nUploaded with \(siteName)."
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
@@ -178,6 +185,7 @@ final class ShareViewController: NSViewController {
     private func showFailure(_ message: String) {
         progress.stopAnimation(nil)
         progress.isHidden = true
+        closeButton.title = "Close"
         statusLabel.stringValue = "Upload failed"
         detailLabel.stringValue = message
         closeButton.isHidden = false
@@ -185,6 +193,8 @@ final class ShareViewController: NSViewController {
     }
 
     @objc private func closeExtension() {
+        uploadTask?.cancel()
+        uploadTask = nil
         extensionContext?.cancelRequest(withError: ShareError("Upload cancelled."))
     }
 
