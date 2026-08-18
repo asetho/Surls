@@ -11,7 +11,8 @@ const rateLimit = vi.hoisted(() => ({
 }));
 
 const uploads = vi.hoisted(() => ({
-  normalizeUploadFilenameMode: vi.fn(() => "safe")
+  normalizeUploadFilenameMode: vi.fn(() => "safe"),
+  uploadMaxBytes: vi.fn(() => 25 * 1024 * 1024)
 }));
 
 const uploadAndShorten = vi.hoisted(() => ({
@@ -39,6 +40,7 @@ describe("POST /api/uploads", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     rateLimit.checkRateLimit.mockResolvedValue({ allowed: true });
+    uploads.uploadMaxBytes.mockReturnValue(25 * 1024 * 1024);
     apiTokens.authenticateApiToken.mockResolvedValue({
       name: "Mac Share",
       tokenPrefix: "surls_abc123",
@@ -92,6 +94,39 @@ describe("POST /api/uploads", () => {
     const response = await POST(uploadRequest());
 
     expect(response.status).toBe(429);
+    expect(uploadAndShorten.uploadAndShortenFile).not.toHaveBeenCalled();
+  });
+
+  it("rejects streamed multipart requests before buffering an oversized body", async () => {
+    uploads.uploadMaxBytes.mockReturnValue(8);
+    const { POST, UPLOAD_MULTIPART_OVERHEAD_BYTES } = await import("@/app/api/uploads/route");
+    const boundary = "surls-test-boundary";
+    const prefix = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="large.txt"\r\nContent-Type: text/plain\r\n\r\n`;
+    const suffix = `\r\n--${boundary}--\r\n`;
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const encoder = new TextEncoder();
+        controller.enqueue(encoder.encode(prefix));
+        controller.enqueue(new Uint8Array(UPLOAD_MULTIPART_OVERHEAD_BYTES + 9));
+        controller.enqueue(encoder.encode(suffix));
+        controller.close();
+      }
+    });
+    type StreamRequestInit = NonNullable<ConstructorParameters<typeof NextRequest>[1]> & { duplex: "half" };
+    const request = new NextRequest("http://localhost:3000/api/uploads", {
+      body,
+      headers: {
+        authorization: "Bearer surls_valid",
+        "content-type": `multipart/form-data; boundary=${boundary}`
+      },
+      method: "POST",
+      duplex: "half"
+    } as StreamRequestInit);
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toEqual({ error: "Upload request is too large." });
     expect(uploadAndShorten.uploadAndShortenFile).not.toHaveBeenCalled();
   });
 });
