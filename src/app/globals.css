@@ -404,6 +404,26 @@ button.danger-outline:hover {
   padding: 1rem;
 }
 
+.upload-limit-setting-row {
+  align-items: center;
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: minmax(12rem, 1fr) minmax(8rem, 0.45fr);
+}
+
+.upload-limit-megabytes-field,
+.user-upload-limit-value {
+  align-items: center;
+  display: flex;
+  gap: 0.38rem;
+}
+
+.upload-limit-megabytes-field input,
+.user-upload-limit-value input {
+  min-width: 4.5rem;
+  width: 100%;
+}
+
 .settings-status-grid {
   align-items: start;
   display: grid;
@@ -2797,6 +2817,35 @@ button.danger-outline:hover {
   text-align: left;
 }
 
+.alias-availability-field {
+  display: grid;
+  gap: 0.22rem;
+}
+
+.alias-availability-message {
+  color: var(--muted);
+  min-height: 1.3em;
+}
+
+.alias-availability-field[data-status="available"] .alias-availability-message {
+  color: var(--color-teal);
+  font-weight: 700;
+}
+
+.alias-availability-field[data-status="unavailable"] .alias-availability-message,
+.alias-availability-field[data-status="error"] .alias-availability-message {
+  color: var(--danger-background, var(--color-red));
+  font-weight: 700;
+}
+
+.alias-availability-field[data-status="available"] input {
+  border-color: var(--color-teal);
+}
+
+.alias-availability-field[data-status="unavailable"] input {
+  border-color: var(--danger-border, var(--color-red));
+}
+
 .sr-only {
   border: 0;
   clip: rect(0 0 0 0);
@@ -4072,6 +4121,22 @@ th {
 
 .role-form select {
   min-width: 7rem;
+}
+
+.user-upload-limit-form {
+  display: grid;
+  gap: 0.35rem;
+  grid-template-columns: minmax(7rem, 1fr) auto;
+  min-width: 13rem;
+}
+
+.user-upload-limit-form > select {
+  grid-column: 1 / -1;
+  min-width: 13rem;
+}
+
+.user-upload-limit-form > button {
+  align-self: stretch;
 }
 
 .user-identity-form {
@@ -5667,6 +5732,7 @@ th {
   .link-lifecycle-actions > form > button,
   .passkey-row,
   .role-form,
+  .user-upload-limit-form,
   .user-identity-form {
     width: 100%;
   }
@@ -5680,6 +5746,10 @@ th {
   .user-identity-form {
     grid-template-columns: 1fr;
     max-width: none;
+  }
+
+  .upload-limit-setting-row {
+    grid-template-columns: 1fr;
   }
 
   .chart-row {

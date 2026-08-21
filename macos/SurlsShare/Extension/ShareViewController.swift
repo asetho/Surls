@@ -24,6 +24,8 @@ final class ShareViewController: NSViewController, URLSessionTaskDelegate, NSTex
     private var keywordCheckWorkItem: DispatchWorkItem?
     private var keywordCheckAttempt: UUID?
     private var keywordIsValid = true
+    private var uploadLimitTask: URLSessionDataTask?
+    private var uploadLimitAttempt: UUID?
     private var fileLoadProgress: Progress?
     private var fileLoadTimeout: DispatchWorkItem?
     private var fileLoadAttempt: UUID?
@@ -211,8 +213,67 @@ final class ShareViewController: NSViewController, URLSessionTaskDelegate, NSTex
             return
         }
 
-        statusLabel.stringValue = "Uploading to \(site.name)…"
+        statusLabel.stringValue = "Checking upload limit…"
         detailLabel.stringValue = provider.suggestedName ?? "Shared file"
+        checkUploadLimit(for: site, token: token) { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .success(let limit):
+                self.loadSharedFile(from: provider, site: site, token: token, code: requestedCode, limit: limit)
+            case .failure(let error):
+                self.showFailure(error.localizedDescription)
+            }
+        }
+    }
+
+    private func checkUploadLimit(
+        for site: SiteProfile,
+        token: String,
+        completion: @escaping (Result<UploadLimit, Error>) -> Void
+    ) {
+        guard let url = site.uploadURL else {
+            completion(.failure(ShareError("The saved URL for \(site.name) is invalid.")))
+            return
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "HEAD"
+        request.timeoutInterval = 10
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let attempt = UUID()
+        uploadLimitAttempt = attempt
+        uploadLimitTask = URLSession.shared.dataTask(with: request) { [weak self] _, response, error in
+            DispatchQueue.main.async {
+                guard let self, self.uploadLimitAttempt == attempt else { return }
+                self.uploadLimitAttempt = nil
+                self.uploadLimitTask = nil
+                if let error {
+                    completion(.failure(error))
+                    return
+                }
+                let httpResponse = response as? HTTPURLResponse
+                switch httpResponse?.statusCode ?? 0 {
+                case 204:
+                    completion(.success(UploadLimit(response: httpResponse)))
+                case 401:
+                    completion(.failure(ShareError("The API token is invalid or missing uploads:create permission.")))
+                case 404, 405:
+                    completion(.success(.unknown))
+                case let status:
+                    completion(.failure(ShareError("Surls returned HTTP \(status) while checking the upload limit.")))
+                }
+            }
+        }
+        uploadLimitTask?.resume()
+    }
+
+    private func loadSharedFile(
+        from provider: NSItemProvider,
+        site: SiteProfile,
+        token: String,
+        code: String,
+        limit: UploadLimit
+    ) {
+        statusLabel.stringValue = "Preparing upload to \(site.name)…"
         let attempt = UUID()
         fileLoadAttempt = attempt
         let timeout = DispatchWorkItem { [weak self] in
@@ -232,7 +293,12 @@ final class ShareViewController: NSViewController, URLSessionTaskDelegate, NSTex
             self.fileLoadTimeout = nil
             self.fileLoadProgress = nil
             switch result {
-            case .success(let file): self.upload(file, to: site, token: token, code: requestedCode)
+            case .success(let file):
+                if let message = limit.rejectionMessage(fileBytes: file.data.count) {
+                    self.showFailure(message)
+                } else {
+                    self.upload(file, to: site, token: token, code: code)
+                }
             case .failure(let error): self.showFailure(error.localizedDescription)
             }
         }
@@ -570,6 +636,9 @@ final class ShareViewController: NSViewController, URLSessionTaskDelegate, NSTex
     }
 
     private func cancelFileLoad() {
+        uploadLimitTask?.cancel()
+        uploadLimitTask = nil
+        uploadLimitAttempt = nil
         fileLoadTimeout?.cancel()
         fileLoadTimeout = nil
         fileLoadProgress?.cancel()

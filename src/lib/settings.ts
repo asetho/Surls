@@ -22,6 +22,7 @@ export type AppSettings = {
   displayTimeZone: string;
   trackAdminClicks: boolean;
   preserveRedirectQuery: boolean;
+  uploadMaxBytes: number | null;
   enablePasswordProtectedLinks: boolean;
   enableQrCodes: boolean;
   themeDefault: "auto" | "light" | "dark";
@@ -37,6 +38,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   displayTimeZone: DEFAULT_DISPLAY_TIME_ZONE,
   trackAdminClicks: false,
   preserveRedirectQuery: false,
+  uploadMaxBytes: env.UPLOAD_MAX_BYTES,
   enablePasswordProtectedLinks: true,
   enableQrCodes: true,
   themeDefault: "auto",
@@ -54,7 +56,7 @@ export function normalizeSiteName(value: unknown) {
 
 export async function getSetting<K extends keyof AppSettings>(key: K): Promise<AppSettings[K]> {
   const setting = await prisma.appSetting.findUnique({ where: { key } });
-  return (setting?.value as AppSettings[K] | undefined) ?? DEFAULT_SETTINGS[key];
+  return setting ? (setting.value as AppSettings[K]) : DEFAULT_SETTINGS[key];
 }
 
 export async function getSiteName() {
@@ -73,16 +75,32 @@ export async function getDisplayTimeZone() {
   }
 }
 
+export function normalizeSiteUploadMaxBytes(value: unknown) {
+  if (value === null) return null;
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0
+    ? value
+    : DEFAULT_SETTINGS.uploadMaxBytes;
+}
+
+export async function getSiteUploadMaxBytes() {
+  try {
+    return normalizeSiteUploadMaxBytes(await getSetting("uploadMaxBytes"));
+  } catch {
+    return DEFAULT_SETTINGS.uploadMaxBytes;
+  }
+}
+
 export async function getSettings(): Promise<AppSettings> {
   const rows = await prisma.appSetting.findMany();
   const values = new Map(rows.map((row) => [row.key, row.value]));
   const settings = Object.fromEntries(
-    Object.entries(DEFAULT_SETTINGS).map(([key, defaultValue]) => [key, values.get(key) ?? defaultValue])
+    Object.entries(DEFAULT_SETTINGS).map(([key, defaultValue]) => [key, values.has(key) ? values.get(key) : defaultValue])
   ) as AppSettings;
   return {
     ...settings,
     siteName: normalizeSiteName(settings.siteName),
     displayTimeZone: normalizeDisplayTimeZone(settings.displayTimeZone),
+    uploadMaxBytes: normalizeSiteUploadMaxBytes(settings.uploadMaxBytes),
     dashboardTheme: normalizeDashboardTheme(settings.dashboardTheme),
     customIndexPage: normalizeCustomHtmlPage(settings.customIndexPage),
     customNotFoundPage: normalizeCustomHtmlPage(settings.customNotFoundPage),

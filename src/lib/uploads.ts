@@ -11,6 +11,7 @@ export type UploadFilenameMode = (typeof UPLOAD_FILENAME_MODES)[number];
 type StoreUploadedFileOptions = {
   dropExtension?: boolean;
   filenameMode?: UploadFilenameMode;
+  maxBytes?: number | null;
 };
 
 export type StoredUpload = {
@@ -30,7 +31,8 @@ export function uploadMaxBytes() {
   return env.UPLOAD_MAX_BYTES;
 }
 
-export function uploadMaxBytesLabel(bytes = uploadMaxBytes()) {
+export function uploadMaxBytesLabel(bytes: number | null = uploadMaxBytes()) {
+  if (bytes === null) return "No limit";
   if (bytes >= 1024 * 1024) return `${Math.floor(bytes / (1024 * 1024))} MB`;
   if (bytes >= 1024) return `${Math.floor(bytes / 1024)} KB`;
   return `${bytes} bytes`;
@@ -155,8 +157,9 @@ async function writeUniqueFile(root: string, filename: string, bytes: Uint8Array
 export async function storeUploadedFile(file: File, options: StoreUploadedFileOptions = {}): Promise<StoredUpload> {
   if (!file.name.trim()) throw new Error("Choose a file to upload.");
   if (file.size < 1) throw new Error("Choose a non-empty file to upload.");
-  if (file.size > uploadMaxBytes()) {
-    throw new Error(`Upload files up to ${uploadMaxBytesLabel()} at a time.`);
+  const maxBytes = options.maxBytes === undefined ? uploadMaxBytes() : options.maxBytes;
+  if (maxBytes !== null && file.size > maxBytes) {
+    throw new Error(`Upload files up to ${uploadMaxBytesLabel(maxBytes)} at a time.`);
   }
 
   const root = uploadsRoot();

@@ -5,12 +5,15 @@ import { Trash2 } from "lucide-react";
 import { AdminUserIdentityForm } from "@/components/AdminUserIdentityForm";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { CreateUserForm } from "@/components/CreateUserForm";
+import { UserUploadLimitForm } from "@/components/UserUploadLimitForm";
 import { adminLoginPath } from "@/lib/admin-login-path";
 import { requireSiteAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { formatDateTime, resolveDisplayTimeZone } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
-import { getDisplayTimeZone } from "@/lib/settings";
+import { getDisplayTimeZone, getSiteUploadMaxBytes } from "@/lib/settings";
+import { uploadBytesToMegabytes, userUploadLimitMode } from "@/lib/upload-limits";
+import { uploadMaxBytesLabel } from "@/lib/uploads";
 import { deleteUserAction, updateUserRoleAction } from "./actions";
 
 export const metadata: Metadata = {
@@ -22,7 +25,7 @@ export default async function UsersPage() {
   if (!admin) redirect(adminLoginPath("/admin/users"));
 
   const csrf = getCsrfToken();
-  const [users, siteDefaultTimeZone] = await Promise.all([
+  const [users, siteDefaultTimeZone, siteUploadMaxBytes] = await Promise.all([
     prisma.user.findMany({
       orderBy: { createdAt: "asc" },
       include: {
@@ -36,7 +39,8 @@ export default async function UsersPage() {
         totpCredential: true
       }
     }),
-    getDisplayTimeZone()
+    getDisplayTimeZone(),
+    getSiteUploadMaxBytes()
   ]);
   const displayTimeZone = resolveDisplayTimeZone(admin.displayTimeZone, siteDefaultTimeZone);
 
@@ -62,6 +66,7 @@ export default async function UsersPage() {
               <tr>
                 <th>User</th>
                 <th>Role</th>
+                <th>Upload limit</th>
                 <th>Security</th>
                 <th>Links</th>
                 <th>Sessions</th>
@@ -99,6 +104,17 @@ export default async function UsersPage() {
                         <button className="secondary" type="submit">Save</button>
                       </form>
                     )}
+                  </td>
+                  <td data-label="Upload limit">
+                    <UserUploadLimitForm
+                      csrf={csrf}
+                      initialMegabytes={
+                        uploadBytesToMegabytes(user.uploadMaxBytes) ?? uploadBytesToMegabytes(siteUploadMaxBytes)
+                      }
+                      initialMode={userUploadLimitMode(user)}
+                      siteDefaultLabel={uploadMaxBytesLabel(siteUploadMaxBytes)}
+                      userId={user.id}
+                    />
                   </td>
                   <td data-label="Security">
                     <div className="row-actions small">

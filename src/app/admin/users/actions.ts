@@ -7,6 +7,7 @@ import { requireSiteAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
 import { hashPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
+import { userUploadLimitFromFormData } from "@/lib/upload-limits";
 import { normalizeUserProfileFormData, normalizeUserProfileInput } from "@/lib/user-profile";
 
 type CreateUserState = {
@@ -15,6 +16,7 @@ type CreateUserState = {
 };
 
 type UpdateUserIdentityState = CreateUserState;
+type UpdateUserUploadLimitState = CreateUserState;
 
 function cleanRole(value: FormDataEntryValue | null) {
   return value === UserRole.ADMIN ? UserRole.ADMIN : UserRole.USER;
@@ -134,6 +136,35 @@ export async function updateUserRoleAction(formData: FormData) {
 
   await prisma.user.update({ where: { id }, data: { role } });
   revalidatePath("/admin/users");
+}
+
+export async function updateUserUploadLimitAction(
+  _state: UpdateUserUploadLimitState | null,
+  formData: FormData
+): Promise<UpdateUserUploadLimitState> {
+  try {
+    validateCsrf(formData);
+  } catch {
+    return { error: "The form expired. Please refresh and try again." };
+  }
+  const admin = await requireSiteAdmin();
+  if (!admin) redirect("/admin?next=/admin/users");
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Choose a user to update." };
+
+  let limit: ReturnType<typeof userUploadLimitFromFormData>;
+  try {
+    limit = userUploadLimitFromFormData(formData);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Choose a valid upload limit." };
+  }
+
+  const result = await prisma.user.updateMany({ where: { id }, data: limit });
+  if (result.count === 0) return { error: "That user no longer exists." };
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/tools");
+  return { message: "Upload limit updated." };
 }
 
 export async function deleteUserAction(formData: FormData) {

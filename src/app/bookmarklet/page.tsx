@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ExternalLink, Link2, LogIn, Plus } from "lucide-react";
 import { BookmarkletPopupActions } from "@/components/BookmarkletPopupActions";
+import { AliasAvailabilityInput } from "@/components/AliasAvailabilityInput";
 import { BookmarkletShortUrl } from "@/components/BookmarkletShortUrl";
 import { PasskeyLoginButton } from "@/components/PasskeyLoginButton";
 import { TitleAutoFill } from "@/components/TitleAutoFill";
@@ -179,7 +180,7 @@ export default async function BookmarkletPage({ searchParams }: { searchParams: 
             <div className="form-grid bookmarklet-form-grid">
               <label>
                 Custom alias
-                <input name="code" placeholder="optional-alias" pattern="[A-Za-z0-9_-]{3,64}" />
+                <AliasAvailabilityInput />
               </label>
               <label>
                 Tags

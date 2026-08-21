@@ -1,0 +1,2 @@
+ALTER TABLE "User" ADD COLUMN "uploadMaxBytes" BIGINT;
+ALTER TABLE "User" ADD COLUMN "uploadLimitUnlimited" BOOLEAN NOT NULL DEFAULT false;

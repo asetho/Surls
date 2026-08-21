@@ -12,6 +12,7 @@ import { DEFAULT_DASHBOARD_THEME, dashboardThemeFromFormData } from "@/lib/dashb
 import { requireDisplayTimeZone } from "@/lib/dates";
 import { faviconsWithManifestNames } from "@/lib/favicons";
 import { getSettings, normalizeSiteName, setSetting } from "@/lib/settings";
+import { siteUploadLimitFromFormData } from "@/lib/upload-limits";
 
 function actionErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
@@ -32,9 +33,11 @@ export async function updateSettingsAction(formData: FormData) {
   const trackAdminClicks = formData.get("trackAdminClicks") === "on";
   const preserveRedirectQuery = formData.get("preserveRedirectQuery") === "on";
   const siteName = normalizeSiteName(formData.get("siteName"));
+  let uploadMaxBytes: number | null;
   let displayTimeZone: string;
   try {
     displayTimeZone = requireDisplayTimeZone(formData.get("displayTimeZone"));
+    uploadMaxBytes = siteUploadLimitFromFormData(formData);
   } catch (error) {
     redirectWithToast(formData, "error", actionErrorMessage(error, "Choose a valid display timezone."), "/admin/settings");
   }
@@ -42,6 +45,7 @@ export async function updateSettingsAction(formData: FormData) {
   await setSetting("preserveRedirectQuery", preserveRedirectQuery);
   await setSetting("siteName", siteName);
   await setSetting("displayTimeZone", displayTimeZone);
+  await setSetting("uploadMaxBytes", uploadMaxBytes);
   await auditLog({
     userId: admin.id,
     action: AuditAction.SETTINGS_CHANGED,
@@ -50,7 +54,8 @@ export async function updateSettingsAction(formData: FormData) {
       siteName,
       displayTimeZone,
       trackAdminClicks,
-      preserveRedirectQuery
+      preserveRedirectQuery,
+      uploadMaxBytes
     }
   });
   revalidatePath("/", "layout");
@@ -58,6 +63,8 @@ export async function updateSettingsAction(formData: FormData) {
   revalidatePath("/admin/settings");
   revalidatePath("/admin/settings/theme");
   revalidatePath("/admin/settings/favicons/editor");
+  revalidatePath("/admin/tools");
+  revalidatePath("/admin/users");
   redirectWithToast(formData, "success", "Settings saved.", "/admin/settings");
 }
 

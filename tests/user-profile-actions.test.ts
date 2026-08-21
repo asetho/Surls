@@ -28,7 +28,8 @@ const prisma = vi.hoisted(() => ({
   user: {
     findFirst: vi.fn(),
     findUnique: vi.fn(),
-    update: vi.fn()
+    update: vi.fn(),
+    updateMany: vi.fn()
   }
 }));
 
@@ -77,6 +78,7 @@ describe("profile identity actions", () => {
     prisma.user.findFirst.mockResolvedValue(null);
     prisma.user.findUnique.mockResolvedValue({ id: "user_1" });
     prisma.user.update.mockResolvedValue({});
+    prisma.user.updateMany.mockResolvedValue({ count: 1 });
   });
 
   it("lets signed-in users update their own name and email", async () => {
@@ -188,6 +190,38 @@ describe("profile identity actions", () => {
         email: "user@example.com",
         name: "Test User"
       }
+    });
+  });
+
+  it("lets site admins set a custom per-user upload limit", async () => {
+    const { updateUserUploadLimitAction } = await import("@/app/admin/users/actions");
+    const formData = new FormData();
+    formData.set("id", "user_2");
+    formData.set("uploadLimitMode", "custom");
+    formData.set("uploadMaxMegabytes", "50");
+
+    await expect(updateUserUploadLimitAction(null, formData)).resolves.toEqual({
+      message: "Upload limit updated."
+    });
+    expect(prisma.user.updateMany).toHaveBeenCalledWith({
+      where: { id: "user_2" },
+      data: { uploadLimitUnlimited: false, uploadMaxBytes: 50n * 1024n * 1024n }
+    });
+    expect(nextCache.revalidatePath).toHaveBeenCalledWith("/admin/tools");
+  });
+
+  it("lets site admins remove the Surls upload limit for a user", async () => {
+    const { updateUserUploadLimitAction } = await import("@/app/admin/users/actions");
+    const formData = new FormData();
+    formData.set("id", "user_2");
+    formData.set("uploadLimitMode", "unlimited");
+
+    await expect(updateUserUploadLimitAction(null, formData)).resolves.toEqual({
+      message: "Upload limit updated."
+    });
+    expect(prisma.user.updateMany).toHaveBeenCalledWith({
+      where: { id: "user_2" },
+      data: { uploadLimitUnlimited: true, uploadMaxBytes: null }
     });
   });
 

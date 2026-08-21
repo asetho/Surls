@@ -9,6 +9,7 @@ import { isDefaultDashboardTheme } from "@/lib/dashboard-theme";
 import { COMMON_DISPLAY_TIME_ZONES } from "@/lib/dates";
 import { appBaseUrl } from "@/lib/env";
 import { getSettings } from "@/lib/settings";
+import { uploadBytesToMegabytes } from "@/lib/upload-limits";
 import { publicWebrootFile } from "@/lib/webroot";
 import {
   CustomPageStatusList,
@@ -147,6 +148,34 @@ export default async function SettingsPage() {
                 View supported IANA time zone names
               </a>
               .
+            </span>
+          </div>
+          <div className="form-field">
+            <label htmlFor="site-upload-limit-mode">Default file upload limit</label>
+            <div className="upload-limit-setting-row">
+              <select
+                id="site-upload-limit-mode"
+                name="siteUploadLimitMode"
+                defaultValue={settings.uploadMaxBytes === null ? "unlimited" : "limited"}
+              >
+                <option value="limited">Limit each file</option>
+                <option value="unlimited">No limit</option>
+              </select>
+              <label className="upload-limit-megabytes-field">
+                <span className="sr-only">Maximum upload size in megabytes</span>
+                <input
+                  name="siteUploadMaxMegabytes"
+                  type="number"
+                  min="1"
+                  max="1024"
+                  defaultValue={uploadBytesToMegabytes(settings.uploadMaxBytes) ?? 25}
+                />
+                <span>MB</span>
+              </label>
+            </div>
+            <span className="muted small">
+              Applies unless a user has a custom limit. No limit removes Surls’ application limit; your proxy or host may
+              still cap request sizes.
             </span>
           </div>
           <label>

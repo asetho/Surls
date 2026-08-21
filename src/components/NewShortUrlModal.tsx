@@ -3,6 +3,7 @@
 import { Plus, X } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { createLinkAction } from "@/app/admin/links/actions";
+import { AliasAvailabilityInput } from "./AliasAvailabilityInput";
 import { DestinationWarnings } from "./DestinationWarnings";
 import { TitleAutoFill } from "./TitleAutoFill";
 
@@ -76,7 +77,7 @@ export function NewShortUrlModal({ csrf }: { csrf: string }) {
               <DestinationWarnings value={destinationUrl} />
               <label>
                 Custom alias
-                <input name="code" placeholder="optional-alias" pattern="[A-Za-z0-9_-]{3,64}" />
+                <AliasAvailabilityInput />
               </label>
               <label>
                 Title

@@ -13,6 +13,7 @@ import { getCsrfToken } from "@/lib/csrf";
 import { appBaseUrl, env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
+import { effectiveUploadMaxBytes } from "@/lib/upload-limits";
 import { uploadMaxBytesLabel } from "@/lib/uploads";
 
 export const metadata: Metadata = {
@@ -73,7 +74,10 @@ export default async function ToolsPage() {
                       <p className="muted small">Upload a file to this instance and create a short URL for it.</p>
                     </div>
                   </div>
-                  <UploadShortenForm csrf={csrf} maxUploadLabel={uploadMaxBytesLabel()} />
+                  <UploadShortenForm
+                    csrf={csrf}
+                    maxUploadLabel={uploadMaxBytesLabel(effectiveUploadMaxBytes(admin, settings.uploadMaxBytes))}
+                  />
                 </section>
                 <section className="surface tools-card">
                   <h2>Bookmarklet</h2>
