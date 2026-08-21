@@ -6,8 +6,8 @@ options:
 settings:
   base:
     CODE_SIGN_STYLE: Automatic
-    CURRENT_PROJECT_VERSION: 1
-    MARKETING_VERSION: 1.0.0
+    CURRENT_PROJECT_VERSION: 16
+    MARKETING_VERSION: 1.0.1
     SWIFT_VERSION: 5.0
 targets:
   SurlsShare:
@@ -27,6 +27,7 @@ targets:
         CFBundleDisplayName: Surls Share
         LSApplicationCategoryType: public.app-category.utilities
         NSHumanReadableCopyright: Copyright © 2026
+        SurlsKeychainAccessGroup: $(AppIdentifierPrefix)cc.aarn.SurlsShare.shared
     dependencies:
       - target: SurlsShareExtension
         embed: true
@@ -46,6 +47,7 @@ targets:
       path: Configuration/SurlsShareExtension-Info.plist
       properties:
         CFBundleDisplayName: Share with Surls
+        SurlsKeychainAccessGroup: $(AppIdentifierPrefix)cc.aarn.SurlsShare.shared
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         NSExtension:

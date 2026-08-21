@@ -16,6 +16,7 @@ const uploads = vi.hoisted(() => ({
 }));
 
 const uploadAndShorten = vi.hoisted(() => ({
+  checkUploadShortCodeAvailability: vi.fn(),
   uploadAndShortenFile: vi.fn()
 }));
 
@@ -35,6 +36,45 @@ function uploadRequest(authorization = "Bearer surls_valid") {
     method: "POST"
   });
 }
+
+describe("HEAD /api/uploads", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    apiTokens.authenticateApiToken.mockResolvedValue({
+      name: "Mac Share",
+      tokenPrefix: "surls_abc123",
+      userId: "user_123"
+    });
+  });
+
+  it("validates a token with the upload scope without uploading a file", async () => {
+    const { HEAD } = await import("@/app/api/uploads/route");
+    const request = new NextRequest("http://localhost:3000/api/uploads", {
+      headers: { authorization: "Bearer surls_valid" },
+      method: "HEAD"
+    });
+
+    const response = await HEAD(request);
+
+    expect(response.status).toBe(204);
+    expect(apiTokens.authenticateApiToken).toHaveBeenCalledWith("Bearer surls_valid", "uploads:create");
+    expect(uploadAndShorten.uploadAndShortenFile).not.toHaveBeenCalled();
+  });
+
+  it("rejects a token without the upload scope", async () => {
+    apiTokens.authenticateApiToken.mockResolvedValue(null);
+    const { HEAD } = await import("@/app/api/uploads/route");
+    const request = new NextRequest("http://localhost:3000/api/uploads", {
+      headers: { authorization: "Bearer surls_links_only" },
+      method: "HEAD"
+    });
+
+    const response = await HEAD(request);
+
+    expect(response.status).toBe(401);
+    expect(uploadAndShorten.uploadAndShortenFile).not.toHaveBeenCalled();
+  });
+});
 
 describe("POST /api/uploads", () => {
   beforeEach(() => {
@@ -128,5 +168,46 @@ describe("POST /api/uploads", () => {
     expect(response.status).toBe(413);
     await expect(response.json()).resolves.toEqual({ error: "Upload request is too large." });
     expect(uploadAndShorten.uploadAndShortenFile).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /api/uploads", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    rateLimit.checkRateLimit.mockResolvedValue({ allowed: true });
+    apiTokens.authenticateApiToken.mockResolvedValue({
+      name: "Mac Share",
+      tokenPrefix: "surls_abc123",
+      userId: "user_123"
+    });
+    uploadAndShorten.checkUploadShortCodeAvailability.mockResolvedValue({ available: true, error: null });
+  });
+
+  it("checks a custom short keyword with an upload-scoped token", async () => {
+    const { GET } = await import("@/app/api/uploads/route");
+    const request = new NextRequest("http://localhost:3000/api/uploads?code=project-file", {
+      headers: { authorization: "Bearer surls_valid" },
+      method: "GET"
+    });
+
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ available: true, error: null });
+    expect(rateLimit.checkRateLimit).toHaveBeenCalledWith("api:upload-code:user_123", 120, 60_000);
+    expect(uploadAndShorten.checkUploadShortCodeAvailability).toHaveBeenCalledWith("project-file");
+  });
+
+  it("rejects blank keyword checks", async () => {
+    const { GET } = await import("@/app/api/uploads/route");
+    const request = new NextRequest("http://localhost:3000/api/uploads", {
+      headers: { authorization: "Bearer surls_valid" },
+      method: "GET"
+    });
+
+    const response = await GET(request);
+
+    expect(response.status).toBe(400);
+    expect(uploadAndShorten.checkUploadShortCodeAvailability).not.toHaveBeenCalled();
   });
 });
