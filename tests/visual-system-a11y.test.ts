@@ -53,6 +53,16 @@ describe("visual system accessibility guards", () => {
     expect(globals).toMatch(/\.upload-file-input:hover::file-selector-button\s*{[\s\S]*background:\s*var\(--color-deep-teal\);/);
   });
 
+  it("shows one-time API tokens in a modal with an accessible copy action", () => {
+    const toolsForms = readFileSync("src/components/ToolsForms.tsx", "utf8");
+
+    expect(toolsForms).toContain('className="modal-panel api-token-modal-panel"');
+    expect(toolsForms).toContain('aria-label="New API token"');
+    expect(toolsForms).toContain('dispatchAdminToast("success", "API token copied to clipboard.")');
+    expect(toolsForms).toContain('<span aria-live="polite">{copied ? "Copied" : "Copy"}</span>');
+    expect(toolsForms).toContain('The existing API token will stop working immediately.');
+  });
+
   it("keeps admin form and links-table alignment scoped", () => {
     const globals = readFileSync("src/app/globals.css", "utf8");
     const dataTables = readFileSync("src/app/admin-data.css", "utf8");

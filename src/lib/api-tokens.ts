@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { hashToken, randomToken } from "./crypto";
 import { env } from "./env";
@@ -6,6 +7,7 @@ export const API_TOKEN_SCOPE_LINKS_CREATE = "links:create";
 export const API_TOKEN_SCOPE_UPLOADS_CREATE = "uploads:create";
 
 const DEFAULT_API_TOKEN_SCOPES = [API_TOKEN_SCOPE_LINKS_CREATE, API_TOKEN_SCOPE_UPLOADS_CREATE];
+type ApiTokenClient = Pick<Prisma.TransactionClient, "apiToken">;
 
 function defaultApiTokenExpiresAt(now = new Date()) {
   return new Date(now.getTime() + env.API_TOKEN_DAYS * 24 * 60 * 60 * 1000);
@@ -31,12 +33,13 @@ export function createPlainApiToken() {
 export async function createApiToken(
   userId: string,
   name: string,
-  options: { expiresAt?: Date | null; scopes?: string[] } = {}
+  options: { expiresAt?: Date | null; scopes?: string[] } = {},
+  db: ApiTokenClient = prisma
 ) {
   const token = createPlainApiToken();
   const tokenPrefix = token.slice(0, 12);
   const scopes = normalizeScopes(options.scopes);
-  const row = await prisma.apiToken.create({
+  const row = await db.apiToken.create({
     data: {
       userId,
       name,
