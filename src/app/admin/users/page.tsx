@@ -25,6 +25,7 @@ export default async function UsersPage() {
   if (!admin) redirect(adminLoginPath("/admin/users"));
 
   const csrf = getCsrfToken();
+  const now = new Date();
   const [users, siteDefaultTimeZone, siteUploadMaxBytes] = await Promise.all([
     prisma.user.findMany({
       orderBy: { createdAt: "asc" },
@@ -32,7 +33,11 @@ export default async function UsersPage() {
         _count: {
           select: {
             passkeys: true,
-            sessions: true,
+            sessions: {
+              where: {
+                expiresAt: { gt: now }
+              }
+            },
             shortLinks: true
           }
         },
