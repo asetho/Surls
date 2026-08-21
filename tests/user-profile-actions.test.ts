@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const auth = vi.hoisted(() => ({
+  getCurrentSession: vi.fn(),
   requireAdmin: vi.fn(),
   requireSiteAdmin: vi.fn()
 }));
@@ -23,6 +24,9 @@ const prisma = vi.hoisted(() => ({
   $transaction: vi.fn(),
   backupCode: {
     create: vi.fn(),
+    deleteMany: vi.fn()
+  },
+  session: {
     deleteMany: vi.fn()
   },
   user: {
@@ -69,12 +73,14 @@ describe("profile identity actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     auth.requireAdmin.mockResolvedValue({ id: "user_1", role: "USER" });
+    auth.getCurrentSession.mockResolvedValue({ id: "session_current", userId: "user_1" });
     auth.requireSiteAdmin.mockResolvedValue({ id: "admin_1", role: "ADMIN" });
     backupCodes.generateBackupCodes.mockReturnValue([]);
     backupCodes.hashBackupCode.mockResolvedValue("hashed-backup-code");
     prisma.$transaction.mockResolvedValue([]);
     prisma.backupCode.create.mockResolvedValue({});
     prisma.backupCode.deleteMany.mockResolvedValue({ count: 0 });
+    prisma.session.deleteMany.mockResolvedValue({ count: 0 });
     prisma.user.findFirst.mockResolvedValue(null);
     prisma.user.findUnique.mockResolvedValue({ id: "user_1" });
     prisma.user.update.mockResolvedValue({});
@@ -251,5 +257,50 @@ describe("profile identity actions", () => {
       prisma.backupCode.create.mock.results[1]?.value
     ]);
     expect(nextCache.revalidatePath).toHaveBeenCalledWith("/admin/profile");
+  });
+
+  it("logs out every session except the current session", async () => {
+    const { logoutOtherSessionsAction } = await import("@/app/admin/profile/actions");
+    const formData = new FormData();
+    formData.set("csrf", "csrf-token");
+    prisma.session.deleteMany.mockResolvedValue({ count: 2 });
+
+    await logoutOtherSessionsAction(formData);
+
+    expect(prisma.session.deleteMany).toHaveBeenCalledWith({
+      where: {
+        userId: "user_1",
+        id: { not: "session_current" }
+      }
+    });
+    expect(nextCache.revalidatePath).toHaveBeenCalledWith("/admin/profile");
+  });
+
+  it("lets a user log out one of their other sessions", async () => {
+    const { revokeSessionAction } = await import("@/app/admin/profile/actions");
+    const formData = new FormData();
+    formData.set("csrf", "csrf-token");
+    formData.set("sessionId", "session_other");
+    prisma.session.deleteMany.mockResolvedValue({ count: 1 });
+
+    await revokeSessionAction(formData);
+
+    expect(prisma.session.deleteMany).toHaveBeenCalledWith({
+      where: {
+        id: "session_other",
+        userId: "user_1"
+      }
+    });
+  });
+
+  it("never revokes the current session through the single-session action", async () => {
+    const { revokeSessionAction } = await import("@/app/admin/profile/actions");
+    const formData = new FormData();
+    formData.set("csrf", "csrf-token");
+    formData.set("sessionId", "session_current");
+
+    await revokeSessionAction(formData);
+
+    expect(prisma.session.deleteMany).not.toHaveBeenCalled();
   });
 });

@@ -2946,6 +2946,96 @@ button.danger-outline:hover {
   padding: 0.8rem;
 }
 
+.profile-privacy-body {
+  padding: 0.8rem;
+}
+
+.profile-privacy-panel {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.profile-privacy-panel h3,
+.profile-privacy-panel p,
+.profile-session-only {
+  margin: 0;
+}
+
+.profile-privacy-panel h3 {
+  font-size: 1.2rem;
+  line-height: 1.12;
+}
+
+.profile-privacy-panel h3 + .muted {
+  margin-top: 0.4rem;
+}
+
+.profile-session-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}
+
+.profile-session-card {
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.75rem;
+}
+
+.profile-session-card > header {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.65rem;
+  justify-content: space-between;
+}
+
+.profile-session-card > header > div {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.profile-session-card dl {
+  display: grid;
+  gap: 0.48rem;
+  margin: 0;
+}
+
+.profile-session-card dl > div {
+  display: grid;
+  gap: 0.1rem;
+  grid-template-columns: minmax(5.3rem, auto) 1fr;
+}
+
+.profile-session-card dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.profile-session-card dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.profile-session-card > form {
+  align-self: end;
+}
+
+.profile-session-card > form > button {
+  width: auto;
+}
+
+.profile-privacy-panel > form > button {
+  justify-self: start;
+  width: auto;
+}
+
 .profile-security-panel {
   display: grid;
   gap: 0.62rem;

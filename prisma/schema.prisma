@@ -61,6 +61,8 @@ model Session {
   tokenHash   String   @unique
   ipHash      String?
   userAgent   String?
+  country     String?
+  region      String?
   createdAt   DateTime @default(now())
   lastSeenAt  DateTime @default(now())
   expiresAt   DateTime

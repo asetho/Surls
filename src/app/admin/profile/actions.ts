@@ -4,7 +4,7 @@ import { AuditAction, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auditLog } from "@/lib/audit";
-import { requireAdmin, requireSiteAdmin } from "@/lib/auth";
+import { getCurrentSession, requireAdmin, requireSiteAdmin } from "@/lib/auth";
 import { generateBackupCodes, hashBackupCode } from "@/lib/backup-codes";
 import { validateCsrf } from "@/lib/csrf";
 import { normalizeMobileMenuSide } from "@/lib/mobile-menu";
@@ -157,6 +157,55 @@ export async function removePasskeyAction(formData: FormData) {
   const deleted = await prisma.passkey.deleteMany({ where: { id, userId: admin.id } });
   if (deleted.count > 0) {
     await auditLog({ userId: admin.id, action: AuditAction.PASSKEY_REMOVED, entityType: "Passkey", entityId: id });
+  }
+  revalidatePath("/admin/profile");
+}
+
+export async function logoutOtherSessionsAction(formData: FormData) {
+  validateCsrf(formData);
+  const currentSession = await getCurrentSession();
+  if (!currentSession) throw new Error("Unauthorized");
+
+  const deleted = await prisma.session.deleteMany({
+    where: {
+      userId: currentSession.userId,
+      id: { not: currentSession.id }
+    }
+  });
+
+  if (deleted.count > 0) {
+    await auditLog({
+      userId: currentSession.userId,
+      action: AuditAction.LOGOUT,
+      entityType: "Session",
+      details: { count: deleted.count, scope: "other_sessions" }
+    });
+  }
+  revalidatePath("/admin/profile");
+}
+
+export async function revokeSessionAction(formData: FormData) {
+  validateCsrf(formData);
+  const currentSession = await getCurrentSession();
+  if (!currentSession) throw new Error("Unauthorized");
+  const sessionId = String(formData.get("sessionId") ?? "");
+  if (!sessionId || sessionId === currentSession.id) return;
+
+  const deleted = await prisma.session.deleteMany({
+    where: {
+      id: sessionId,
+      userId: currentSession.userId
+    }
+  });
+
+  if (deleted.count > 0) {
+    await auditLog({
+      userId: currentSession.userId,
+      action: AuditAction.LOGOUT,
+      entityType: "Session",
+      entityId: sessionId,
+      details: { scope: "selected_session" }
+    });
   }
   revalidatePath("/admin/profile");
 }

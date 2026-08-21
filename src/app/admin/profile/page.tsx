@@ -5,24 +5,34 @@ import { BackupCodesForm } from "@/components/BackupCodesForm";
 import { PasskeyManager } from "@/components/PasskeyManager";
 import { ProfileIdentityForm } from "@/components/ProfileIdentityForm";
 import { RememberedDetails } from "@/components/RememberedDetails";
+import { ConfirmButton } from "@/components/ConfirmButton";
 import { adminLoginPath } from "@/lib/admin-login-path";
 import { getCsrfToken } from "@/lib/csrf";
-import { isAdminUser, requireAdmin } from "@/lib/auth";
+import { getCurrentSession, isAdminUser } from "@/lib/auth";
 import { formatDateTime, resolveDisplayTimeZone } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
+import { sessionClientSummary, sessionLocationLabel } from "@/lib/session-display";
 import { getDisplayTimeZone, getSiteName } from "@/lib/settings";
 import { getTotpSecret, totpOtpAuthUrl } from "@/lib/totp";
-import { cancelTotpSetupAction, disableTotpAction, enableTotpAction, startTotpAction } from "./actions";
+import {
+  cancelTotpSetupAction,
+  disableTotpAction,
+  enableTotpAction,
+  logoutOtherSessionsAction,
+  revokeSessionAction,
+  startTotpAction
+} from "./actions";
 
 export const metadata: Metadata = {
   title: "Profile"
 };
 
 export default async function ProfilePage() {
-  const admin = await requireAdmin();
-  if (!admin) redirect(adminLoginPath("/admin/profile"));
+  const currentSession = await getCurrentSession();
+  if (!currentSession) redirect(adminLoginPath("/admin/profile"));
+  const admin = currentSession.user;
   const csrf = getCsrfToken();
-  const [credential, backupCount, latestBackupCode, passkeys, siteName, siteDefaultTimeZone] = await Promise.all([
+  const [credential, backupCount, latestBackupCode, passkeys, sessions, siteName, siteDefaultTimeZone] = await Promise.all([
     prisma.totpCredential.findUnique({ where: { userId: admin.id } }),
     prisma.backupCode.count({ where: { userId: admin.id, usedAt: null } }),
     prisma.backupCode.findFirst({
@@ -31,6 +41,19 @@ export default async function ProfilePage() {
       select: { createdAt: true }
     }),
     prisma.passkey.findMany({ where: { userId: admin.id }, orderBy: { createdAt: "desc" } }),
+    prisma.session.findMany({
+      where: { userId: admin.id, expiresAt: { gt: new Date() } },
+      orderBy: { lastSeenAt: "desc" },
+      select: {
+        id: true,
+        country: true,
+        region: true,
+        userAgent: true,
+        createdAt: true,
+        lastSeenAt: true,
+        expiresAt: true
+      }
+    }),
     getSiteName(),
     getDisplayTimeZone()
   ]);
@@ -47,13 +70,19 @@ export default async function ProfilePage() {
     createdAt: formatDateTime(passkey.createdAt, displayTimeZone),
     lastUsedAt: passkey.lastUsedAt ? formatDateTime(passkey.lastUsedAt, displayTimeZone) : null
   }));
+  const sessionItems = sessions.map((session) => ({
+    ...session,
+    ...sessionClientSummary(session.userAgent),
+    current: session.id === currentSession.id,
+    location: sessionLocationLabel(session.country, session.region)
+  }));
 
   return (
     <main className="admin-content">
       <div className="content-header content-header-topbar">
         <div>
           <h1>Profile</h1>
-          <p className="muted">Manage your name, email, TOTP 2FA, backup codes, and passkeys.</p>
+          <p className="muted">Manage your account, privacy, and sign-in security.</p>
         </div>
       </div>
 
@@ -145,6 +174,82 @@ export default async function ProfilePage() {
             such as Face ID, Touch ID, Windows Hello, a PIN, or a security key gesture.
           </p>
           <PasskeyManager csrf={csrf} passkeys={passkeyItems} />
+        </section>
+      </RememberedDetails>
+
+      <RememberedDetails
+        className="surface settings-collapse profile-security-collapse"
+        summaryClassName="settings-card-header"
+        bodyClassName="profile-privacy-body"
+        storageKey="surls-profile-privacy-open"
+        title="Privacy"
+      >
+        <section className="profile-privacy-panel">
+          <div>
+            <h3>Active sessions</h3>
+            <p className="muted">
+              Review where your account is signed in. Locations are coarse region and country values supplied by the
+              trusted proxy; Surls does not store session IP addresses.
+            </p>
+          </div>
+
+          <div className="profile-session-grid" role="list">
+            {sessionItems.map((session) => (
+              <article className="profile-session-card" key={session.id} role="listitem">
+                <header>
+                  <div>
+                    <strong>{session.client}</strong>
+                    <span className="muted">{session.device}</span>
+                  </div>
+                  {session.current ? <span className="status-pill status-pill-active">Current session</span> : null}
+                </header>
+                <dl>
+                  <div>
+                    <dt>Location</dt>
+                    <dd>{session.location}</dd>
+                  </div>
+                  <div>
+                    <dt>Last active</dt>
+                    <dd>{formatDateTime(session.lastSeenAt, displayTimeZone)}</dd>
+                  </div>
+                  <div>
+                    <dt>Signed in</dt>
+                    <dd>{formatDateTime(session.createdAt, displayTimeZone)}</dd>
+                  </div>
+                  <div>
+                    <dt>Expires</dt>
+                    <dd>{formatDateTime(session.expiresAt, displayTimeZone)}</dd>
+                  </div>
+                </dl>
+                {!session.current ? (
+                  <form action={revokeSessionAction}>
+                    <input type="hidden" name="csrf" value={csrf} />
+                    <input type="hidden" name="sessionId" value={session.id} />
+                    <ConfirmButton
+                      className="danger-outline"
+                      type="submit"
+                      message={`Log out the ${session.client} session on ${session.device}?`}
+                    >
+                      Log out this session
+                    </ConfirmButton>
+                  </form>
+                ) : null}
+              </article>
+            ))}
+          </div>
+
+          <form action={logoutOtherSessionsAction}>
+            <input type="hidden" name="csrf" value={csrf} />
+            <ConfirmButton
+              className="danger-outline"
+              disabled={sessionItems.length <= 1}
+              type="submit"
+              message="Log out every other active session? This device will stay signed in."
+            >
+              Log out all other sessions
+            </ConfirmButton>
+          </form>
+          {sessionItems.length <= 1 ? <p className="muted profile-session-only">This is your only active session.</p> : null}
         </section>
       </RememberedDetails>
     </main>
