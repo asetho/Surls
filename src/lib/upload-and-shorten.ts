@@ -26,13 +26,22 @@ async function trustedSafeResolution() {
   return true;
 }
 
+export async function checkUploadShortCodeAvailability(value: string) {
+  const code = value.trim();
+  const aliasError = validateAlias(code);
+  if (aliasError) return { available: false, error: aliasError };
+
+  const existing = await prisma.shortLink.findUnique({ where: { code }, select: { id: true } });
+  return existing
+    ? { available: false, error: "That short alias is already in use." }
+    : { available: true, error: null };
+}
+
 export async function uploadAndShortenFile(input: UploadAndShortenInput) {
   const code = input.code?.trim() || null;
   if (code) {
-    const aliasError = validateAlias(code);
-    if (aliasError) throw new Error(aliasError);
-    const existing = await prisma.shortLink.findUnique({ where: { code }, select: { id: true } });
-    if (existing) throw new Error("That short alias is already in use.");
+    const availability = await checkUploadShortCodeAvailability(code);
+    if (!availability.available) throw new Error(availability.error ?? "That short alias is unavailable.");
   }
 
   let stored: Awaited<ReturnType<typeof storeUploadedFile>> | null = null;

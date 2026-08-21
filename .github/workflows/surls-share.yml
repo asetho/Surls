@@ -1,0 +1,292 @@
+name: Surls Share
+
+on:
+  push:
+    branches:
+      - surls-share-app
+    tags:
+      - "surls-share-v*.*.*"
+    paths:
+      - ".github/workflows/surls-share.yml"
+      - "macos/SurlsShare/**"
+      - "src/app/api/uploads/route.ts"
+      - "src/lib/upload-and-shorten.ts"
+      - "tests/api-uploads-route.test.ts"
+  pull_request:
+    branches:
+      - surls-share-app
+    paths:
+      - ".github/workflows/surls-share.yml"
+      - "macos/SurlsShare/**"
+      - "src/app/api/uploads/route.ts"
+      - "src/lib/upload-and-shorten.ts"
+      - "tests/api-uploads-route.test.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: surls-share-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/surls-share-v') }}
+
+jobs:
+  build:
+    name: Build
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.0
+
+      - name: Show toolchain
+        run: xcodebuild -version
+
+      - name: Build Debug without signing
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project macos/SurlsShare/SurlsShare.xcodeproj \
+            -scheme SurlsShare \
+            -configuration Debug \
+            -destination "generic/platform=macOS" \
+            -derivedDataPath "${RUNNER_TEMP}/SurlsShare-Debug" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Build Release without signing
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project macos/SurlsShare/SurlsShare.xcodeproj \
+            -scheme SurlsShare \
+            -configuration Release \
+            -destination "generic/platform=macOS" \
+            -derivedDataPath "${RUNNER_TEMP}/SurlsShare-Release" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Verify release bundle metadata
+        run: |
+          set -euo pipefail
+          app_path="${RUNNER_TEMP}/SurlsShare-Release/Build/Products/Release/Surls Share.app"
+          test -d "${app_path}"
+          test -d "${app_path}/Contents/PlugIns/Share with Surls.appex"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "${app_path}/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "${app_path}/Contents/Info.plist"
+
+  release:
+    name: Sign, notarize, and publish
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/surls-share-v')
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 45
+    environment: surls-share-release
+    permissions:
+      contents: write
+    env:
+      APPLE_TEAM_ID: ${{ vars.SURLS_SHARE_APPLE_TEAM_ID }}
+      DEVELOPER_ID_P12_BASE64: ${{ secrets.SURLS_SHARE_DEVELOPER_ID_P12_BASE64 }}
+      DEVELOPER_ID_P12_PASSWORD: ${{ secrets.SURLS_SHARE_DEVELOPER_ID_P12_PASSWORD }}
+      SIGNING_KEYCHAIN_PASSWORD: ${{ secrets.SURLS_SHARE_KEYCHAIN_PASSWORD }}
+      APP_PROFILE_BASE64: ${{ secrets.SURLS_SHARE_APP_PROVISIONING_PROFILE_BASE64 }}
+      EXTENSION_PROFILE_BASE64: ${{ secrets.SURLS_SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
+      NOTARY_KEY_BASE64: ${{ secrets.SURLS_SHARE_NOTARY_KEY_BASE64 }}
+      NOTARY_KEY_ID: ${{ secrets.SURLS_SHARE_NOTARY_KEY_ID }}
+      NOTARY_ISSUER_ID: ${{ secrets.SURLS_SHARE_NOTARY_ISSUER_ID }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.0
+
+      - name: Validate release configuration
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin surls-share-app
+          git merge-base --is-ancestor "${GITHUB_SHA}" refs/remotes/origin/surls-share-app
+
+          required_names=(
+            APPLE_TEAM_ID
+            DEVELOPER_ID_P12_BASE64
+            DEVELOPER_ID_P12_PASSWORD
+            SIGNING_KEYCHAIN_PASSWORD
+            APP_PROFILE_BASE64
+            EXTENSION_PROFILE_BASE64
+            NOTARY_KEY_BASE64
+            NOTARY_KEY_ID
+            NOTARY_ISSUER_ID
+          )
+          missing_names=()
+          for required_name in "${required_names[@]}"; do
+            if [[ -z "${!required_name}" ]]; then
+              missing_names+=("${required_name}")
+            fi
+          done
+          if (( ${#missing_names[@]} > 0 )); then
+            echo "Missing Surls Share release configuration: ${missing_names[*]}" >&2
+            exit 1
+          fi
+
+          release_version="${GITHUB_REF_NAME#surls-share-v}"
+          build_settings="$(xcodebuild \
+            -project macos/SurlsShare/SurlsShare.xcodeproj \
+            -target SurlsShare \
+            -configuration Release \
+            -showBuildSettings)"
+          project_version="$(awk -F ' = ' '/^[[:space:]]*MARKETING_VERSION = / { print $2; exit }' <<< "${build_settings}")"
+          build_number="$(awk -F ' = ' '/^[[:space:]]*CURRENT_PROJECT_VERSION = / { print $2; exit }' <<< "${build_settings}")"
+          [[ "${release_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "${release_version}" == "${project_version}" ]]
+          [[ "${build_number}" =~ ^[1-9][0-9]*$ ]]
+          {
+            echo "SURLS_SHARE_VERSION=${release_version}"
+            echo "SURLS_SHARE_BUILD=${build_number}"
+            echo "SURLS_SHARE_DMG=Surls-Share-${release_version}-build${build_number}.dmg"
+          } >> "${GITHUB_ENV}"
+
+      - name: Install Developer ID certificate and provisioning profiles
+        run: |
+          set -euo pipefail
+          certificate_path="${RUNNER_TEMP}/surls-share-developer-id.p12"
+          keychain_path="${RUNNER_TEMP}/surls-share-signing.keychain-db"
+          app_profile_source="${RUNNER_TEMP}/surls-share-app.provisionprofile"
+          extension_profile_source="${RUNNER_TEMP}/surls-share-extension.provisionprofile"
+          profile_directory="${HOME}/Library/MobileDevice/Provisioning Profiles"
+
+          printf '%s' "${DEVELOPER_ID_P12_BASE64}" | base64 -D > "${certificate_path}"
+          printf '%s' "${APP_PROFILE_BASE64}" | base64 -D > "${app_profile_source}"
+          printf '%s' "${EXTENSION_PROFILE_BASE64}" | base64 -D > "${extension_profile_source}"
+
+          security create-keychain -p "${SIGNING_KEYCHAIN_PASSWORD}" "${keychain_path}"
+          security set-keychain-settings -lut 21600 "${keychain_path}"
+          security unlock-keychain -p "${SIGNING_KEYCHAIN_PASSWORD}" "${keychain_path}"
+          security import "${certificate_path}" \
+            -P "${DEVELOPER_ID_P12_PASSWORD}" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "${keychain_path}"
+          security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -s \
+            -k "${SIGNING_KEYCHAIN_PASSWORD}" \
+            "${keychain_path}"
+          security list-keychains -d user -s "${keychain_path}"
+
+          mkdir -p "${profile_directory}"
+          app_profile_plist="${RUNNER_TEMP}/surls-share-app-profile.plist"
+          extension_profile_plist="${RUNNER_TEMP}/surls-share-extension-profile.plist"
+          security cms -D -i "${app_profile_source}" > "${app_profile_plist}"
+          security cms -D -i "${extension_profile_source}" > "${extension_profile_plist}"
+          app_profile_uuid="$(/usr/libexec/PlistBuddy -c "Print :UUID" "${app_profile_plist}")"
+          extension_profile_uuid="$(/usr/libexec/PlistBuddy -c "Print :UUID" "${extension_profile_plist}")"
+          app_profile_path="${profile_directory}/${app_profile_uuid}.provisionprofile"
+          extension_profile_path="${profile_directory}/${extension_profile_uuid}.provisionprofile"
+          cp "${app_profile_source}" "${app_profile_path}"
+          cp "${extension_profile_source}" "${extension_profile_path}"
+          {
+            echo "SURLS_SHARE_KEYCHAIN_PATH=${keychain_path}"
+            echo "SURLS_SHARE_APP_PROFILE_PATH=${app_profile_path}"
+            echo "SURLS_SHARE_EXTENSION_PROFILE_PATH=${extension_profile_path}"
+          } >> "${GITHUB_ENV}"
+
+      - name: Archive Developer ID build
+        run: |
+          set -euo pipefail
+          archive_path="${RUNNER_TEMP}/SurlsShare.xcarchive"
+          xcodebuild \
+            -project macos/SurlsShare/SurlsShare.xcodeproj \
+            -scheme SurlsShare \
+            -configuration Release \
+            -destination "generic/platform=macOS" \
+            -archivePath "${archive_path}" \
+            DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" \
+            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGN_IDENTITY="Developer ID Application" \
+            archive
+
+          app_path="${archive_path}/Products/Applications/Surls Share.app"
+          test -d "${app_path}"
+          codesign --verify --deep --strict --verbose=2 "${app_path}"
+          codesign -dv --verbose=4 "${app_path}" 2>&1 | grep -F "Authority=Developer ID Application:"
+          codesign -dv --verbose=4 "${app_path}" 2>&1 | grep -F "runtime"
+          echo "SURLS_SHARE_APP_PATH=${app_path}" >> "${GITHUB_ENV}"
+
+      - name: Package DMG
+        run: |
+          set -euo pipefail
+          staging_path="${RUNNER_TEMP}/surls-share-dmg"
+          output_path="${RUNNER_TEMP}/${SURLS_SHARE_DMG}"
+          mkdir -p "${staging_path}"
+          ditto "${SURLS_SHARE_APP_PATH}" "${staging_path}/Surls Share.app"
+          ln -s /Applications "${staging_path}/Applications"
+          hdiutil create \
+            -volname "Surls Share" \
+            -srcfolder "${staging_path}" \
+            -ov \
+            -format UDZO \
+            "${output_path}"
+          hdiutil verify "${output_path}"
+          echo "SURLS_SHARE_DMG_PATH=${output_path}" >> "${GITHUB_ENV}"
+
+      - name: Notarize and staple DMG
+        run: |
+          set -euo pipefail
+          notary_key_path="${RUNNER_TEMP}/AuthKey_${NOTARY_KEY_ID}.p8"
+          printf '%s' "${NOTARY_KEY_BASE64}" | base64 -D > "${notary_key_path}"
+          xcrun notarytool submit "${SURLS_SHARE_DMG_PATH}" \
+            --key "${notary_key_path}" \
+            --key-id "${NOTARY_KEY_ID}" \
+            --issuer "${NOTARY_ISSUER_ID}" \
+            --wait \
+            --timeout 30m
+          xcrun stapler staple "${SURLS_SHARE_DMG_PATH}"
+          xcrun stapler validate "${SURLS_SHARE_DMG_PATH}"
+          spctl --assess --type open --context context:primary-signature --verbose=2 "${SURLS_SHARE_DMG_PATH}"
+
+      - name: Create checksum
+        run: |
+          set -euo pipefail
+          cd "${RUNNER_TEMP}"
+          shasum -a 256 "${SURLS_SHARE_DMG}" > "${SURLS_SHARE_DMG}.sha256"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: Surls-Share-${{ env.SURLS_SHARE_VERSION }}-build${{ env.SURLS_SHARE_BUILD }}
+          path: |
+            ${{ env.SURLS_SHARE_DMG_PATH }}
+            ${{ runner.temp }}/${{ env.SURLS_SHARE_DMG }}.sha256
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        run: |
+          set -euo pipefail
+          checksum_path="${RUNNER_TEMP}/${SURLS_SHARE_DMG}.sha256"
+          release_title="Surls Share v${SURLS_SHARE_VERSION} (${SURLS_SHARE_BUILD})"
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" \
+              "${SURLS_SHARE_DMG_PATH}" \
+              "${checksum_path}" \
+              --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" \
+              "${SURLS_SHARE_DMG_PATH}" \
+              "${checksum_path}" \
+              --target "${GITHUB_SHA}" \
+              --title "${release_title}" \
+              --generate-notes
+          fi
+
+      - name: Remove signing materials
+        if: always()
+        run: |
+          if [[ -n "${SURLS_SHARE_KEYCHAIN_PATH:-}" ]]; then
+            security delete-keychain "${SURLS_SHARE_KEYCHAIN_PATH}" || true
+          fi
+          if [[ -n "${SURLS_SHARE_APP_PROFILE_PATH:-}" ]]; then
+            rm -f "${SURLS_SHARE_APP_PROFILE_PATH}"
+          fi
+          if [[ -n "${SURLS_SHARE_EXTENSION_PROFILE_PATH:-}" ]]; then
+            rm -f "${SURLS_SHARE_EXTENSION_PROFILE_PATH}"
+          fi
