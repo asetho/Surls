@@ -3,7 +3,7 @@ name: Surls Share
 on:
   push:
     branches:
-      - surls-share-app
+      - main
     tags:
       - "surls-share-v*.*.*"
     paths:
@@ -14,7 +14,7 @@ on:
       - "tests/api-uploads-route.test.ts"
   pull_request:
     branches:
-      - surls-share-app
+      - main
     paths:
       - ".github/workflows/surls-share.yml"
       - "macos/SurlsShare/**"
@@ -102,8 +102,8 @@ jobs:
       - name: Validate release configuration
         run: |
           set -euo pipefail
-          git fetch --no-tags origin surls-share-app
-          git merge-base --is-ancestor "${GITHUB_SHA}" refs/remotes/origin/surls-share-app
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "${GITHUB_SHA}" refs/remotes/origin/main
 
           required_names=(
             APPLE_TEAM_ID
