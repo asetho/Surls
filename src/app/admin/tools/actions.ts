@@ -76,6 +76,81 @@ export async function revokeTokenAction(formData: FormData) {
   revalidatePath("/admin/tools");
 }
 
+const TOKEN_ROLL_CONFLICT = "This API token changed before it could be rolled. Refresh and try again.";
+
+export type RollTokenState = { token?: string; tokenName?: string; error?: string };
+
+export async function rollTokenAction(_state: RollTokenState | null, formData: FormData): Promise<RollTokenState> {
+  validateCsrf(formData);
+  const admin = await requireAdmin();
+  if (!admin) return { error: "Unauthorized" };
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Choose an API token to roll." };
+  const now = new Date();
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const current = await tx.apiToken.findFirst({
+        where: { id, userId: admin.id },
+        select: { createdAt: true, expiresAt: true, id: true, name: true, revokedAt: true, scopes: true }
+      });
+      if (!current) return null;
+      if (current.revokedAt) throw new Error(TOKEN_ROLL_CONFLICT);
+
+      const lifetimeMs = current.expiresAt ? current.expiresAt.getTime() - current.createdAt.getTime() : null;
+      const expiresAt = lifetimeMs === null
+        ? null
+        : lifetimeMs > 0
+          ? new Date(now.getTime() + lifetimeMs)
+          : undefined;
+      const { row, token } = await createApiToken(
+        admin.id,
+        current.name,
+        { expiresAt, scopes: current.scopes.split(",") },
+        tx
+      );
+      const revoked = await tx.apiToken.updateMany({
+        where: { id: current.id, userId: admin.id, revokedAt: null },
+        data: { revokedAt: now }
+      });
+      if (revoked.count !== 1) throw new Error(TOKEN_ROLL_CONFLICT);
+
+      await tx.auditLog.create({
+        data: {
+          userId: admin.id,
+          action: AuditAction.API_TOKEN_REVOKED,
+          entityType: "ApiToken",
+          entityId: current.id,
+          details: { replacementTokenId: row.id, rolled: true }
+        }
+      });
+      await tx.auditLog.create({
+        data: {
+          userId: admin.id,
+          action: AuditAction.API_TOKEN_CREATED,
+          entityType: "ApiToken",
+          entityId: row.id,
+          details: {
+            expiresAt: row.expiresAt?.toISOString(),
+            name: current.name,
+            replacesTokenId: current.id,
+            rolled: true,
+            scopes: row.scopes,
+            tokenPrefix: row.tokenPrefix
+          }
+        }
+      });
+
+      return { token, tokenName: current.name };
+    });
+
+    return result ?? { error: "API token not found." };
+  } catch (error) {
+    if (error instanceof Error && error.message === TOKEN_ROLL_CONFLICT) return { error: error.message };
+    throw error;
+  }
+}
+
 export async function deleteTokenAction(formData: FormData) {
   validateCsrf(formData);
   const admin = await requireAdmin();

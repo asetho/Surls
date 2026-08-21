@@ -1,9 +1,11 @@
 "use client";
 
-import { Upload } from "lucide-react";
-import { useActionState, useEffect, useMemo, useState } from "react";
-import { createTokenAction, checkDestinationAction, importCsvAction, uploadAndShortenAction } from "@/app/admin/tools/actions";
+import { Check, Copy, RefreshCw, Upload, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
+import { createTokenAction, checkDestinationAction, importCsvAction, rollTokenAction, uploadAndShortenAction } from "@/app/admin/tools/actions";
 import { dispatchAdminToast } from "@/lib/admin-toast-event";
+import { ConfirmButton } from "./ConfirmButton";
 
 export function UploadShortenForm({ csrf, maxUploadLabel }: { csrf: string; maxUploadLabel: string }) {
   const [state, action, pending] = useActionState(uploadAndShortenAction, null);
@@ -80,6 +82,7 @@ export function UploadShortenForm({ csrf, maxUploadLabel }: { csrf: string; maxU
 
 export function ApiTokenForm({ csrf, siteName }: { csrf: string; siteName: string }) {
   const [state, action, pending] = useActionState(createTokenAction, null);
+  const [dismissedToken, setDismissedToken] = useState<string | null>(null);
   return (
     <div className="form-stack">
       <form className="form-stack" action={action}>
@@ -101,14 +104,191 @@ export function ApiTokenForm({ csrf, siteName }: { csrf: string; siteName: strin
         </label>
         <button type="submit" disabled={pending}>Generate API token</button>
       </form>
-      {state?.token ? (
-        <div className="success">
-          <strong>Copy this token now. It will not be shown again.</strong>
-          <code className="code-block">{state.token}</code>
-        </div>
-      ) : null}
+      <ApiTokenSecretModal
+        description="Your new API token is ready. Store it securely before closing this window."
+        onDismiss={() => setDismissedToken(state?.token ?? null)}
+        title="New API token"
+        token={state?.token === dismissedToken ? null : state?.token}
+      />
       {state?.error ? <div className="alert">{state.error}</div> : null}
     </div>
+  );
+}
+
+async function copyToClipboard(value: string) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(value);
+      return;
+    } catch {
+      // Fall through when the browser denies clipboard access.
+    }
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand("copy");
+  textarea.remove();
+  if (!copied) throw new Error("Copy command failed.");
+}
+
+function ApiTokenSecretModal({
+  description,
+  onDismiss,
+  title,
+  token
+}: {
+  description: string;
+  onDismiss: () => void;
+  title: string;
+  token?: string | null;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const resetTimerRef = useRef<number | null>(null);
+  const titleId = useId();
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (token && dialog && !dialog.open) {
+      if (typeof dialog.showModal === "function") {
+        dialog.showModal();
+      } else {
+        dialog.setAttribute("open", "");
+      }
+    }
+  }, [token]);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current !== null) window.clearTimeout(resetTimerRef.current);
+    };
+  }, []);
+
+  function closeDialog() {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (typeof dialog.close === "function") {
+      dialog.close();
+    } else {
+      dialog.removeAttribute("open");
+      setCopied(false);
+      onDismiss();
+    }
+  }
+
+  async function copyToken() {
+    if (!token) return;
+    try {
+      await copyToClipboard(token);
+      setCopied(true);
+      if (resetTimerRef.current !== null) window.clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = window.setTimeout(() => setCopied(false), 1600);
+      dispatchAdminToast("success", "API token copied to clipboard.");
+    } catch {
+      dispatchAdminToast("error", "Could not copy the API token.");
+    }
+  }
+
+  return (
+    <dialog
+      aria-labelledby={titleId}
+      className="modal-dialog"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) closeDialog();
+      }}
+      onClose={() => {
+        setCopied(false);
+        onDismiss();
+      }}
+      ref={dialogRef}
+    >
+      <div className="modal-panel api-token-modal-panel">
+        <div className="modal-header">
+          <div>
+            <h2 id={titleId}>{title}</h2>
+            <p className="muted small">{description}</p>
+          </div>
+          <button type="button" className="icon-button secondary" onClick={closeDialog} aria-label="Close API token dialog">
+            <X size={16} aria-hidden />
+          </button>
+        </div>
+        <strong>Copy this token now. It will not be shown again.</strong>
+        <div className="bookmarklet-copy-field">
+          <input
+            aria-label="New API token"
+            autoComplete="off"
+            onFocus={(event) => event.currentTarget.select()}
+            readOnly
+            spellCheck={false}
+            value={token ?? ""}
+          />
+          <button type="button" className="secondary icon-button" onClick={copyToken}>
+            {copied ? <Check size={16} aria-hidden /> : <Copy size={16} aria-hidden />}
+            <span aria-live="polite">{copied ? "Copied" : "Copy"}</span>
+          </button>
+        </div>
+        <div className="row-actions">
+          <button type="button" onClick={closeDialog}>Done</button>
+        </div>
+      </div>
+    </dialog>
+  );
+}
+
+export function ApiTokenRollButton({
+  canRoll,
+  csrf,
+  id,
+  name
+}: {
+  canRoll: boolean;
+  csrf: string;
+  id: string;
+  name: string;
+}) {
+  const [state, action, pending] = useActionState(rollTokenAction, null);
+  const [dismissedToken, setDismissedToken] = useState<string | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (state?.error) dispatchAdminToast("error", state.error);
+  }, [state]);
+
+  function dismissToken() {
+    setDismissedToken(state?.token ?? null);
+    router.refresh();
+  }
+
+  return (
+    <>
+      {canRoll ? (
+        <form action={action}>
+          <input type="hidden" name="csrf" value={csrf} />
+          <input type="hidden" name="id" value={id} />
+          <ConfirmButton
+            className="secondary icon-button"
+            disabled={pending}
+            message={`Roll ${name}? The existing API token will stop working immediately.`}
+            type="submit"
+          >
+            <RefreshCw size={16} aria-hidden />
+            {pending ? "Rolling..." : "Roll"}
+          </ConfirmButton>
+        </form>
+      ) : null}
+      <ApiTokenSecretModal
+        description={`${state?.tokenName ?? name} was rolled successfully. The previous token is now revoked.`}
+        onDismiss={dismissToken}
+        title="Replacement API token"
+        token={state?.token === dismissedToken ? null : state?.token}
+      />
+    </>
   );
 }
 

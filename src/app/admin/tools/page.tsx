@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { deleteTokenAction, revokeTokenAction } from "./actions";
 import { BookmarkletLink } from "@/components/BookmarkletLink";
-import { ApiTokenForm, ImportCsvForm, LinkCheckerForm, UploadShortenForm, UtmBuilder } from "@/components/ToolsForms";
+import { ApiTokenForm, ApiTokenRollButton, ImportCsvForm, LinkCheckerForm, UploadShortenForm, UtmBuilder } from "@/components/ToolsForms";
 import { ToolsTabs } from "@/components/ToolsTabs";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { APP_BUILD_LABEL, APP_VERSION } from "@/lib/app-version";
@@ -113,6 +113,12 @@ export default async function ToolsPage() {
                           <td data-label="Status">{tokenStatus(token)}</td>
                           <td className="data-table-actions" data-label="Actions">
                             <div className="row-actions small">
+                              <ApiTokenRollButton
+                                canRoll={!token.revokedAt}
+                                csrf={csrf}
+                                id={token.id}
+                                name={token.name}
+                              />
                               {!token.revokedAt ? (
                                 <form action={revokeTokenAction}>
                                   <input type="hidden" name="csrf" value={csrf} />

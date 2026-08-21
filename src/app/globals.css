@@ -2656,6 +2656,12 @@ button.danger-outline:hover {
   padding: 0.85rem;
 }
 
+.api-token-modal-panel {
+  margin: 0 auto;
+  max-width: 42rem;
+  width: 100%;
+}
+
 .destination-warnings {
   grid-column: 1 / -1;
 }

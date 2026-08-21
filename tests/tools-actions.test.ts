@@ -24,7 +24,11 @@ const prisma = vi.hoisted(() => ({
   $transaction: vi.fn(),
   apiToken: {
     deleteMany: vi.fn(),
+    findFirst: vi.fn(),
     updateMany: vi.fn()
+  },
+  auditLog: {
+    create: vi.fn()
   },
   shortLink: {
     findUnique: vi.fn(),
@@ -109,7 +113,15 @@ describe("tools actions hardening", () => {
     prisma.shortLink.findUnique.mockResolvedValue(null);
     prisma.apiToken.updateMany.mockResolvedValue({ count: 1 });
     prisma.apiToken.deleteMany.mockResolvedValue({ count: 1 });
-    prisma.$transaction.mockImplementation(async (callback) => callback({ shortLink: {} }));
+    prisma.apiToken.findFirst.mockResolvedValue({
+      createdAt: new Date("2026-05-12T12:00:00.000Z"),
+      expiresAt: new Date("2026-06-11T12:00:00.000Z"),
+      id: "token_123",
+      name: "Automation token",
+      revokedAt: null,
+      scopes: "links:create,uploads:create"
+    });
+    prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
     links.createShortLink.mockResolvedValue({ id: "link_123" });
     urlSafety.assertNoPrivateResolution.mockResolvedValue(true);
     uploads.storeUploadedFile.mockResolvedValue({
@@ -193,6 +205,73 @@ describe("tools actions hardening", () => {
       data: { revokedAt: expect.any(Date) }
     });
     expect(audit.auditLog).not.toHaveBeenCalled();
+  });
+
+  it("atomically rolls an owned API token and preserves its lifetime and scopes", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-20T12:00:00.000Z"));
+    apiTokens.createApiToken.mockResolvedValueOnce({
+      row: {
+        expiresAt: new Date("2026-07-20T12:00:00.000Z"),
+        id: "token_456",
+        scopes: "links:create,uploads:create",
+        tokenPrefix: "surls_def456"
+      },
+      token: "surls_replacement"
+    });
+    const { rollTokenAction } = await import("@/app/admin/tools/actions");
+    const formData = new FormData();
+    formData.set("id", "token_123");
+
+    await expect(rollTokenAction(null, formData)).resolves.toEqual({
+      token: "surls_replacement",
+      tokenName: "Automation token"
+    });
+
+    expect(apiTokens.createApiToken).toHaveBeenCalledWith(
+      "user_123",
+      "Automation token",
+      {
+        expiresAt: new Date("2026-07-20T12:00:00.000Z"),
+        scopes: ["links:create", "uploads:create"]
+      },
+      prisma
+    );
+    expect(prisma.apiToken.updateMany).toHaveBeenCalledWith({
+      where: { id: "token_123", userId: "user_123", revokedAt: null },
+      data: { revokedAt: new Date("2026-06-20T12:00:00.000Z") }
+    });
+    expect(prisma.auditLog.create).toHaveBeenCalledTimes(2);
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: "API_TOKEN_REVOKED",
+        entityId: "token_123",
+        details: { replacementTokenId: "token_456", rolled: true }
+      })
+    });
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: "API_TOKEN_CREATED",
+        entityId: "token_456",
+        details: expect.objectContaining({ replacesTokenId: "token_123", rolled: true })
+      })
+    });
+  });
+
+  it("does not roll an API token owned by another user", async () => {
+    const { rollTokenAction } = await import("@/app/admin/tools/actions");
+    const formData = new FormData();
+    formData.set("id", "victim_token");
+    prisma.apiToken.findFirst.mockResolvedValue(null);
+
+    await expect(rollTokenAction(null, formData)).resolves.toEqual({ error: "API token not found." });
+
+    expect(prisma.apiToken.findFirst).toHaveBeenCalledWith({
+      where: { id: "victim_token", userId: "user_123" },
+      select: { createdAt: true, expiresAt: true, id: true, name: true, revokedAt: true, scopes: true }
+    });
+    expect(apiTokens.createApiToken).not.toHaveBeenCalled();
+    expect(prisma.apiToken.updateMany).not.toHaveBeenCalled();
   });
 
   it("deletes API tokens from the tools page", async () => {
