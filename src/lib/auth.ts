@@ -5,7 +5,7 @@ import { UserRole } from "@prisma/client";
 import { prisma } from "./prisma";
 import { hashToken, randomToken } from "./crypto";
 import { env, isProduction } from "./env";
-import { requestIpHash } from "./request";
+import { requestCountry, requestIpHash, requestRegion } from "./request";
 import { adminLoginPath } from "./admin-login-path";
 import { safeRedirectPath } from "./redirect-path";
 
@@ -22,6 +22,8 @@ export async function createSession(userId: string, request: NextRequest) {
       tokenHash: hashToken(token),
       ipHash: requestIpHash(request),
       userAgent: request.headers.get("user-agent"),
+      country: requestCountry(request),
+      region: requestRegion(request),
       expiresAt
     }
   });
