@@ -2,8 +2,23 @@ import Foundation
 
 @MainActor
 final class SiteStore: ObservableObject {
-    @Published private(set) var profiles: [SiteProfile] = SharedSiteStore.load()
+    @Published private(set) var profiles: [SiteProfile]
     @Published var errorMessage: String?
+
+    init() {
+        do {
+            profiles = try SharedSiteStore.load()
+            for profile in profiles {
+                _ = try SiteTokenKeychain.load(for: profile.id)
+            }
+            if !profiles.isEmpty {
+                try SiteTokenKeychain.deleteOrphans(keeping: Set(profiles.map(\.id)))
+            }
+        } catch {
+            profiles = []
+            errorMessage = error.localizedDescription
+        }
+    }
 
     func save(profile: SiteProfile, token: String?) {
         do {
@@ -20,12 +35,26 @@ final class SiteStore: ObservableObject {
                     return value
                 }
             }
-            if let token, !token.isEmpty {
-                try SiteTokenKeychain.save(token, for: profile.id)
-            } else if try SiteTokenKeychain.load(for: profile.id) == nil {
+            let previousToken = try SiteTokenKeychain.load(for: profile.id)
+            let replacementToken = token.flatMap { $0.isEmpty ? nil : $0 }
+            if replacementToken == nil && previousToken == nil {
                 throw ValidationError(message: "Enter an API token for this site.")
             }
-            try SharedSiteStore.save(updated)
+            if let replacementToken {
+                try SiteTokenKeychain.save(replacementToken, for: profile.id)
+            }
+            do {
+                try SharedSiteStore.save(updated)
+            } catch {
+                if replacementToken != nil {
+                    if let previousToken {
+                        try SiteTokenKeychain.save(previousToken, for: profile.id)
+                    } else {
+                        try SiteTokenKeychain.delete(for: profile.id)
+                    }
+                }
+                throw error
+            }
             profiles = updated
         } catch {
             errorMessage = error.localizedDescription

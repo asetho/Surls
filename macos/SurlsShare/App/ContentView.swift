@@ -1,10 +1,10 @@
+import Foundation
 import SwiftUI
 
 struct ContentView: View {
     @ObservedObject var store: SiteStore
     @State private var selection: UUID?
-    @State private var editingProfile: SiteProfile?
-    @State private var showingEditor = false
+    @State private var editorPresentation: SiteEditorPresentation?
 
     private var selectedProfile: SiteProfile? {
         store.profiles.first { $0.id == selection }
@@ -42,6 +42,11 @@ struct ContentView: View {
                                 Text("Default").font(.caption).foregroundStyle(.secondary)
                             }
                         }
+                        .contentShape(Rectangle())
+                        .onTapGesture(count: 2) {
+                            selection = profile.id
+                            editorPresentation = SiteEditorPresentation(profile: profile)
+                        }
                         .tag(profile.id)
                     }
                     .frame(minHeight: 210)
@@ -50,12 +55,12 @@ struct ContentView: View {
 
             HStack {
                 Button("Add Site", systemImage: "plus") {
-                    editingProfile = nil
-                    showingEditor = true
+                    editorPresentation = SiteEditorPresentation(profile: nil)
                 }
                 Button("Edit", systemImage: "pencil") {
-                    editingProfile = selectedProfile
-                    showingEditor = selectedProfile != nil
+                    if let selectedProfile {
+                        editorPresentation = SiteEditorPresentation(profile: selectedProfile)
+                    }
                 }
                 .disabled(selectedProfile == nil)
                 Button("Remove", systemImage: "trash", role: .destructive) {
@@ -72,10 +77,15 @@ struct ContentView: View {
             Text("After installing, enable Share with Surls in System Settings → General → Login Items & Extensions → Sharing.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+            Text("© 2026 asetho™")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(24)
-        .sheet(isPresented: $showingEditor) {
-            SiteEditor(profile: editingProfile) { profile, token in
+        .sheet(item: $editorPresentation) { presentation in
+            SiteEditor(profile: presentation.profile) { profile, token in
                 store.save(profile: profile, token: token)
                 selection = profile.id
             }
@@ -91,6 +101,11 @@ struct ContentView: View {
     }
 }
 
+private struct SiteEditorPresentation: Identifiable {
+    let id = UUID()
+    let profile: SiteProfile?
+}
+
 private struct SiteEditor: View {
     @Environment(\.dismiss) private var dismiss
     let original: SiteProfile?
@@ -100,6 +115,10 @@ private struct SiteEditor: View {
     @State private var baseURL: String
     @State private var token = ""
     @State private var validationMessage: String?
+    @State private var isTesting = false
+    @State private var testMessage: String?
+    @State private var testSucceeded = false
+    @State private var testTask: Task<Void, Never>?
 
     init(profile: SiteProfile?, onSave: @escaping (SiteProfile, String?) -> Void) {
         original = profile
@@ -113,11 +132,14 @@ private struct SiteEditor: View {
             Text(original == nil ? "Add Surls Site" : "Edit Surls Site")
                 .font(.title2.bold())
             Form {
-                TextField("Name", text: $name, prompt: Text("asetho.link"))
-                TextField("Base URL", text: $baseURL, prompt: Text("https://asetho.link"))
+                TextField("Name", text: $name, prompt: Text("example.com"))
+                    .onChange(of: name) { _, _ in clearFeedback() }
+                TextField("Base URL", text: $baseURL, prompt: Text("https://example.com"))
                     .textContentType(.URL)
+                    .onChange(of: baseURL) { _, _ in clearFeedback() }
                 SecureField(original == nil ? "API token" : "New API token (optional)", text: $token)
                     .textContentType(.password)
+                    .onChange(of: token) { _, _ in clearFeedback() }
             }
             if let validationMessage {
                 Text(validationMessage).foregroundStyle(.red).font(.caption)
@@ -125,6 +147,27 @@ private struct SiteEditor: View {
             Text("The token is stored in your Mac keychain and shared only with the Surls extension.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            HStack(spacing: 10) {
+                Button {
+                    testConnection()
+                } label: {
+                    HStack(spacing: 6) {
+                        if isTesting {
+                            ProgressView().controlSize(.small)
+                        }
+                        Text(isTesting ? "Testing…" : "Test Connection")
+                    }
+                }
+                .disabled(isTesting)
+                if let testMessage {
+                    Label(
+                        testMessage,
+                        systemImage: testSucceeded ? "checkmark.circle.fill" : "exclamationmark.triangle.fill"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(testSucceeded ? .green : .red)
+                }
+            }
             HStack {
                 Spacer()
                 Button("Cancel") { dismiss() }
@@ -135,6 +178,99 @@ private struct SiteEditor: View {
         }
         .padding(24)
         .frame(width: 480)
+        .onDisappear { testTask?.cancel() }
+    }
+
+    private func testConnection() {
+        testTask?.cancel()
+        testMessage = nil
+        let enteredToken = token.trimmingCharacters(in: .whitespacesAndNewlines)
+        let testToken: String
+        do {
+            if !enteredToken.isEmpty {
+                testToken = enteredToken
+            } else if let original,
+                      let savedToken = try SiteTokenKeychain.load(for: original.id),
+                      !savedToken.isEmpty {
+                testToken = savedToken
+            } else {
+                showTestFailure("Enter an API token first.")
+                return
+            }
+        } catch {
+            showTestFailure(error.localizedDescription)
+            return
+        }
+
+        guard let cleanURL = SiteProfile.normalizedBaseURL(baseURL),
+              let uploadURL = URL(string: cleanURL)?.appending(path: "api/uploads") else {
+            showTestFailure("Enter a valid Surls base URL first.")
+            return
+        }
+
+        var request = URLRequest(url: uploadURL)
+        request.httpMethod = "HEAD"
+        request.timeoutInterval = 10
+        request.setValue("Bearer \(testToken)", forHTTPHeaderField: "Authorization")
+        isTesting = true
+        testTask = Task {
+            do {
+                let (_, response) = try await URLSession.shared.data(for: request)
+                guard !Task.isCancelled else { return }
+                var status = (response as? HTTPURLResponse)?.statusCode ?? 0
+                if status == 404 || status == 405 {
+                    var compatibilityRequest = URLRequest(url: uploadURL)
+                    let boundary = "SurlsConnectionTest-\(UUID().uuidString)"
+                    compatibilityRequest.httpMethod = "POST"
+                    compatibilityRequest.timeoutInterval = 10
+                    compatibilityRequest.setValue("Bearer \(testToken)", forHTTPHeaderField: "Authorization")
+                    compatibilityRequest.setValue(
+                        "multipart/form-data; boundary=\(boundary)",
+                        forHTTPHeaderField: "Content-Type"
+                    )
+                    compatibilityRequest.httpBody = Data("--\(boundary)--\r\n".utf8)
+                    let (_, compatibilityResponse) = try await URLSession.shared.data(for: compatibilityRequest)
+                    guard !Task.isCancelled else { return }
+                    let compatibilityStatus = (compatibilityResponse as? HTTPURLResponse)?.statusCode ?? 0
+                    if compatibilityStatus == 400 {
+                        status = 204
+                    } else {
+                        status = compatibilityStatus
+                    }
+                }
+                isTesting = false
+                testSucceeded = status == 204
+                switch status {
+                case 204:
+                    testMessage = "Connection successful"
+                case 401:
+                    testMessage = "Token is invalid or missing uploads:create permission."
+                case 404, 405:
+                    testMessage = "This Surls site needs the latest server update."
+                default:
+                    testMessage = "Surls returned HTTP \(status)."
+                }
+            } catch {
+                guard !Task.isCancelled else { return }
+                isTesting = false
+                testSucceeded = false
+                testMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func showTestFailure(_ message: String) {
+        isTesting = false
+        testSucceeded = false
+        testMessage = message
+    }
+
+    private func clearFeedback() {
+        testTask?.cancel()
+        isTesting = false
+        validationMessage = nil
+        testMessage = nil
+        testSucceeded = false
     }
 
     private func save() {

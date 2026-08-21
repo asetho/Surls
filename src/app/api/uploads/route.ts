@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { API_TOKEN_SCOPE_UPLOADS_CREATE, authenticateApiToken } from "@/lib/api-tokens";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { normalizeUploadFilenameMode, uploadMaxBytes } from "@/lib/uploads";
-import { uploadAndShortenFile } from "@/lib/upload-and-shorten";
+import { checkUploadShortCodeAvailability, uploadAndShortenFile } from "@/lib/upload-and-shorten";
 
 export const UPLOAD_MULTIPART_OVERHEAD_BYTES = 64 * 1024;
 
@@ -41,6 +41,34 @@ async function readUploadFormData(request: NextRequest) {
 
 function uploadedFormFile(value: FormDataEntryValue | null) {
   return typeof File !== "undefined" && value instanceof File ? value : null;
+}
+
+export async function HEAD(request: NextRequest) {
+  const apiToken = await authenticateApiToken(
+    request.headers.get("authorization"),
+    API_TOKEN_SCOPE_UPLOADS_CREATE
+  );
+  return new NextResponse(null, { status: apiToken ? 204 : 401 });
+}
+
+export async function GET(request: NextRequest) {
+  const apiToken = await authenticateApiToken(
+    request.headers.get("authorization"),
+    API_TOKEN_SCOPE_UPLOADS_CREATE
+  );
+  if (!apiToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const rate = await checkRateLimit(`api:upload-code:${apiToken.userId}`, 120, 60 * 1000);
+  if (!rate.allowed) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+
+  const code = request.nextUrl.searchParams.get("code")?.trim() ?? "";
+  if (!code) return NextResponse.json({ error: "Enter a short keyword." }, { status: 400 });
+
+  try {
+    return NextResponse.json(await checkUploadShortCodeAvailability(code));
+  } catch {
+    return NextResponse.json({ error: "Could not check that short keyword." }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {
