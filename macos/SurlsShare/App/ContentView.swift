@@ -212,7 +212,9 @@ private struct SiteEditor: View {
             do {
                 let (_, response) = try await URLSession.shared.data(for: request)
                 guard !Task.isCancelled else { return }
-                var status = (response as? HTTPURLResponse)?.statusCode ?? 0
+                let httpResponse = response as? HTTPURLResponse
+                var status = httpResponse?.statusCode ?? 0
+                var uploadLimit = UploadLimit(response: httpResponse)
                 if status == 404 || status == 405 {
                     var compatibilityRequest = URLRequest(url: uploadURL)
                     let boundary = "SurlsConnectionTest-\(UUID().uuidString)"
@@ -229,6 +231,7 @@ private struct SiteEditor: View {
                     let compatibilityStatus = (compatibilityResponse as? HTTPURLResponse)?.statusCode ?? 0
                     if compatibilityStatus == 400 {
                         status = 204
+                        uploadLimit = .unknown
                     } else {
                         status = compatibilityStatus
                     }
@@ -237,7 +240,7 @@ private struct SiteEditor: View {
                 testSucceeded = status == 204
                 switch status {
                 case 204:
-                    testMessage = "Connection successful"
+                    testMessage = uploadLimit.connectionDescription
                 case 401:
                     testMessage = "Token is invalid or missing uploads:create permission."
                 case 404, 405:

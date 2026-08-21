@@ -3,12 +3,43 @@
 import { Check, Copy, RefreshCw, Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
-import { createTokenAction, checkDestinationAction, importCsvAction, rollTokenAction, uploadAndShortenAction } from "@/app/admin/tools/actions";
+import { createTokenAction, checkDestinationAction, importCsvAction, rollTokenAction } from "@/app/admin/tools/actions";
 import { dispatchAdminToast } from "@/lib/admin-toast-event";
+import { AliasAvailabilityInput } from "./AliasAvailabilityInput";
 import { ConfirmButton } from "./ConfirmButton";
 
 export function UploadShortenForm({ csrf, maxUploadLabel }: { csrf: string; maxUploadLabel: string }) {
-  const [state, action, pending] = useActionState(uploadAndShortenAction, null);
+  const [state, setState] = useState<{
+    code?: string;
+    error?: string;
+    fileUrl?: string;
+    filename?: string;
+    shortUrl?: string;
+  } | null>(null);
+  const [pending, setPending] = useState(false);
+
+  async function upload(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPending(true);
+    setState(null);
+    try {
+      const response = await fetch("/api/uploads", {
+        body: new FormData(event.currentTarget),
+        headers: { "X-Surls-CSRF": csrf },
+        method: "POST"
+      });
+      const payload = (await response.json().catch(() => null)) as typeof state;
+      if (!response.ok) {
+        setState({ error: payload?.error || "Could not upload and shorten the file." });
+      } else {
+        setState(payload);
+      }
+    } catch {
+      setState({ error: "Could not upload and shorten the file." });
+    } finally {
+      setPending(false);
+    }
+  }
 
   useEffect(() => {
     if (state?.shortUrl) {
@@ -19,7 +50,7 @@ export function UploadShortenForm({ csrf, maxUploadLabel }: { csrf: string; maxU
   }, [state]);
 
   return (
-    <form className="form-stack" action={action} encType="multipart/form-data">
+    <form className="form-stack" onSubmit={upload} encType="multipart/form-data">
       <input type="hidden" name="csrf" value={csrf} />
       <label>
         File
@@ -29,7 +60,7 @@ export function UploadShortenForm({ csrf, maxUploadLabel }: { csrf: string; maxU
       <div className="form-grid">
         <label>
           Custom shortname
-          <input name="code" placeholder="optional-alias" pattern="[A-Za-z0-9_-]{3,64}" />
+          <AliasAvailabilityInput />
         </label>
         <label>
           Custom title

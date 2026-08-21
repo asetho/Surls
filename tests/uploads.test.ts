@@ -55,6 +55,15 @@ describe("uploaded files", () => {
     });
   });
 
+  it("supports an explicit per-upload limit or no application limit", async () => {
+    await withUploadModule(async ({ storeUploadedFile }) => {
+      const file = new File(["this is larger than sixteen bytes"], "large.txt", { type: "text/plain" });
+
+      await expect(storeUploadedFile(file, { maxBytes: 8 })).rejects.toThrow(/up to 8 bytes/i);
+      await expect(storeUploadedFile(file, { maxBytes: null })).resolves.toMatchObject({ size: file.size });
+    });
+  });
+
   it("requires an absolute uploads directory", async () => {
     vi.resetModules();
     vi.stubEnv("UPLOADS_DIR", "relative/uploads");

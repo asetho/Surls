@@ -20,6 +20,10 @@ const settings = vi.hoisted(() => ({
   getSiteName: vi.fn()
 }));
 
+const uploadLimits = vi.hoisted(() => ({
+  getEffectiveUploadMaxBytes: vi.fn()
+}));
+
 const prisma = vi.hoisted(() => ({
   $transaction: vi.fn(),
   apiToken: {
@@ -60,6 +64,7 @@ vi.mock("@/lib/api-tokens", () => apiTokens);
 vi.mock("@/lib/audit", () => audit);
 vi.mock("@/lib/csrf", () => csrf);
 vi.mock("@/lib/settings", () => settings);
+vi.mock("@/lib/upload-limits", () => uploadLimits);
 vi.mock("@/lib/prisma", () => ({ prisma }));
 vi.mock("@/lib/links", () => links);
 vi.mock("@/lib/uploads", () => uploads);
@@ -100,6 +105,7 @@ describe("tools actions hardening", () => {
     vi.clearAllMocks();
     auth.requireAdmin.mockResolvedValue({ id: "user_123", role: "ADMIN" });
     settings.getSiteName.mockResolvedValue("Surls");
+    uploadLimits.getEffectiveUploadMaxBytes.mockResolvedValue(16 * 1024 * 1024);
     apiTokens.createApiToken.mockResolvedValue({
       row: {
         expiresAt: new Date("2026-07-11T12:00:00.000Z"),
@@ -339,7 +345,8 @@ describe("tools actions hardening", () => {
 
     expect(uploads.storeUploadedFile).toHaveBeenCalledWith(expect.any(File), {
       dropExtension: false,
-      filenameMode: "safe"
+      filenameMode: "safe",
+      maxBytes: 16 * 1024 * 1024
     });
     expect(links.createShortLink).toHaveBeenCalledWith(
       expect.objectContaining({

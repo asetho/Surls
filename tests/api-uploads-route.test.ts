@@ -6,13 +6,20 @@ const apiTokens = vi.hoisted(() => ({
   authenticateApiToken: vi.fn()
 }));
 
+const auth = vi.hoisted(() => ({ requireAdmin: vi.fn() }));
+const csrf = vi.hoisted(() => ({ validateCsrfValue: vi.fn() }));
+
 const rateLimit = vi.hoisted(() => ({
   checkRateLimit: vi.fn()
 }));
 
 const uploads = vi.hoisted(() => ({
   normalizeUploadFilenameMode: vi.fn(() => "safe"),
-  uploadMaxBytes: vi.fn(() => 25 * 1024 * 1024)
+  uploadMaxBytesLabel: vi.fn((bytes: number | null) => bytes === null ? "No limit" : `${bytes} bytes`)
+}));
+
+const uploadLimits = vi.hoisted(() => ({
+  getEffectiveUploadMaxBytes: vi.fn()
 }));
 
 const uploadAndShorten = vi.hoisted(() => ({
@@ -21,18 +28,24 @@ const uploadAndShorten = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/api-tokens", () => apiTokens);
+vi.mock("@/lib/auth", () => auth);
+vi.mock("@/lib/csrf", () => csrf);
 vi.mock("@/lib/rate-limit", () => rateLimit);
 vi.mock("@/lib/uploads", () => uploads);
+vi.mock("@/lib/upload-limits", () => uploadLimits);
 vi.mock("@/lib/upload-and-shorten", () => uploadAndShorten);
 
-function uploadRequest(authorization = "Bearer surls_valid") {
+function uploadRequest(authorization: string | null = "Bearer surls_valid", csrfToken?: string) {
   const formData = new FormData();
   formData.set("file", new File(["hello"], "hello world.txt", { type: "text/plain" }));
   formData.set("filenameMode", "safe");
   formData.set("title", "Shared document");
   return new NextRequest("http://localhost:3000/api/uploads", {
     body: formData,
-    headers: { authorization },
+    headers: {
+      ...(authorization ? { authorization } : {}),
+      ...(csrfToken ? { "X-Surls-CSRF": csrfToken } : {})
+    },
     method: "POST"
   });
 }
@@ -40,11 +53,14 @@ function uploadRequest(authorization = "Bearer surls_valid") {
 describe("HEAD /api/uploads", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    auth.requireAdmin.mockResolvedValue(null);
     apiTokens.authenticateApiToken.mockResolvedValue({
       name: "Mac Share",
       tokenPrefix: "surls_abc123",
-      userId: "user_123"
+      userId: "user_123",
+      user: { id: "user_123" }
     });
+    uploadLimits.getEffectiveUploadMaxBytes.mockResolvedValue(25 * 1024 * 1024);
   });
 
   it("validates a token with the upload scope without uploading a file", async () => {
@@ -57,6 +73,7 @@ describe("HEAD /api/uploads", () => {
     const response = await HEAD(request);
 
     expect(response.status).toBe(204);
+    expect(response.headers.get("X-Surls-Upload-Max-Bytes")).toBe(String(25 * 1024 * 1024));
     expect(apiTokens.authenticateApiToken).toHaveBeenCalledWith("Bearer surls_valid", "uploads:create");
     expect(uploadAndShorten.uploadAndShortenFile).not.toHaveBeenCalled();
   });
@@ -74,17 +91,33 @@ describe("HEAD /api/uploads", () => {
     expect(response.status).toBe(401);
     expect(uploadAndShorten.uploadAndShortenFile).not.toHaveBeenCalled();
   });
+
+  it("reports when the user has no Surls application upload limit", async () => {
+    uploadLimits.getEffectiveUploadMaxBytes.mockResolvedValue(null);
+    const { HEAD } = await import("@/app/api/uploads/route");
+    const request = new NextRequest("http://localhost:3000/api/uploads", {
+      headers: { authorization: "Bearer surls_valid" },
+      method: "HEAD"
+    });
+
+    const response = await HEAD(request);
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("X-Surls-Upload-Max-Bytes")).toBe("unlimited");
+  });
 });
 
 describe("POST /api/uploads", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    auth.requireAdmin.mockResolvedValue(null);
     rateLimit.checkRateLimit.mockResolvedValue({ allowed: true });
-    uploads.uploadMaxBytes.mockReturnValue(25 * 1024 * 1024);
+    uploadLimits.getEffectiveUploadMaxBytes.mockResolvedValue(25 * 1024 * 1024);
     apiTokens.authenticateApiToken.mockResolvedValue({
       name: "Mac Share",
       tokenPrefix: "surls_abc123",
-      userId: "user_123"
+      userId: "user_123",
+      user: { id: "user_123" }
     });
     uploadAndShorten.uploadAndShortenFile.mockResolvedValue({
       code: "abc123",
@@ -123,8 +156,40 @@ describe("POST /api/uploads", () => {
       file: expect.any(File),
       filenameMode: "safe",
       title: "Shared document",
+      uploadMaxBytes: 25 * 1024 * 1024,
       via: "api-upload"
     }));
+  });
+
+  it("uses the same endpoint for session-authenticated web uploads with CSRF protection", async () => {
+    apiTokens.authenticateApiToken.mockResolvedValue(null);
+    auth.requireAdmin.mockResolvedValue({ id: "user_web" });
+    const { POST } = await import("@/app/api/uploads/route");
+
+    const response = await POST(uploadRequest(null, "csrf-token"));
+
+    expect(response.status).toBe(201);
+    expect(csrf.validateCsrfValue).toHaveBeenCalledWith("csrf-token");
+    expect(uploadAndShorten.uploadAndShortenFile).toHaveBeenCalledWith(expect.objectContaining({
+      createdByApiTokenName: undefined,
+      createdByApiTokenPrefix: undefined,
+      createdById: "user_web",
+      uploadMaxBytes: 25 * 1024 * 1024
+    }));
+  });
+
+  it("rejects session-authenticated uploads with an invalid CSRF token", async () => {
+    apiTokens.authenticateApiToken.mockResolvedValue(null);
+    auth.requireAdmin.mockResolvedValue({ id: "user_web" });
+    csrf.validateCsrfValue.mockImplementation(() => {
+      throw new Error("Invalid CSRF token");
+    });
+    const { POST } = await import("@/app/api/uploads/route");
+
+    const response = await POST(uploadRequest(null));
+
+    expect(response.status).toBe(403);
+    expect(uploadAndShorten.uploadAndShortenFile).not.toHaveBeenCalled();
   });
 
   it("returns rate-limit failures before reading the upload", async () => {
@@ -138,7 +203,7 @@ describe("POST /api/uploads", () => {
   });
 
   it("rejects streamed multipart requests before buffering an oversized body", async () => {
-    uploads.uploadMaxBytes.mockReturnValue(8);
+    uploadLimits.getEffectiveUploadMaxBytes.mockResolvedValue(8);
     const { POST, UPLOAD_MULTIPART_OVERHEAD_BYTES } = await import("@/app/api/uploads/route");
     const boundary = "surls-test-boundary";
     const prefix = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="large.txt"\r\nContent-Type: text/plain\r\n\r\n`;
@@ -166,7 +231,7 @@ describe("POST /api/uploads", () => {
     const response = await POST(request);
 
     expect(response.status).toBe(413);
-    await expect(response.json()).resolves.toEqual({ error: "Upload request is too large." });
+    await expect(response.json()).resolves.toEqual({ error: "Upload files up to 8 bytes at a time." });
     expect(uploadAndShorten.uploadAndShortenFile).not.toHaveBeenCalled();
   });
 });
@@ -174,12 +239,15 @@ describe("POST /api/uploads", () => {
 describe("GET /api/uploads", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    auth.requireAdmin.mockResolvedValue(null);
     rateLimit.checkRateLimit.mockResolvedValue({ allowed: true });
     apiTokens.authenticateApiToken.mockResolvedValue({
       name: "Mac Share",
       tokenPrefix: "surls_abc123",
-      userId: "user_123"
+      userId: "user_123",
+      user: { id: "user_123" }
     });
+    uploadLimits.getEffectiveUploadMaxBytes.mockResolvedValue(25 * 1024 * 1024);
     uploadAndShorten.checkUploadShortCodeAvailability.mockResolvedValue({ available: true, error: null });
   });
 
@@ -194,6 +262,7 @@ describe("GET /api/uploads", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ available: true, error: null });
+    expect(response.headers.get("X-Surls-Upload-Max-Bytes")).toBe(String(25 * 1024 * 1024));
     expect(rateLimit.checkRateLimit).toHaveBeenCalledWith("api:upload-code:user_123", 120, 60_000);
     expect(uploadAndShorten.checkUploadShortCodeAvailability).toHaveBeenCalledWith("project-file");
   });

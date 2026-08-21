@@ -41,6 +41,8 @@ model User {
   mobileMenuSide String          @default("right")
   linkListPageSize Int           @default(20)
   recentClickPageSize Int        @default(20)
+  uploadMaxBytes BigInt?
+  uploadLimitUnlimited Boolean   @default(false)
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
   lastLoginAt   DateTime?

@@ -41,4 +41,16 @@ describe("API token hardening migration", () => {
 
     expect(migration).toContain('ALTER TABLE "User" ADD COLUMN "mobileMenuSide" TEXT NOT NULL DEFAULT \'right\';');
   });
+
+  it("adds per-user upload limit overrides without changing existing users", async () => {
+    const migration = await readFile(
+      resolve(process.cwd(), "prisma/migrations/20260820231500_add_user_upload_limits/migration.sql"),
+      "utf8"
+    );
+
+    expect(migration).toContain('ALTER TABLE "User" ADD COLUMN "uploadMaxBytes" BIGINT;');
+    expect(migration).toContain(
+      'ALTER TABLE "User" ADD COLUMN "uploadLimitUnlimited" BOOLEAN NOT NULL DEFAULT false;'
+    );
+  });
 });

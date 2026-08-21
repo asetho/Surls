@@ -7,7 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		10AB806A4D3C6983CC588A8F /* UploadLimit.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAC1830F4E015FC2A24B90B9 /* UploadLimit.swift */; };
 		2B81346CD66FAF76F0CEEDF5 /* SharedSiteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F569440001364D51E409132F /* SharedSiteStore.swift */; };
+		40A2CD133D7CCF70671FAD73 /* UploadLimit.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAC1830F4E015FC2A24B90B9 /* UploadLimit.swift */; };
 		4CFE8EED34126551CB8C302E /* SiteTokenKeychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8FE5044CDBC4A1AC35F4DB4 /* SiteTokenKeychain.swift */; };
 		68694B24137F916F1D91C80E /* SurlsShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 9437CCCCC20462889F736FE9 /* SurlsShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		87B51EB53F28EE5BB9349BE7 /* SharedSiteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F569440001364D51E409132F /* SharedSiteStore.swift */; };
@@ -52,6 +54,7 @@
 		9437CCCCC20462889F736FE9 /* SurlsShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SurlsShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		9979D59EA1D1335B2A61200E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		C8FE5044CDBC4A1AC35F4DB4 /* SiteTokenKeychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiteTokenKeychain.swift; sourceTree = "<group>"; };
+		DAC1830F4E015FC2A24B90B9 /* UploadLimit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadLimit.swift; sourceTree = "<group>"; };
 		F569440001364D51E409132F /* SharedSiteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedSiteStore.swift; sourceTree = "<group>"; };
 		FD00B8ACB59CC503DB1F7D08 /* SiteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiteStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -92,6 +95,7 @@
 				F569440001364D51E409132F /* SharedSiteStore.swift */,
 				18AED6C79E805A7F1C59947B /* SiteProfile.swift */,
 				C8FE5044CDBC4A1AC35F4DB4 /* SiteTokenKeychain.swift */,
+				DAC1830F4E015FC2A24B90B9 /* UploadLimit.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -191,6 +195,7 @@
 				90571E156BEC76869C33CFC3 /* SiteStore.swift in Sources */,
 				4CFE8EED34126551CB8C302E /* SiteTokenKeychain.swift in Sources */,
 				8E4F4B53655890F66519815A /* SurlsShareApp.swift in Sources */,
+				40A2CD133D7CCF70671FAD73 /* UploadLimit.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -202,6 +207,7 @@
 				2B81346CD66FAF76F0CEEDF5 /* SharedSiteStore.swift in Sources */,
 				D656666CBCBAD7E0E578AF36 /* SiteProfile.swift in Sources */,
 				BC689EFE35E583EF47D1A3F2 /* SiteTokenKeychain.swift in Sources */,
+				10AB806A4D3C6983CC588A8F /* UploadLimit.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

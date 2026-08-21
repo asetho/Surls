@@ -18,6 +18,7 @@ type UploadAndShortenInput = {
   dropExtension?: boolean;
   file: File;
   filenameMode: UploadFilenameMode;
+  uploadMaxBytes?: number | null;
   title?: string | null;
   via: "api-upload" | "upload";
 };
@@ -48,7 +49,8 @@ export async function uploadAndShortenFile(input: UploadAndShortenInput) {
   try {
     stored = await storeUploadedFile(input.file, {
       dropExtension: input.dropExtension,
-      filenameMode: input.filenameMode
+      filenameMode: input.filenameMode,
+      maxBytes: input.uploadMaxBytes
     });
     const fileUrl = new URL(stored.publicPath, `${appBaseUrl()}/`).toString();
     const link = await createShortLink(

@@ -15,6 +15,7 @@ import { validateAlias } from "@/lib/alias";
 import { env } from "@/lib/env";
 import { normalizeUploadFilenameMode } from "@/lib/uploads";
 import { uploadAndShortenFile } from "@/lib/upload-and-shorten";
+import { getEffectiveUploadMaxBytes } from "@/lib/upload-limits";
 
 const MAX_IMPORT_ROWS = 200;
 const API_TOKEN_EXPIRATION_CHOICES = new Set([30, 90, 180, 365]);
@@ -312,6 +313,7 @@ export async function uploadAndShortenAction(
   if (!file) return { error: "Choose a file to upload." };
 
   try {
+    const uploadMaxBytes = await getEffectiveUploadMaxBytes(admin);
     const result = await uploadAndShortenFile({
       code: String(formData.get("code") ?? "").trim() || null,
       createdById: admin.id,
@@ -319,6 +321,7 @@ export async function uploadAndShortenAction(
       file,
       filenameMode: normalizeUploadFilenameMode(formData.get("filenameMode")),
       title: String(formData.get("title") ?? "").trim() || file.name,
+      uploadMaxBytes,
       via: "upload"
     });
     revalidatePath("/admin");
