@@ -77,6 +77,11 @@ struct ContentView: View {
             Text("After installing, enable Share with Surls in System Settings → General → Login Items & Extensions → Sharing.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+            Text("© 2026 asetho™")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(24)
         .sheet(item: $editorPresentation) { presentation in
