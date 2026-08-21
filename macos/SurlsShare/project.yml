@@ -29,7 +29,7 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.utilities
-        NSHumanReadableCopyright: Copyright © 2026
+        NSHumanReadableCopyright: © 2026 asetho™
         SurlsKeychainAccessGroup: $(AppIdentifierPrefix)cc.aarn.SurlsShare.shared
     dependencies:
       - target: SurlsShareExtension

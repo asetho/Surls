@@ -23,7 +23,7 @@
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright © 2026</string>
+	<string>© 2026 asetho™</string>
 	<key>SurlsKeychainAccessGroup</key>
 	<string>$(AppIdentifierPrefix)cc.aarn.SurlsShare.shared</string>
 </dict>
