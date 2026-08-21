@@ -17,7 +17,7 @@ services:
 
   app:
     container_name: "${SURLS_APP_CONTAINER_NAME:-surls-app}"
-    image: ${SURLS_IMAGE:-ghcr.io/aaronwhippo/surls:latest}
+    image: ${SURLS_IMAGE:-ghcr.io/asetho/surls:latest}
     build:
       context: .
       args:

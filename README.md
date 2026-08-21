@@ -188,7 +188,7 @@ Create the host directory before starting Docker. The upload bind mount uses `cr
 Images are published by GitHub Actions to:
 
 ```text
-ghcr.io/aaronwhippo/surls:latest
+ghcr.io/asetho/surls:latest
 ```
 
 ## Admin Click Tracking
