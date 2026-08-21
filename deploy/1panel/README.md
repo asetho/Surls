@@ -9,7 +9,7 @@ Clone the repo somewhere 1Panel can read, for example:
 ```bash
 sudo mkdir -p /opt/surls
 sudo chown "$USER:$USER" /opt/surls
-git clone git@github.com:aaronwhippo/Surls.git /opt/surls
+git clone git@github.com:asetho/Surls.git /opt/surls
 cd /opt/surls
 cp deploy/1panel/.env.example deploy/1panel/.env
 ```
