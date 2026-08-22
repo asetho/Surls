@@ -18,8 +18,10 @@
 		8E4E48152517206B3603356F /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 566DAC71B936C83274596F79 /* ShareViewController.swift */; };
 		8E4F4B53655890F66519815A /* SurlsShareApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A3E625A8C01F27CEE54FF08 /* SurlsShareApp.swift */; };
 		90571E156BEC76869C33CFC3 /* SiteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD00B8ACB59CC503DB1F7D08 /* SiteStore.swift */; };
+		9ADF8881014BC9DCFFA72AE0 /* SurlsShareIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 9DEA6710A3789645F68FFE81 /* SurlsShareIcon.icon */; };
 		B8D1E741CE13B027B13A9989 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9979D59EA1D1335B2A61200E /* ContentView.swift */; };
 		BC689EFE35E583EF47D1A3F2 /* SiteTokenKeychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8FE5044CDBC4A1AC35F4DB4 /* SiteTokenKeychain.swift */; };
+		CE1A4EE3142B063D5A81FE74 /* SurlsShareIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 9DEA6710A3789645F68FFE81 /* SurlsShareIcon.icon */; };
 		D656666CBCBAD7E0E578AF36 /* SiteProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18AED6C79E805A7F1C59947B /* SiteProfile.swift */; };
 		E1002EBFA63CF3A9E4C56664 /* SiteProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18AED6C79E805A7F1C59947B /* SiteProfile.swift */; };
 /* End PBXBuildFile section */
@@ -56,6 +58,7 @@
 		8D7FCAF1F56956711A84E7D6 /* SurlsShare.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SurlsShare.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9437CCCCC20462889F736FE9 /* SurlsShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SurlsShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		9979D59EA1D1335B2A61200E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		9DEA6710A3789645F68FFE81 /* SurlsShareIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = SurlsShareIcon.icon; sourceTree = "<group>"; };
 		C8FE5044CDBC4A1AC35F4DB4 /* SiteTokenKeychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiteTokenKeychain.swift; sourceTree = "<group>"; };
 		DAC1830F4E015FC2A24B90B9 /* UploadLimit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadLimit.swift; sourceTree = "<group>"; };
 		F569440001364D51E409132F /* SharedSiteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedSiteStore.swift; sourceTree = "<group>"; };
@@ -88,6 +91,7 @@
 			isa = PBXGroup;
 			children = (
 				6B067760D24A390580E43B3D /* Assets.xcassets */,
+				9DEA6710A3789645F68FFE81 /* SurlsShareIcon.icon */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -204,6 +208,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1D2CA9A7D7E81318754782A2 /* Assets.xcassets in Resources */,
+				9ADF8881014BC9DCFFA72AE0 /* SurlsShareIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -212,6 +217,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				70B697949A8505AA188540BD /* Assets.xcassets in Resources */,
+				CE1A4EE3142B063D5A81FE74 /* SurlsShareIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -258,7 +264,7 @@
 		3E8B403F390FA008C0CEC8F7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = SurlsShareIcon;
 				CODE_SIGN_ENTITLEMENTS = Configuration/SurlsShare.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = "Configuration/SurlsShare-Info.plist";
@@ -275,7 +281,7 @@
 		3EC7BCFF3D61B560DEAD7A9E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = SurlsShareIcon;
 				CODE_SIGN_ENTITLEMENTS = Configuration/SurlsShare.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = "Configuration/SurlsShare-Info.plist";
@@ -324,7 +330,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 24;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -344,7 +350,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -359,7 +365,7 @@
 		55203B840B43B168D15BAF63 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = SurlsShareIcon;
 				CODE_SIGN_ENTITLEMENTS = Configuration/SurlsShareExtension.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = "Configuration/SurlsShareExtension-Info.plist";
@@ -378,7 +384,7 @@
 		55EF682DE30A855186855420 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = SurlsShareIcon;
 				CODE_SIGN_ENTITLEMENTS = Configuration/SurlsShareExtension.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = "Configuration/SurlsShareExtension-Info.plist";
@@ -429,7 +435,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 24;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -443,7 +449,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
