@@ -18,12 +18,12 @@ export function sessionClientSummary(userAgent: string | null) {
     ? "Surls app"
     : /Edg(?:A|iOS)?\//.test(ua)
       ? "Microsoft Edge"
-      : /(?:Chrome|CriOS)\//.test(ua)
-        ? "Google Chrome"
-        : /(?:Firefox|FxiOS)\//.test(ua)
-          ? "Mozilla Firefox"
-          : /(?:OPR|Opera)\//.test(ua)
-            ? "Opera"
+      : /(?:OPR|Opera)\//.test(ua)
+        ? "Opera"
+        : /(?:Chrome|CriOS)\//.test(ua)
+          ? "Google Chrome"
+          : /(?:Firefox|FxiOS)\//.test(ua)
+            ? "Mozilla Firefox"
             : /Safari\//.test(ua)
               ? "Safari"
               : "Unknown browser or app";
