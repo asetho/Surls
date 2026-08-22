@@ -23,7 +23,7 @@ The Mac app is versioned with the main Surls repository, while its application s
 
 The app depends on the Surls upload API in `src/app/api/uploads/route.ts` and `src/lib/upload-and-shorten.ts`. Changes to that contract should be reviewed and released with the corresponding app changes.
 
-Public releases use tags in the form `surls-share-v1.0.1`. The tag version must match `CFBundleShortVersionString`. A release build is signed with Developer ID, packaged as a DMG, submitted with `notarytool`, stapled, verified, and attached to a dedicated GitHub release.
+Public releases use tags in the form `surls-share-vX.Y.Z`, where `X.Y.Z` must match `CFBundleShortVersionString`. A release build is signed with Developer ID, packaged as a DMG, submitted with `notarytool`, stapled, verified, and attached to a dedicated GitHub release.
 
 After each successful publication, the workflow retains DMG and checksum assets for the newest three Surls Share versions. Older release records and tags remain available without their installer assets.
 
