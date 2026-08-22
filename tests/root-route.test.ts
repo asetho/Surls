@@ -32,7 +32,10 @@ describe("root route", () => {
     expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
     expect(html).toContain("Short links that stay under your control.");
     expect(html).toContain('href="/admin"');
-    expect(html).toContain('src="/brand/surls-app-icon-1024.png"');
+    expect(html).toContain('href="/brand/surls-app-icon-80.png"');
+    expect(html).toContain('href="/brand/surls-app-icon-180.png"');
+    expect(html).toContain('src="/brand/surls-app-icon-80.png"');
+    expect(html).not.toContain('<img src="/brand/surls-app-icon-1024.png"');
     expect(html).toContain('aria-label="Color theme"');
     expect(html).toContain('data-theme-option="light"');
     expect(html).toContain('data-theme-option="dark"');

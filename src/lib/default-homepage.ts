@@ -79,8 +79,8 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta id="theme-color" name="theme-color" content="#f4fbfd" />
-    <link rel="icon" href="/brand/surls-app-icon-1024.png" type="image/png" />
-    <link rel="apple-touch-icon" href="/brand/surls-app-icon-1024.png" />
+    <link rel="icon" href="/brand/surls-app-icon-80.png" type="image/png" sizes="80x80" />
+    <link rel="apple-touch-icon" href="/brand/surls-app-icon-180.png" sizes="180x180" />
     <meta
       name="description"
       content="Surls is a private short-link system for managing redirects, uploads, QR codes, and privacy-aware click analytics."
@@ -837,7 +837,7 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
     <header class="site-header">
       <div class="shell header-inner">
         <a class="brand" href="/" aria-label="Surls home">
-          <img src="/brand/surls-app-icon-1024.png" width="40" height="40" alt="" />
+          <img src="/brand/surls-app-icon-80.png" width="40" height="40" alt="" />
           <span>Surls</span>
         </a>
         <nav class="nav" aria-label="Primary navigation">
@@ -883,7 +883,7 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
           <div class="link-demo" aria-label="Example of a long destination becoming a short URL">
             <div class="demo-toolbar">
               <span class="demo-brand">
-                <img src="/brand/surls-app-icon-1024.png" width="32" height="32" alt="" />
+                <img src="/brand/surls-app-icon-80.png" width="32" height="32" alt="" />
                 Surls
               </span>
               <span class="status-dot" title="Available"></span>
