@@ -6,7 +6,7 @@ It is inspired by the product shape of URL shorteners such as YOURLS and Tiny.cc
 
 ## What It Includes
 
-- Mounted public webroot for owner-controlled static files, with no built-in public marketing pages.
+- Built-in informational homepage with a mounted public webroot for owner-controlled overrides and additional static files.
 - Secure admin login with Argon2id password hashing, HttpOnly sessions, CSRF-protected admin forms, login rate limiting, TOTP, backup codes, and passkey sign-in.
 - TOTP 2FA setup with QR/manual key verification.
 - One-time backup codes stored only as hashes.
@@ -157,7 +157,7 @@ If you set `PUBLIC_WEBROOT_DIR` or `CUSTOM_PAGES_DIR` directly without Docker Co
 
 Public file behavior:
 
-- `/` serves `index.html` when present.
+- `/` serves `index.html` when present; otherwise it serves the built-in Surls homepage.
 - Missing public paths and missing short links serve `404.html` with HTTP 404 when present.
 - Other files and directories are served directly, such as `/test.html`, `/assets/site.css`, or `/docs/index.html`.
 - Exact public files win before short-link redirects, so `/test.html` serves the file if it exists; otherwise one-segment paths can still resolve as short links.
