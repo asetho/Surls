@@ -30,9 +30,7 @@ struct ContentView: View {
                 } else {
                     List(store.profiles, selection: $selection) { profile in
                         HStack(spacing: 12) {
-                            Image(systemName: profile.isDefault ? "star.fill" : "globe")
-                                .foregroundStyle(profile.isDefault ? .yellow : .secondary)
-                                .frame(width: 18)
+                            SiteFavicon(profile: profile)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(profile.name).fontWeight(.medium)
                                 Text(profile.baseURL).font(.caption).foregroundStyle(.secondary)
@@ -93,6 +91,33 @@ struct ContentView: View {
         } message: {
             Text(store.errorMessage ?? "Unknown error")
         }
+    }
+}
+
+private struct SiteFavicon: View {
+    let profile: SiteProfile
+
+    private var faviconURL: URL? {
+        guard var components = URLComponents(string: profile.baseURL) else { return nil }
+        components.path = "/favicon.ico"
+        components.query = nil
+        components.fragment = nil
+        return components.url
+    }
+
+    var body: some View {
+        AsyncImage(url: faviconURL) { phase in
+            if case .success(let image) = phase {
+                image
+                    .resizable()
+                    .scaledToFit()
+            } else {
+                Image(systemName: profile.isDefault ? "star.fill" : "globe")
+                    .foregroundStyle(profile.isDefault ? .yellow : .secondary)
+            }
+        }
+        .frame(width: 20, height: 20)
+        .accessibilityHidden(true)
     }
 }
 

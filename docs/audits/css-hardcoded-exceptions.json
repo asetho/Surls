@@ -17,6 +17,13 @@
       "reason": "Canonical dashboard theme defaults and token registry metadata."
     },
     {
+      "file": "src/lib/default-homepage.ts",
+      "colorLiterals": 78,
+      "importantDeclarations": 0,
+      "inlineStyleAttributes": 0,
+      "reason": "Self-contained fallback homepage HTML defines its isolated light and dark brand palette outside the dashboard theme system."
+    },
+    {
       "file": "src/components/DashboardThemeEditor.tsx",
       "colorLiterals": 2,
       "importantDeclarations": 0,

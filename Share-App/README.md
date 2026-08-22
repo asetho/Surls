@@ -17,15 +17,17 @@ The checked-in Xcode project is generated from `project.yml` with [XcodeGen](htt
 
 ## CI and releases
 
-The Mac app is versioned with the main Surls repository, while its application source and Xcode project remain isolated under `macos/SurlsShare/`. App changes can therefore ship with the server-side upload contract without mixing Mac source into the web application directories.
+The Mac app is versioned with the main Surls repository, while its application source and Xcode project remain isolated under `Share-App/`. App changes can therefore ship with the server-side upload contract without mixing Mac source into the web application directories.
 
 `.github/workflows/surls-share.yml` independently builds the Mac app whenever its source, workflow, or upload API contract changes. CI runs unsigned Debug and Release builds; those builds validate the project but are not public distributions.
 
 The app depends on the Surls upload API in `src/app/api/uploads/route.ts` and `src/lib/upload-and-shorten.ts`. Changes to that contract should be reviewed and released with the corresponding app changes.
 
-Public releases use tags in the form `surls-share-v1.0.1`. The tag version must match `CFBundleShortVersionString`. A release build is signed with Developer ID, packaged as a DMG, submitted with `notarytool`, stapled, verified, and attached to a dedicated GitHub release.
+Public releases use tags in the form `surls-share-vX.Y.Z`, where `X.Y.Z` must match `CFBundleShortVersionString`. A release build is signed with Developer ID, packaged as a DMG, submitted with `notarytool`, stapled, verified, and attached to a dedicated GitHub release.
 
-Before tagging, update `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in `project.yml`, run `xcodegen generate --spec macos/SurlsShare/project.yml` from the repository root, and merge that version change to `main`. The release workflow rejects tags that are not contained in `main` or do not match the project version.
+After each successful publication, the workflow retains DMG and checksum assets for the newest three Surls Share versions. Older release records and tags remain available without their installer assets.
+
+Before tagging, update `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in `project.yml`, run `xcodegen generate --spec Share-App/project.yml` from the repository root, and merge that version change to `main`. The release workflow rejects tags that are not contained in `main` or do not match the project version.
 
 The release job requires the following repository configuration:
 
