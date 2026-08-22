@@ -17,8 +17,10 @@ targets:
     sources:
       - path: App
       - path: Shared
+      - path: Resources
     settings:
       base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_ENTITLEMENTS: Configuration/SurlsShare.entitlements
         PRODUCT_BUNDLE_IDENTIFIER: cc.aarn.SurlsShare
         PRODUCT_NAME: Surls Share
@@ -40,8 +42,10 @@ targets:
     sources:
       - path: Extension
       - path: Shared
+      - path: Resources
     settings:
       base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_ENTITLEMENTS: Configuration/SurlsShareExtension.entitlements
         PRODUCT_BUNDLE_IDENTIFIER: cc.aarn.SurlsShare.Extension
         PRODUCT_NAME: Share with Surls

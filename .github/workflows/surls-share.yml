@@ -8,7 +8,7 @@ on:
       - "surls-share-v*.*.*"
     paths:
       - ".github/workflows/surls-share.yml"
-      - "macos/SurlsShare/**"
+      - "Share-App/**"
       - "src/app/api/uploads/route.ts"
       - "src/lib/upload-and-shorten.ts"
       - "tests/api-uploads-route.test.ts"
@@ -17,7 +17,7 @@ on:
       - main
     paths:
       - ".github/workflows/surls-share.yml"
-      - "macos/SurlsShare/**"
+      - "Share-App/**"
       - "src/app/api/uploads/route.ts"
       - "src/lib/upload-and-shorten.ts"
       - "tests/api-uploads-route.test.ts"
@@ -46,7 +46,7 @@ jobs:
         run: |
           set -euo pipefail
           xcodebuild \
-            -project macos/SurlsShare/SurlsShare.xcodeproj \
+            -project Share-App/SurlsShare.xcodeproj \
             -scheme SurlsShare \
             -configuration Debug \
             -destination "generic/platform=macOS" \
@@ -58,7 +58,7 @@ jobs:
         run: |
           set -euo pipefail
           xcodebuild \
-            -project macos/SurlsShare/SurlsShare.xcodeproj \
+            -project Share-App/SurlsShare.xcodeproj \
             -scheme SurlsShare \
             -configuration Release \
             -destination "generic/platform=macOS" \
@@ -129,7 +129,7 @@ jobs:
 
           release_version="${GITHUB_REF_NAME#surls-share-v}"
           build_settings="$(xcodebuild \
-            -project macos/SurlsShare/SurlsShare.xcodeproj \
+            -project Share-App/SurlsShare.xcodeproj \
             -target SurlsShare \
             -configuration Release \
             -showBuildSettings)"
@@ -195,7 +195,7 @@ jobs:
           set -euo pipefail
           archive_path="${RUNNER_TEMP}/SurlsShare.xcarchive"
           xcodebuild \
-            -project macos/SurlsShare/SurlsShare.xcodeproj \
+            -project Share-App/SurlsShare.xcodeproj \
             -scheme SurlsShare \
             -configuration Release \
             -destination "generic/platform=macOS" \
@@ -277,6 +277,49 @@ jobs:
               --title "${release_title}" \
               --generate-notes
           fi
+
+      - name: Retain DMGs for newest three app versions
+        run: |
+          set -euo pipefail
+          old_release_ids="$(
+            gh api \
+              --paginate \
+              --slurp \
+              "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            | jq -r '
+                add
+                | map(
+                    select(.tag_name | test("^surls-share-v[0-9]+\\.[0-9]+\\.[0-9]+$"))
+                    | . + {
+                        version: (
+                          .tag_name
+                          | capture("^surls-share-v(?<major>[0-9]+)\\.(?<minor>[0-9]+)\\.(?<patch>[0-9]+)$")
+                        )
+                      }
+                  )
+                | sort_by([
+                    (.version.major | tonumber),
+                    (.version.minor | tonumber),
+                    (.version.patch | tonumber)
+                  ])
+                | reverse
+                | .[3:]
+                | .[].id
+              '
+          )"
+
+          while IFS= read -r release_id; do
+            [[ -n "${release_id}" ]] || continue
+            gh api \
+              --paginate \
+              "repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets?per_page=100" \
+              --jq '.[] | select(.name | test("\\.dmg(\\.sha256)?$")) | .id' \
+            | while IFS= read -r asset_id; do
+                gh api \
+                  --method DELETE \
+                  "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}"
+              done
+          done <<< "${old_release_ids}"
 
       - name: Remove signing materials
         if: always()

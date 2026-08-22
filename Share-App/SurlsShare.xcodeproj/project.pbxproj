@@ -8,10 +8,12 @@
 
 /* Begin PBXBuildFile section */
 		10AB806A4D3C6983CC588A8F /* UploadLimit.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAC1830F4E015FC2A24B90B9 /* UploadLimit.swift */; };
+		1D2CA9A7D7E81318754782A2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6B067760D24A390580E43B3D /* Assets.xcassets */; };
 		2B81346CD66FAF76F0CEEDF5 /* SharedSiteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F569440001364D51E409132F /* SharedSiteStore.swift */; };
 		40A2CD133D7CCF70671FAD73 /* UploadLimit.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAC1830F4E015FC2A24B90B9 /* UploadLimit.swift */; };
 		4CFE8EED34126551CB8C302E /* SiteTokenKeychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8FE5044CDBC4A1AC35F4DB4 /* SiteTokenKeychain.swift */; };
 		68694B24137F916F1D91C80E /* SurlsShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 9437CCCCC20462889F736FE9 /* SurlsShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		70B697949A8505AA188540BD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6B067760D24A390580E43B3D /* Assets.xcassets */; };
 		87B51EB53F28EE5BB9349BE7 /* SharedSiteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F569440001364D51E409132F /* SharedSiteStore.swift */; };
 		8E4E48152517206B3603356F /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 566DAC71B936C83274596F79 /* ShareViewController.swift */; };
 		8E4F4B53655890F66519815A /* SurlsShareApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A3E625A8C01F27CEE54FF08 /* SurlsShareApp.swift */; };
@@ -50,6 +52,7 @@
 		18AED6C79E805A7F1C59947B /* SiteProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiteProfile.swift; sourceTree = "<group>"; };
 		1A3E625A8C01F27CEE54FF08 /* SurlsShareApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurlsShareApp.swift; sourceTree = "<group>"; };
 		566DAC71B936C83274596F79 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		6B067760D24A390580E43B3D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8D7FCAF1F56956711A84E7D6 /* SurlsShare.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SurlsShare.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9437CCCCC20462889F736FE9 /* SurlsShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SurlsShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		9979D59EA1D1335B2A61200E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -75,9 +78,18 @@
 			children = (
 				09AD3DA5D93BC5FACE31013B /* App */,
 				DBAF3CFDC1F35922C308607D /* Extension */,
+				7171F9699CA5B55E6B2EA6B8 /* Resources */,
 				CD1F538241783805BB014A77 /* Shared */,
 				AA4456810AB7A786E87A2172 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		7171F9699CA5B55E6B2EA6B8 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				6B067760D24A390580E43B3D /* Assets.xcassets */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		AA4456810AB7A786E87A2172 /* Products */ = {
@@ -116,6 +128,7 @@
 			buildConfigurationList = 3B816D8B9F4C17BF82E64218 /* Build configuration list for PBXNativeTarget "SurlsShareExtension" */;
 			buildPhases = (
 				ED05950049A808E8F8858A0A /* Sources */,
+				8C1A79078A86D6189B4AAAC0 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -133,6 +146,7 @@
 			buildConfigurationList = 40BCFA1E3565C58B585DD06C /* Build configuration list for PBXNativeTarget "SurlsShare" */;
 			buildPhases = (
 				56E6695AB5102536CCEF3DA1 /* Sources */,
+				06E96383AF0F233492FD9C8F /* Resources */,
 				8FE6482BFB2CEE69A71016D9 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
@@ -183,6 +197,25 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		06E96383AF0F233492FD9C8F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1D2CA9A7D7E81318754782A2 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8C1A79078A86D6189B4AAAC0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				70B697949A8505AA188540BD /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		56E6695AB5102536CCEF3DA1 /* Sources */ = {
@@ -326,6 +359,7 @@
 		55203B840B43B168D15BAF63 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Configuration/SurlsShareExtension.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = "Configuration/SurlsShareExtension-Info.plist";
@@ -344,6 +378,7 @@
 		55EF682DE30A855186855420 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Configuration/SurlsShareExtension.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = "Configuration/SurlsShareExtension-Info.plist";
