@@ -32,6 +32,13 @@ describe("visual system accessibility guards", () => {
     }
   });
 
+  it("renders each admin user as a native collapsible section", () => {
+    const usersPage = readFileSync("src/app/admin/users/page.tsx", "utf8");
+
+    expect(usersPage).toContain('<details className="admin-user-management settings-collapse">');
+    expect(usersPage).toContain("Upload limit &amp; actions");
+  });
+
   it("keeps motion and high-contrast coverage in the global visual layers", () => {
     const globals = readFileSync("src/app/globals.css", "utf8");
     const dataTables = readFileSync("src/app/admin-data.css", "utf8");

@@ -155,7 +155,49 @@
 }
 
 .data-table-users {
-  --data-table-min-width: 1080px;
+  --data-table-min-width: 900px;
+}
+
+.admin-user-management {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-top: 0.5rem;
+}
+
+.admin-user-management > summary {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.42rem 0.55rem;
+}
+
+.admin-user-management > .settings-collapse-body {
+  gap: 0.7rem;
+  padding: 0.55rem;
+}
+
+.admin-user-management-body {
+  grid-template-columns: minmax(13rem, 1fr) minmax(9rem, auto);
+}
+
+.admin-user-management-body > section {
+  align-content: start;
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.admin-user-management-body > section + section {
+  border-left: 1px solid var(--border);
+  padding-left: 0.7rem;
+}
+
+.admin-user-management-body h3 {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  margin: 0;
+  text-transform: uppercase;
 }
 
 .data-table-clicks {
@@ -167,6 +209,25 @@
 }
 
 @media (max-width: 700px) {
+  .admin-user-management-body {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-user-management-body > section + section {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    padding-left: 0;
+    padding-top: 0.7rem;
+  }
+
+  .admin-user-management .user-upload-limit-form {
+    min-width: 0;
+  }
+
+  .admin-user-management .user-upload-limit-form > select {
+    min-width: 0;
+  }
+
   table.responsive-table td[data-label]::before {
     letter-spacing: 0;
   }

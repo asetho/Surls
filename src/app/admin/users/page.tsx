@@ -71,12 +71,10 @@ export default async function UsersPage() {
               <tr>
                 <th>User</th>
                 <th>Role</th>
-                <th>Upload limit</th>
                 <th>Security</th>
                 <th>Links</th>
                 <th>Sessions</th>
                 <th>Last login</th>
-                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -94,6 +92,38 @@ export default async function UsersPage() {
                       }}
                     />
                     <div className="muted small">Created {formatDateTime(user.createdAt, displayTimeZone)}</div>
+                    <details className="admin-user-management settings-collapse">
+                      <summary>Upload limit &amp; actions</summary>
+                      <div className="settings-collapse-body admin-user-management-body">
+                        <section>
+                          <h3>Upload limit</h3>
+                          <UserUploadLimitForm
+                            csrf={csrf}
+                            initialMegabytes={
+                              uploadBytesToMegabytes(user.uploadMaxBytes) ?? uploadBytesToMegabytes(siteUploadMaxBytes)
+                            }
+                            initialMode={userUploadLimitMode(user)}
+                            siteDefaultLabel={uploadMaxBytesLabel(siteUploadMaxBytes)}
+                            userId={user.id}
+                          />
+                        </section>
+                        <section>
+                          <h3>Actions</h3>
+                          {user.id === admin.id ? (
+                            <span className="muted small">No actions available for the current admin.</span>
+                          ) : (
+                            <form action={deleteUserAction}>
+                              <input type="hidden" name="csrf" value={csrf} />
+                              <input type="hidden" name="id" value={user.id} />
+                              <ConfirmButton className="danger icon-button" type="submit" message={`Delete ${user.email}?`}>
+                                <Trash2 size={16} aria-hidden />
+                                Delete user
+                              </ConfirmButton>
+                            </form>
+                          )}
+                        </section>
+                      </div>
+                    </details>
                   </td>
                   <td data-label="Role">
                     {user.id === admin.id ? (
@@ -110,17 +140,6 @@ export default async function UsersPage() {
                       </form>
                     )}
                   </td>
-                  <td data-label="Upload limit">
-                    <UserUploadLimitForm
-                      csrf={csrf}
-                      initialMegabytes={
-                        uploadBytesToMegabytes(user.uploadMaxBytes) ?? uploadBytesToMegabytes(siteUploadMaxBytes)
-                      }
-                      initialMode={userUploadLimitMode(user)}
-                      siteDefaultLabel={uploadMaxBytesLabel(siteUploadMaxBytes)}
-                      userId={user.id}
-                    />
-                  </td>
                   <td data-label="Security">
                     <div className="row-actions small">
                       <span className={user.totpCredential?.enabled ? "badge" : "badge warning"}>
@@ -134,20 +153,6 @@ export default async function UsersPage() {
                   <td className="data-table-numeric" data-label="Links">{user._count.shortLinks}</td>
                   <td className="data-table-numeric" data-label="Sessions">{user._count.sessions}</td>
                   <td className="data-table-time" data-label="Last login">{user.lastLoginAt ? formatDateTime(user.lastLoginAt, displayTimeZone) : "Never"}</td>
-                  <td className="data-table-actions" data-label="Actions">
-                    {user.id === admin.id ? (
-                      <span className="muted small">Current admin</span>
-                    ) : (
-                      <form action={deleteUserAction}>
-                        <input type="hidden" name="csrf" value={csrf} />
-                        <input type="hidden" name="id" value={user.id} />
-                        <ConfirmButton className="danger icon-button" type="submit" message={`Delete ${user.email}?`}>
-                          <Trash2 size={16} aria-hidden />
-                          Delete
-                        </ConfirmButton>
-                      </form>
-                    )}
-                  </td>
                 </tr>
               ))}
             </tbody>
