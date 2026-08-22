@@ -25,7 +25,7 @@ enum UploadLimit: Equatable {
         switch self {
         case .unknown: "Connection successful"
         case .unlimited: "Connection successful · no upload limit"
-        case .bytes(let bytes): "Connection successful · (Self.fileSizeLabel(bytes)) limit"
+        case .bytes(let bytes): "Connection successful · \(Self.fileSizeLabel(bytes)) limit"
         }
     }
 
