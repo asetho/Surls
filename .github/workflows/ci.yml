@@ -194,31 +194,40 @@ jobs:
           current_version="$(node -p "require('./package.json').version")"
           current_tag="v${current_version}"
           [[ "${current_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          recovery_version="$(node -e "const [major, minor, patch] = process.argv[1].split('.').map(Number); process.stdout.write([major, minor, patch + 1].join('.'))" "${current_version}")"
+          recovery_tag="v${recovery_version}"
 
           git fetch --force origin main --tags
           origin_main="$(git rev-parse refs/remotes/origin/main)"
+          publish_mutable=false
 
-          if git tag --points-at HEAD | grep -Fxq "${current_tag}"; then
+          if git tag --points-at "${event_sha}" | grep -Fxq "${current_tag}"; then
             release_version="${current_version}"
-          elif [[ "${origin_main}" != "${event_sha}" ]]; then
-            release_parent="$(git rev-parse "${origin_main}^")"
-            release_version="$(git show "${origin_main}:package.json" | node -e "let json = ''; process.stdin.on('data', chunk => json += chunk); process.stdin.on('end', () => process.stdout.write(JSON.parse(json).version));")"
-            release_tag="v${release_version}"
-            tagged_sha="$(git rev-list -n 1 "${release_tag}" 2>/dev/null || true)"
-            release_subject="$(git log -1 --format=%s "${origin_main}")"
+            [[ "${event_sha}" == "${origin_main}" ]] && publish_mutable=true
+            git checkout --detach "${event_sha}"
+          elif tagged_sha="$(git rev-list -n 1 "${recovery_tag}" 2>/dev/null)" && [[ -n "${tagged_sha}" ]]; then
+            release_parent="$(git rev-parse "${tagged_sha}^")"
+            release_subject="$(git log -1 --format=%s "${tagged_sha}")"
+            tagged_version="$(git show "${tagged_sha}:package.json" | node -e "let json = ''; process.stdin.on('data', chunk => json += chunk); process.stdin.on('end', () => process.stdout.write(JSON.parse(json).version));")"
 
-            if [[ "${release_parent}" != "${event_sha}" || "${tagged_sha}" != "${origin_main}" || "${release_subject}" != "Release ${release_tag} [skip ci]" ]]; then
-              echo "main advanced beyond this workflow's revision; a newer CI run will create the release" >&2
+            if [[ "${release_parent}" != "${event_sha}" || "${release_subject}" != "Release ${recovery_tag} [skip ci]" || "${tagged_version}" != "${recovery_version}" ]]; then
+              echo "${recovery_tag} does not identify the release commit for ${event_sha}" >&2
               exit 1
             fi
 
-            git checkout --detach "${origin_main}"
+            release_version="${recovery_version}"
+            [[ "${tagged_sha}" == "${origin_main}" ]] && publish_mutable=true
+            git checkout --detach "${tagged_sha}"
+          elif [[ "${origin_main}" != "${event_sha}" ]]; then
+            echo "main advanced beyond this workflow's revision before it created ${recovery_tag}" >&2
+            exit 1
           else
             git config user.name "${RELEASE_ACTOR_NAME}"
             git config user.email "${RELEASE_ACTOR_EMAIL}"
             npm version patch -m "Release v%s [skip ci]"
             release_version="$(node -p "require('./package.json').version")"
             git push --atomic origin HEAD:main "refs/tags/v${release_version}"
+            publish_mutable=true
           fi
 
           [[ "${release_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
@@ -228,6 +237,7 @@ jobs:
           {
             echo "version=${release_version}"
             echo "major_minor=${major_minor}"
+            echo "publish_mutable=${publish_mutable}"
             echo "tag=v${release_version}"
             echo "sha=${release_sha}"
           } >> "${GITHUB_OUTPUT}"
@@ -241,10 +251,10 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/surls
           tags: |
-            type=raw,value=latest
-            type=raw,value=main
+            type=raw,value=latest,enable=${{ steps.version.outputs.publish_mutable == 'true' }}
+            type=raw,value=main,enable=${{ steps.version.outputs.publish_mutable == 'true' }}
             type=raw,value=${{ steps.version.outputs.version }}
-            type=raw,value=${{ steps.version.outputs.major_minor }}
+            type=raw,value=${{ steps.version.outputs.major_minor }},enable=${{ steps.version.outputs.publish_mutable == 'true' }}
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4.6.0
