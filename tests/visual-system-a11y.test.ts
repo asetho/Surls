@@ -95,6 +95,9 @@ describe("visual system accessibility guards", () => {
     const dataTables = readFileSync("src/app/admin-data.css", "utf8");
 
     expect(globals).toMatch(/\.form-grid\s*>\s*label\s*{[\s\S]*text-align:\s*left;/);
+    expect(dataTables).toMatch(
+      /\.data-table-users\s+\.admin-user-revert-button\s*{[\s\S]*box-shadow:\s*none;/,
+    );
     expect(globals).toMatch(/\.modal-panel\s*{[\s\S]*text-align:\s*left;/);
     expect(globals).toMatch(/\.links-table\s+td\[data-label="Actions"\]\s*>\s*\.row-actions\s*{[\s\S]*justify-content:\s*flex-end;/);
     expect(dataTables).toMatch(/\.data-table-actions\s*>\s*\.row-actions\s*{[\s\S]*justify-content:\s*flex-end;/);

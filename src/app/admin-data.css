@@ -186,6 +186,10 @@
   width: var(--admin-user-row-control-height);
 }
 
+.data-table-users .admin-user-revert-button {
+  box-shadow: none;
+}
+
 .data-table-users .admin-user-revert-button:hover,
 .data-table-users .admin-user-revert-button:focus-visible {
   background: var(--surface);
