@@ -48,10 +48,13 @@ describe("visual system accessibility guards", () => {
     const primaryRow = readFileSync("src/components/AdminUserPrimaryRow.tsx", "utf8");
     expect(primaryRow).toContain('<tr className="admin-user-primary-row"');
     expect(primaryRow).toContain('aria-label={pending ? "Saving user changes" : "Save user changes"}');
-    expect(primaryRow).toContain('aria-label="Revert user changes"');
     expect(primaryRow).toContain('disabled={!dirty || pending}');
     expect(primaryRow).toContain('<Save size={16} aria-hidden />');
     expect(primaryRow).toContain('className="admin-user-revert-button"');
+    expect(primaryRow).toContain('aria-label={`Revert ${fieldLabel} change`}');
+    expect(primaryRow).toContain('onClick={() => revertField("name")}');
+    expect(primaryRow).toContain('onClick={() => revertField("displayTimeZone")}');
+    expect(primaryRow).toContain('onClick={() => revertField("role")}');
     expect(primaryRow).toContain('<RotateCcw aria-hidden="true" size={13} strokeWidth={2.4} />');
     expect(primaryRow).toContain('form={formId}');
   });

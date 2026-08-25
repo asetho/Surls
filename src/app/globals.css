@@ -1790,14 +1790,6 @@ button.danger-outline:hover {
   width: 1.35rem;
 }
 
-.admin-user-revert-button {
-  flex: 0 0 1.35rem;
-  position: static;
-  right: auto;
-  top: auto;
-  transform: none;
-}
-
 .dashboard-theme-reset-color:hover,
 .dashboard-theme-reset-color:focus-visible,
 .admin-user-revert-button:hover,
