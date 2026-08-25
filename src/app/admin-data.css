@@ -158,24 +158,64 @@
   --data-table-min-width: 900px;
 }
 
+.admin-user-primary-row > td {
+  border-bottom: 0;
+  vertical-align: top;
+}
+
+.admin-user-management-row > td {
+  padding-top: 0;
+}
+
+.data-table-users .user-identity-form > button {
+  align-self: stretch;
+  min-height: var(--control-height);
+}
+
 .admin-user-management {
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  margin-top: 0.5rem;
 }
 
 .admin-user-management > summary {
   align-items: center;
   color: var(--muted);
-  display: flex;
+  display: grid;
   font-size: 0.78rem;
   font-weight: 800;
   gap: 0.4rem;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   padding: 0.42rem 0.55rem;
+  position: relative;
+}
+
+.admin-user-management > summary::before {
+  left: 0.7rem;
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%) rotate(-45deg);
+}
+
+.admin-user-management[open] > summary::before {
+  transform: translateY(-50%) rotate(45deg);
 }
 
 .admin-user-management-summary-label {
+  grid-column: 1;
   min-width: 0;
+  overflow: hidden;
+  padding-left: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-user-created-at {
+  font-size: 0.72rem;
+  font-weight: 600;
+  grid-column: 2;
+  justify-self: center;
+  white-space: nowrap;
 }
 
 .admin-user-security-indicators {
@@ -183,7 +223,8 @@
   display: inline-flex;
   flex: 0 0 auto;
   gap: 0.25rem;
-  margin-left: auto;
+  grid-column: 3;
+  justify-self: end;
 }
 
 .admin-user-security-indicator {
@@ -236,6 +277,40 @@
 }
 
 @media (max-width: 700px) {
+  .data-table-users .admin-user-primary-row {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .data-table-users .admin-user-management-row {
+    border-top: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    margin-top: -0.65rem;
+    padding-top: 0;
+  }
+
+  .admin-user-management > summary {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 0.12rem;
+  }
+
+  .admin-user-management > summary::before {
+    top: 0.86rem;
+  }
+
+  .admin-user-created-at {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: start;
+    padding-left: 1rem;
+  }
+
+  .admin-user-security-indicators {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
   .admin-user-management-body {
     grid-template-columns: 1fr;
   }
