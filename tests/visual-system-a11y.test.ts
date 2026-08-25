@@ -36,7 +36,11 @@ describe("visual system accessibility guards", () => {
     const usersPage = readFileSync("src/app/admin/users/page.tsx", "utf8");
 
     expect(usersPage).toContain('<details className="admin-user-management settings-collapse">');
-    expect(usersPage).toContain("Upload limit &amp; actions");
+    expect(usersPage).toContain("Security, upload limit &amp; actions");
+    expect(usersPage).toContain("TOTP enabled");
+    expect(usersPage).toContain("<ShieldCheck size={14} aria-hidden />");
+    expect(usersPage).toContain("<KeyRound size={14} aria-hidden />");
+    expect(usersPage).toContain("<h3>Security</h3>");
   });
 
   it("keeps motion and high-contrast coverage in the global visual layers", () => {
@@ -80,7 +84,7 @@ describe("visual system accessibility guards", () => {
     expect(dataTables).toMatch(/\.data-table-actions\s*>\s*\.row-actions\s*{[\s\S]*justify-content:\s*flex-end;/);
     expect(dataTables).toMatch(/\.data-table-links\s+\.data-table-numeric\s*{[\s\S]*text-align:\s*left;/);
     expect(dataTables).toMatch(/\.data-table-links\s+td\[data-label="Actions"\]\s*>\s*\.row-actions\s*{[\s\S]*justify-content:\s*flex-start;/);
-    expect(dataTables).toMatch(/\.data-table-users\s+td\[data-label="Security"\]\s*>\s*\.row-actions\s*>\s*\.badge\s*{[\s\S]*flex:\s*0\s+0\s+auto;[\s\S]*width:\s*auto;/);
+    expect(dataTables).toMatch(/\.admin-user-security-indicators\s*{[\s\S]*display:\s*inline-flex;[\s\S]*margin-left:\s*auto;/);
     expect(dataTables).toMatch(/\.link-list-summary\s*{[\s\S]*text-align:\s*right;/);
     expect(dataTables).toMatch(/\.dashboard-top-links-table\s+\.data-table-actions\s*{[\s\S]*text-align:\s*left;/);
     expect(dataTables).toMatch(/\.dashboard-top-links-table\s+\.data-table-actions\s+\.addtoany-share-button\s*{[\s\S]*overflow-wrap:\s*normal;[\s\S]*white-space:\s*nowrap;/);

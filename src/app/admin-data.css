@@ -165,10 +165,37 @@
 }
 
 .admin-user-management > summary {
+  align-items: center;
   color: var(--muted);
+  display: flex;
   font-size: 0.78rem;
   font-weight: 800;
+  gap: 0.4rem;
   padding: 0.42rem 0.55rem;
+}
+
+.admin-user-management-summary-label {
+  min-width: 0;
+}
+
+.admin-user-security-indicators {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.admin-user-security-indicator {
+  align-items: center;
+  background: var(--active-pill-background, var(--surface-strong));
+  border: 1px solid var(--active-pill-border, var(--border));
+  border-radius: 999px;
+  color: var(--active-pill-text, var(--text));
+  display: inline-flex;
+  height: 1.35rem;
+  justify-content: center;
+  width: 1.35rem;
 }
 
 .admin-user-management > .settings-collapse-body {
@@ -177,7 +204,7 @@
 }
 
 .admin-user-management-body {
-  grid-template-columns: minmax(13rem, 1fr) minmax(9rem, auto);
+  grid-template-columns: minmax(8.5rem, 0.7fr) minmax(13rem, 1fr) minmax(9rem, auto);
 }
 
 .admin-user-management-body > section {
@@ -253,17 +280,6 @@
 
   .data-table-links .short-url-pill {
     max-width: 100%;
-  }
-
-  .data-table-users td[data-label="Security"] > .row-actions {
-    align-items: center;
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .data-table-users td[data-label="Security"] > .row-actions > .badge {
-    flex: 0 0 auto;
-    width: auto;
   }
 
   .dashboard-top-links-table .data-table-actions > .row-actions {

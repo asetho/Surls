@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { UserRole } from "@prisma/client";
 import { redirect } from "next/navigation";
-import { Trash2 } from "lucide-react";
+import { KeyRound, ShieldCheck, Trash2 } from "lucide-react";
 import { AdminUserIdentityForm } from "@/components/AdminUserIdentityForm";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { CreateUserForm } from "@/components/CreateUserForm";
@@ -71,7 +71,6 @@ export default async function UsersPage() {
               <tr>
                 <th>User</th>
                 <th>Role</th>
-                <th>Security</th>
                 <th>Links</th>
                 <th>Sessions</th>
                 <th>Last login</th>
@@ -93,8 +92,42 @@ export default async function UsersPage() {
                     />
                     <div className="muted small">Created {formatDateTime(user.createdAt, displayTimeZone)}</div>
                     <details className="admin-user-management settings-collapse">
-                      <summary>Upload limit &amp; actions</summary>
+                      <summary>
+                        <span className="admin-user-management-summary-label">Security, upload limit &amp; actions</span>
+                        {user.totpCredential?.enabled || user._count.passkeys > 0 ? (
+                          <span className="admin-user-security-indicators">
+                            {user.totpCredential?.enabled ? (
+                              <span className="admin-user-security-indicator" title="TOTP enabled">
+                                <ShieldCheck size={14} aria-hidden />
+                                <span className="sr-only">TOTP enabled</span>
+                              </span>
+                            ) : null}
+                            {user._count.passkeys > 0 ? (
+                              <span
+                                className="admin-user-security-indicator"
+                                title={`${user._count.passkeys} ${user._count.passkeys === 1 ? "passkey" : "passkeys"} registered`}
+                              >
+                                <KeyRound size={14} aria-hidden />
+                                <span className="sr-only">
+                                  {user._count.passkeys} {user._count.passkeys === 1 ? "passkey" : "passkeys"} registered
+                                </span>
+                              </span>
+                            ) : null}
+                          </span>
+                        ) : null}
+                      </summary>
                       <div className="settings-collapse-body admin-user-management-body">
+                        <section>
+                          <h3>Security</h3>
+                          <div className="row-actions small">
+                            <span className={user.totpCredential?.enabled ? "badge" : "badge warning"}>
+                              TOTP {user.totpCredential?.enabled ? "on" : "off"}
+                            </span>
+                            <span className={user._count.passkeys ? "badge" : "badge warning"}>
+                              {user._count.passkeys} {user._count.passkeys === 1 ? "passkey" : "passkeys"}
+                            </span>
+                          </div>
+                        </section>
                         <section>
                           <h3>Upload limit</h3>
                           <UserUploadLimitForm
@@ -139,16 +172,6 @@ export default async function UsersPage() {
                         <button className="secondary" type="submit">Save</button>
                       </form>
                     )}
-                  </td>
-                  <td data-label="Security">
-                    <div className="row-actions small">
-                      <span className={user.totpCredential?.enabled ? "badge" : "badge warning"}>
-                        TOTP {user.totpCredential?.enabled ? "on" : "off"}
-                      </span>
-                      <span className={user._count.passkeys ? "badge" : "badge warning"}>
-                        {user._count.passkeys} {user._count.passkeys === 1 ? "passkey" : "passkeys"}
-                      </span>
-                    </div>
                   </td>
                   <td className="data-table-numeric" data-label="Links">{user._count.shortLinks}</td>
                   <td className="data-table-numeric" data-label="Sessions">{user._count.sessions}</td>
