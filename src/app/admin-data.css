@@ -160,16 +160,39 @@
 
 .admin-user-primary-row > td {
   border-bottom: 0;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .admin-user-management-row > td {
   padding-top: 0;
 }
 
-.data-table-users .user-identity-form > button {
-  align-self: stretch;
+.data-table-users .admin-user-edit-actions {
+  align-items: center;
+  display: flex;
+  gap: 0.25rem;
   min-height: var(--control-height);
+  width: calc((var(--control-height) * 2) + 0.25rem);
+}
+
+.data-table-users .admin-user-edit-actions > .icon-only-action {
+  flex-basis: var(--control-height);
+  height: var(--control-height);
+  min-height: var(--control-height);
+  min-width: var(--control-height);
+  width: var(--control-height);
+}
+
+.admin-user-role-select,
+.admin-user-role-static {
+  min-height: var(--control-height);
+  min-width: 7rem;
+  width: 100%;
+}
+
+.admin-user-role-static {
+  align-items: center;
+  display: flex;
 }
 
 .admin-user-management {
@@ -277,6 +300,10 @@
 }
 
 @media (max-width: 700px) {
+  .data-table-users .admin-user-edit-actions:empty {
+    display: none;
+  }
+
   .data-table-users .admin-user-primary-row {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;

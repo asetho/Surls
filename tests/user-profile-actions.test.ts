@@ -30,6 +30,7 @@ const prisma = vi.hoisted(() => ({
     deleteMany: vi.fn()
   },
   user: {
+    count: vi.fn(),
     findFirst: vi.fn(),
     findUnique: vi.fn(),
     update: vi.fn(),
@@ -57,7 +58,14 @@ vi.mock("@/lib/totp", () => ({
 vi.mock("@/lib/password", () => ({ hashPassword: vi.fn() }));
 
 function profileForm(
-  fields: { displayTimeZone?: string; email?: string; id?: string; mobileMenuSide?: string; name?: string } = {}
+  fields: {
+    displayTimeZone?: string;
+    email?: string;
+    id?: string;
+    mobileMenuSide?: string;
+    name?: string;
+    role?: string;
+  } = {}
 ) {
   const formData = new FormData();
   formData.set("csrf", "csrf-token");
@@ -66,6 +74,7 @@ function profileForm(
   formData.set("email", fields.email ?? "  USER@Example.COM  ");
   formData.set("mobileMenuSide", fields.mobileMenuSide ?? "left");
   formData.set("name", fields.name ?? "  Test User  ");
+  if (fields.role) formData.set("role", fields.role);
   return formData;
 }
 
@@ -82,7 +91,8 @@ describe("profile identity actions", () => {
     prisma.backupCode.deleteMany.mockResolvedValue({ count: 0 });
     prisma.session.deleteMany.mockResolvedValue({ count: 0 });
     prisma.user.findFirst.mockResolvedValue(null);
-    prisma.user.findUnique.mockResolvedValue({ id: "user_1" });
+    prisma.user.findUnique.mockResolvedValue({ id: "user_1", role: "USER" });
+    prisma.user.count.mockResolvedValue(2);
     prisma.user.update.mockResolvedValue({});
     prisma.user.updateMany.mockResolvedValue({ count: 1 });
   });
@@ -197,6 +207,48 @@ describe("profile identity actions", () => {
         name: "Test User"
       }
     });
+  });
+
+  it("lets admins save another user's identity and role together", async () => {
+    const { updateUserIdentityAction } = await import("@/app/admin/users/actions");
+    prisma.user.findUnique.mockResolvedValue({ id: "user_2", role: "USER" });
+
+    await expect(
+      updateUserIdentityAction(null, profileForm({ id: "user_2", role: "ADMIN" }))
+    ).resolves.toEqual({ message: "User updated." });
+
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: "user_2" },
+      data: {
+        displayTimeZone: "America/Los_Angeles",
+        email: "user@example.com",
+        name: "Test User",
+        role: "ADMIN"
+      }
+    });
+  });
+
+  it("does not let an admin change their own role in the combined form", async () => {
+    const { updateUserIdentityAction } = await import("@/app/admin/users/actions");
+    prisma.user.findUnique.mockResolvedValue({ id: "admin_1", role: "ADMIN" });
+
+    await expect(
+      updateUserIdentityAction(null, profileForm({ id: "admin_1", role: "USER" }))
+    ).resolves.toEqual({ error: "You cannot change your own role." });
+
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it("does not demote the last admin through the combined form", async () => {
+    const { updateUserIdentityAction } = await import("@/app/admin/users/actions");
+    prisma.user.findUnique.mockResolvedValue({ id: "user_2", role: "ADMIN" });
+    prisma.user.count.mockResolvedValue(1);
+
+    await expect(
+      updateUserIdentityAction(null, profileForm({ id: "user_2", role: "USER" }))
+    ).resolves.toEqual({ error: "At least one admin user is required." });
+
+    expect(prisma.user.update).not.toHaveBeenCalled();
   });
 
   it("lets site admins set a custom per-user upload limit", async () => {

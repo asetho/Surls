@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import { UserRole } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { KeyRound, ShieldCheck, Trash2 } from "lucide-react";
 import { Fragment } from "react";
-import { AdminUserIdentityForm } from "@/components/AdminUserIdentityForm";
+import { AdminUserPrimaryRow } from "@/components/AdminUserPrimaryRow";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { CreateUserForm } from "@/components/CreateUserForm";
 import { UserUploadLimitForm } from "@/components/UserUploadLimitForm";
@@ -15,7 +14,7 @@ import { prisma } from "@/lib/prisma";
 import { getDisplayTimeZone, getSiteUploadMaxBytes } from "@/lib/settings";
 import { uploadBytesToMegabytes, userUploadLimitMode } from "@/lib/upload-limits";
 import { uploadMaxBytesLabel } from "@/lib/uploads";
-import { deleteUserAction, updateUserRoleAction } from "./actions";
+import { deleteUserAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "Users"
@@ -80,38 +79,22 @@ export default async function UsersPage() {
             <tbody>
               {users.map((user) => (
                 <Fragment key={user.id}>
-                  <tr className="admin-user-primary-row">
-                    <td data-label="User">
-                      <AdminUserIdentityForm
-                        csrf={csrf}
-                        siteDefaultTimeZone={siteDefaultTimeZone}
-                        user={{
-                          displayTimeZone: user.displayTimeZone,
-                          email: user.email,
-                          id: user.id,
-                          name: user.name
-                        }}
-                      />
-                    </td>
-                    <td data-label="Role">
-                      {user.id === admin.id ? (
-                        <span className="badge">Admin</span>
-                      ) : (
-                        <form className="role-form" action={updateUserRoleAction}>
-                          <input type="hidden" name="csrf" value={csrf} />
-                          <input type="hidden" name="id" value={user.id} />
-                          <select name="role" defaultValue={user.role}>
-                            <option value={UserRole.USER}>User</option>
-                            <option value={UserRole.ADMIN}>Admin</option>
-                          </select>
-                          <button className="secondary" type="submit">Save</button>
-                        </form>
-                      )}
-                    </td>
-                    <td className="data-table-numeric" data-label="Links">{user._count.shortLinks}</td>
-                    <td className="data-table-numeric" data-label="Sessions">{user._count.sessions}</td>
-                    <td className="data-table-time" data-label="Last login">{user.lastLoginAt ? formatDateTime(user.lastLoginAt, displayTimeZone) : "Never"}</td>
-                  </tr>
+                  <AdminUserPrimaryRow
+                    key={`${user.id}-${user.updatedAt.getTime()}`}
+                    canEditRole={user.id !== admin.id}
+                    csrf={csrf}
+                    lastLoginLabel={user.lastLoginAt ? formatDateTime(user.lastLoginAt, displayTimeZone) : "Never"}
+                    linkCount={user._count.shortLinks}
+                    sessionCount={user._count.sessions}
+                    siteDefaultTimeZone={siteDefaultTimeZone}
+                    user={{
+                      displayTimeZone: user.displayTimeZone,
+                      email: user.email,
+                      id: user.id,
+                      name: user.name,
+                      role: user.role
+                    }}
+                  />
                   <tr className="admin-user-management-row">
                     <td colSpan={5}>
                       <details className="admin-user-management settings-collapse">

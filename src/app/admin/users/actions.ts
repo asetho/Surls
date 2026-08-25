@@ -94,7 +94,7 @@ export async function updateUserIdentityAction(
   const profile = parsed.data;
 
   const [target, existing] = await Promise.all([
-    prisma.user.findUnique({ where: { id }, select: { id: true } }),
+    prisma.user.findUnique({ where: { id }, select: { id: true, role: true } }),
     prisma.user.findFirst({
       where: {
         email: profile.email,
@@ -106,10 +106,22 @@ export async function updateUserIdentityAction(
   if (!target) return { error: "That user no longer exists." };
   if (existing) return { error: "A user with that email already exists." };
 
+  const submittedRole = formData.get("role");
+  const role = submittedRole === null ? null : cleanRole(submittedRole);
+  if (role && id === admin.id && role !== target.role) {
+    return { error: "You cannot change your own role." };
+  }
+  if (role === UserRole.USER && target.role === UserRole.ADMIN && (await isLastAdmin(id))) {
+    return { error: "At least one admin user is required." };
+  }
+
   try {
     await prisma.user.update({
       where: { id },
-      data: profile
+      data: {
+        ...profile,
+        ...(role ? { role } : {})
+      }
     });
   } catch (error) {
     if (isUniqueEmailError(error)) return { error: "A user with that email already exists." };

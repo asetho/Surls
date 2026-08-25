@@ -41,10 +41,17 @@ describe("visual system accessibility guards", () => {
     expect(usersPage).toContain("<ShieldCheck size={14} aria-hidden />");
     expect(usersPage).toContain("<KeyRound size={14} aria-hidden />");
     expect(usersPage).toContain("<h3>Security</h3>");
-    expect(usersPage).toContain('<tr className="admin-user-primary-row">');
     expect(usersPage).toContain('<tr className="admin-user-management-row">');
     expect(usersPage).toContain("<td colSpan={5}>");
     expect(usersPage).toContain('className="admin-user-created-at"');
+
+    const primaryRow = readFileSync("src/components/AdminUserPrimaryRow.tsx", "utf8");
+    expect(primaryRow).toContain('<tr className="admin-user-primary-row"');
+    expect(primaryRow).toContain('aria-label={pending ? "Saving user changes" : "Save user changes"}');
+    expect(primaryRow).toContain('aria-label="Revert user changes"');
+    expect(primaryRow).toContain('<Save size={16} aria-hidden />');
+    expect(primaryRow).toContain('<RotateCcw size={16} aria-hidden />');
+    expect(primaryRow).toContain('form={formId}');
   });
 
   it("keeps motion and high-contrast coverage in the global visual layers", () => {
@@ -88,8 +95,8 @@ describe("visual system accessibility guards", () => {
     expect(dataTables).toMatch(/\.data-table-actions\s*>\s*\.row-actions\s*{[\s\S]*justify-content:\s*flex-end;/);
     expect(dataTables).toMatch(/\.data-table-links\s+\.data-table-numeric\s*{[\s\S]*text-align:\s*left;/);
     expect(dataTables).toMatch(/\.data-table-links\s+td\[data-label="Actions"\]\s*>\s*\.row-actions\s*{[\s\S]*justify-content:\s*flex-start;/);
-    expect(dataTables).toMatch(/\.admin-user-primary-row\s*>\s*td\s*{[\s\S]*vertical-align:\s*top;/);
-    expect(dataTables).toMatch(/\.data-table-users\s+\.user-identity-form\s*>\s*button\s*{[\s\S]*min-height:\s*var\(--control-height\);/);
+    expect(dataTables).toMatch(/\.admin-user-primary-row\s*>\s*td\s*{[\s\S]*vertical-align:\s*middle;/);
+    expect(dataTables).toMatch(/\.data-table-users\s+\.admin-user-edit-actions\s*>\s*\.icon-only-action\s*{[\s\S]*min-height:\s*var\(--control-height\);/);
     expect(dataTables).toMatch(/\.admin-user-security-indicators\s*{[\s\S]*display:\s*inline-flex;[\s\S]*justify-self:\s*end;/);
     expect(dataTables).toMatch(/\.link-list-summary\s*{[\s\S]*text-align:\s*right;/);
     expect(dataTables).toMatch(/\.dashboard-top-links-table\s+\.data-table-actions\s*{[\s\S]*text-align:\s*left;/);
