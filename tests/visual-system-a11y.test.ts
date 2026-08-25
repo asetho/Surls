@@ -96,7 +96,7 @@ describe("visual system accessibility guards", () => {
     expect(dataTables).toMatch(/\.data-table-links\s+\.data-table-numeric\s*{[\s\S]*text-align:\s*left;/);
     expect(dataTables).toMatch(/\.data-table-links\s+td\[data-label="Actions"\]\s*>\s*\.row-actions\s*{[\s\S]*justify-content:\s*flex-start;/);
     expect(dataTables).toMatch(/\.admin-user-primary-row\s*>\s*td\s*{[\s\S]*vertical-align:\s*middle;/);
-    expect(dataTables).toMatch(/\.data-table-users\s+\.admin-user-edit-actions\s*>\s*\.icon-only-action\s*{[\s\S]*min-height:\s*var\(--control-height\);/);
+    expect(dataTables).toMatch(/\.data-table-users\s+\.admin-user-edit-actions\s*>\s*\.icon-only-action\s*{[\s\S]*height:\s*var\(--admin-user-row-control-height\);/);
     expect(dataTables).toMatch(/\.admin-user-security-indicators\s*{[\s\S]*display:\s*inline-flex;[\s\S]*justify-self:\s*end;/);
     expect(dataTables).toMatch(/\.link-list-summary\s*{[\s\S]*text-align:\s*right;/);
     expect(dataTables).toMatch(/\.dashboard-top-links-table\s+\.data-table-actions\s*{[\s\S]*text-align:\s*left;/);

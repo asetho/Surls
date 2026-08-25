@@ -155,6 +155,7 @@
 }
 
 .data-table-users {
+  --admin-user-row-control-height: 2.3rem;
   --data-table-min-width: 900px;
 }
 
@@ -171,21 +172,27 @@
   align-items: center;
   display: flex;
   gap: 0.25rem;
-  min-height: var(--control-height);
-  width: calc((var(--control-height) * 2) + 0.25rem);
+  min-height: var(--admin-user-row-control-height);
+  width: calc((var(--admin-user-row-control-height) * 2) + 0.25rem);
 }
 
 .data-table-users .admin-user-edit-actions > .icon-only-action {
-  flex-basis: var(--control-height);
-  height: var(--control-height);
-  min-height: var(--control-height);
-  min-width: var(--control-height);
-  width: var(--control-height);
+  flex-basis: var(--admin-user-row-control-height);
+  height: var(--admin-user-row-control-height);
+  min-height: var(--admin-user-row-control-height);
+  min-width: var(--admin-user-row-control-height);
+  width: var(--admin-user-row-control-height);
+}
+
+.data-table-users .user-identity-form input,
+.data-table-users .user-identity-form select {
+  height: var(--admin-user-row-control-height);
 }
 
 .admin-user-role-select,
 .admin-user-role-static {
-  min-height: var(--control-height);
+  height: var(--admin-user-row-control-height);
+  min-height: var(--admin-user-row-control-height);
   min-width: 7rem;
   width: 100%;
 }
