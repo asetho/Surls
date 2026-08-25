@@ -155,20 +155,150 @@
 }
 
 .data-table-users {
+  --admin-user-row-control-height: 2.3rem;
   --data-table-min-width: 900px;
+}
+
+.admin-user-primary-row > td {
+  border-bottom: 0;
+  vertical-align: middle;
+}
+
+.admin-user-management-row > td {
+  padding-top: 0;
+}
+
+.data-table-users .admin-user-edit-actions {
+  align-items: center;
+  display: flex;
+  gap: 0.25rem;
+  justify-content: flex-end;
+  justify-self: end;
+  min-height: var(--admin-user-row-control-height);
+  width: var(--admin-user-row-control-height);
+}
+
+.data-table-users .admin-user-edit-actions > .icon-only-action {
+  flex-basis: var(--admin-user-row-control-height);
+  height: var(--admin-user-row-control-height);
+  min-height: var(--admin-user-row-control-height);
+  min-width: var(--admin-user-row-control-height);
+  width: var(--admin-user-row-control-height);
+}
+
+.data-table-users .admin-user-revert-button {
+  box-shadow: none;
+}
+
+.data-table-users .admin-user-revert-button:hover,
+.data-table-users .admin-user-revert-button:focus-visible {
+  background: var(--surface);
+  color: var(--text);
+  padding: 0;
+}
+
+.admin-user-edit-field {
+  display: grid;
+  min-width: 0;
+  position: relative;
+  width: 100%;
+}
+
+.admin-user-edit-field.has-revert input {
+  padding-right: 2.15rem;
+}
+
+.admin-user-select-edit-field.has-revert select {
+  padding-right: 3.25rem;
+}
+
+.admin-user-select-edit-field > .admin-user-revert-button {
+  right: 1.85rem;
+}
+
+.data-table-users .user-identity-form input,
+.data-table-users .user-identity-form select {
+  height: var(--admin-user-row-control-height);
+}
+
+.admin-user-role-select,
+.admin-user-role-static {
+  height: var(--admin-user-row-control-height);
+  min-height: var(--admin-user-row-control-height);
+  min-width: 7rem;
+  width: 100%;
+}
+
+.admin-user-role-static {
+  align-items: center;
+  display: flex;
 }
 
 .admin-user-management {
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  margin-top: 0.5rem;
 }
 
 .admin-user-management > summary {
+  align-items: center;
   color: var(--muted);
+  display: grid;
   font-size: 0.78rem;
   font-weight: 800;
+  gap: 0.4rem;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   padding: 0.42rem 0.55rem;
+  position: relative;
+}
+
+.admin-user-management > summary::before {
+  left: 0.7rem;
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%) rotate(-45deg);
+}
+
+.admin-user-management[open] > summary::before {
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.admin-user-management-summary-label {
+  grid-column: 1;
+  min-width: 0;
+  overflow: hidden;
+  padding-left: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-user-created-at {
+  font-size: 0.72rem;
+  font-weight: 600;
+  grid-column: 2;
+  justify-self: center;
+  white-space: nowrap;
+}
+
+.admin-user-security-indicators {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 0.25rem;
+  grid-column: 3;
+  justify-self: end;
+}
+
+.admin-user-security-indicator {
+  align-items: center;
+  background: var(--active-pill-background, var(--surface-strong));
+  border: 1px solid var(--active-pill-border, var(--border));
+  border-radius: 999px;
+  color: var(--active-pill-text, var(--text));
+  display: inline-flex;
+  height: 1.35rem;
+  justify-content: center;
+  width: 1.35rem;
 }
 
 .admin-user-management > .settings-collapse-body {
@@ -177,7 +307,7 @@
 }
 
 .admin-user-management-body {
-  grid-template-columns: minmax(13rem, 1fr) minmax(9rem, auto);
+  grid-template-columns: minmax(8.5rem, 0.7fr) minmax(13rem, 1fr) minmax(9rem, auto);
 }
 
 .admin-user-management-body > section {
@@ -209,6 +339,40 @@
 }
 
 @media (max-width: 700px) {
+  .data-table-users .admin-user-primary-row {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .data-table-users .admin-user-management-row {
+    border-top: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    margin-top: -0.65rem;
+    padding-top: 0;
+  }
+
+  .admin-user-management > summary {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 0.12rem;
+  }
+
+  .admin-user-management > summary::before {
+    top: 0.86rem;
+  }
+
+  .admin-user-created-at {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: start;
+    padding-left: 1rem;
+  }
+
+  .admin-user-security-indicators {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
   .admin-user-management-body {
     grid-template-columns: 1fr;
   }
@@ -253,17 +417,6 @@
 
   .data-table-links .short-url-pill {
     max-width: 100%;
-  }
-
-  .data-table-users td[data-label="Security"] > .row-actions {
-    align-items: center;
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .data-table-users td[data-label="Security"] > .row-actions > .badge {
-    flex: 0 0 auto;
-    width: auto;
   }
 
   .dashboard-top-links-table .data-table-actions > .row-actions {

@@ -1766,7 +1766,8 @@ button.danger-outline:hover {
   position: relative;
 }
 
-.dashboard-theme-reset-color {
+.dashboard-theme-reset-color,
+.admin-user-revert-button {
   align-items: center;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1790,7 +1791,9 @@ button.danger-outline:hover {
 }
 
 .dashboard-theme-reset-color:hover,
-.dashboard-theme-reset-color:focus-visible {
+.dashboard-theme-reset-color:focus-visible,
+.admin-user-revert-button:hover,
+.admin-user-revert-button:focus-visible {
   color: var(--color-teal);
 }
 
@@ -4234,7 +4237,7 @@ th {
   display: grid;
   gap: 0.4rem;
   grid-template-columns: minmax(8rem, 1fr) minmax(12rem, 1.35fr) minmax(13rem, 1fr) auto;
-  max-width: 48rem;
+  max-width: 52rem;
 }
 
 .user-identity-form input,

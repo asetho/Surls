@@ -36,7 +36,27 @@ describe("visual system accessibility guards", () => {
     const usersPage = readFileSync("src/app/admin/users/page.tsx", "utf8");
 
     expect(usersPage).toContain('<details className="admin-user-management settings-collapse">');
-    expect(usersPage).toContain("Upload limit &amp; actions");
+    expect(usersPage).toContain("Security, upload limit &amp; actions");
+    expect(usersPage).toContain("TOTP enabled");
+    expect(usersPage).toContain("<ShieldCheck size={14} aria-hidden />");
+    expect(usersPage).toContain("<KeyRound size={14} aria-hidden />");
+    expect(usersPage).toContain("<h3>Security</h3>");
+    expect(usersPage).toContain('<tr className="admin-user-management-row">');
+    expect(usersPage).toContain("<td colSpan={5}>");
+    expect(usersPage).toContain('className="admin-user-created-at"');
+
+    const primaryRow = readFileSync("src/components/AdminUserPrimaryRow.tsx", "utf8");
+    expect(primaryRow).toContain('<tr className="admin-user-primary-row"');
+    expect(primaryRow).toContain('aria-label={pending ? "Saving user changes" : "Save user changes"}');
+    expect(primaryRow).toContain('disabled={!dirty || pending}');
+    expect(primaryRow).toContain('<Save size={16} aria-hidden />');
+    expect(primaryRow).toContain('className="admin-user-revert-button"');
+    expect(primaryRow).toContain('aria-label={`Revert ${fieldLabel} change`}');
+    expect(primaryRow).toContain('onClick={() => revertField("name")}');
+    expect(primaryRow).toContain('onClick={() => revertField("displayTimeZone")}');
+    expect(primaryRow).toContain('onClick={() => revertField("role")}');
+    expect(primaryRow).toContain('<RotateCcw aria-hidden="true" size={13} strokeWidth={2.4} />');
+    expect(primaryRow).toContain('form={formId}');
   });
 
   it("keeps motion and high-contrast coverage in the global visual layers", () => {
@@ -75,12 +95,17 @@ describe("visual system accessibility guards", () => {
     const dataTables = readFileSync("src/app/admin-data.css", "utf8");
 
     expect(globals).toMatch(/\.form-grid\s*>\s*label\s*{[\s\S]*text-align:\s*left;/);
+    expect(dataTables).toMatch(
+      /\.data-table-users\s+\.admin-user-revert-button\s*{[\s\S]*box-shadow:\s*none;/,
+    );
     expect(globals).toMatch(/\.modal-panel\s*{[\s\S]*text-align:\s*left;/);
     expect(globals).toMatch(/\.links-table\s+td\[data-label="Actions"\]\s*>\s*\.row-actions\s*{[\s\S]*justify-content:\s*flex-end;/);
     expect(dataTables).toMatch(/\.data-table-actions\s*>\s*\.row-actions\s*{[\s\S]*justify-content:\s*flex-end;/);
     expect(dataTables).toMatch(/\.data-table-links\s+\.data-table-numeric\s*{[\s\S]*text-align:\s*left;/);
     expect(dataTables).toMatch(/\.data-table-links\s+td\[data-label="Actions"\]\s*>\s*\.row-actions\s*{[\s\S]*justify-content:\s*flex-start;/);
-    expect(dataTables).toMatch(/\.data-table-users\s+td\[data-label="Security"\]\s*>\s*\.row-actions\s*>\s*\.badge\s*{[\s\S]*flex:\s*0\s+0\s+auto;[\s\S]*width:\s*auto;/);
+    expect(dataTables).toMatch(/\.admin-user-primary-row\s*>\s*td\s*{[\s\S]*vertical-align:\s*middle;/);
+    expect(dataTables).toMatch(/\.data-table-users\s+\.admin-user-edit-actions\s*>\s*\.icon-only-action\s*{[\s\S]*height:\s*var\(--admin-user-row-control-height\);/);
+    expect(dataTables).toMatch(/\.admin-user-security-indicators\s*{[\s\S]*display:\s*inline-flex;[\s\S]*justify-self:\s*end;/);
     expect(dataTables).toMatch(/\.link-list-summary\s*{[\s\S]*text-align:\s*right;/);
     expect(dataTables).toMatch(/\.dashboard-top-links-table\s+\.data-table-actions\s*{[\s\S]*text-align:\s*left;/);
     expect(dataTables).toMatch(/\.dashboard-top-links-table\s+\.data-table-actions\s+\.addtoany-share-button\s*{[\s\S]*overflow-wrap:\s*normal;[\s\S]*white-space:\s*nowrap;/);
