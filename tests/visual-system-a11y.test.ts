@@ -49,6 +49,7 @@ describe("visual system accessibility guards", () => {
     expect(primaryRow).toContain('<tr className="admin-user-primary-row"');
     expect(primaryRow).toContain('aria-label={pending ? "Saving user changes" : "Save user changes"}');
     expect(primaryRow).toContain('aria-label="Revert user changes"');
+    expect(primaryRow).toContain('disabled={!dirty || pending}');
     expect(primaryRow).toContain('<Save size={16} aria-hidden />');
     expect(primaryRow).toContain('<RotateCcw size={16} aria-hidden />');
     expect(primaryRow).toContain('form={formId}');

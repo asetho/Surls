@@ -172,6 +172,8 @@
   align-items: center;
   display: flex;
   gap: 0.25rem;
+  justify-content: flex-end;
+  justify-self: end;
   min-height: var(--admin-user-row-control-height);
   width: calc((var(--admin-user-row-control-height) * 2) + 0.25rem);
 }
@@ -307,10 +309,6 @@
 }
 
 @media (max-width: 700px) {
-  .data-table-users .admin-user-edit-actions:empty {
-    display: none;
-  }
-
   .data-table-users .admin-user-primary-row {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;

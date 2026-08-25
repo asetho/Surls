@@ -73,31 +73,6 @@ export function AdminUserPrimaryRow({
           <input type="hidden" name="csrf" value={csrf} />
           <input type="hidden" name="id" value={user.id} />
           {!canEditRole ? <input type="hidden" name="role" value={user.role} /> : null}
-          <div className="admin-user-edit-actions" aria-live="polite">
-            {dirty ? (
-              <>
-                <button
-                  aria-label={pending ? "Saving user changes" : "Save user changes"}
-                  className="secondary icon-button icon-only-action"
-                  disabled={pending}
-                  title={pending ? "Saving user changes" : "Save user changes"}
-                  type="submit"
-                >
-                  <Save size={16} aria-hidden />
-                </button>
-                <button
-                  aria-label="Revert user changes"
-                  className="secondary icon-button icon-only-action"
-                  disabled={pending}
-                  onClick={revertChanges}
-                  title="Revert user changes"
-                  type="button"
-                >
-                  <RotateCcw size={16} aria-hidden />
-                </button>
-              </>
-            ) : null}
-          </div>
           <label>
             <span className="sr-only">Display name</span>
             <input name="name" autoComplete="off" defaultValue={user.name ?? ""} placeholder="Display name" />
@@ -113,6 +88,29 @@ export function AdminUserPrimaryRow({
             siteDefaultTimeZone={siteDefaultTimeZone}
             value={user.displayTimeZone}
           />
+          <div className="admin-user-edit-actions" aria-live="polite">
+            {dirty ? (
+              <button
+                aria-label="Revert user changes"
+                className="secondary icon-button icon-only-action"
+                disabled={pending}
+                onClick={revertChanges}
+                title="Revert user changes"
+                type="button"
+              >
+                <RotateCcw size={16} aria-hidden />
+              </button>
+            ) : null}
+            <button
+              aria-label={pending ? "Saving user changes" : "Save user changes"}
+              className="secondary icon-button icon-only-action"
+              disabled={!dirty || pending}
+              title={pending ? "Saving user changes" : "Save user changes"}
+              type="submit"
+            >
+              <Save size={16} aria-hidden />
+            </button>
+          </div>
         </form>
       </td>
       <td data-label="Role">

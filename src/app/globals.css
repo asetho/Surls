@@ -4233,7 +4233,7 @@ th {
   align-items: center;
   display: grid;
   gap: 0.4rem;
-  grid-template-columns: auto minmax(8rem, 1fr) minmax(12rem, 1.35fr) minmax(13rem, 1fr);
+  grid-template-columns: minmax(8rem, 1fr) minmax(12rem, 1.35fr) minmax(13rem, 1fr) auto;
   max-width: 52rem;
 }
 
