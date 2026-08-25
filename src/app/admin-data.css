@@ -186,6 +186,13 @@
   width: var(--admin-user-row-control-height);
 }
 
+.data-table-users .admin-user-revert-button:hover,
+.data-table-users .admin-user-revert-button:focus-visible {
+  background: var(--surface);
+  color: var(--text);
+  padding: 0;
+}
+
 .data-table-users .user-identity-form input,
 .data-table-users .user-identity-form select {
   height: var(--admin-user-row-control-height);

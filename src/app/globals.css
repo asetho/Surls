@@ -1766,7 +1766,8 @@ button.danger-outline:hover {
   position: relative;
 }
 
-.dashboard-theme-reset-color {
+.dashboard-theme-reset-color,
+.admin-user-revert-button {
   align-items: center;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1789,8 +1790,18 @@ button.danger-outline:hover {
   width: 1.35rem;
 }
 
+.admin-user-revert-button {
+  flex: 0 0 1.35rem;
+  position: static;
+  right: auto;
+  top: auto;
+  transform: none;
+}
+
 .dashboard-theme-reset-color:hover,
-.dashboard-theme-reset-color:focus-visible {
+.dashboard-theme-reset-color:focus-visible,
+.admin-user-revert-button:hover,
+.admin-user-revert-button:focus-visible {
   color: var(--color-teal);
 }
 

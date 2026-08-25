@@ -92,13 +92,13 @@ export function AdminUserPrimaryRow({
             {dirty ? (
               <button
                 aria-label="Revert user changes"
-                className="secondary icon-button icon-only-action"
+                className="admin-user-revert-button"
                 disabled={pending}
                 onClick={revertChanges}
                 title="Revert user changes"
                 type="button"
               >
-                <RotateCcw size={16} aria-hidden />
+                <RotateCcw aria-hidden="true" size={13} strokeWidth={2.4} />
               </button>
             ) : null}
             <button

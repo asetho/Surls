@@ -51,7 +51,8 @@ describe("visual system accessibility guards", () => {
     expect(primaryRow).toContain('aria-label="Revert user changes"');
     expect(primaryRow).toContain('disabled={!dirty || pending}');
     expect(primaryRow).toContain('<Save size={16} aria-hidden />');
-    expect(primaryRow).toContain('<RotateCcw size={16} aria-hidden />');
+    expect(primaryRow).toContain('className="admin-user-revert-button"');
+    expect(primaryRow).toContain('<RotateCcw aria-hidden="true" size={13} strokeWidth={2.4} />');
     expect(primaryRow).toContain('form={formId}');
   });
 
