@@ -23,11 +23,13 @@ describe("uploaded files", () => {
   });
 
   it("stores files under opaque names while preserving a browser-safe download name", async () => {
-    await withUploadModule(async ({ storeUploadedFile }, dir) => {
+    await withUploadModule(async ({ promoteUploadedFile, storeUploadedFile }, dir) => {
       const file = new File(["hello"], "my not safe&clean filename #1.txt", { type: "text/plain" });
 
       const first = await storeUploadedFile(file, { filenameMode: "safe" });
       const second = await storeUploadedFile(file, { filenameMode: "safe" });
+      await promoteUploadedFile(first);
+      await promoteUploadedFile(second);
 
       expect(first.filename).toMatch(/^[a-f0-9]{32}\.txt$/);
       expect(second.filename).toMatch(/^[a-f0-9]{32}\.txt$/);
@@ -74,6 +76,20 @@ describe("uploaded files", () => {
 
       await expect(storeUploadedFile(file)).resolves.toMatchObject({ size: 5 });
       expect(file.arrayBuffer).not.toHaveBeenCalled();
+    });
+  });
+
+  it("keeps concurrent in-flight files outside legacy reconciliation", async () => {
+    await withUploadModule(async ({ promoteUploadedFile, storedUploadsOnDisk, storeUploadedFile }) => {
+      const first = await storeUploadedFile(new File(["one"], "one.txt"));
+      const second = await storeUploadedFile(new File(["two"], "two.txt"));
+
+      await expect(storedUploadsOnDisk()).resolves.toEqual([]);
+      await promoteUploadedFile(first);
+      await expect(storedUploadsOnDisk()).resolves.toEqual([
+        expect.objectContaining({ storageKey: first.filename })
+      ]);
+      expect(second.pendingFilePath).toContain(".pending");
     });
   });
 

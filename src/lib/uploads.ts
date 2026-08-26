@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { mkdir, open, readdir, rm, stat } from "node:fs/promises";
+import { link, mkdir, open, readdir, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { appBaseUrl, env } from "./env";
 import { UPLOAD_PROCESS_MAX_BYTES } from "./upload-limits";
@@ -19,6 +19,7 @@ export type StoredUpload = {
   downloadName: string;
   filename: string;
   filePath: string;
+  pendingFilePath: string;
   publicPath: string;
   size: number;
 };
@@ -50,6 +51,10 @@ function uploadsRoot() {
     throw new Error("UPLOADS_DIR must be an absolute path.");
   }
   return path.normalize(root);
+}
+
+function pendingUploadsRoot(root: string) {
+  return path.join(root, ".pending");
 }
 
 function removePathParts(filename: string) {
@@ -182,17 +187,33 @@ export async function storeUploadedFile(file: File, options: StoreUploadedFileOp
   }
 
   const root = uploadsRoot();
-  await mkdir(root, { recursive: true });
+  const pendingRoot = pendingUploadsRoot(root);
+  await Promise.all([mkdir(root, { recursive: true }), mkdir(pendingRoot, { recursive: true })]);
   const filename = storedUploadFilename(file.name, options);
-  const stored = await writeUniqueFile(root, filename, file);
-  const publicPath = `/${UPLOAD_ROUTE_SEGMENT}/${encodeURIComponent(stored.filename)}`;
+  const pending = await writeUniqueFile(pendingRoot, filename, file);
+  const filePath = filePathInside(root, pending.filename);
+  const publicPath = `/${UPLOAD_ROUTE_SEGMENT}/${encodeURIComponent(pending.filename)}`;
 
   return {
-    ...stored,
-    downloadName: uploadedDownloadName(file.name, stored.filename, options),
+    downloadName: uploadedDownloadName(file.name, pending.filename, options),
+    filename: pending.filename,
+    filePath,
+    pendingFilePath: pending.filePath,
     publicPath,
     size: file.size
   };
+}
+
+export async function promoteUploadedFile(upload: StoredUpload) {
+  await link(upload.pendingFilePath, upload.filePath);
+  await rm(upload.pendingFilePath, { force: true });
+}
+
+export async function discardUploadedFile(upload: StoredUpload) {
+  await Promise.all([
+    rm(upload.pendingFilePath, { force: true }),
+    rm(upload.filePath, { force: true })
+  ]);
 }
 
 export async function deleteUploadedFile(filename: string) {

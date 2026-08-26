@@ -5,7 +5,8 @@ import { createShortLink, shortUrl } from "./links";
 import { prisma } from "./prisma";
 import { withUploadedFileReservation } from "./uploaded-file-records";
 import {
-  deleteUploadedFile,
+  discardUploadedFile,
+  promoteUploadedFile,
   type UploadFilenameMode,
   storeUploadedFile
 } from "./uploads";
@@ -59,6 +60,7 @@ export async function uploadAndShortenFile(input: UploadAndShortenInput) {
     const link = await withUploadedFileReservation(
       {
         downloadName: storedFile.downloadName,
+        finalize: () => promoteUploadedFile(storedFile),
         ownerId: input.createdById,
         sizeBytes: storedFile.size,
         storageKey: storedFile.filename
@@ -97,7 +99,7 @@ export async function uploadAndShortenFile(input: UploadAndShortenInput) {
             }
           }
         });
-        return createdLink;
+        return { result: createdLink, shortLinkId: createdLink.id };
       }
     );
 
@@ -107,7 +109,7 @@ export async function uploadAndShortenFile(input: UploadAndShortenInput) {
       shortUrl: shortUrl(appBaseUrl(), link.code)
     };
   } catch (error) {
-    if (stored) await deleteUploadedFile(stored.filename).catch(() => null);
+    if (stored) await discardUploadedFile(stored).catch(() => null);
     throw error;
   }
 }

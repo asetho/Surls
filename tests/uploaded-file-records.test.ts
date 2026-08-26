@@ -46,21 +46,23 @@ describe("uploaded file quota reservations", () => {
 
   it("binds a legacy file record to its oldest remaining link owner", async () => {
     transaction.uploadedFile.findUnique.mockResolvedValue(null);
-    transaction.shortLink.findFirst.mockResolvedValue({ createdById: "original_owner" });
+    transaction.shortLink.findFirst.mockResolvedValue({ createdById: "original_owner", id: "legacy_link" });
     transaction.uploadedFile.create.mockResolvedValue({
       downloadName: "legacy-report.pdf",
-      ownerId: "original_owner"
+      ownerId: "original_owner",
+      shortLinkId: "legacy_link"
     });
 
     await expect(ensureUploadedFileRecord("legacy-report.pdf")).resolves.toEqual({
       downloadName: "legacy-report.pdf",
-      ownerId: "original_owner"
+      ownerId: "original_owner",
+      shortLinkId: "legacy_link"
     });
 
     expect(transaction.shortLink.findFirst).toHaveBeenCalledWith({
       where: { destinationUrl: "http://localhost:3000/uploads/legacy-report.pdf" },
       orderBy: { createdAt: "asc" },
-      select: { createdById: true }
+      select: { createdById: true, id: true }
     });
   });
 
@@ -69,9 +71,9 @@ describe("uploaded file quota reservations", () => {
       { sizeBytes: 50, storageKey: "legacy-report.pdf" }
     ]);
     transaction.shortLink.findMany.mockResolvedValue([
-      { createdById: "user_legacy", destinationUrl: "http://localhost:3000/uploads/legacy-report.pdf" }
+      { createdById: "user_legacy", destinationUrl: "http://localhost:3000/uploads/legacy-report.pdf", id: "legacy_link" }
     ]);
-    const operation = vi.fn().mockResolvedValue("created");
+    const operation = vi.fn().mockResolvedValue({ result: "created", shortLinkId: "new_link" });
 
     await withUploadedFileReservation({
       downloadName: "New.pdf",
@@ -84,6 +86,7 @@ describe("uploaded file quota reservations", () => {
       data: [{
         downloadName: "legacy-report.pdf",
         ownerId: "user_legacy",
+        shortLinkId: "legacy_link",
         sizeBytes: 50n,
         storageKey: "legacy-report.pdf"
       }],
@@ -93,7 +96,7 @@ describe("uploaded file quota reservations", () => {
   });
 
   it("serializes quota accounting and creates metadata in the caller transaction", async () => {
-    const operation = vi.fn().mockResolvedValue("created");
+    const operation = vi.fn().mockResolvedValue({ result: "created", shortLinkId: "link_123" });
 
     await expect(withUploadedFileReservation({
       downloadName: "Report.pdf",
@@ -107,6 +110,7 @@ describe("uploaded file quota reservations", () => {
       data: {
         downloadName: "Report.pdf",
         ownerId: "user_123",
+        shortLinkId: "link_123",
         sizeBytes: 1024n,
         storageKey: "0123456789abcdef.pdf"
       }

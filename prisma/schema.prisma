@@ -62,8 +62,10 @@ model UploadedFile {
   downloadName String
   sizeBytes    BigInt
   ownerId      String?
+  shortLinkId  String?  @unique
   createdAt    DateTime @default(now())
   owner        User?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  shortLink    ShortLink? @relation(fields: [shortLinkId], references: [id], onDelete: Cascade)
 
   @@index([ownerId])
 }
@@ -145,6 +147,7 @@ model ShortLink {
   createdBy      User?          @relation("CreatedLinks", fields: [createdById], references: [id], onDelete: SetNull)
   clicks         ClickEvent[]
   tags           ShortLinkTag[]
+  uploadedFile   UploadedFile?
 
   @@index([createdAt])
   @@index([enabled, expiresAt])

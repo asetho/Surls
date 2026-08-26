@@ -83,7 +83,6 @@ export async function hasValidUploadDownloadGrant(
     select: {
       archivedAt: true,
       clickCount: true,
-      createdById: true,
       destinationUrl: true,
       enabled: true,
       expiresAt: true,
@@ -92,7 +91,7 @@ export async function hasValidUploadDownloadGrant(
   });
   if (!link || !link.enabled || link.archivedAt || (link.expiresAt && link.expiresAt <= now)) return false;
   if (link.maxClicks !== null && link.clickCount > link.maxClicks) return false;
-  if (link.destinationUrl !== uploadedFileUrl(filename) || !link.createdById) return false;
+  if (link.destinationUrl !== uploadedFileUrl(filename)) return false;
   const uploadedFile = await ensureUploadedFileRecord(filename);
-  return uploadedFile?.ownerId === link.createdById;
+  return uploadedFile?.shortLinkId === payload.linkId;
 }

@@ -38,7 +38,8 @@ describe("upload download grants", () => {
     uploadedFileRecords.ensureUploadedFileRecord.mockReset();
     uploadedFileRecords.ensureUploadedFileRecord.mockResolvedValue({
       downloadName: "Report.txt",
-      ownerId: "user_123"
+      ownerId: "user_123",
+      shortLinkId: "link_123"
     });
   });
 
@@ -107,7 +108,7 @@ describe("upload download grants", () => {
     await expect(check()).resolves.toBe(false);
   });
 
-  it("does not let another user reset an upload's lifecycle with a new link", async () => {
+  it("does not let a new link reset the primary upload link's lifecycle", async () => {
     const grantedUrl = grantUploadDownloadUrl(destinationUrl, "link_123", "GET", now);
     shortLink.findUnique.mockResolvedValue({
       archivedAt: null,
@@ -118,6 +119,11 @@ describe("upload download grants", () => {
       expiresAt: null,
       maxClicks: null
     });
+    uploadedFileRecords.ensureUploadedFileRecord.mockResolvedValue({
+      downloadName: "Report.txt",
+      ownerId: "user_123",
+      shortLinkId: "original_link"
+    });
 
     await expect(hasValidUploadDownloadGrant(
       new Request(grantedUrl),
@@ -125,6 +131,31 @@ describe("upload download grants", () => {
       "GET",
       new Date(now.getTime() + 1_000)
     )).resolves.toBe(false);
+  });
+
+  it("keeps the primary upload link valid after its user is deleted", async () => {
+    const grantedUrl = grantUploadDownloadUrl(destinationUrl, "link_123", "GET", now);
+    shortLink.findUnique.mockResolvedValue({
+      archivedAt: null,
+      clickCount: 0,
+      createdById: null,
+      destinationUrl,
+      enabled: true,
+      expiresAt: null,
+      maxClicks: null
+    });
+    uploadedFileRecords.ensureUploadedFileRecord.mockResolvedValue({
+      downloadName: "Report.txt",
+      ownerId: null,
+      shortLinkId: "link_123"
+    });
+
+    await expect(hasValidUploadDownloadGrant(
+      new Request(grantedUrl),
+      "0123456789abcdef.txt",
+      "GET",
+      new Date(now.getTime() + 1_000)
+    )).resolves.toBe(true);
   });
 
   it("does not add grants to external destinations", () => {

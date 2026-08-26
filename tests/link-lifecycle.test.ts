@@ -12,7 +12,8 @@ const uploads = vi.hoisted(() => ({
 }));
 
 const uploadedFileRecords = vi.hoisted(() => ({
-  deleteUploadedFileRecord: vi.fn()
+  deleteUploadedFileRecord: vi.fn(),
+  ensureUploadedFileRecord: vi.fn()
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -49,6 +50,8 @@ describe("link lifecycle helpers", () => {
     shortLink.update.mockReset();
     uploads.deleteUploadedFile.mockReset();
     uploadedFileRecords.deleteUploadedFileRecord.mockReset();
+    uploadedFileRecords.ensureUploadedFileRecord.mockReset();
+    uploadedFileRecords.ensureUploadedFileRecord.mockResolvedValue(null);
   });
 
   it("uses active and archived list filters", () => {
@@ -216,6 +219,26 @@ describe("link lifecycle helpers", () => {
 
     expect(uploads.deleteUploadedFile).not.toHaveBeenCalled();
     expect(uploadedFileRecords.deleteUploadedFileRecord).not.toHaveBeenCalled();
+  });
+
+  it("deletes a primary uploaded file even when an unrelated link copied its raw destination", async () => {
+    shortLink.findUnique.mockResolvedValue({
+      id: "link_1",
+      code: "demo",
+      destinationUrl: "http://localhost:3000/uploads/report.pdf"
+    });
+    shortLink.findFirst.mockResolvedValue({ id: "copied_link" });
+    uploadedFileRecords.ensureUploadedFileRecord.mockResolvedValue({
+      downloadName: "report.pdf",
+      ownerId: null,
+      shortLinkId: "link_1"
+    });
+
+    await deleteShortLink("link_1", "/demo");
+
+    expect(shortLink.findFirst).not.toHaveBeenCalled();
+    expect(uploads.deleteUploadedFile).toHaveBeenCalledWith("report.pdf");
+    expect(uploadedFileRecords.deleteUploadedFileRecord).toHaveBeenCalledWith("report.pdf");
   });
 
   it("does not delete local files for upload-looking URLs on another origin", async () => {

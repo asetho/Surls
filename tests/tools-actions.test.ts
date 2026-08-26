@@ -51,8 +51,9 @@ const links = vi.hoisted(() => ({
 }));
 
 const uploads = vi.hoisted(() => ({
-  deleteUploadedFile: vi.fn(),
+  discardUploadedFile: vi.fn(),
   normalizeUploadFilenameMode: vi.fn((value: FormDataEntryValue | null) => (value === "random" ? "random" : "safe")),
+  promoteUploadedFile: vi.fn(),
   storedUploadsOnDisk: vi.fn(),
   storeUploadedFile: vi.fn()
 }));
@@ -151,11 +152,13 @@ describe("tools actions hardening", () => {
       downloadName: "hello_world.txt",
       filePath: "/tmp/surls-upload/hello_world.txt",
       filename: "hello_world.txt",
+      pendingFilePath: "/tmp/surls-upload/.pending/hello_world.txt",
       publicPath: "/uploads/hello_world.txt",
       size: 5
     });
     uploads.storedUploadsOnDisk.mockResolvedValue([]);
-    uploads.deleteUploadedFile.mockResolvedValue(undefined);
+    uploads.discardUploadedFile.mockResolvedValue(undefined);
+    uploads.promoteUploadedFile.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -448,6 +451,7 @@ describe("tools actions hardening", () => {
       details: expect.objectContaining({ filename: "hello_world.txt", size: 5, via: "upload" })
       })
     }));
+    expect(uploads.promoteUploadedFile).toHaveBeenCalledWith(expect.objectContaining({ filename: "hello_world.txt" }));
     expect(result).toEqual({
       code: "doc-xyz",
       filename: "hello_world.txt",
@@ -483,6 +487,6 @@ describe("tools actions hardening", () => {
     const result = await uploadAndShortenAction(null, uploadForm());
 
     expect(result).toEqual({ error: "Could not create link" });
-    expect(uploads.deleteUploadedFile).toHaveBeenCalledWith("hello_world.txt");
+    expect(uploads.discardUploadedFile).toHaveBeenCalledWith(expect.objectContaining({ filename: "hello_world.txt" }));
   });
 });
