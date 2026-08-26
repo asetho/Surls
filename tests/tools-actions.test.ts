@@ -52,7 +52,12 @@ const uploads = vi.hoisted(() => ({
 }));
 
 const urlSafety = vi.hoisted(() => ({
-  assertNoPrivateResolution: vi.fn()
+  assertNoPrivateResolution: vi.fn(),
+  resolveSafeHttpAddress: vi.fn()
+}));
+
+const pageTitle = vi.hoisted(() => ({
+  fetchWithPinnedAddress: vi.fn()
 }));
 
 const nextCache = vi.hoisted(() => ({
@@ -68,12 +73,14 @@ vi.mock("@/lib/upload-limits", () => uploadLimits);
 vi.mock("@/lib/prisma", () => ({ prisma }));
 vi.mock("@/lib/links", () => links);
 vi.mock("@/lib/uploads", () => uploads);
+vi.mock("@/lib/page-title", () => pageTitle);
 vi.mock("next/cache", () => nextCache);
 vi.mock("@/lib/url-safety", async () => {
   const actual = await vi.importActual<typeof import("@/lib/url-safety")>("@/lib/url-safety");
   return {
     ...actual,
-    assertNoPrivateResolution: urlSafety.assertNoPrivateResolution
+    assertNoPrivateResolution: urlSafety.assertNoPrivateResolution,
+    resolveSafeHttpAddress: urlSafety.resolveSafeHttpAddress
   };
 });
 
@@ -130,6 +137,8 @@ describe("tools actions hardening", () => {
     prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
     links.createShortLink.mockResolvedValue({ id: "link_123" });
     urlSafety.assertNoPrivateResolution.mockResolvedValue(true);
+    urlSafety.resolveSafeHttpAddress.mockResolvedValue({ address: "203.0.113.10", family: 4 });
+    pageTitle.fetchWithPinnedAddress.mockResolvedValue(new Response(null, { status: 204 }));
     uploads.storeUploadedFile.mockResolvedValue({
       filePath: "/tmp/surls-upload/hello_world.txt",
       filename: "hello_world.txt",
@@ -306,6 +315,27 @@ describe("tools actions hardening", () => {
 
     expect(prisma.apiToken.deleteMany).toHaveBeenCalledWith({ where: { id: "victim_token", userId: "user_123" } });
     expect(audit.auditLog).not.toHaveBeenCalled();
+  });
+
+  it("pins destination checks to the validated DNS address", async () => {
+    const { checkDestinationAction } = await import("@/app/admin/tools/actions");
+    const formData = new FormData();
+    formData.set("url", "https://example.com/status");
+
+    await expect(checkDestinationAction(null, formData)).resolves.toEqual({
+      ok: true,
+      message: "Reachable: HTTP 204"
+    });
+    expect(urlSafety.resolveSafeHttpAddress).toHaveBeenCalledWith("https://example.com/status");
+    expect(pageTitle.fetchWithPinnedAddress).toHaveBeenCalledWith(
+      "https://example.com/status",
+      expect.objectContaining({
+        method: "HEAD",
+        redirect: "manual",
+        resolvedAddress: { address: "203.0.113.10", family: 4 },
+        signal: expect.any(AbortSignal)
+      })
+    );
   });
 
   it("rejects private or internal destinations during CSV import preview", async () => {

@@ -7,9 +7,10 @@ import { createApiToken } from "@/lib/api-tokens";
 import { requireAdmin } from "@/lib/auth";
 import { parseCsvRows } from "@/lib/csv";
 import { validateCsrf } from "@/lib/csrf";
+import { fetchWithPinnedAddress } from "@/lib/page-title";
 import { prisma } from "@/lib/prisma";
 import { getSiteName } from "@/lib/settings";
-import { assertNoPrivateResolution, parseSafeHttpUrl } from "@/lib/url-safety";
+import { assertNoPrivateResolution, parseSafeHttpUrl, resolveSafeHttpAddress } from "@/lib/url-safety";
 import { createShortLink } from "@/lib/links";
 import { validateAlias } from "@/lib/alias";
 import { env } from "@/lib/env";
@@ -180,15 +181,22 @@ export async function checkDestinationAction(
   if (!admin) return { ok: false, message: "Unauthorized" };
   const safe = parseSafeHttpUrl(String(formData.get("url") ?? ""));
   if (!safe.ok) return { ok: false, message: safe.error };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
   try {
-    await assertNoPrivateResolution(safe.url);
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    const response = await fetch(safe.url, { method: "HEAD", signal: controller.signal, redirect: "manual" });
-    clearTimeout(timeout);
+    const resolvedAddress = await resolveSafeHttpAddress(safe.url);
+    const response = await fetchWithPinnedAddress(safe.url, {
+      method: "HEAD",
+      redirect: "manual",
+      resolvedAddress,
+      signal: controller.signal
+    });
+    await response.body?.cancel().catch(() => null);
     return { ok: true, message: `Reachable: HTTP ${response.status}` };
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : "Destination check failed." };
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

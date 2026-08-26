@@ -9,7 +9,7 @@ const MAX_REDIRECTS = 3;
 const MAX_TITLE_LENGTH = 180;
 const HTML_CONTENT_TYPE = /\b(?:text\/html|application\/xhtml\+xml)\b/i;
 
-type PinnedRequestInit = RequestInit & {
+export type PinnedRequestInit = RequestInit & {
   resolvedAddress: ResolvedHttpAddress;
 };
 
@@ -32,7 +32,7 @@ const HTML_ENTITIES: Record<string, string> = {
   quot: "\""
 };
 
-function fetchWithPinnedAddress(input: string | URL, init: PinnedRequestInit) {
+export function fetchWithPinnedAddress(input: string | URL, init: PinnedRequestInit) {
   const url = new URL(input);
   const client = url.protocol === "https:" ? https : http;
 
@@ -41,6 +41,7 @@ function fetchWithPinnedAddress(input: string | URL, init: PinnedRequestInit) {
       url,
       {
         headers: Object.fromEntries(new Headers(init.headers)),
+        method: init.method,
         lookup: (_hostname, options, callback) => {
           if (options.all) {
             callback(null, [init.resolvedAddress]);
