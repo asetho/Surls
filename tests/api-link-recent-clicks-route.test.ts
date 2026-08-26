@@ -8,7 +8,7 @@ const auth = vi.hoisted(() => ({
 
 const prisma = vi.hoisted(() => ({
   shortLink: {
-    findUnique: vi.fn()
+    findFirst: vi.fn()
   },
   user: {
     update: vi.fn()
@@ -55,7 +55,7 @@ describe("GET /api/links/[id]/recent-clicks", () => {
       role: "USER",
       recentClickPageSize: 20
     });
-    prisma.shortLink.findUnique.mockResolvedValue({ id: "link_123" });
+    prisma.shortLink.findFirst.mockResolvedValue({ id: "link_123" });
     prisma.user.update.mockResolvedValue({ id: "user_1" });
     settings.getSettings.mockResolvedValue({ displayTimeZone: "America/New_York" });
     clicks.recentClicksPage.mockResolvedValue({
@@ -82,6 +82,10 @@ describe("GET /api/links/[id]/recent-clicks", () => {
       data: { recentClickPageSize: 10 }
     });
     expect(clicks.recentClicksPage).toHaveBeenCalledWith("link_123", { page: "2", pageSize: 10 });
+    expect(prisma.shortLink.findFirst).toHaveBeenCalledWith({
+      where: { id: "link_123", createdById: "user_1" },
+      select: { id: true }
+    });
     expect(payload).toMatchObject({
       pagination: {
         page: 2,
@@ -146,12 +150,12 @@ describe("GET /api/links/[id]/recent-clicks", () => {
     const response = await GET(request(), { params: Promise.resolve({ id: "link_123" }) });
 
     expect(response.status).toBe(401);
-    expect(prisma.shortLink.findUnique).not.toHaveBeenCalled();
+    expect(prisma.shortLink.findFirst).not.toHaveBeenCalled();
   });
 
   it("returns not found for missing links", async () => {
     const { GET } = await import("@/app/api/links/[id]/recent-clicks/route");
-    prisma.shortLink.findUnique.mockResolvedValue(null);
+    prisma.shortLink.findFirst.mockResolvedValue(null);
 
     const response = await GET(request(), { params: Promise.resolve({ id: "missing" }) });
 

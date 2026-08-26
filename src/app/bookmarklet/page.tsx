@@ -14,6 +14,7 @@ import { getCsrfToken } from "@/lib/csrf";
 import { dashboardThemeCssVariables } from "@/lib/dashboard-theme";
 import { appBaseUrl } from "@/lib/env";
 import { shortUrl } from "@/lib/links";
+import { shortLinkOwnershipWhere } from "@/lib/ownership";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { turnstileSiteKey } from "@/lib/turnstile";
@@ -58,7 +59,7 @@ export default async function BookmarkletPage({ searchParams }: { searchParams: 
   const nextPath = bookmarkletPath(destinationUrl, title);
   const needsSecondFactor = params.twoFactor === "1";
   const createdLink = user && params.created
-    ? await prisma.shortLink.findUnique({ where: { id: params.created } })
+    ? await prisma.shortLink.findFirst({ where: { id: params.created, ...shortLinkOwnershipWhere(user) } })
     : null;
   const createdUrl = createdLink ? shortUrl(appBaseUrl(), createdLink.code) : null;
   const hasFaviconBrandMark = Boolean(settings.favicons?.assets.faviconSvg);

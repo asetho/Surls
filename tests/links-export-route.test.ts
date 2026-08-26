@@ -18,8 +18,8 @@ vi.mock("@/lib/csv", () => ({ csvLine: vi.fn() }));
 vi.mock("@/lib/env", () => ({ appBaseUrl: vi.fn() }));
 vi.mock("@/lib/links", () => ({ shortUrl: vi.fn() }));
 
-function request() {
-  return new NextRequest("http://localhost:3000/api/links/export?format=json");
+function request(format = "json") {
+  return new NextRequest(`http://localhost:3000/api/links/export?format=${format}`);
 }
 
 describe("GET /api/links/export JSON authorization", () => {
@@ -51,6 +51,22 @@ describe("GET /api/links/export JSON authorization", () => {
       where: { archivedAt: null },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: 5001
+    });
+  });
+
+  it("limits a non-admin CSV export to links they created", async () => {
+    const { GET } = await import("@/app/api/links/export/route");
+    auth.requireAdmin.mockResolvedValue({ id: "user_1", role: "USER" });
+    prisma.shortLink.findMany.mockResolvedValue([]);
+
+    const response = await GET(request("csv"));
+    await response.text();
+
+    expect(response.status).toBe(200);
+    expect(prisma.shortLink.findMany).toHaveBeenCalledWith({
+      where: { archivedAt: null, createdById: "user_1" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: 500
     });
   });
 });
