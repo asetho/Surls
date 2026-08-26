@@ -68,7 +68,7 @@ export function UploadShortenForm({ csrf, maxUploadLabel }: { csrf: string; maxU
         </label>
       </div>
       <fieldset className="upload-options">
-        <legend>Filename conversion</legend>
+        <legend>Download filename</legend>
         <label className="choice-row">
           <input name="filenameMode" type="radio" value="original" />
           <span>Original filename</span>
@@ -79,7 +79,7 @@ export function UploadShortenForm({ csrf, maxUploadLabel }: { csrf: string; maxU
         </label>
         <label className="choice-row">
           <input name="filenameMode" type="radio" value="random" />
-          <span>Randomized filename</span>
+          <span>Randomized download name</span>
         </label>
         <label className="choice-row">
           <input name="dropExtension" type="checkbox" />

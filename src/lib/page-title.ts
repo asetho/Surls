@@ -9,7 +9,7 @@ const MAX_REDIRECTS = 3;
 const MAX_TITLE_LENGTH = 180;
 const HTML_CONTENT_TYPE = /\b(?:text\/html|application\/xhtml\+xml)\b/i;
 
-type PinnedRequestInit = RequestInit & {
+export type PinnedRequestInit = RequestInit & {
   resolvedAddress: ResolvedHttpAddress;
 };
 
@@ -32,7 +32,7 @@ const HTML_ENTITIES: Record<string, string> = {
   quot: "\""
 };
 
-function fetchWithPinnedAddress(input: string | URL, init: PinnedRequestInit) {
+export function fetchWithPinnedAddress(input: string | URL, init: PinnedRequestInit) {
   const url = new URL(input);
   const client = url.protocol === "https:" ? https : http;
 
@@ -41,6 +41,7 @@ function fetchWithPinnedAddress(input: string | URL, init: PinnedRequestInit) {
       url,
       {
         headers: Object.fromEntries(new Headers(init.headers)),
+        method: init.method,
         lookup: (_hostname, options, callback) => {
           if (options.all) {
             callback(null, [init.resolvedAddress]);
@@ -57,10 +58,15 @@ function fetchWithPinnedAddress(input: string | URL, init: PinnedRequestInit) {
           if (value !== undefined) headers.set(name, Array.isArray(value) ? value.join(", ") : value);
         }
 
+        const status = response.statusCode ?? 500;
+        const hasNullBody = init.method?.toUpperCase() === "HEAD" || status === 204 || status === 205 || status === 304;
+        const body = hasNullBody ? null : Readable.toWeb(response) as ReadableStream<Uint8Array>;
+        if (hasNullBody) response.resume();
+
         resolve(
-          new Response(Readable.toWeb(response) as ReadableStream<Uint8Array>, {
+          new Response(body, {
             headers,
-            status: response.statusCode ?? 500,
+            status,
             statusText: response.statusMessage
           })
         );

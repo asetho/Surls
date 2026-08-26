@@ -46,8 +46,15 @@ export function validateAlias(alias: string) {
   return null;
 }
 
-export function generateAlias(length = 7) {
+export function generateAlias(length = 16) {
   const alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
-  const bytes = crypto.getRandomValues(new Uint8Array(length));
-  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
+  const unbiasedLimit = 256 - (256 % alphabet.length);
+  let alias = "";
+  while (alias.length < length) {
+    const bytes = crypto.getRandomValues(new Uint8Array(length - alias.length));
+    for (const byte of bytes) {
+      if (byte < unbiasedLimit) alias += alphabet[byte % alphabet.length];
+    }
+  }
+  return alias;
 }

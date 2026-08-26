@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
 import { analyticsOptOutReason, handleShortRedirect, isAdminReferrer, shouldRecordRedirectClick } from "@/lib/redirect";
 import { linkUnavailableReason } from "@/lib/links";
+import { UPLOAD_GRANT_QUERY_PARAM } from "@/lib/upload-grants";
 
 const redirectMocks = vi.hoisted(() => ({
   checkRateLimit: vi.fn(),
@@ -144,6 +145,20 @@ describe("redirect behavior", () => {
     expect(redirectMocks.getSetting).not.toHaveBeenCalled();
   });
 
+  it("rejects excessive public lookups before querying short links", async () => {
+    redirectMocks.checkRateLimit.mockResolvedValue({
+      allowed: false,
+      remaining: 0,
+      resetAt: new Date("2026-06-11T12:01:00.000Z")
+    });
+
+    const response = await handleShortRedirect(requestFor("/unknown"), "unknown", true);
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe("60");
+    expect(redirectMocks.findUnique).not.toHaveBeenCalled();
+  });
+
   it("uses built-in unavailable HTML when no custom unavailable page exists", async () => {
     redirectMocks.findUnique.mockResolvedValue({
       id: "link_1",
@@ -236,8 +251,29 @@ describe("redirect behavior", () => {
     expect(response.headers.get("location")).toBe("https://example.com/");
     expect(response.headers.get("cache-control")).toBe("private, no-store, max-age=0");
     expect(response.headers.get("pragma")).toBe("no-cache");
-    expect(redirectMocks.checkRateLimit).toHaveBeenCalledOnce();
+    expect(redirectMocks.checkRateLimit).toHaveBeenCalledTimes(2);
     expect(redirectMocks.recordClick).toHaveBeenCalledOnce();
+  });
+
+  it("adds a short-lived exact-link grant to local upload redirects", async () => {
+    redirectMocks.findUnique.mockResolvedValue({
+      id: "link_1",
+      code: "abc",
+      destinationUrl: "http://localhost:3000/uploads/0123456789abcdef.txt",
+      enabled: true,
+      archivedAt: null,
+      expiresAt: null,
+      maxClicks: 1,
+      clickCount: 0
+    });
+
+    const response = await handleShortRedirect(requestFor("/abc"), "abc");
+    const location = new URL(response.headers.get("location") ?? "");
+
+    expect(response.status).toBe(302);
+    expect(location.pathname).toBe("/uploads/0123456789abcdef.txt");
+    expect(location.searchParams.get(UPLOAD_GRANT_QUERY_PARAM)).toBeTruthy();
+    expect(redirectMocks.recordClick).toHaveBeenCalledWith(expect.objectContaining({ shortLinkId: "link_1" }));
   });
 
   it("redirects but skips analytics when the visitor opts out", async () => {
@@ -256,7 +292,7 @@ describe("redirect behavior", () => {
 
     expect(response.status).toBe(302);
     expect(response.headers.get("x-shorturl-analytics")).toBe("opted-out");
-    expect(redirectMocks.checkRateLimit).toHaveBeenCalledOnce();
+    expect(redirectMocks.checkRateLimit).toHaveBeenCalledTimes(2);
     expect(redirectMocks.recordClick).toHaveBeenCalledWith(
       expect.objectContaining({
         shortLinkId: "link_1",
@@ -276,7 +312,9 @@ describe("redirect behavior", () => {
       maxClicks: null,
       clickCount: 0
     });
-    redirectMocks.checkRateLimit.mockResolvedValue({ allowed: false, remaining: 0, resetAt: new Date("2026-06-11T12:01:00.000Z") });
+    redirectMocks.checkRateLimit
+      .mockResolvedValueOnce({ allowed: true, remaining: 599, resetAt: new Date("2026-06-11T12:01:00.000Z") })
+      .mockResolvedValueOnce({ allowed: false, remaining: 0, resetAt: new Date("2026-06-11T12:01:00.000Z") });
 
     const response = await handleShortRedirect(requestFor("/abc"), "abc");
 
@@ -395,7 +433,9 @@ describe("redirect behavior", () => {
       maxClicks: 3,
       clickCount: 1
     });
-    redirectMocks.checkRateLimit.mockResolvedValue({ allowed: false, remaining: 0, resetAt: new Date("2026-06-11T12:01:00.000Z") });
+    redirectMocks.checkRateLimit
+      .mockResolvedValueOnce({ allowed: true, remaining: 599, resetAt: new Date("2026-06-11T12:01:00.000Z") })
+      .mockResolvedValueOnce({ allowed: false, remaining: 0, resetAt: new Date("2026-06-11T12:01:00.000Z") });
 
     const response = await handleShortRedirect(requestFor("/abc"), "abc");
 

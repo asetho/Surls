@@ -26,6 +26,50 @@ export function requestIpHash(request: NextRequest) {
   return hashPrivacyValue(requestIp(request));
 }
 
+export async function readJsonBodyWithLimit(request: NextRequest, maxBytes: number) {
+  const mediaType = request.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
+  if (mediaType !== "application/json") return { ok: false as const, error: "content_type" as const };
+
+  const declaredLength = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+    return { ok: false as const, error: "too_large" as const };
+  }
+  if (!request.body) return { ok: false as const, error: "invalid" as const };
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel().catch(() => null);
+        return { ok: false as const, error: "too_large" as const };
+      }
+      chunks.push(value);
+    }
+  } catch {
+    return { ok: false as const, error: "invalid" as const };
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  try {
+    return { ok: true as const, value: JSON.parse(new TextDecoder().decode(bytes)) as unknown };
+  } catch {
+    return { ok: false as const, error: "invalid" as const };
+  }
+}
+
 function firstHeaderValue(request: NextRequest, names: string[]) {
   if (!env.TRUST_PROXY) return null;
   for (const name of names) {

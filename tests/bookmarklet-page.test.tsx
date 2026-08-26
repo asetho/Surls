@@ -3,13 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const prisma = vi.hoisted(() => ({
   shortLink: {
-    findUnique: vi.fn()
+    findFirst: vi.fn()
   }
 }));
 
 vi.mock("@/app/bookmarklet/actions", () => ({ createBookmarkletLinkAction: vi.fn() }));
 vi.mock("@/lib/auth", () => ({
-  requireAdmin: vi.fn(async () => ({ id: "user_1", email: "admin@example.test", name: "Admin" }))
+  isAdminUser: (user: { role?: string }) => user.role === "ADMIN",
+  requireAdmin: vi.fn(async () => ({ id: "user_1", email: "admin@example.test", name: "Admin", role: "USER" }))
 }));
 vi.mock("@/lib/csrf", () => ({ getCsrfToken: () => "csrf-token" }));
 vi.mock("@/lib/dashboard-theme", () => ({ dashboardThemeCssVariables: () => ({}) }));
@@ -23,7 +24,7 @@ vi.mock("@/lib/turnstile", () => ({ turnstileSiteKey: () => null }));
 describe("bookmarklet created-link summary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    prisma.shortLink.findUnique.mockResolvedValue({
+    prisma.shortLink.findFirst.mockResolvedValue({
       code: "hetrixtools",
       destinationUrl: "https://hetrixtools.com",
       id: "link_1",
@@ -46,5 +47,8 @@ describe("bookmarklet created-link summary", () => {
     expect(markup).toContain('href="https://sho.rt/hetrixtools"');
     expect(markup).toContain(">https://sho.rt/hetrixtools</span>");
     expect(markup).toContain(">Copy</span>");
+    expect(prisma.shortLink.findFirst).toHaveBeenCalledWith({
+      where: { id: "link_1", createdById: "user_1" }
+    });
   });
 });

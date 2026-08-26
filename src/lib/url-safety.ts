@@ -63,6 +63,7 @@ function isPrivateIPv6(ip: string) {
     normalized === "::" ||
     (firstHextet >= 0xfc00 && firstHextet <= 0xfdff) ||
     (firstHextet >= 0xfe80 && firstHextet <= 0xfebf) ||
+    (firstHextet >= 0xfec0 && firstHextet <= 0xfeff) ||
     (firstHextet >= 0xff00 && firstHextet <= 0xffff)
   );
 }

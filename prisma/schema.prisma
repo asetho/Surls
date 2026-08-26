@@ -51,8 +51,23 @@ model User {
   backupCodes   BackupCode[]
   passkeys      Passkey[]
   shortLinks    ShortLink[]      @relation("CreatedLinks")
+  uploadedFiles UploadedFile[]
   apiTokens     ApiToken[]
   auditLogs     AuditLog[]
+}
+
+model UploadedFile {
+  id           String   @id @default(cuid())
+  storageKey   String   @unique
+  downloadName String
+  sizeBytes    BigInt
+  ownerId      String?
+  shortLinkId  String?  @unique
+  createdAt    DateTime @default(now())
+  owner        User?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  shortLink    ShortLink? @relation(fields: [shortLinkId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
 }
 
 model Session {
@@ -132,6 +147,7 @@ model ShortLink {
   createdBy      User?          @relation("CreatedLinks", fields: [createdById], references: [id], onDelete: SetNull)
   clicks         ClickEvent[]
   tags           ShortLinkTag[]
+  uploadedFile   UploadedFile?
 
   @@index([createdAt])
   @@index([enabled, expiresAt])

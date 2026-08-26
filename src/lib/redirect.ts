@@ -10,6 +10,8 @@ import { appendForwardedQuery } from "./url-safety";
 import { appBaseUrl } from "./env";
 import { DEFAULT_DASHBOARD_THEME } from "./dashboard-theme";
 import { publicWebrootNotFoundResponse, publicWebrootResponse } from "./webroot";
+import { checkPublicLinkLookupRate, publicLinkLookupRateLimitResponse } from "./public-link-lookup";
+import { grantUploadDownloadUrl } from "./upload-grants";
 
 export const REDIRECT_ANALYTICS_RATE_LIMIT = {
   limit: 120,
@@ -194,6 +196,9 @@ type ShortRedirectOptions = {
 };
 
 export async function handleShortRedirect(request: NextRequest, code: string, isHead = false, options: ShortRedirectOptions = {}) {
+  const lookupRate = await checkPublicLinkLookupRate(request);
+  if (!lookupRate.allowed) return publicLinkLookupRateLimitResponse(isHead);
+
   const link = await prisma.shortLink.findUnique({ where: { code } });
   if (!link) {
     if (options.missingLinkResponse) return options.missingLinkResponse();
@@ -261,9 +266,10 @@ export async function handleShortRedirect(request: NextRequest, code: string, is
     }
   }
 
-  const destination = preserveRedirectQuery
+  const forwardedDestination = preserveRedirectQuery
     ? appendForwardedQuery(link.destinationUrl, request.nextUrl.searchParams.toString())
     : link.destinationUrl;
+  const destination = grantUploadDownloadUrl(forwardedDestination, link.id, isHead ? "HEAD" : "GET");
   const response = setNoStoreHeaders(NextResponse.redirect(destination, 302));
   if (adminIgnored) {
     response.headers.set("X-ShortURL-Admin-Click", "ignored");

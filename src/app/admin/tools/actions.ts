@@ -1,5 +1,6 @@
 "use server";
 
+import { Buffer } from "node:buffer";
 import { AuditAction } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { auditLog } from "@/lib/audit";
@@ -7,9 +8,10 @@ import { createApiToken } from "@/lib/api-tokens";
 import { requireAdmin } from "@/lib/auth";
 import { parseCsvRows } from "@/lib/csv";
 import { validateCsrf } from "@/lib/csrf";
+import { fetchWithPinnedAddress } from "@/lib/page-title";
 import { prisma } from "@/lib/prisma";
 import { getSiteName } from "@/lib/settings";
-import { assertNoPrivateResolution, parseSafeHttpUrl } from "@/lib/url-safety";
+import { assertNoPrivateResolution, parseSafeHttpUrl, resolveSafeHttpAddress } from "@/lib/url-safety";
 import { createShortLink } from "@/lib/links";
 import { validateAlias } from "@/lib/alias";
 import { env } from "@/lib/env";
@@ -180,15 +182,22 @@ export async function checkDestinationAction(
   if (!admin) return { ok: false, message: "Unauthorized" };
   const safe = parseSafeHttpUrl(String(formData.get("url") ?? ""));
   if (!safe.ok) return { ok: false, message: safe.error };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
   try {
-    await assertNoPrivateResolution(safe.url);
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    const response = await fetch(safe.url, { method: "HEAD", signal: controller.signal, redirect: "manual" });
-    clearTimeout(timeout);
+    const resolvedAddress = await resolveSafeHttpAddress(safe.url);
+    const response = await fetchWithPinnedAddress(safe.url, {
+      method: "HEAD",
+      redirect: "manual",
+      resolvedAddress,
+      signal: controller.signal
+    });
+    await response.body?.cancel().catch(() => null);
     return { ok: true, message: `Reachable: HTTP ${response.status}` };
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : "Destination check failed." };
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -197,23 +206,36 @@ export async function importCsvAction(_state: { imported?: number; errors?: stri
   const admin = await requireAdmin();
   if (!admin) return { errors: ["Unauthorized"] };
   const text = String(formData.get("csv") ?? "");
+  const maxCsvBytes = 512 * 1024;
+  const maxCsvFieldCharacters = 16 * 1024;
+  if (Buffer.byteLength(text, "utf8") > maxCsvBytes) {
+    return { imported: 0, errors: ["CSV imports must be 512 KB or smaller."] };
+  }
   const confirm = formData.get("confirm") === "on";
   let rows: string[][];
   try {
-    rows = parseCsvRows(text);
+    rows = parseCsvRows(text, MAX_IMPORT_ROWS, maxCsvFieldCharacters);
   } catch (error) {
     return { imported: 0, errors: [error instanceof Error ? error.message : "Could not parse CSV."] };
   }
 
   const errors: string[] = [];
   if (rows.length > MAX_IMPORT_ROWS) {
-    errors.push(`Import at most ${MAX_IMPORT_ROWS} rows at a time.`);
+    return { imported: 0, errors: [`Import at most ${MAX_IMPORT_ROWS} rows at a time.`] };
   }
 
   const valid = rows
     .map(([destinationUrl, code, title], index) => {
       if (rows[index].length > 3) {
         errors.push(`Row ${index + 1}: Expected destination URL, optional alias, and optional title.`);
+        return null;
+      }
+      if ((destinationUrl?.length ?? 0) > 4_096) {
+        errors.push(`Row ${index + 1}: Destination URL must be 4096 characters or fewer.`);
+        return null;
+      }
+      if ((title?.trim().length ?? 0) > 240) {
+        errors.push(`Row ${index + 1}: Title must be 240 characters or fewer.`);
         return null;
       }
       const safe = parseSafeHttpUrl(destinationUrl ?? "");
@@ -234,10 +256,16 @@ export async function importCsvAction(_state: { imported?: number; errors?: stri
     .filter(Boolean) as Array<{ destinationUrl: string; code?: string; rowNumber: number; title?: string }>;
 
   const aliases = valid.flatMap((row) => (row.code ? [row.code] : []));
-  const duplicateAliases = aliases.filter((alias, index) => aliases.indexOf(alias) !== index);
-  for (const alias of Array.from(new Set(duplicateAliases))) {
+  const seenAliases = new Set<string>();
+  const duplicateAliases = new Set<string>();
+  for (const alias of aliases) {
+    if (seenAliases.has(alias)) duplicateAliases.add(alias);
+    seenAliases.add(alias);
+  }
+  for (const alias of duplicateAliases) {
     errors.push(`Alias "${alias}" appears more than once in this import.`);
   }
+  if (errors.length) return { imported: 0, errors };
   if (aliases.length) {
     const existingAliases = await prisma.shortLink.findMany({
       where: { code: { in: aliases } },

@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth";
 import { recentClicksPage, resolveRecentClickPageSize } from "@/lib/clicks";
 import { resolveDisplayTimeZone } from "@/lib/dates";
 import { recentClicksView } from "@/lib/recent-clicks-view";
+import { shortLinkOwnershipWhere } from "@/lib/ownership";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 
@@ -15,8 +16,8 @@ export async function GET(request: NextRequest, { params }: Params) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const link = await prisma.shortLink.findUnique({
-    where: { id },
+  const link = await prisma.shortLink.findFirst({
+    where: { id, ...shortLinkOwnershipWhere(user) },
     select: { id: true }
   });
   if (!link) return NextResponse.json({ error: "Not found" }, { status: 404 });

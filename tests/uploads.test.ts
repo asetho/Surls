@@ -22,15 +22,19 @@ describe("uploaded files", () => {
     vi.unstubAllEnvs();
   });
 
-  it("stores browser-safe filenames and avoids overwriting existing files", async () => {
-    await withUploadModule(async ({ storeUploadedFile }, dir) => {
+  it("stores files under opaque names while preserving a browser-safe download name", async () => {
+    await withUploadModule(async ({ promoteUploadedFile, storeUploadedFile }, dir) => {
       const file = new File(["hello"], "my not safe&clean filename #1.txt", { type: "text/plain" });
 
       const first = await storeUploadedFile(file, { filenameMode: "safe" });
       const second = await storeUploadedFile(file, { filenameMode: "safe" });
+      await promoteUploadedFile(first);
+      await promoteUploadedFile(second);
 
-      expect(first.filename).toBe("my_not_safe_clean_filename_1.txt");
-      expect(second.filename).toMatch(/^my_not_safe_clean_filename_1-[a-f0-9]{6}\.txt$/);
+      expect(first.filename).toMatch(/^[a-f0-9]{32}\.txt$/);
+      expect(second.filename).toMatch(/^[a-f0-9]{32}\.txt$/);
+      expect(second.filename).not.toBe(first.filename);
+      expect(first.downloadName).toBe("my_not_safe_clean_filename_1.txt");
       await expect(readFile(path.join(dir, first.filename), "utf8")).resolves.toBe("hello");
       await expect(readFile(path.join(dir, second.filename), "utf8")).resolves.toBe("hello");
     });
@@ -42,8 +46,9 @@ describe("uploaded files", () => {
 
       const stored = await storeUploadedFile(file, { dropExtension: true, filenameMode: "original" });
 
-      expect(stored.filename).toBe("Report Final");
-      expect(stored.publicPath).toBe("/uploads/Report%20Final");
+      expect(stored.filename).toMatch(/^[a-f0-9]{32}$/);
+      expect(stored.downloadName).toBe("Report Final");
+      expect(stored.publicPath).toBe(`/uploads/${stored.filename}`);
     });
   });
 
@@ -55,12 +60,36 @@ describe("uploaded files", () => {
     });
   });
 
-  it("supports an explicit per-upload limit or no application limit", async () => {
+  it("supports a lower explicit per-upload limit while retaining the hard process ceiling", async () => {
     await withUploadModule(async ({ storeUploadedFile }) => {
       const file = new File(["this is larger than sixteen bytes"], "large.txt", { type: "text/plain" });
 
       await expect(storeUploadedFile(file, { maxBytes: 8 })).rejects.toThrow(/up to 8 bytes/i);
       await expect(storeUploadedFile(file, { maxBytes: null })).resolves.toMatchObject({ size: file.size });
+    });
+  });
+
+  it("streams the file to storage without making a second array-buffer copy", async () => {
+    await withUploadModule(async ({ storeUploadedFile }) => {
+      const file = new File(["hello"], "hello.txt", { type: "text/plain" });
+      file.arrayBuffer = vi.fn(() => Promise.reject(new Error("arrayBuffer should not be used")));
+
+      await expect(storeUploadedFile(file)).resolves.toMatchObject({ size: 5 });
+      expect(file.arrayBuffer).not.toHaveBeenCalled();
+    });
+  });
+
+  it("keeps concurrent in-flight files outside legacy reconciliation", async () => {
+    await withUploadModule(async ({ promoteUploadedFile, storedUploadsOnDisk, storeUploadedFile }) => {
+      const first = await storeUploadedFile(new File(["one"], "one.txt"));
+      const second = await storeUploadedFile(new File(["two"], "two.txt"));
+
+      await expect(storedUploadsOnDisk()).resolves.toEqual([]);
+      await promoteUploadedFile(first);
+      await expect(storedUploadsOnDisk()).resolves.toEqual([
+        expect.objectContaining({ storageKey: first.filename })
+      ]);
+      expect(second.pendingFilePath).toContain(".pending");
     });
   });
 
@@ -75,11 +104,12 @@ describe("uploaded files", () => {
   it("recognizes uploaded destinations only on this instance", async () => {
     vi.resetModules();
     vi.stubEnv("BASE_URL", "https://asetho.link");
-    const { uploadedFilenameFromDestination, uploadedFileUrl } = await import("@/lib/uploads");
+    const { uploadContentDisposition, uploadedFilenameFromDestination, uploadedFileUrl } = await import("@/lib/uploads");
 
     expect(uploadedFileUrl("Report Final.pdf")).toBe("https://asetho.link/uploads/Report%20Final.pdf");
     expect(uploadedFilenameFromDestination("https://asetho.link/uploads/Report%20Final.pdf")).toBe("Report Final.pdf");
     expect(uploadedFilenameFromDestination("https://files.example/uploads/Report%20Final.pdf")).toBeNull();
     expect(uploadedFilenameFromDestination("https://asetho.link/uploads/folder/report.pdf")).toBeNull();
+    expect(uploadContentDisposition("Report Final.pdf")).toContain("filename*=UTF-8''Report%20Final.pdf");
   });
 });

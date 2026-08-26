@@ -35,6 +35,12 @@ const envSchema = z
     PUBLIC_WEBROOT_DIR: emptyToUndefined(z.string().optional()),
     UPLOADS_DIR: emptyToUndefined(z.string().optional()),
     UPLOAD_MAX_BYTES: emptyToUndefined(z.coerce.number().int().positive().max(25 * 1024 * 1024).default(25 * 1024 * 1024)),
+    UPLOAD_USER_STORAGE_QUOTA_BYTES: emptyToUndefined(
+      z.coerce.number().int().positive().max(100 * 1024 * 1024 * 1024).default(1024 * 1024 * 1024)
+    ),
+    UPLOAD_SITE_STORAGE_QUOTA_BYTES: emptyToUndefined(
+      z.coerce.number().int().positive().max(1024 * 1024 * 1024 * 1024).default(10 * 1024 * 1024 * 1024)
+    ),
     DATABASE_URL: emptyToUndefined(z.string().optional()),
     SESSION_DAYS: emptyToUndefined(z.coerce.number().int().positive().default(14)),
     API_TOKEN_DAYS: emptyToUndefined(z.coerce.number().int().positive().default(90)),

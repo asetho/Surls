@@ -97,7 +97,7 @@ mkdir -p /opt/surls/uploads
 
 Use a different directory for every Surls instance. For example, the two `mn` stacks can use `/opt/surls-asetho/uploads` for asetho.link and `/opt/surls-aswonl/uploads` for asw.onl.
 
-The bind mount uses `create_host_path: false`, so Docker fails fast if the path is missing. Set `UPLOAD_MAX_BYTES` in `.env` to lower the default 25 MB limit.
+The bind mount uses `create_host_path: false`, so Docker fails fast if the path is missing. Set `UPLOAD_MAX_BYTES` in `.env` to lower the process-safe 25 MB limit. New uploads default to a 1 GiB per-user storage quota and a 10 GiB site storage quota; override `UPLOAD_USER_STORAGE_QUOTA_BYTES` and `UPLOAD_SITE_STORAGE_QUOTA_BYTES` when needed.
 
 To migrate an installation that still uses the former named volume, stop writes to the app, create the host directory, and copy the volume contents before recreating the app. Replace the example volume name if the Compose project has a different name:
 

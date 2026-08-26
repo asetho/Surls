@@ -7,6 +7,7 @@ import { auditLog } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
 import { createShortLink } from "@/lib/links";
+import { safeRedirectPath } from "@/lib/redirect-path";
 
 const MAX_TAGS_FIELD_LENGTH = 8_000;
 
@@ -17,10 +18,6 @@ function tagList(value: FormDataEntryValue | null) {
     .split(",")
     .map((tag) => tag.trim())
     .filter(Boolean);
-}
-
-function safeInternalPath(value: string, fallback: string) {
-  return value.startsWith("/") && !value.startsWith("//") ? value : fallback;
 }
 
 function errorMessage(error: unknown, fallback: string) {
@@ -34,7 +31,7 @@ function redirectWithCreateError(returnTo: string, message: string): never {
 }
 
 export async function createBookmarkletLinkAction(formData: FormData) {
-  const returnTo = safeInternalPath(String(formData.get("returnTo") ?? "/bookmarklet"), "/bookmarklet");
+  const returnTo = safeRedirectPath(formData.get("returnTo"), "/bookmarklet");
 
   try {
     validateCsrf(formData);

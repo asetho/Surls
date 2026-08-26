@@ -1,7 +1,8 @@
 import { randomBytes } from "node:crypto";
-import { mkdir, open, rm } from "node:fs/promises";
+import { link, mkdir, open, readdir, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { appBaseUrl, env } from "./env";
+import { UPLOAD_PROCESS_MAX_BYTES } from "./upload-limits";
 
 export const UPLOAD_ROUTE_SEGMENT = "uploads";
 export const UPLOAD_FILENAME_MODES = ["original", "safe", "random"] as const;
@@ -15,8 +16,10 @@ type StoreUploadedFileOptions = {
 };
 
 export type StoredUpload = {
+  downloadName: string;
   filename: string;
   filePath: string;
+  pendingFilePath: string;
   publicPath: string;
   size: number;
 };
@@ -48,6 +51,10 @@ function uploadsRoot() {
     throw new Error("UPLOADS_DIR must be an absolute path.");
   }
   return path.normalize(root);
+}
+
+function pendingUploadsRoot(root: string) {
+  return path.join(root, ".pending");
 }
 
 function removePathParts(filename: string) {
@@ -84,19 +91,33 @@ export function storedUploadFilename(
   const safeOriginal = sanitizedOriginalName(originalName);
   const originalExtension = path.extname(safeOriginal).slice(0, 20);
   const extension = options.dropExtension ? "" : originalExtension;
+  return limitedName(randomSuffix(16), extension);
+}
+
+function uploadedDownloadName(
+  originalName: string,
+  storageFilename: string,
+  options: StoreUploadedFileOptions
+) {
+  if (options.filenameMode === "random") return storageFilename;
+  const safeOriginal = sanitizedOriginalName(originalName);
+  const originalExtension = path.extname(safeOriginal).slice(0, 20);
+  const extension = options.dropExtension ? "" : originalExtension;
   const baseName = safeOriginal.slice(0, originalExtension ? -originalExtension.length : undefined);
-  let base: string;
-
-  if (options.filenameMode === "random") {
-    base = randomSuffix(8);
-  } else if (options.filenameMode === "original") {
-    base = baseName.trim() || "upload";
-  } else {
-    base = browserSafePart(baseName) || "upload";
+  if (options.filenameMode === "original") {
+    return limitedName(baseName.trim() || "upload", extension);
   }
+  return limitedName(browserSafePart(baseName) || "upload", extension);
+}
 
-  const filename = limitedName(base.startsWith(".") ? `file-${base}` : base, extension);
-  return filename.startsWith(".") ? `file-${filename}` : filename;
+export function uploadContentDisposition(filename: string | null) {
+  if (!filename) return "attachment";
+  const safeFilename = sanitizedOriginalName(filename);
+  const fallback = browserSafePart(safeFilename) || "download";
+  const encoded = encodeURIComponent(safeFilename).replace(/[!'()*]/g, (character) =>
+    `%${character.charCodeAt(0).toString(16).toUpperCase()}`
+  );
+  return `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`;
 }
 
 function filePathInside(root: string, filename: string) {
@@ -131,7 +152,7 @@ export function uploadedFilenameFromDestination(destinationUrl: string) {
   }
 }
 
-async function writeUniqueFile(root: string, filename: string, bytes: Uint8Array) {
+async function writeUniqueFile(root: string, filename: string, file: File) {
   const extension = path.extname(filename);
   const baseName = filename.slice(0, extension ? -extension.length : undefined);
 
@@ -141,7 +162,7 @@ async function writeUniqueFile(root: string, filename: string, bytes: Uint8Array
     let handle;
     try {
       handle = await open(filePath, "wx");
-      await handle.writeFile(bytes);
+      await handle.writeFile(file.stream());
       return { filename: candidate, filePath };
     } catch (error) {
       const code = error && typeof error === "object" && "code" in error ? error.code : "";
@@ -157,25 +178,73 @@ async function writeUniqueFile(root: string, filename: string, bytes: Uint8Array
 export async function storeUploadedFile(file: File, options: StoreUploadedFileOptions = {}): Promise<StoredUpload> {
   if (!file.name.trim()) throw new Error("Choose a file to upload.");
   if (file.size < 1) throw new Error("Choose a non-empty file to upload.");
-  const maxBytes = options.maxBytes === undefined ? uploadMaxBytes() : options.maxBytes;
-  if (maxBytes !== null && file.size > maxBytes) {
+  const configuredMaxBytes = options.maxBytes === undefined ? uploadMaxBytes() : options.maxBytes;
+  const maxBytes = configuredMaxBytes === null
+    ? UPLOAD_PROCESS_MAX_BYTES
+    : Math.min(configuredMaxBytes, UPLOAD_PROCESS_MAX_BYTES);
+  if (file.size > maxBytes) {
     throw new Error(`Upload files up to ${uploadMaxBytesLabel(maxBytes)} at a time.`);
   }
 
   const root = uploadsRoot();
-  await mkdir(root, { recursive: true });
-  const bytes = new Uint8Array(await file.arrayBuffer());
+  const pendingRoot = pendingUploadsRoot(root);
+  await Promise.all([mkdir(root, { recursive: true }), mkdir(pendingRoot, { recursive: true })]);
   const filename = storedUploadFilename(file.name, options);
-  const stored = await writeUniqueFile(root, filename, bytes);
-  const publicPath = `/${UPLOAD_ROUTE_SEGMENT}/${encodeURIComponent(stored.filename)}`;
+  const pending = await writeUniqueFile(pendingRoot, filename, file);
+  const filePath = filePathInside(root, pending.filename);
+  const publicPath = `/${UPLOAD_ROUTE_SEGMENT}/${encodeURIComponent(pending.filename)}`;
 
   return {
-    ...stored,
+    downloadName: uploadedDownloadName(file.name, pending.filename, options),
+    filename: pending.filename,
+    filePath,
+    pendingFilePath: pending.filePath,
     publicPath,
     size: file.size
   };
 }
 
+export async function promoteUploadedFile(upload: StoredUpload) {
+  await link(upload.pendingFilePath, upload.filePath);
+  await rm(upload.pendingFilePath, { force: true });
+}
+
+export async function discardUploadedFile(upload: StoredUpload) {
+  await Promise.all([
+    rm(upload.pendingFilePath, { force: true }),
+    rm(upload.filePath, { force: true })
+  ]);
+}
+
 export async function deleteUploadedFile(filename: string) {
   await rm(filePathInside(uploadsRoot(), filename), { force: true });
+}
+
+export async function uploadedFileSize(filename: string) {
+  try {
+    const fileStats = await stat(filePathInside(uploadsRoot(), filename));
+    return fileStats.isFile() ? fileStats.size : null;
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? error.code : "";
+    if (code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+export async function storedUploadsOnDisk() {
+  const root = uploadsRoot();
+  let entries;
+  try {
+    entries = await readdir(root, { withFileTypes: true });
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? error.code : "";
+    if (code === "ENOENT") return [];
+    throw error;
+  }
+
+  const files = await Promise.all(entries.filter((entry) => entry.isFile()).map(async (entry) => ({
+    sizeBytes: (await stat(filePathInside(root, entry.name))).size,
+    storageKey: entry.name
+  })));
+  return files;
 }

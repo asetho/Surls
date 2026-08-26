@@ -2,6 +2,7 @@ import { getSiteUploadMaxBytes } from "./settings";
 
 export const BYTES_PER_MEGABYTE = 1024 * 1024;
 export const MAX_UPLOAD_MEGABYTES = 1024;
+export const UPLOAD_PROCESS_MAX_BYTES = 25 * BYTES_PER_MEGABYTE;
 
 export type UploadLimitUser = {
   uploadLimitUnlimited?: boolean | null;
@@ -51,11 +52,14 @@ export function siteUploadLimitFromFormData(formData: FormData) {
 }
 
 export function effectiveUploadMaxBytes(user: UploadLimitUser, siteUploadMaxBytes: number | null) {
-  if (user.uploadLimitUnlimited) return null;
-  if (user.uploadMaxBytes !== null && user.uploadMaxBytes !== undefined) {
-    return Number(user.uploadMaxBytes);
-  }
-  return siteUploadMaxBytes;
+  const configuredMaxBytes = user.uploadLimitUnlimited
+    ? null
+    : user.uploadMaxBytes !== null && user.uploadMaxBytes !== undefined
+      ? Number(user.uploadMaxBytes)
+      : siteUploadMaxBytes;
+  return configuredMaxBytes === null
+    ? UPLOAD_PROCESS_MAX_BYTES
+    : Math.min(configuredMaxBytes, UPLOAD_PROCESS_MAX_BYTES);
 }
 
 export async function getEffectiveUploadMaxBytes(user: UploadLimitUser) {

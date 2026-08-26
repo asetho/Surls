@@ -9,6 +9,7 @@ import { validateCsrf } from "@/lib/csrf";
 import { archiveShortLink, deleteShortLink, restoreShortLink } from "@/lib/link-lifecycle";
 import { normalizeOptionalDate, normalizeOptionalPositiveInt, normalizeShortLinkTags } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
+import { safeRedirectPath } from "@/lib/redirect-path";
 import { assertNoPrivateResolution, parseSafeHttpUrl } from "@/lib/url-safety";
 import { createLinkFromFormData } from "./create-link";
 
@@ -25,11 +26,6 @@ function tagList(value: FormDataEntryValue | null) {
     .split(",")
     .map((tag) => tag.trim())
     .filter(Boolean);
-}
-
-function safeInternalPath(value: FormDataEntryValue | string | null, fallback: string) {
-  const path = String(value ?? "");
-  return path.startsWith("/") && !path.startsWith("//") ? path : fallback;
 }
 
 export async function createLinkAction(formData: FormData) {
@@ -132,7 +128,7 @@ export async function deleteLinkAction(formData: FormData) {
   const admin = await requireSiteAdmin();
   if (!admin) throw new Error("Only admins can permanently delete links.");
   const id = String(formData.get("id") ?? "");
-  const returnTo = safeInternalPath(formData.get("returnTo"), "/admin/links");
+  const returnTo = safeRedirectPath(formData.get("returnTo"), "/admin/links");
   const link = await deleteShortLink(id, formData.get("confirmCode"));
   await auditLog({
     userId: admin.id,

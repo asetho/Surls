@@ -25,13 +25,22 @@ const uploadLimits = vi.hoisted(() => ({
 }));
 
 const prisma = vi.hoisted(() => ({
+  $queryRaw: vi.fn(),
   $transaction: vi.fn(),
   apiToken: {
     deleteMany: vi.fn(),
     findFirst: vi.fn(),
     updateMany: vi.fn()
   },
+  appSetting: {
+    findUnique: vi.fn(),
+    upsert: vi.fn()
+  },
   auditLog: {
+    create: vi.fn()
+  },
+  uploadedFile: {
+    aggregate: vi.fn(),
     create: vi.fn()
   },
   shortLink: {
@@ -46,13 +55,20 @@ const links = vi.hoisted(() => ({
 }));
 
 const uploads = vi.hoisted(() => ({
-  deleteUploadedFile: vi.fn(),
+  discardUploadedFile: vi.fn(),
   normalizeUploadFilenameMode: vi.fn((value: FormDataEntryValue | null) => (value === "random" ? "random" : "safe")),
+  promoteUploadedFile: vi.fn(),
+  storedUploadsOnDisk: vi.fn(),
   storeUploadedFile: vi.fn()
 }));
 
 const urlSafety = vi.hoisted(() => ({
-  assertNoPrivateResolution: vi.fn()
+  assertNoPrivateResolution: vi.fn(),
+  resolveSafeHttpAddress: vi.fn()
+}));
+
+const pageTitle = vi.hoisted(() => ({
+  fetchWithPinnedAddress: vi.fn()
 }));
 
 const nextCache = vi.hoisted(() => ({
@@ -68,12 +84,14 @@ vi.mock("@/lib/upload-limits", () => uploadLimits);
 vi.mock("@/lib/prisma", () => ({ prisma }));
 vi.mock("@/lib/links", () => links);
 vi.mock("@/lib/uploads", () => uploads);
+vi.mock("@/lib/page-title", () => pageTitle);
 vi.mock("next/cache", () => nextCache);
 vi.mock("@/lib/url-safety", async () => {
   const actual = await vi.importActual<typeof import("@/lib/url-safety")>("@/lib/url-safety");
   return {
     ...actual,
-    assertNoPrivateResolution: urlSafety.assertNoPrivateResolution
+    assertNoPrivateResolution: urlSafety.assertNoPrivateResolution,
+    resolveSafeHttpAddress: urlSafety.resolveSafeHttpAddress
   };
 });
 
@@ -128,15 +146,24 @@ describe("tools actions hardening", () => {
       scopes: "links:create,uploads:create"
     });
     prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
+    prisma.uploadedFile.aggregate.mockResolvedValue({ _sum: { sizeBytes: 0n } });
+    prisma.uploadedFile.create.mockResolvedValue({ id: "upload_123" });
+    prisma.appSetting.findUnique.mockResolvedValue({ key: "internal.uploadedFiles.reconciled.v1" });
     links.createShortLink.mockResolvedValue({ id: "link_123" });
     urlSafety.assertNoPrivateResolution.mockResolvedValue(true);
+    urlSafety.resolveSafeHttpAddress.mockResolvedValue({ address: "203.0.113.10", family: 4 });
+    pageTitle.fetchWithPinnedAddress.mockResolvedValue(new Response(null, { status: 204 }));
     uploads.storeUploadedFile.mockResolvedValue({
+      downloadName: "hello_world.txt",
       filePath: "/tmp/surls-upload/hello_world.txt",
       filename: "hello_world.txt",
+      pendingFilePath: "/tmp/surls-upload/.pending/hello_world.txt",
       publicPath: "/uploads/hello_world.txt",
       size: 5
     });
-    uploads.deleteUploadedFile.mockResolvedValue(undefined);
+    uploads.storedUploadsOnDisk.mockResolvedValue([]);
+    uploads.discardUploadedFile.mockResolvedValue(undefined);
+    uploads.promoteUploadedFile.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -308,6 +335,27 @@ describe("tools actions hardening", () => {
     expect(audit.auditLog).not.toHaveBeenCalled();
   });
 
+  it("pins destination checks to the validated DNS address", async () => {
+    const { checkDestinationAction } = await import("@/app/admin/tools/actions");
+    const formData = new FormData();
+    formData.set("url", "https://example.com/status");
+
+    await expect(checkDestinationAction(null, formData)).resolves.toEqual({
+      ok: true,
+      message: "Reachable: HTTP 204"
+    });
+    expect(urlSafety.resolveSafeHttpAddress).toHaveBeenCalledWith("https://example.com/status");
+    expect(pageTitle.fetchWithPinnedAddress).toHaveBeenCalledWith(
+      "https://example.com/status",
+      expect.objectContaining({
+        method: "HEAD",
+        redirect: "manual",
+        resolvedAddress: { address: "203.0.113.10", family: 4 },
+        signal: expect.any(AbortSignal)
+      })
+    );
+  });
+
   it("rejects private or internal destinations during CSV import preview", async () => {
     const { importCsvAction } = await import("@/app/admin/tools/actions");
     urlSafety.assertNoPrivateResolution.mockRejectedValue(new Error("Destination resolves to a private or internal address."));
@@ -318,6 +366,47 @@ describe("tools actions hardening", () => {
     expect(result.errors).toEqual(["Row 1: Destination resolves to a private or internal address."]);
     expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(links.createShortLink).not.toHaveBeenCalled();
+  });
+
+  it("stops oversized CSV imports before validation or database work", async () => {
+    const { importCsvAction } = await import("@/app/admin/tools/actions");
+    const rows = Array.from({ length: 201 }, (_, index) => `https://example.com/${index}`).join("\n");
+
+    const result = await importCsvAction(null, importForm(rows));
+
+    expect(result).toEqual({ imported: 0, errors: ["Import at most 200 rows at a time."] });
+    expect(prisma.shortLink.findMany).not.toHaveBeenCalled();
+    expect(urlSafety.assertNoPrivateResolution).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized CSV text and fields before validation or database work", async () => {
+    const { importCsvAction } = await import("@/app/admin/tools/actions");
+
+    const oversizedText = await importCsvAction(null, importForm("x".repeat(512 * 1024 + 1)));
+    const oversizedField = await importCsvAction(
+      null,
+      importForm(`https://example.com,alias,${"x".repeat(16 * 1024 + 1)}`)
+    );
+
+    expect(oversizedText).toEqual({ imported: 0, errors: ["CSV imports must be 512 KB or smaller."] });
+    expect(oversizedField).toEqual({
+      imported: 0,
+      errors: ["CSV fields must be 16384 characters or fewer."]
+    });
+    expect(prisma.shortLink.findMany).not.toHaveBeenCalled();
+    expect(urlSafety.assertNoPrivateResolution).not.toHaveBeenCalled();
+  });
+
+  it("does not query existing aliases after detecting duplicate input aliases", async () => {
+    const { importCsvAction } = await import("@/app/admin/tools/actions");
+
+    const result = await importCsvAction(
+      null,
+      importForm("https://example.com/one,duplicate,One\nhttps://example.com/two,duplicate,Two")
+    );
+
+    expect(result.errors).toEqual(['Alias "duplicate" appears more than once in this import.']);
+    expect(prisma.shortLink.findMany).not.toHaveBeenCalled();
   });
 
   it("does not create partial links when a confirmed CSV import has one unsafe row", async () => {
@@ -361,14 +450,16 @@ describe("tools actions hardening", () => {
         allowPrivateDestination: true
       })
     );
-    expect(audit.auditLog).toHaveBeenCalledWith(expect.objectContaining({
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
       entityType: "ShortLink",
       details: expect.objectContaining({ filename: "hello_world.txt", size: 5, via: "upload" })
+      })
     }));
+    expect(uploads.promoteUploadedFile).toHaveBeenCalledWith(expect.objectContaining({ filename: "hello_world.txt" }));
     expect(result).toEqual({
       code: "doc-xyz",
       filename: "hello_world.txt",
-      fileUrl: "http://localhost:3000/uploads/hello_world.txt",
       shortUrl: "http://localhost:3000/doc-xyz"
     });
   });
@@ -383,6 +474,17 @@ describe("tools actions hardening", () => {
     expect(uploads.storeUploadedFile).not.toHaveBeenCalled();
   });
 
+  it("bounds titles in the shared upload core", async () => {
+    const { uploadAndShortenAction } = await import("@/app/admin/tools/actions");
+    const formData = uploadForm();
+    formData.set("title", "x".repeat(241));
+
+    const result = await uploadAndShortenAction(null, formData);
+
+    expect(result).toEqual({ error: "Title must be 240 characters or fewer." });
+    expect(uploads.storeUploadedFile).not.toHaveBeenCalled();
+  });
+
   it("removes a stored file when short-link creation fails", async () => {
     const { uploadAndShortenAction } = await import("@/app/admin/tools/actions");
     links.createShortLink.mockRejectedValue(new Error("Could not create link"));
@@ -390,6 +492,6 @@ describe("tools actions hardening", () => {
     const result = await uploadAndShortenAction(null, uploadForm());
 
     expect(result).toEqual({ error: "Could not create link" });
-    expect(uploads.deleteUploadedFile).toHaveBeenCalledWith("hello_world.txt");
+    expect(uploads.discardUploadedFile).toHaveBeenCalledWith(expect.objectContaining({ filename: "hello_world.txt" }));
   });
 });

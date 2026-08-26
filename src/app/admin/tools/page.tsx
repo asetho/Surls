@@ -8,9 +8,10 @@ import { ToolsTabs } from "@/components/ToolsTabs";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { APP_BUILD_LABEL, APP_VERSION } from "@/lib/app-version";
 import { adminLoginPath } from "@/lib/admin-login-path";
-import { requireAdmin } from "@/lib/auth";
+import { isAdminUser, requireAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { appBaseUrl, env } from "@/lib/env";
+import { apiTokenManagementWhere, shortLinkOwnershipWhere } from "@/lib/ownership";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { effectiveUploadMaxBytes } from "@/lib/upload-limits";
@@ -34,15 +35,17 @@ export default async function ToolsPage() {
   const admin = await requireAdmin();
   if (!admin) redirect(adminLoginPath("/admin/tools"));
   const csrf = getCsrfToken();
+  const tokenOwnership = apiTokenManagementWhere(admin);
+  const linkOwnership = shortLinkOwnershipWhere(admin);
   const [tokens, settings, disabled, expired, zeroClicks, duplicates] = await Promise.all([
-    prisma.apiToken.findMany({ orderBy: { createdAt: "desc" }, take: 20 }),
+    prisma.apiToken.findMany({ where: tokenOwnership, orderBy: { createdAt: "desc" }, take: 20 }),
     getSettings(),
-    prisma.shortLink.count({ where: { enabled: false, archivedAt: null } }),
-    prisma.shortLink.count({ where: { expiresAt: { lte: new Date() }, archivedAt: null } }),
-    prisma.shortLink.count({ where: { clickCount: 0, archivedAt: null } }),
+    prisma.shortLink.count({ where: { enabled: false, archivedAt: null, ...linkOwnership } }),
+    prisma.shortLink.count({ where: { expiresAt: { lte: new Date() }, archivedAt: null, ...linkOwnership } }),
+    prisma.shortLink.count({ where: { clickCount: 0, archivedAt: null, ...linkOwnership } }),
     prisma.shortLink.groupBy({
       by: ["destinationUrl"],
-      where: { archivedAt: null },
+      where: { archivedAt: null, ...linkOwnership },
       _count: { destinationUrl: true },
       having: { destinationUrl: { _count: { gt: 1 } } },
       orderBy: { destinationUrl: "asc" },
@@ -162,7 +165,9 @@ export default async function ToolsPage() {
                   <h2>Exports</h2>
                   <div className="row-actions">
                     <Link className="button secondary" href="/api/links/export?format=csv">Links CSV</Link>
-                    <Link className="button secondary" href="/api/links/export?format=json">Links JSON</Link>
+                    {isAdminUser(admin) ? (
+                      <Link className="button secondary" href="/api/links/export?format=json">Links JSON</Link>
+                    ) : null}
                   </div>
                   <p className="muted small">Stats CSV is available from each link details page.</p>
                 </section>

@@ -10,6 +10,7 @@ import { PasswordLoginForm } from "@/components/PasswordLoginForm";
 import { requireAdmin, safeRedirectPath } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { pageFromFilesystem } from "@/lib/custom-pages";
+import { clickEventOwnershipWhere, shortLinkOwnershipWhere } from "@/lib/ownership";
 import { getSettings } from "@/lib/settings";
 
 type SearchParams = Promise<{
@@ -53,6 +54,8 @@ export default async function AdminDashboard({ searchParams }: { searchParams: S
   const week = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const month = new Date(now);
   month.setUTCMonth(now.getUTCMonth() - 1);
+  const linkOwnership = shortLinkOwnershipWhere(currentUser);
+  const clickOwnership = clickEventOwnershipWhere(currentUser);
 
   const [
     totalLinks,
@@ -65,22 +68,23 @@ export default async function AdminDashboard({ searchParams }: { searchParams: S
     recentClicks,
     attentionLinks
   ] = await Promise.all([
-    prisma.shortLink.count({ where: { archivedAt: null } }),
-    prisma.clickEvent.count(),
-    prisma.clickEvent.count({ where: { occurredAt: { gte: today } } }),
-    prisma.clickEvent.count({ where: { occurredAt: { gte: week } } }),
-    prisma.clickEvent.count({ where: { occurredAt: { gte: month } } }),
+    prisma.shortLink.count({ where: { archivedAt: null, ...linkOwnership } }),
+    prisma.clickEvent.count({ where: clickOwnership }),
+    prisma.clickEvent.count({ where: { occurredAt: { gte: today }, ...clickOwnership } }),
+    prisma.clickEvent.count({ where: { occurredAt: { gte: week }, ...clickOwnership } }),
+    prisma.clickEvent.count({ where: { occurredAt: { gte: month }, ...clickOwnership } }),
     prisma.shortLink.findMany({
-      where: { archivedAt: null },
+      where: { archivedAt: null, ...linkOwnership },
       orderBy: [{ clickCount: "desc" }, { createdAt: "desc" }],
       take: 6
     }),
     prisma.shortLink.findMany({
-      where: { archivedAt: null },
+      where: { archivedAt: null, ...linkOwnership },
       orderBy: { createdAt: "desc" },
       take: 6
     }),
     prisma.clickEvent.findMany({
+      where: clickOwnership,
       include: { shortLink: true },
       orderBy: { occurredAt: "desc" },
       take: 8
@@ -88,6 +92,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: S
     prisma.shortLink.findMany({
       where: {
         archivedAt: null,
+        ...linkOwnership,
         OR: [{ enabled: false }, { expiresAt: { lte: now } }]
       },
       orderBy: { updatedAt: "desc" },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isReservedAlias, validateAlias } from "@/lib/alias";
+import { generateAlias, isReservedAlias, validateAlias } from "@/lib/alias";
 
 describe("alias validation", () => {
   it("rejects reserved routes", () => {
@@ -21,5 +21,12 @@ describe("alias validation", () => {
     expect(validateAlias("docs-24")).toBeNull();
     expect(validateAlias("team-tags")).toBeNull();
     expect(validateAlias("hetrixtools")).toBeNull();
+  });
+
+  it("generates high-entropy aliases by default", () => {
+    const alias = generateAlias();
+
+    expect(alias).toHaveLength(16);
+    expect(alias).toMatch(/^[abcdefghjkmnpqrstuvwxyz23456789]+$/);
   });
 });

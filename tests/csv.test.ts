@@ -11,6 +11,15 @@ describe("CSV parsing", () => {
   it("rejects unclosed quoted fields", () => {
     expect(() => parseCsvRows('"https://example.com')).toThrow(/unclosed/i);
   });
+
+  it("stops parsing as soon as a configured row limit is exceeded", () => {
+    expect(() => parseCsvRows("a\nb\nc", 2)).toThrow("Import at most 2 rows at a time.");
+  });
+
+  it("stops accumulating an oversized field", () => {
+    expect(() => parseCsvRows(`https://example.com,alias,${"x".repeat(17)}`, 200, 16))
+      .toThrow("CSV fields must be 16 characters or fewer.");
+  });
 });
 
 describe("CSV escaping", () => {
