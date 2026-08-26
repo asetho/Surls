@@ -25,6 +25,7 @@ const uploadLimits = vi.hoisted(() => ({
 }));
 
 const prisma = vi.hoisted(() => ({
+  $queryRaw: vi.fn(),
   $transaction: vi.fn(),
   apiToken: {
     deleteMany: vi.fn(),
@@ -32,6 +33,10 @@ const prisma = vi.hoisted(() => ({
     updateMany: vi.fn()
   },
   auditLog: {
+    create: vi.fn()
+  },
+  uploadedFile: {
+    aggregate: vi.fn(),
     create: vi.fn()
   },
   shortLink: {
@@ -135,11 +140,14 @@ describe("tools actions hardening", () => {
       scopes: "links:create,uploads:create"
     });
     prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
+    prisma.uploadedFile.aggregate.mockResolvedValue({ _sum: { sizeBytes: 0n } });
+    prisma.uploadedFile.create.mockResolvedValue({ id: "upload_123" });
     links.createShortLink.mockResolvedValue({ id: "link_123" });
     urlSafety.assertNoPrivateResolution.mockResolvedValue(true);
     urlSafety.resolveSafeHttpAddress.mockResolvedValue({ address: "203.0.113.10", family: 4 });
     pageTitle.fetchWithPinnedAddress.mockResolvedValue(new Response(null, { status: 204 }));
     uploads.storeUploadedFile.mockResolvedValue({
+      downloadName: "hello_world.txt",
       filePath: "/tmp/surls-upload/hello_world.txt",
       filename: "hello_world.txt",
       publicPath: "/uploads/hello_world.txt",
@@ -414,14 +422,15 @@ describe("tools actions hardening", () => {
         allowPrivateDestination: true
       })
     );
-    expect(audit.auditLog).toHaveBeenCalledWith(expect.objectContaining({
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
       entityType: "ShortLink",
       details: expect.objectContaining({ filename: "hello_world.txt", size: 5, via: "upload" })
+      })
     }));
     expect(result).toEqual({
       code: "doc-xyz",
       filename: "hello_world.txt",
-      fileUrl: "http://localhost:3000/uploads/hello_world.txt",
       shortUrl: "http://localhost:3000/doc-xyz"
     });
   });
@@ -433,6 +442,17 @@ describe("tools actions hardening", () => {
     const result = await uploadAndShortenAction(null, uploadForm());
 
     expect(result.error).toBe("That short alias is already in use.");
+    expect(uploads.storeUploadedFile).not.toHaveBeenCalled();
+  });
+
+  it("bounds titles in the shared upload core", async () => {
+    const { uploadAndShortenAction } = await import("@/app/admin/tools/actions");
+    const formData = uploadForm();
+    formData.set("title", "x".repeat(241));
+
+    const result = await uploadAndShortenAction(null, formData);
+
+    expect(result).toEqual({ error: "Title must be 240 characters or fewer." });
     expect(uploads.storeUploadedFile).not.toHaveBeenCalled();
   });
 

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
 import { analyticsOptOutReason, handleShortRedirect, isAdminReferrer, shouldRecordRedirectClick } from "@/lib/redirect";
 import { linkUnavailableReason } from "@/lib/links";
+import { UPLOAD_GRANT_QUERY_PARAM } from "@/lib/upload-grants";
 
 const redirectMocks = vi.hoisted(() => ({
   checkRateLimit: vi.fn(),
@@ -252,6 +253,27 @@ describe("redirect behavior", () => {
     expect(response.headers.get("pragma")).toBe("no-cache");
     expect(redirectMocks.checkRateLimit).toHaveBeenCalledTimes(2);
     expect(redirectMocks.recordClick).toHaveBeenCalledOnce();
+  });
+
+  it("adds a short-lived exact-link grant to local upload redirects", async () => {
+    redirectMocks.findUnique.mockResolvedValue({
+      id: "link_1",
+      code: "abc",
+      destinationUrl: "http://localhost:3000/uploads/0123456789abcdef.txt",
+      enabled: true,
+      archivedAt: null,
+      expiresAt: null,
+      maxClicks: 1,
+      clickCount: 0
+    });
+
+    const response = await handleShortRedirect(requestFor("/abc"), "abc");
+    const location = new URL(response.headers.get("location") ?? "");
+
+    expect(response.status).toBe(302);
+    expect(location.pathname).toBe("/uploads/0123456789abcdef.txt");
+    expect(location.searchParams.get(UPLOAD_GRANT_QUERY_PARAM)).toBeTruthy();
+    expect(redirectMocks.recordClick).toHaveBeenCalledWith(expect.objectContaining({ shortLinkId: "link_1" }));
   });
 
   it("redirects but skips analytics when the visitor opts out", async () => {

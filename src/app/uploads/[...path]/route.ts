@@ -1,6 +1,7 @@
 import { env } from "@/lib/env";
-import { prisma } from "@/lib/prisma";
-import { uploadedFileUrl } from "@/lib/uploads";
+import { hasValidUploadDownloadGrant } from "@/lib/upload-grants";
+import { uploadedFileDownloadName } from "@/lib/uploaded-file-records";
+import { uploadContentDisposition } from "@/lib/uploads";
 import { publicWebrootResponse } from "@/lib/webroot";
 
 type Params = {
@@ -21,41 +22,37 @@ function notFound(method: "GET" | "HEAD") {
   });
 }
 
-function downloadResponse(response: Response | null, method: "GET" | "HEAD") {
+function downloadResponse(response: Response | null, method: "GET" | "HEAD", downloadName: string | null) {
   if (!response) return notFound(method);
-  response.headers.set("Content-Disposition", "attachment");
+  response.headers.set("Content-Disposition", uploadContentDisposition(downloadName));
   return response;
 }
 
-async function activeUploadExists(path: string[]) {
-  if (path.length !== 1 || !path[0]) return false;
-  const link = await prisma.shortLink.findFirst({
-    where: {
-      archivedAt: null,
-      destinationUrl: uploadedFileUrl(path[0]),
-      enabled: true
-    },
-    select: { id: true }
-  });
-  return Boolean(link);
+async function authorizedUpload(request: Request, path: string[], method: "GET" | "HEAD") {
+  if (path.length !== 1 || !path[0]) return null;
+  if (!(await hasValidUploadDownloadGrant(request, path[0], method))) return null;
+  return { downloadName: await uploadedFileDownloadName(path[0]), filename: path[0] };
 }
 
-export async function GET(_request: Request, { params }: Params) {
+export async function GET(request: Request, { params }: Params) {
   const { path } = await params;
-  if (!(await activeUploadExists(path))) return notFound("GET");
+  const upload = await authorizedUpload(request, path, "GET");
+  if (!upload) return notFound("GET");
   return downloadResponse(
     await publicWebrootResponse(path, {
       allowReservedPath: true,
       cacheControl: "private, no-store",
       rootDir: env.UPLOADS_DIR
     }),
-    "GET"
+    "GET",
+    upload.downloadName
   );
 }
 
-export async function HEAD(_request: Request, { params }: Params) {
+export async function HEAD(request: Request, { params }: Params) {
   const { path } = await params;
-  if (!(await activeUploadExists(path))) return notFound("HEAD");
+  const upload = await authorizedUpload(request, path, "HEAD");
+  if (!upload) return notFound("HEAD");
   return downloadResponse(
     await publicWebrootResponse(path, {
       allowReservedPath: true,
@@ -63,6 +60,7 @@ export async function HEAD(_request: Request, { params }: Params) {
       method: "HEAD",
       rootDir: env.UPLOADS_DIR
     }),
-    "HEAD"
+    "HEAD",
+    upload.downloadName
   );
 }

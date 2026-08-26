@@ -51,8 +51,21 @@ model User {
   backupCodes   BackupCode[]
   passkeys      Passkey[]
   shortLinks    ShortLink[]      @relation("CreatedLinks")
+  uploadedFiles UploadedFile[]
   apiTokens     ApiToken[]
   auditLogs     AuditLog[]
+}
+
+model UploadedFile {
+  id           String   @id @default(cuid())
+  storageKey   String   @unique
+  downloadName String
+  sizeBytes    BigInt
+  ownerId      String?
+  createdAt    DateTime @default(now())
+  owner        User?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
 }
 
 model Session {

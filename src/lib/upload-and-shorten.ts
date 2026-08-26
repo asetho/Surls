@@ -1,9 +1,9 @@
 import { AuditAction } from "@prisma/client";
-import { auditLog } from "./audit";
 import { appBaseUrl } from "./env";
 import { validateAlias } from "./alias";
 import { createShortLink, shortUrl } from "./links";
 import { prisma } from "./prisma";
+import { withUploadedFileReservation } from "./uploaded-file-records";
 import {
   deleteUploadedFile,
   type UploadFilenameMode,
@@ -40,6 +40,8 @@ export async function checkUploadShortCodeAvailability(value: string) {
 
 export async function uploadAndShortenFile(input: UploadAndShortenInput) {
   const code = input.code?.trim() || null;
+  const title = input.title?.trim() || input.file.name;
+  if (title.length > 240) throw new Error("Title must be 240 characters or fewer.");
   if (code) {
     const availability = await checkUploadShortCodeAvailability(code);
     if (!availability.available) throw new Error(availability.error ?? "That short alias is unavailable.");
@@ -52,43 +54,56 @@ export async function uploadAndShortenFile(input: UploadAndShortenInput) {
       filenameMode: input.filenameMode,
       maxBytes: input.uploadMaxBytes
     });
-    const fileUrl = new URL(stored.publicPath, `${appBaseUrl()}/`).toString();
-    const link = await createShortLink(
+    const storedFile = stored;
+    const fileUrl = new URL(storedFile.publicPath, `${appBaseUrl()}/`).toString();
+    const link = await withUploadedFileReservation(
       {
-        destinationUrl: fileUrl,
-        code,
-        tags: ["Upload"],
-        title: input.title?.trim() || input.file.name,
-        createdById: input.createdById,
-        createdByApiTokenName: input.createdByApiTokenName,
-        createdByApiTokenPrefix: input.createdByApiTokenPrefix,
-        fetchTitle: false
+        downloadName: storedFile.downloadName,
+        ownerId: input.createdById,
+        sizeBytes: storedFile.size,
+        storageKey: storedFile.filename
       },
-      prisma,
-      {
-        allowPrivateDestination: true,
-        assertSafeResolution: trustedSafeResolution
+      async (transaction) => {
+        const createdLink = await createShortLink(
+          {
+            destinationUrl: fileUrl,
+            code,
+            tags: ["Upload"],
+            title,
+            createdById: input.createdById,
+            createdByApiTokenName: input.createdByApiTokenName,
+            createdByApiTokenPrefix: input.createdByApiTokenPrefix,
+            fetchTitle: false
+          },
+          transaction,
+          {
+            allowPrivateDestination: true,
+            assertSafeResolution: trustedSafeResolution
+          }
+        );
+        await transaction.auditLog.create({
+          data: {
+            userId: input.createdById,
+            action: AuditAction.SHORT_LINK_CREATED,
+            entityType: "ShortLink",
+            entityId: createdLink.id,
+            details: {
+              code: createdLink.code,
+              filename: storedFile.downloadName,
+              originalName: input.file.name,
+              storageKey: storedFile.filename,
+              via: input.via,
+              size: storedFile.size
+            }
+          }
+        });
+        return createdLink;
       }
     );
 
-    await auditLog({
-      userId: input.createdById,
-      action: AuditAction.SHORT_LINK_CREATED,
-      entityType: "ShortLink",
-      entityId: link.id,
-      details: {
-        code: link.code,
-        filename: stored.filename,
-        originalName: input.file.name,
-        via: input.via,
-        size: stored.size
-      }
-    });
-
     return {
       code: link.code,
-      filename: stored.filename,
-      fileUrl,
+      filename: storedFile.downloadName,
       shortUrl: shortUrl(appBaseUrl(), link.code)
     };
   } catch (error) {

@@ -11,6 +11,10 @@ const uploads = vi.hoisted(() => ({
   deleteUploadedFile: vi.fn()
 }));
 
+const uploadedFileRecords = vi.hoisted(() => ({
+  deleteUploadedFileRecord: vi.fn()
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: { shortLink }
 }));
@@ -19,6 +23,8 @@ vi.mock("@/lib/uploads", async () => {
   const actual = await vi.importActual<typeof import("@/lib/uploads")>("@/lib/uploads");
   return { ...actual, deleteUploadedFile: uploads.deleteUploadedFile };
 });
+
+vi.mock("@/lib/uploaded-file-records", () => uploadedFileRecords);
 
 import {
   DEFAULT_LINK_PAGE_SIZE,
@@ -42,6 +48,7 @@ describe("link lifecycle helpers", () => {
     shortLink.findUnique.mockReset();
     shortLink.update.mockReset();
     uploads.deleteUploadedFile.mockReset();
+    uploadedFileRecords.deleteUploadedFileRecord.mockReset();
   });
 
   it("uses active and archived list filters", () => {
@@ -194,6 +201,7 @@ describe("link lifecycle helpers", () => {
       select: { id: true }
     });
     expect(uploads.deleteUploadedFile).toHaveBeenCalledWith("report.pdf");
+    expect(uploadedFileRecords.deleteUploadedFileRecord).toHaveBeenCalledWith("report.pdf");
   });
 
   it("keeps a shared uploaded file while another short link still references it", async () => {
@@ -207,6 +215,7 @@ describe("link lifecycle helpers", () => {
     await deleteShortLink("link_1", "/demo");
 
     expect(uploads.deleteUploadedFile).not.toHaveBeenCalled();
+    expect(uploadedFileRecords.deleteUploadedFileRecord).not.toHaveBeenCalled();
   });
 
   it("does not delete local files for upload-looking URLs on another origin", async () => {

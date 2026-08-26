@@ -35,7 +35,11 @@ vi.mock("@/lib/uploads", () => uploads);
 vi.mock("@/lib/upload-limits", () => uploadLimits);
 vi.mock("@/lib/upload-and-shorten", () => uploadAndShorten);
 
-function uploadRequest(authorization: string | null = "Bearer surls_valid", csrfToken?: string) {
+function uploadRequest(
+  authorization: string | null = "Bearer surls_valid",
+  csrfToken?: string,
+  origin = authorization ? undefined : "http://localhost:3000"
+) {
   const formData = new FormData();
   formData.set("file", new File(["hello"], "hello world.txt", { type: "text/plain" }));
   formData.set("filenameMode", "safe");
@@ -44,7 +48,8 @@ function uploadRequest(authorization: string | null = "Bearer surls_valid", csrf
     body: formData,
     headers: {
       ...(authorization ? { authorization } : {}),
-      ...(csrfToken ? { "X-Surls-CSRF": csrfToken } : {})
+      ...(csrfToken ? { "X-Surls-CSRF": csrfToken } : {}),
+      ...(origin ? { origin } : {})
     },
     method: "POST"
   });
@@ -122,7 +127,6 @@ describe("POST /api/uploads", () => {
     uploadAndShorten.uploadAndShortenFile.mockResolvedValue({
       code: "abc123",
       filename: "hello_world.txt",
-      fileUrl: "https://example.test/uploads/hello_world.txt",
       shortUrl: "https://example.test/abc123"
     });
   });
@@ -135,6 +139,18 @@ describe("POST /api/uploads", () => {
 
     expect(response.status).toBe(401);
     expect(apiTokens.authenticateApiToken).toHaveBeenCalledWith("Bearer surls_links_only", "uploads:create");
+    expect(uploadAndShorten.uploadAndShortenFile).not.toHaveBeenCalled();
+  });
+
+  it("does not fall back to a browser session when an Authorization header is invalid", async () => {
+    apiTokens.authenticateApiToken.mockResolvedValue(null);
+    auth.requireAdmin.mockResolvedValue({ id: "user_web" });
+    const { POST } = await import("@/app/api/uploads/route");
+
+    const response = await POST(uploadRequest("Bearer invalid"));
+
+    expect(response.status).toBe(401);
+    expect(auth.requireAdmin).not.toHaveBeenCalled();
     expect(uploadAndShorten.uploadAndShortenFile).not.toHaveBeenCalled();
   });
 
@@ -190,6 +206,71 @@ describe("POST /api/uploads", () => {
 
     expect(response.status).toBe(403);
     expect(uploadAndShorten.uploadAndShortenFile).not.toHaveBeenCalled();
+  });
+
+  it("rejects session-authenticated uploads without an exact same-origin Origin header", async () => {
+    apiTokens.authenticateApiToken.mockResolvedValue(null);
+    auth.requireAdmin.mockResolvedValue({ id: "user_web" });
+    const { POST } = await import("@/app/api/uploads/route");
+
+    const missingOrigin = await POST(uploadRequest(null, "csrf-token", ""));
+    expect(missingOrigin.status).toBe(403);
+
+    const foreignOrigin = await POST(uploadRequest(null, "csrf-token", "https://example.test"));
+    expect(foreignOrigin.status).toBe(403);
+    expect(uploadAndShorten.uploadAndShortenFile).not.toHaveBeenCalled();
+  });
+
+  it("requires multipart form data", async () => {
+    const { POST } = await import("@/app/api/uploads/route");
+    const request = new NextRequest("http://localhost:3000/api/uploads", {
+      body: JSON.stringify({ filename: "hello.txt" }),
+      headers: { authorization: "Bearer surls_valid", "content-type": "application/json" },
+      method: "POST"
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(415);
+    expect(uploadAndShorten.uploadAndShortenFile).not.toHaveBeenCalled();
+  });
+
+  it("bounds upload titles", async () => {
+    const formData = new FormData();
+    formData.set("file", new File(["hello"], "hello.txt", { type: "text/plain" }));
+    formData.set("title", "x".repeat(241));
+    const { POST } = await import("@/app/api/uploads/route");
+    const request = new NextRequest("http://localhost:3000/api/uploads", {
+      body: formData,
+      headers: { authorization: "Bearer surls_valid" },
+      method: "POST"
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Title must be 240 characters or fewer." });
+    expect(uploadAndShorten.uploadAndShortenFile).not.toHaveBeenCalled();
+  });
+
+  it("limits concurrent multipart parsing per process", async () => {
+    let releaseUpload!: (value: { code: string; filename: string; shortUrl: string }) => void;
+    const blocked = new Promise<{ code: string; filename: string; shortUrl: string }>((resolve) => {
+      releaseUpload = resolve;
+    });
+    uploadAndShorten.uploadAndShortenFile.mockReturnValue(blocked);
+    const { POST, UPLOAD_MAX_CONCURRENT_REQUESTS } = await import("@/app/api/uploads/route");
+    const active = Array.from({ length: UPLOAD_MAX_CONCURRENT_REQUESTS }, () => POST(uploadRequest()));
+    await vi.waitFor(() => {
+      expect(uploadAndShorten.uploadAndShortenFile).toHaveBeenCalledTimes(UPLOAD_MAX_CONCURRENT_REQUESTS);
+    });
+
+    const rejected = await POST(uploadRequest());
+    expect(rejected.status).toBe(503);
+    expect(rejected.headers.get("retry-after")).toBe("5");
+
+    releaseUpload({ code: "abc123", filename: "hello.txt", shortUrl: "https://example.test/abc123" });
+    await Promise.all(active);
   });
 
   it("returns rate-limit failures before reading the upload", async () => {

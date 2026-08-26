@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { mkdir, open, rm } from "node:fs/promises";
 import path from "node:path";
 import { appBaseUrl, env } from "./env";
+import { UPLOAD_PROCESS_MAX_BYTES } from "./upload-limits";
 
 export const UPLOAD_ROUTE_SEGMENT = "uploads";
 export const UPLOAD_FILENAME_MODES = ["original", "safe", "random"] as const;
@@ -15,6 +16,7 @@ type StoreUploadedFileOptions = {
 };
 
 export type StoredUpload = {
+  downloadName: string;
   filename: string;
   filePath: string;
   publicPath: string;
@@ -84,19 +86,33 @@ export function storedUploadFilename(
   const safeOriginal = sanitizedOriginalName(originalName);
   const originalExtension = path.extname(safeOriginal).slice(0, 20);
   const extension = options.dropExtension ? "" : originalExtension;
+  return limitedName(randomSuffix(16), extension);
+}
+
+function uploadedDownloadName(
+  originalName: string,
+  storageFilename: string,
+  options: StoreUploadedFileOptions
+) {
+  if (options.filenameMode === "random") return storageFilename;
+  const safeOriginal = sanitizedOriginalName(originalName);
+  const originalExtension = path.extname(safeOriginal).slice(0, 20);
+  const extension = options.dropExtension ? "" : originalExtension;
   const baseName = safeOriginal.slice(0, originalExtension ? -originalExtension.length : undefined);
-  let base: string;
-
-  if (options.filenameMode === "random") {
-    base = randomSuffix(8);
-  } else if (options.filenameMode === "original") {
-    base = baseName.trim() || "upload";
-  } else {
-    base = browserSafePart(baseName) || "upload";
+  if (options.filenameMode === "original") {
+    return limitedName(baseName.trim() || "upload", extension);
   }
+  return limitedName(browserSafePart(baseName) || "upload", extension);
+}
 
-  const filename = limitedName(base.startsWith(".") ? `file-${base}` : base, extension);
-  return filename.startsWith(".") ? `file-${filename}` : filename;
+export function uploadContentDisposition(filename: string | null) {
+  if (!filename) return "attachment";
+  const safeFilename = sanitizedOriginalName(filename);
+  const fallback = browserSafePart(safeFilename) || "download";
+  const encoded = encodeURIComponent(safeFilename).replace(/[!'()*]/g, (character) =>
+    `%${character.charCodeAt(0).toString(16).toUpperCase()}`
+  );
+  return `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`;
 }
 
 function filePathInside(root: string, filename: string) {
@@ -131,7 +147,7 @@ export function uploadedFilenameFromDestination(destinationUrl: string) {
   }
 }
 
-async function writeUniqueFile(root: string, filename: string, bytes: Uint8Array) {
+async function writeUniqueFile(root: string, filename: string, file: File) {
   const extension = path.extname(filename);
   const baseName = filename.slice(0, extension ? -extension.length : undefined);
 
@@ -141,7 +157,7 @@ async function writeUniqueFile(root: string, filename: string, bytes: Uint8Array
     let handle;
     try {
       handle = await open(filePath, "wx");
-      await handle.writeFile(bytes);
+      await handle.writeFile(file.stream());
       return { filename: candidate, filePath };
     } catch (error) {
       const code = error && typeof error === "object" && "code" in error ? error.code : "";
@@ -157,20 +173,23 @@ async function writeUniqueFile(root: string, filename: string, bytes: Uint8Array
 export async function storeUploadedFile(file: File, options: StoreUploadedFileOptions = {}): Promise<StoredUpload> {
   if (!file.name.trim()) throw new Error("Choose a file to upload.");
   if (file.size < 1) throw new Error("Choose a non-empty file to upload.");
-  const maxBytes = options.maxBytes === undefined ? uploadMaxBytes() : options.maxBytes;
-  if (maxBytes !== null && file.size > maxBytes) {
+  const configuredMaxBytes = options.maxBytes === undefined ? uploadMaxBytes() : options.maxBytes;
+  const maxBytes = configuredMaxBytes === null
+    ? UPLOAD_PROCESS_MAX_BYTES
+    : Math.min(configuredMaxBytes, UPLOAD_PROCESS_MAX_BYTES);
+  if (file.size > maxBytes) {
     throw new Error(`Upload files up to ${uploadMaxBytesLabel(maxBytes)} at a time.`);
   }
 
   const root = uploadsRoot();
   await mkdir(root, { recursive: true });
-  const bytes = new Uint8Array(await file.arrayBuffer());
   const filename = storedUploadFilename(file.name, options);
-  const stored = await writeUniqueFile(root, filename, bytes);
+  const stored = await writeUniqueFile(root, filename, file);
   const publicPath = `/${UPLOAD_ROUTE_SEGMENT}/${encodeURIComponent(stored.filename)}`;
 
   return {
     ...stored,
+    downloadName: uploadedDownloadName(file.name, stored.filename, options),
     publicPath,
     size: file.size
   };
