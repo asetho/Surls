@@ -1,3 +1,9 @@
 # Synthetic test-only AUTH_SECRET values in the first CI workflow commit.
 5a6f4415bd886356d700f88f919c454f58dfbaa7:.github/workflows/ci.yml:generic-api-key:20
 5a6f4415bd886356d700f88f919c454f58dfbaa7:.github/workflows/ci.yml:generic-api-key:81
+
+# Synthetic test-only upload storage keys in the security-hardening PR.
+33d0e7b1907be80c8c2688f3003e85eed111cddc:tests/uploaded-file-records.test.ts:generic-api-key:34
+33d0e7b1907be80c8c2688f3003e85eed111cddc:tests/uploaded-file-records.test.ts:generic-api-key:43
+33d0e7b1907be80c8c2688f3003e85eed111cddc:tests/uploaded-file-records.test.ts:generic-api-key:59
+8b2069354f2fd5eafe6ae59055ccbd04f1873fc5:tests/uploaded-file-records.test.ts:generic-api-key:80
