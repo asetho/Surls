@@ -1,6 +1,6 @@
 import http from "node:http";
 import { describe, expect, it, vi } from "vitest";
-import { extractHtmlTitle, fetchPageTitle } from "@/lib/page-title";
+import { extractHtmlTitle, fetchPageTitle, fetchWithPinnedAddress } from "@/lib/page-title";
 
 describe("page title fetching", () => {
   it("extracts and normalizes HTML titles", () => {
@@ -75,6 +75,27 @@ describe("page title fetching", () => {
           resolveSafeAddress: async () => ({ address: "127.0.0.1", family: 4 })
         })
       ).resolves.toBe("Pinned Title");
+    } finally {
+      await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    }
+  });
+
+  it("returns bodyless HEAD responses without constructing an invalid response body", async () => {
+    const server = http.createServer((_request, response) => {
+      response.writeHead(204);
+      response.end();
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("Expected a TCP listener");
+
+    try {
+      await expect(
+        fetchWithPinnedAddress(`http://head.example:${address.port}/`, {
+          method: "HEAD",
+          resolvedAddress: { address: "127.0.0.1", family: 4 }
+        })
+      ).resolves.toMatchObject({ body: null, status: 204 });
     } finally {
       await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
     }

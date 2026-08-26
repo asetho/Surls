@@ -6,6 +6,7 @@ const transaction = vi.hoisted(() => ({
     aggregate: vi.fn(),
     create: vi.fn(),
     createMany: vi.fn(),
+    deleteMany: vi.fn(),
     findMany: vi.fn(),
     findUnique: vi.fn()
   },
@@ -22,6 +23,7 @@ const prisma = vi.hoisted(() => ({
 vi.mock("@/lib/prisma", () => ({ prisma }));
 
 const uploads = vi.hoisted(() => ({
+  deleteUploadedFile: vi.fn(),
   storedUploadsOnDisk: vi.fn(),
   uploadedFilenameFromDestination: vi.fn((destinationUrl: string) => destinationUrl.split("/uploads/")[1] ?? null),
   uploadedFileSize: vi.fn(),
@@ -30,7 +32,11 @@ const uploads = vi.hoisted(() => ({
 
 vi.mock("@/lib/uploads", () => uploads);
 
-import { ensureUploadedFileRecord, withUploadedFileReservation } from "@/lib/uploaded-file-records";
+import {
+  deleteUploadedFileWithRecord,
+  ensureUploadedFileRecord,
+  withUploadedFileReservation
+} from "@/lib/uploaded-file-records";
 
 describe("uploaded file quota reservations", () => {
   beforeEach(() => {
@@ -93,6 +99,21 @@ describe("uploaded file quota reservations", () => {
       skipDuplicates: true
     });
     expect(transaction.uploadedFile.aggregate).toHaveBeenCalledTimes(2);
+    expect(transaction.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      uploads.storedUploadsOnDisk.mock.invocationCallOrder[0]
+    );
+  });
+
+  it("coordinates physical upload deletion with quota reconciliation", async () => {
+    await deleteUploadedFileWithRecord("legacy-report.pdf");
+
+    expect(transaction.uploadedFile.deleteMany).toHaveBeenCalledWith({
+      where: { storageKey: "legacy-report.pdf" }
+    });
+    expect(uploads.deleteUploadedFile).toHaveBeenCalledWith("legacy-report.pdf");
+    expect(transaction.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      uploads.deleteUploadedFile.mock.invocationCallOrder[0]
+    );
   });
 
   it("serializes quota accounting and creates metadata in the caller transaction", async () => {

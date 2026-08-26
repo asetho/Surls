@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { env } from "./env";
 import { prisma } from "./prisma";
 import {
+  deleteUploadedFile,
   storedUploadsOnDisk,
   uploadedFilenameFromDestination,
   uploadedFileSize,
@@ -69,9 +70,9 @@ export async function withUploadedFileReservation<T>(
   input: UploadedFileReservation,
   operation: (transaction: Prisma.TransactionClient) => Promise<{ result: T; shortLinkId: string }>
 ) {
-  const filesOnDisk = await storedUploadsOnDisk();
   return prisma.$transaction(async (transaction) => {
     await transaction.$queryRaw`SELECT pg_advisory_xact_lock(${UPLOAD_QUOTA_LOCK_ID})`;
+    const filesOnDisk = await storedUploadsOnDisk();
     await reconcileStoredUploads(transaction, filesOnDisk, input.storageKey);
     const [siteUsage, userUsage] = await Promise.all([
       transaction.uploadedFile.aggregate({ _sum: { sizeBytes: true } }),
@@ -107,11 +108,10 @@ export async function withUploadedFileReservation<T>(
 }
 
 export async function ensureUploadedFileRecord(storageKey: string) {
-  const sizeBytes = await uploadedFileSize(storageKey);
-  if (sizeBytes === null) return null;
-
   return prisma.$transaction(async (transaction) => {
     await transaction.$queryRaw`SELECT pg_advisory_xact_lock(${UPLOAD_QUOTA_LOCK_ID})`;
+    const sizeBytes = await uploadedFileSize(storageKey);
+    if (sizeBytes === null) return null;
     const existing = await transaction.uploadedFile.findUnique({
       where: { storageKey },
       select: { downloadName: true, ownerId: true, shortLinkId: true }
@@ -144,6 +144,10 @@ export async function uploadedFileDownloadName(storageKey: string) {
   return uploadedFile?.downloadName ?? null;
 }
 
-export async function deleteUploadedFileRecord(storageKey: string) {
-  await prisma.uploadedFile.deleteMany({ where: { storageKey } });
+export async function deleteUploadedFileWithRecord(storageKey: string) {
+  await prisma.$transaction(async (transaction) => {
+    await transaction.$queryRaw`SELECT pg_advisory_xact_lock(${UPLOAD_QUOTA_LOCK_ID})`;
+    await transaction.uploadedFile.deleteMany({ where: { storageKey } });
+    await deleteUploadedFile(storageKey);
+  });
 }

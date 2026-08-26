@@ -58,10 +58,15 @@ export function fetchWithPinnedAddress(input: string | URL, init: PinnedRequestI
           if (value !== undefined) headers.set(name, Array.isArray(value) ? value.join(", ") : value);
         }
 
+        const status = response.statusCode ?? 500;
+        const hasNullBody = init.method?.toUpperCase() === "HEAD" || status === 204 || status === 205 || status === 304;
+        const body = hasNullBody ? null : Readable.toWeb(response) as ReadableStream<Uint8Array>;
+        if (hasNullBody) response.resume();
+
         resolve(
-          new Response(Readable.toWeb(response) as ReadableStream<Uint8Array>, {
+          new Response(body, {
             headers,
-            status: response.statusCode ?? 500,
+            status,
             statusText: response.statusMessage
           })
         );

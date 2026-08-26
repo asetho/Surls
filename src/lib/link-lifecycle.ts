@@ -1,7 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
-import { deleteUploadedFile, uploadedFilenameFromDestination } from "./uploads";
-import { deleteUploadedFileRecord, ensureUploadedFileRecord } from "./uploaded-file-records";
+import { uploadedFilenameFromDestination } from "./uploads";
+import { deleteUploadedFileWithRecord, ensureUploadedFileRecord } from "./uploaded-file-records";
 
 export type LinkListView = "active" | "archived";
 export type LinkListSort =
@@ -162,8 +162,7 @@ export async function deleteShortLink(id: string, confirmation: FormDataEntryVal
 
   if (uploadedFilename) {
     if (uploadedFileRecord?.shortLinkId === id) {
-      await deleteUploadedFile(uploadedFilename);
-      await deleteUploadedFileRecord(uploadedFilename);
+      await deleteUploadedFileWithRecord(uploadedFilename);
       return link;
     }
     const remainingLink = await prisma.shortLink.findFirst({
@@ -171,8 +170,7 @@ export async function deleteShortLink(id: string, confirmation: FormDataEntryVal
       select: { id: true }
     });
     if (!remainingLink) {
-      await deleteUploadedFile(uploadedFilename);
-      await deleteUploadedFileRecord(uploadedFilename);
+      await deleteUploadedFileWithRecord(uploadedFilename);
     }
   }
 
