@@ -18,6 +18,8 @@ type UploadedFileReservation = {
 };
 
 const UPLOAD_QUOTA_LOCK_ID = 2_047_815_303;
+const LEGACY_RECONCILIATION_KEY = "internal.uploadedFiles.reconciled.v1";
+const RECONCILIATION_BATCH_SIZE = 500;
 
 function quotaLabel(bytes: number) {
   const gibibytes = bytes / (1024 * 1024 * 1024);
@@ -26,17 +28,19 @@ function quotaLabel(bytes: number) {
 
 async function reconcileStoredUploads(
   transaction: Prisma.TransactionClient,
-  files: Array<{ sizeBytes: number; storageKey: string }>,
-  excludedStorageKey?: string
+  files: Array<{ sizeBytes: number; storageKey: string }>
 ) {
-  const candidates = files.filter((file) => file.storageKey !== excludedStorageKey);
-  if (!candidates.length) return;
-  const existing = await transaction.uploadedFile.findMany({
-    where: { storageKey: { in: candidates.map((file) => file.storageKey) } },
-    select: { storageKey: true }
-  });
-  const existingKeys = new Set(existing.map((file) => file.storageKey));
-  const missing = candidates.filter((file) => !existingKeys.has(file.storageKey));
+  if (!files.length) return;
+  const missing: Array<{ sizeBytes: number; storageKey: string }> = [];
+  for (let index = 0; index < files.length; index += RECONCILIATION_BATCH_SIZE) {
+    const batch = files.slice(index, index + RECONCILIATION_BATCH_SIZE);
+    const existing = await transaction.uploadedFile.findMany({
+      where: { storageKey: { in: batch.map((file) => file.storageKey) } },
+      select: { storageKey: true }
+    });
+    const existingKeys = new Set(existing.map((file) => file.storageKey));
+    missing.push(...batch.filter((file) => !existingKeys.has(file.storageKey)));
+  }
   if (!missing.length) return;
 
   const sourceLinkByStorageKey = new Map<string, { ownerId: string | null; shortLinkId: string }>();
@@ -52,9 +56,9 @@ async function reconcileStoredUploads(
     }
   }
 
-  for (let index = 0; index < missing.length; index += 500) {
+  for (let index = 0; index < missing.length; index += RECONCILIATION_BATCH_SIZE) {
     await transaction.uploadedFile.createMany({
-      data: missing.slice(index, index + 500).map((file) => ({
+      data: missing.slice(index, index + RECONCILIATION_BATCH_SIZE).map((file) => ({
         downloadName: file.storageKey,
         ownerId: sourceLinkByStorageKey.get(file.storageKey)?.ownerId ?? null,
         shortLinkId: sourceLinkByStorageKey.get(file.storageKey)?.shortLinkId ?? null,
@@ -66,14 +70,37 @@ async function reconcileStoredUploads(
   }
 }
 
+async function reconcileStoredUploadsOnce() {
+  const completed = await prisma.appSetting.findUnique({
+    where: { key: LEGACY_RECONCILIATION_KEY },
+    select: { key: true }
+  });
+  if (completed) return;
+
+  await prisma.$transaction(async (transaction) => {
+    await transaction.$queryRaw`SELECT pg_advisory_xact_lock(${UPLOAD_QUOTA_LOCK_ID})`;
+    const completedAfterLock = await transaction.appSetting.findUnique({
+      where: { key: LEGACY_RECONCILIATION_KEY },
+      select: { key: true }
+    });
+    if (completedAfterLock) return;
+
+    await reconcileStoredUploads(transaction, await storedUploadsOnDisk());
+    await transaction.appSetting.upsert({
+      where: { key: LEGACY_RECONCILIATION_KEY },
+      update: { value: true },
+      create: { key: LEGACY_RECONCILIATION_KEY, value: true }
+    });
+  });
+}
+
 export async function withUploadedFileReservation<T>(
   input: UploadedFileReservation,
   operation: (transaction: Prisma.TransactionClient) => Promise<{ result: T; shortLinkId: string }>
 ) {
+  await reconcileStoredUploadsOnce();
   return prisma.$transaction(async (transaction) => {
     await transaction.$queryRaw`SELECT pg_advisory_xact_lock(${UPLOAD_QUOTA_LOCK_ID})`;
-    const filesOnDisk = await storedUploadsOnDisk();
-    await reconcileStoredUploads(transaction, filesOnDisk, input.storageKey);
     const [siteUsage, userUsage] = await Promise.all([
       transaction.uploadedFile.aggregate({ _sum: { sizeBytes: true } }),
       transaction.uploadedFile.aggregate({

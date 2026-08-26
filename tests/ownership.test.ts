@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { apiTokenOwnershipWhere, clickEventOwnershipWhere, shortLinkOwnershipWhere } from "@/lib/ownership";
+import { apiTokenManagementWhere, clickEventOwnershipWhere, shortLinkOwnershipWhere } from "@/lib/ownership";
 
 describe("ownership predicates", () => {
   it("scopes ordinary users to their own resources", () => {
@@ -7,14 +7,14 @@ describe("ownership predicates", () => {
 
     expect(shortLinkOwnershipWhere(user)).toEqual({ createdById: "user_1" });
     expect(clickEventOwnershipWhere(user)).toEqual({ shortLink: { createdById: "user_1" } });
-    expect(apiTokenOwnershipWhere(user)).toEqual({ userId: "user_1" });
+    expect(apiTokenManagementWhere(user)).toEqual({ userId: "user_1" });
   });
 
-  it("keeps site-administrator queries global", () => {
+  it("keeps site-administrator reporting global but token management owner-scoped", () => {
     const admin = { id: "admin_1", role: "ADMIN" };
 
     expect(shortLinkOwnershipWhere(admin)).toEqual({});
     expect(clickEventOwnershipWhere(admin)).toEqual({});
-    expect(apiTokenOwnershipWhere(admin)).toEqual({});
+    expect(apiTokenManagementWhere(admin)).toEqual({ userId: "admin_1" });
   });
 });

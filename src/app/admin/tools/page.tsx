@@ -11,7 +11,7 @@ import { adminLoginPath } from "@/lib/admin-login-path";
 import { isAdminUser, requireAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { appBaseUrl, env } from "@/lib/env";
-import { apiTokenOwnershipWhere, shortLinkOwnershipWhere } from "@/lib/ownership";
+import { apiTokenManagementWhere, shortLinkOwnershipWhere } from "@/lib/ownership";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { effectiveUploadMaxBytes } from "@/lib/upload-limits";
@@ -35,7 +35,7 @@ export default async function ToolsPage() {
   const admin = await requireAdmin();
   if (!admin) redirect(adminLoginPath("/admin/tools"));
   const csrf = getCsrfToken();
-  const tokenOwnership = apiTokenOwnershipWhere(admin);
+  const tokenOwnership = apiTokenManagementWhere(admin);
   const linkOwnership = shortLinkOwnershipWhere(admin);
   const [tokens, settings, disabled, expired, zeroClicks, duplicates] = await Promise.all([
     prisma.apiToken.findMany({ where: tokenOwnership, orderBy: { createdAt: "desc" }, take: 20 }),

@@ -14,6 +14,6 @@ export function clickEventOwnershipWhere(user: OwnershipUser): Prisma.ClickEvent
   return isAdminUser(user) ? {} : { shortLink: { createdById: user.id } };
 }
 
-export function apiTokenOwnershipWhere(user: OwnershipUser): Prisma.ApiTokenWhereInput {
-  return isAdminUser(user) ? {} : { userId: user.id };
+export function apiTokenManagementWhere(user: OwnershipUser): Prisma.ApiTokenWhereInput {
+  return { userId: user.id };
 }

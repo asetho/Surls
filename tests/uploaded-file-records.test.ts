@@ -2,6 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const transaction = vi.hoisted(() => ({
   $queryRaw: vi.fn(),
+  appSetting: {
+    findUnique: vi.fn(),
+    upsert: vi.fn()
+  },
   uploadedFile: {
     aggregate: vi.fn(),
     create: vi.fn(),
@@ -17,7 +21,10 @@ const transaction = vi.hoisted(() => ({
 }));
 
 const prisma = vi.hoisted(() => ({
-  $transaction: vi.fn()
+  $transaction: vi.fn(),
+  appSetting: {
+    findUnique: vi.fn()
+  }
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma }));
@@ -42,10 +49,12 @@ describe("uploaded file quota reservations", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prisma.$transaction.mockImplementation(async (callback) => callback(transaction));
+    prisma.appSetting.findUnique.mockResolvedValue({ key: "internal.uploadedFiles.reconciled.v1" });
     transaction.uploadedFile.aggregate.mockResolvedValue({ _sum: { sizeBytes: 0n } });
     transaction.uploadedFile.create.mockResolvedValue({ id: "upload_123" });
     transaction.uploadedFile.findMany.mockResolvedValue([]);
     transaction.shortLink.findMany.mockResolvedValue([]);
+    transaction.appSetting.findUnique.mockResolvedValue(null);
     uploads.storedUploadsOnDisk.mockResolvedValue([]);
     uploads.uploadedFileSize.mockResolvedValue(50);
   });
@@ -73,6 +82,7 @@ describe("uploaded file quota reservations", () => {
   });
 
   it("reconciles legacy files before calculating new storage quota", async () => {
+    prisma.appSetting.findUnique.mockResolvedValue(null);
     uploads.storedUploadsOnDisk.mockResolvedValue([
       { sizeBytes: 50, storageKey: "legacy-report.pdf" }
     ]);
@@ -99,9 +109,53 @@ describe("uploaded file quota reservations", () => {
       skipDuplicates: true
     });
     expect(transaction.uploadedFile.aggregate).toHaveBeenCalledTimes(2);
+    expect(transaction.appSetting.upsert).toHaveBeenCalledWith({
+      where: { key: "internal.uploadedFiles.reconciled.v1" },
+      update: { value: true },
+      create: { key: "internal.uploadedFiles.reconciled.v1", value: true }
+    });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(transaction.appSetting.upsert.mock.invocationCallOrder[0]).toBeLessThan(
+      transaction.uploadedFile.aggregate.mock.invocationCallOrder[0]
+    );
     expect(transaction.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
       uploads.storedUploadsOnDisk.mock.invocationCallOrder[0]
     );
+  });
+
+  it("does not rescan stored uploads after legacy reconciliation completes", async () => {
+    const operation = vi.fn().mockResolvedValue({ result: "created", shortLinkId: "new_link" });
+
+    await withUploadedFileReservation({
+      downloadName: "New.pdf",
+      ownerId: "user_123",
+      sizeBytes: 1024,
+      storageKey: "0123456789abcdef.pdf"
+    }, operation);
+
+    expect(uploads.storedUploadsOnDisk).not.toHaveBeenCalled();
+    expect(transaction.appSetting.findUnique).not.toHaveBeenCalled();
+    expect(transaction.uploadedFile.findMany).not.toHaveBeenCalled();
+    expect(transaction.appSetting.upsert).not.toHaveBeenCalled();
+  });
+
+  it("batches legacy metadata lookups during the one-time reconciliation", async () => {
+    prisma.appSetting.findUnique.mockResolvedValue(null);
+    uploads.storedUploadsOnDisk.mockResolvedValue(
+      Array.from({ length: 501 }, (_, index) => ({ sizeBytes: 1, storageKey: `legacy-${index}.txt` }))
+    );
+    const operation = vi.fn().mockResolvedValue({ result: "created", shortLinkId: "new_link" });
+
+    await withUploadedFileReservation({
+      downloadName: "New.pdf",
+      ownerId: "user_123",
+      sizeBytes: 1024,
+      storageKey: "0123456789abcdef.pdf"
+    }, operation);
+
+    expect(transaction.uploadedFile.findMany).toHaveBeenCalledTimes(2);
+    expect(transaction.uploadedFile.findMany.mock.calls[0][0].where.storageKey.in).toHaveLength(500);
+    expect(transaction.uploadedFile.findMany.mock.calls[1][0].where.storageKey.in).toHaveLength(1);
   });
 
   it("coordinates physical upload deletion with quota reconciliation", async () => {

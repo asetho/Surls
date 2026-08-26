@@ -32,6 +32,10 @@ const prisma = vi.hoisted(() => ({
     findFirst: vi.fn(),
     updateMany: vi.fn()
   },
+  appSetting: {
+    findUnique: vi.fn(),
+    upsert: vi.fn()
+  },
   auditLog: {
     create: vi.fn()
   },
@@ -144,6 +148,7 @@ describe("tools actions hardening", () => {
     prisma.$transaction.mockImplementation(async (callback) => callback(prisma));
     prisma.uploadedFile.aggregate.mockResolvedValue({ _sum: { sizeBytes: 0n } });
     prisma.uploadedFile.create.mockResolvedValue({ id: "upload_123" });
+    prisma.appSetting.findUnique.mockResolvedValue({ key: "internal.uploadedFiles.reconciled.v1" });
     links.createShortLink.mockResolvedValue({ id: "link_123" });
     urlSafety.assertNoPrivateResolution.mockResolvedValue(true);
     urlSafety.resolveSafeHttpAddress.mockResolvedValue({ address: "203.0.113.10", family: 4 });
