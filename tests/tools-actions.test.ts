@@ -53,6 +53,7 @@ const links = vi.hoisted(() => ({
 const uploads = vi.hoisted(() => ({
   deleteUploadedFile: vi.fn(),
   normalizeUploadFilenameMode: vi.fn((value: FormDataEntryValue | null) => (value === "random" ? "random" : "safe")),
+  storedUploadsOnDisk: vi.fn(),
   storeUploadedFile: vi.fn()
 }));
 
@@ -153,6 +154,7 @@ describe("tools actions hardening", () => {
       publicPath: "/uploads/hello_world.txt",
       size: 5
     });
+    uploads.storedUploadsOnDisk.mockResolvedValue([]);
     uploads.deleteUploadedFile.mockResolvedValue(undefined);
   });
 
@@ -365,6 +367,24 @@ describe("tools actions hardening", () => {
     const result = await importCsvAction(null, importForm(rows));
 
     expect(result).toEqual({ imported: 0, errors: ["Import at most 200 rows at a time."] });
+    expect(prisma.shortLink.findMany).not.toHaveBeenCalled();
+    expect(urlSafety.assertNoPrivateResolution).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized CSV text and fields before validation or database work", async () => {
+    const { importCsvAction } = await import("@/app/admin/tools/actions");
+
+    const oversizedText = await importCsvAction(null, importForm("x".repeat(512 * 1024 + 1)));
+    const oversizedField = await importCsvAction(
+      null,
+      importForm(`https://example.com,alias,${"x".repeat(16 * 1024 + 1)}`)
+    );
+
+    expect(oversizedText).toEqual({ imported: 0, errors: ["CSV imports must be 512 KB or smaller."] });
+    expect(oversizedField).toEqual({
+      imported: 0,
+      errors: ["CSV fields must be 16384 characters or fewer."]
+    });
     expect(prisma.shortLink.findMany).not.toHaveBeenCalled();
     expect(urlSafety.assertNoPrivateResolution).not.toHaveBeenCalled();
   });

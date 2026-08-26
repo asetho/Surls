@@ -1,5 +1,6 @@
 "use server";
 
+import { Buffer } from "node:buffer";
 import { AuditAction } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { auditLog } from "@/lib/audit";
@@ -205,10 +206,15 @@ export async function importCsvAction(_state: { imported?: number; errors?: stri
   const admin = await requireAdmin();
   if (!admin) return { errors: ["Unauthorized"] };
   const text = String(formData.get("csv") ?? "");
+  const maxCsvBytes = 512 * 1024;
+  const maxCsvFieldCharacters = 16 * 1024;
+  if (Buffer.byteLength(text, "utf8") > maxCsvBytes) {
+    return { imported: 0, errors: ["CSV imports must be 512 KB or smaller."] };
+  }
   const confirm = formData.get("confirm") === "on";
   let rows: string[][];
   try {
-    rows = parseCsvRows(text, MAX_IMPORT_ROWS);
+    rows = parseCsvRows(text, MAX_IMPORT_ROWS, maxCsvFieldCharacters);
   } catch (error) {
     return { imported: 0, errors: [error instanceof Error ? error.message : "Could not parse CSV."] };
   }
@@ -222,6 +228,14 @@ export async function importCsvAction(_state: { imported?: number; errors?: stri
     .map(([destinationUrl, code, title], index) => {
       if (rows[index].length > 3) {
         errors.push(`Row ${index + 1}: Expected destination URL, optional alias, and optional title.`);
+        return null;
+      }
+      if ((destinationUrl?.length ?? 0) > 4_096) {
+        errors.push(`Row ${index + 1}: Destination URL must be 4096 characters or fewer.`);
+        return null;
+      }
+      if ((title?.trim().length ?? 0) > 240) {
+        errors.push(`Row ${index + 1}: Title must be 240 characters or fewer.`);
         return null;
       }
       const safe = parseSafeHttpUrl(destinationUrl ?? "");

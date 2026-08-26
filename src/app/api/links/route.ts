@@ -26,7 +26,7 @@ function requestOriginIsAllowed(request: NextRequest) {
   const origin = request.headers.get("origin");
   if (!origin) return false;
   try {
-    return new URL(origin).origin === new URL(appBaseUrl()).origin;
+    return origin === new URL(appBaseUrl()).origin;
   } catch {
     return false;
   }
@@ -34,9 +34,10 @@ function requestOriginIsAllowed(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const authorization = request.headers.get("authorization");
+  const hasAuthorization = request.headers.has("authorization");
   const apiToken = await authenticateApiToken(authorization, API_TOKEN_SCOPE_LINKS_CREATE);
-  if (authorization && !apiToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const admin = apiToken?.user ?? (await requireAdmin());
+  if (hasAuthorization && !apiToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const admin = apiToken?.user ?? (hasAuthorization ? null : await requireAdmin());
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!apiToken) {
     try {

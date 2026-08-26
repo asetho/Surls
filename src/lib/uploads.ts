@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { mkdir, open, rm } from "node:fs/promises";
+import { mkdir, open, readdir, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { appBaseUrl, env } from "./env";
 import { UPLOAD_PROCESS_MAX_BYTES } from "./upload-limits";
@@ -197,4 +197,33 @@ export async function storeUploadedFile(file: File, options: StoreUploadedFileOp
 
 export async function deleteUploadedFile(filename: string) {
   await rm(filePathInside(uploadsRoot(), filename), { force: true });
+}
+
+export async function uploadedFileSize(filename: string) {
+  try {
+    const fileStats = await stat(filePathInside(uploadsRoot(), filename));
+    return fileStats.isFile() ? fileStats.size : null;
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? error.code : "";
+    if (code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+export async function storedUploadsOnDisk() {
+  const root = uploadsRoot();
+  let entries;
+  try {
+    entries = await readdir(root, { withFileTypes: true });
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? error.code : "";
+    if (code === "ENOENT") return [];
+    throw error;
+  }
+
+  const files = await Promise.all(entries.filter((entry) => entry.isFile()).map(async (entry) => ({
+    sizeBytes: (await stat(filePathInside(root, entry.name))).size,
+    storageKey: entry.name
+  })));
+  return files;
 }

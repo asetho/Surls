@@ -4,9 +4,14 @@ const shortLink = vi.hoisted(() => ({
   findUnique: vi.fn()
 }));
 
+const uploadedFileRecords = vi.hoisted(() => ({
+  ensureUploadedFileRecord: vi.fn()
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: { shortLink }
 }));
+vi.mock("@/lib/uploaded-file-records", () => uploadedFileRecords);
 
 import {
   grantUploadDownloadUrl,
@@ -24,10 +29,16 @@ describe("upload download grants", () => {
     shortLink.findUnique.mockResolvedValue({
       archivedAt: null,
       clickCount: 1,
+      createdById: "user_123",
       destinationUrl,
       enabled: true,
       expiresAt: null,
       maxClicks: 1
+    });
+    uploadedFileRecords.ensureUploadedFileRecord.mockReset();
+    uploadedFileRecords.ensureUploadedFileRecord.mockResolvedValue({
+      downloadName: "Report.txt",
+      ownerId: "user_123"
     });
   });
 
@@ -79,21 +90,41 @@ describe("upload download grants", () => {
     );
 
     shortLink.findUnique.mockResolvedValueOnce({
-      archivedAt: null, clickCount: 0, destinationUrl, enabled: false, expiresAt: null, maxClicks: null
+      archivedAt: null, clickCount: 0, createdById: "user_123", destinationUrl, enabled: false, expiresAt: null, maxClicks: null
     });
     await expect(check()).resolves.toBe(false);
     shortLink.findUnique.mockResolvedValueOnce({
-      archivedAt: now, clickCount: 0, destinationUrl, enabled: true, expiresAt: null, maxClicks: null
+      archivedAt: now, clickCount: 0, createdById: "user_123", destinationUrl, enabled: true, expiresAt: null, maxClicks: null
     });
     await expect(check()).resolves.toBe(false);
     shortLink.findUnique.mockResolvedValueOnce({
-      archivedAt: null, clickCount: 0, destinationUrl, enabled: true, expiresAt: now, maxClicks: null
+      archivedAt: null, clickCount: 0, createdById: "user_123", destinationUrl, enabled: true, expiresAt: now, maxClicks: null
     });
     await expect(check()).resolves.toBe(false);
     shortLink.findUnique.mockResolvedValueOnce({
-      archivedAt: null, clickCount: 2, destinationUrl, enabled: true, expiresAt: null, maxClicks: 1
+      archivedAt: null, clickCount: 2, createdById: "user_123", destinationUrl, enabled: true, expiresAt: null, maxClicks: 1
     });
     await expect(check()).resolves.toBe(false);
+  });
+
+  it("does not let another user reset an upload's lifecycle with a new link", async () => {
+    const grantedUrl = grantUploadDownloadUrl(destinationUrl, "link_123", "GET", now);
+    shortLink.findUnique.mockResolvedValue({
+      archivedAt: null,
+      clickCount: 0,
+      createdById: "attacker_456",
+      destinationUrl,
+      enabled: true,
+      expiresAt: null,
+      maxClicks: null
+    });
+
+    await expect(hasValidUploadDownloadGrant(
+      new Request(grantedUrl),
+      "0123456789abcdef.txt",
+      "GET",
+      new Date(now.getTime() + 1_000)
+    )).resolves.toBe(false);
   });
 
   it("does not add grants to external destinations", () => {

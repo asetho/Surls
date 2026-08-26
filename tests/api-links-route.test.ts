@@ -38,7 +38,7 @@ function jsonRequest(body: unknown, authorization?: string, headers: Record<stri
   return new NextRequest("http://localhost:3000/api/links", {
     body: JSON.stringify(body),
     headers: {
-      ...(authorization ? { authorization } : {}),
+      ...(authorization !== undefined ? { authorization } : {}),
       "content-type": "application/json",
       ...headers
     },
@@ -172,6 +172,21 @@ describe("POST /api/links token hardening", () => {
     expect(links.createShortLink).not.toHaveBeenCalled();
   });
 
+  it("treats an empty Authorization header as a failed bearer attempt", async () => {
+    const { POST } = await import("@/app/api/links/route");
+    apiTokens.authenticateApiToken.mockResolvedValue(null);
+    auth.requireAdmin.mockResolvedValue({ id: "user_session", role: "USER" });
+
+    const response = await POST(jsonRequest(
+      { destinationUrl: "https://example.com" },
+      "",
+      { origin: "http://localhost:3000", "X-Surls-CSRF": "csrf-token" }
+    ));
+
+    expect(response.status).toBe(401);
+    expect(auth.requireAdmin).not.toHaveBeenCalled();
+  });
+
   it("rejects a foreign Origin for session creation", async () => {
     const { POST } = await import("@/app/api/links/route");
     apiTokens.authenticateApiToken.mockResolvedValue(null);
@@ -181,6 +196,21 @@ describe("POST /api/links token hardening", () => {
       { destinationUrl: "https://example.com" },
       undefined,
       { origin: "https://foreign.invalid", "X-Surls-CSRF": "csrf-token" }
+    ));
+
+    expect(response.status).toBe(403);
+    expect(links.createShortLink).not.toHaveBeenCalled();
+  });
+
+  it("requires the literal configured Origin rather than a same-origin URL with a path", async () => {
+    const { POST } = await import("@/app/api/links/route");
+    apiTokens.authenticateApiToken.mockResolvedValue(null);
+    auth.requireAdmin.mockResolvedValue({ id: "user_session", role: "USER" });
+
+    const response = await POST(jsonRequest(
+      { destinationUrl: "https://example.com" },
+      undefined,
+      { origin: "http://localhost:3000/not-an-origin", "X-Surls-CSRF": "csrf-token" }
     ));
 
     expect(response.status).toBe(403);

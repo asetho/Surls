@@ -73,11 +73,12 @@ function uploadedFormFile(value: FormDataEntryValue | null) {
 
 async function authenticateUploadRequest(request: NextRequest) {
   const authorization = request.headers.get("authorization");
+  const hasAuthorization = request.headers.has("authorization");
   const apiToken = await authenticateApiToken(
     authorization,
     API_TOKEN_SCOPE_UPLOADS_CREATE
   );
-  if (authorization) return apiToken ? { apiToken, user: apiToken.user } : null;
+  if (hasAuthorization) return apiToken ? { apiToken, user: apiToken.user } : null;
   const user = await requireAdmin();
   return user ? { apiToken: null, user } : null;
 }

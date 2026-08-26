@@ -15,11 +15,22 @@ export function csvLine(row: unknown[]) {
   return `${row.map(csvEscape).join(",")}\n`;
 }
 
-export function parseCsvRows(text: string, maxRows = Number.POSITIVE_INFINITY) {
+export function parseCsvRows(
+  text: string,
+  maxRows = Number.POSITIVE_INFINITY,
+  maxFieldCharacters = Number.POSITIVE_INFINITY
+) {
   const rows: string[][] = [];
   let field = "";
   let row: string[] = [];
   let inQuotes = false;
+
+  function appendToField(value: string) {
+    if (field.length + value.length > maxFieldCharacters) {
+      throw new Error(`CSV fields must be ${maxFieldCharacters} characters or fewer.`);
+    }
+    field += value;
+  }
 
   for (let index = 0; index < text.length; index += 1) {
     const char = text[index];
@@ -27,12 +38,12 @@ export function parseCsvRows(text: string, maxRows = Number.POSITIVE_INFINITY) {
 
     if (inQuotes) {
       if (char === '"' && next === '"') {
-        field += '"';
+        appendToField('"');
         index += 1;
       } else if (char === '"') {
         inQuotes = false;
       } else {
-        field += char;
+        appendToField(char);
       }
       continue;
     }
@@ -51,7 +62,7 @@ export function parseCsvRows(text: string, maxRows = Number.POSITIVE_INFINITY) {
       row = [];
       field = "";
     } else if (char !== "\r") {
-      field += char;
+      appendToField(char);
     }
   }
 

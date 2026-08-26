@@ -4,7 +4,14 @@ const transaction = vi.hoisted(() => ({
   $queryRaw: vi.fn(),
   uploadedFile: {
     aggregate: vi.fn(),
-    create: vi.fn()
+    create: vi.fn(),
+    createMany: vi.fn(),
+    findMany: vi.fn(),
+    findUnique: vi.fn()
+  },
+  shortLink: {
+    findFirst: vi.fn(),
+    findMany: vi.fn()
   }
 }));
 
@@ -14,7 +21,16 @@ const prisma = vi.hoisted(() => ({
 
 vi.mock("@/lib/prisma", () => ({ prisma }));
 
-import { withUploadedFileReservation } from "@/lib/uploaded-file-records";
+const uploads = vi.hoisted(() => ({
+  storedUploadsOnDisk: vi.fn(),
+  uploadedFilenameFromDestination: vi.fn((destinationUrl: string) => destinationUrl.split("/uploads/")[1] ?? null),
+  uploadedFileSize: vi.fn(),
+  uploadedFileUrl: vi.fn((storageKey: string) => `http://localhost:3000/uploads/${storageKey}`)
+}));
+
+vi.mock("@/lib/uploads", () => uploads);
+
+import { ensureUploadedFileRecord, withUploadedFileReservation } from "@/lib/uploaded-file-records";
 
 describe("uploaded file quota reservations", () => {
   beforeEach(() => {
@@ -22,6 +38,58 @@ describe("uploaded file quota reservations", () => {
     prisma.$transaction.mockImplementation(async (callback) => callback(transaction));
     transaction.uploadedFile.aggregate.mockResolvedValue({ _sum: { sizeBytes: 0n } });
     transaction.uploadedFile.create.mockResolvedValue({ id: "upload_123" });
+    transaction.uploadedFile.findMany.mockResolvedValue([]);
+    transaction.shortLink.findMany.mockResolvedValue([]);
+    uploads.storedUploadsOnDisk.mockResolvedValue([]);
+    uploads.uploadedFileSize.mockResolvedValue(50);
+  });
+
+  it("binds a legacy file record to its oldest remaining link owner", async () => {
+    transaction.uploadedFile.findUnique.mockResolvedValue(null);
+    transaction.shortLink.findFirst.mockResolvedValue({ createdById: "original_owner" });
+    transaction.uploadedFile.create.mockResolvedValue({
+      downloadName: "legacy-report.pdf",
+      ownerId: "original_owner"
+    });
+
+    await expect(ensureUploadedFileRecord("legacy-report.pdf")).resolves.toEqual({
+      downloadName: "legacy-report.pdf",
+      ownerId: "original_owner"
+    });
+
+    expect(transaction.shortLink.findFirst).toHaveBeenCalledWith({
+      where: { destinationUrl: "http://localhost:3000/uploads/legacy-report.pdf" },
+      orderBy: { createdAt: "asc" },
+      select: { createdById: true }
+    });
+  });
+
+  it("reconciles legacy files before calculating new storage quota", async () => {
+    uploads.storedUploadsOnDisk.mockResolvedValue([
+      { sizeBytes: 50, storageKey: "legacy-report.pdf" }
+    ]);
+    transaction.shortLink.findMany.mockResolvedValue([
+      { createdById: "user_legacy", destinationUrl: "http://localhost:3000/uploads/legacy-report.pdf" }
+    ]);
+    const operation = vi.fn().mockResolvedValue("created");
+
+    await withUploadedFileReservation({
+      downloadName: "New.pdf",
+      ownerId: "user_123",
+      sizeBytes: 1024,
+      storageKey: "0123456789abcdef.pdf"
+    }, operation);
+
+    expect(transaction.uploadedFile.createMany).toHaveBeenCalledWith({
+      data: [{
+        downloadName: "legacy-report.pdf",
+        ownerId: "user_legacy",
+        sizeBytes: 50n,
+        storageKey: "legacy-report.pdf"
+      }],
+      skipDuplicates: true
+    });
+    expect(transaction.uploadedFile.aggregate).toHaveBeenCalledTimes(2);
   });
 
   it("serializes quota accounting and creates metadata in the caller transaction", async () => {

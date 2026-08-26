@@ -171,7 +171,7 @@ Public webroot HTML is served as same-origin trusted owner content. Keep this di
 
 ## Uploaded Files
 
-Admins can upload files from Tools -> Upload & Shorten. Files are stored under opaque names in `UPLOADS_DIR` and are available only through their short links. `UPLOADS_DIR` defaults to `uploads` under the app working directory. Docker Compose bind-mounts the host directory configured by `SURLS_UPLOADS_PATH` at `/app/uploads`. Uploads have a process-safe 25 MB request ceiling; `UPLOAD_MAX_BYTES` can lower that limit. New uploads also default to a 1 GiB per-user storage quota and a 10 GiB site storage quota, configurable with `UPLOAD_USER_STORAGE_QUOTA_BYTES` and `UPLOAD_SITE_STORAGE_QUOTA_BYTES`.
+Admins can upload files from Tools -> Upload & Shorten. Files are stored under opaque names in `UPLOADS_DIR` and are available only through their short links. `UPLOADS_DIR` defaults to `uploads` under the app working directory. Docker Compose bind-mounts the host directory configured by `SURLS_UPLOADS_PATH` at `/app/uploads`. Uploads have a process-safe 25 MB request ceiling; `UPLOAD_MAX_BYTES` can lower that limit. Uploads also default to a 1 GiB per-user storage quota and a 10 GiB site storage quota, configurable with `UPLOAD_USER_STORAGE_QUOTA_BYTES` and `UPLOAD_SITE_STORAGE_QUOTA_BYTES`; existing files are reconciled into quota metadata before a new upload is reserved.
 
 ```env
 SURLS_UPLOADS_PATH="./uploads"

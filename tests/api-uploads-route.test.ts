@@ -154,6 +154,24 @@ describe("POST /api/uploads", () => {
     expect(uploadAndShorten.uploadAndShortenFile).not.toHaveBeenCalled();
   });
 
+  it("treats an empty Authorization header as a failed bearer attempt", async () => {
+    apiTokens.authenticateApiToken.mockResolvedValue(null);
+    auth.requireAdmin.mockResolvedValue({ id: "user_web" });
+    const { POST } = await import("@/app/api/uploads/route");
+    const formData = new FormData();
+    formData.set("file", new File(["hello"], "hello.txt"));
+    const request = new NextRequest("http://localhost:3000/api/uploads", {
+      body: formData,
+      headers: { authorization: "", origin: "http://localhost:3000", "X-Surls-CSRF": "csrf-token" },
+      method: "POST"
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(401);
+    expect(auth.requireAdmin).not.toHaveBeenCalled();
+  });
+
   it("uploads a multipart file and returns its short URL", async () => {
     const { POST } = await import("@/app/api/uploads/route");
 
