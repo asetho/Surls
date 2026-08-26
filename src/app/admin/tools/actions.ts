@@ -208,14 +208,14 @@ export async function importCsvAction(_state: { imported?: number; errors?: stri
   const confirm = formData.get("confirm") === "on";
   let rows: string[][];
   try {
-    rows = parseCsvRows(text);
+    rows = parseCsvRows(text, MAX_IMPORT_ROWS);
   } catch (error) {
     return { imported: 0, errors: [error instanceof Error ? error.message : "Could not parse CSV."] };
   }
 
   const errors: string[] = [];
   if (rows.length > MAX_IMPORT_ROWS) {
-    errors.push(`Import at most ${MAX_IMPORT_ROWS} rows at a time.`);
+    return { imported: 0, errors: [`Import at most ${MAX_IMPORT_ROWS} rows at a time.`] };
   }
 
   const valid = rows
@@ -242,10 +242,16 @@ export async function importCsvAction(_state: { imported?: number; errors?: stri
     .filter(Boolean) as Array<{ destinationUrl: string; code?: string; rowNumber: number; title?: string }>;
 
   const aliases = valid.flatMap((row) => (row.code ? [row.code] : []));
-  const duplicateAliases = aliases.filter((alias, index) => aliases.indexOf(alias) !== index);
-  for (const alias of Array.from(new Set(duplicateAliases))) {
+  const seenAliases = new Set<string>();
+  const duplicateAliases = new Set<string>();
+  for (const alias of aliases) {
+    if (seenAliases.has(alias)) duplicateAliases.add(alias);
+    seenAliases.add(alias);
+  }
+  for (const alias of duplicateAliases) {
     errors.push(`Alias "${alias}" appears more than once in this import.`);
   }
+  if (errors.length) return { imported: 0, errors };
   if (aliases.length) {
     const existingAliases = await prisma.shortLink.findMany({
       where: { code: { in: aliases } },

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { appBaseUrl } from "@/lib/env";
 import { shortUrl } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
+import { checkPublicLinkLookupRate, publicLinkLookupRateLimitResponse } from "@/lib/public-link-lookup";
 import {
   generateQrAssetBody,
   normalizeQrErrorCorrectionLevel,
@@ -21,6 +22,8 @@ export async function GET(request: NextRequest, { params }: Params) {
   if (!format) {
     return NextResponse.json({ error: "Unsupported QR format." }, { status: 404 });
   }
+  const lookupRate = await checkPublicLinkLookupRate(request);
+  if (!lookupRate.allowed) return publicLinkLookupRateLimitResponse();
 
   const searchParams = request.nextUrl.searchParams;
   const size = normalizeQrSize(searchParams.get("size"));

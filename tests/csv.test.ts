@@ -11,6 +11,10 @@ describe("CSV parsing", () => {
   it("rejects unclosed quoted fields", () => {
     expect(() => parseCsvRows('"https://example.com')).toThrow(/unclosed/i);
   });
+
+  it("stops parsing as soon as a configured row limit is exceeded", () => {
+    expect(() => parseCsvRows("a\nb\nc", 2)).toThrow("Import at most 2 rows at a time.");
+  });
 });
 
 describe("CSV escaping", () => {

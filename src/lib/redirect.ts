@@ -10,6 +10,7 @@ import { appendForwardedQuery } from "./url-safety";
 import { appBaseUrl } from "./env";
 import { DEFAULT_DASHBOARD_THEME } from "./dashboard-theme";
 import { publicWebrootNotFoundResponse, publicWebrootResponse } from "./webroot";
+import { checkPublicLinkLookupRate, publicLinkLookupRateLimitResponse } from "./public-link-lookup";
 
 export const REDIRECT_ANALYTICS_RATE_LIMIT = {
   limit: 120,
@@ -194,6 +195,9 @@ type ShortRedirectOptions = {
 };
 
 export async function handleShortRedirect(request: NextRequest, code: string, isHead = false, options: ShortRedirectOptions = {}) {
+  const lookupRate = await checkPublicLinkLookupRate(request);
+  if (!lookupRate.allowed) return publicLinkLookupRateLimitResponse(isHead);
+
   const link = await prisma.shortLink.findUnique({ where: { code } });
   if (!link) {
     if (options.missingLinkResponse) return options.missingLinkResponse();

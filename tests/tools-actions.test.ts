@@ -350,6 +350,29 @@ describe("tools actions hardening", () => {
     expect(links.createShortLink).not.toHaveBeenCalled();
   });
 
+  it("stops oversized CSV imports before validation or database work", async () => {
+    const { importCsvAction } = await import("@/app/admin/tools/actions");
+    const rows = Array.from({ length: 201 }, (_, index) => `https://example.com/${index}`).join("\n");
+
+    const result = await importCsvAction(null, importForm(rows));
+
+    expect(result).toEqual({ imported: 0, errors: ["Import at most 200 rows at a time."] });
+    expect(prisma.shortLink.findMany).not.toHaveBeenCalled();
+    expect(urlSafety.assertNoPrivateResolution).not.toHaveBeenCalled();
+  });
+
+  it("does not query existing aliases after detecting duplicate input aliases", async () => {
+    const { importCsvAction } = await import("@/app/admin/tools/actions");
+
+    const result = await importCsvAction(
+      null,
+      importForm("https://example.com/one,duplicate,One\nhttps://example.com/two,duplicate,Two")
+    );
+
+    expect(result.errors).toEqual(['Alias "duplicate" appears more than once in this import.']);
+    expect(prisma.shortLink.findMany).not.toHaveBeenCalled();
+  });
+
   it("does not create partial links when a confirmed CSV import has one unsafe row", async () => {
     const { importCsvAction } = await import("@/app/admin/tools/actions");
     urlSafety.assertNoPrivateResolution

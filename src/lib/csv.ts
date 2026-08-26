@@ -15,7 +15,7 @@ export function csvLine(row: unknown[]) {
   return `${row.map(csvEscape).join(",")}\n`;
 }
 
-export function parseCsvRows(text: string) {
+export function parseCsvRows(text: string, maxRows = Number.POSITIVE_INFINITY) {
   const rows: string[][] = [];
   let field = "";
   let row: string[] = [];
@@ -44,7 +44,10 @@ export function parseCsvRows(text: string) {
       field = "";
     } else if (char === "\n") {
       row.push(field.trim());
-      if (row.some(Boolean)) rows.push(row);
+      if (row.some(Boolean)) {
+        rows.push(row);
+        if (rows.length > maxRows) throw new Error(`Import at most ${maxRows} rows at a time.`);
+      }
       row = [];
       field = "";
     } else if (char !== "\r") {
@@ -54,6 +57,9 @@ export function parseCsvRows(text: string) {
 
   if (inQuotes) throw new Error("CSV contains an unclosed quoted field.");
   row.push(field.trim());
-  if (row.some(Boolean)) rows.push(row);
+  if (row.some(Boolean)) {
+    rows.push(row);
+    if (rows.length > maxRows) throw new Error(`Import at most ${maxRows} rows at a time.`);
+  }
   return rows;
 }
