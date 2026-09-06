@@ -78,7 +78,7 @@ async function reconcileStoredUploadsOnce() {
   if (completed) return;
 
   await prisma.$transaction(async (transaction) => {
-    await transaction.$queryRaw`SELECT pg_advisory_xact_lock(${UPLOAD_QUOTA_LOCK_ID})`;
+    await transaction.$executeRaw`SELECT pg_advisory_xact_lock(${UPLOAD_QUOTA_LOCK_ID})`;
     const completedAfterLock = await transaction.appSetting.findUnique({
       where: { key: LEGACY_RECONCILIATION_KEY },
       select: { key: true }
@@ -100,7 +100,7 @@ export async function withUploadedFileReservation<T>(
 ) {
   await reconcileStoredUploadsOnce();
   return prisma.$transaction(async (transaction) => {
-    await transaction.$queryRaw`SELECT pg_advisory_xact_lock(${UPLOAD_QUOTA_LOCK_ID})`;
+    await transaction.$executeRaw`SELECT pg_advisory_xact_lock(${UPLOAD_QUOTA_LOCK_ID})`;
     const [siteUsage, userUsage] = await Promise.all([
       transaction.uploadedFile.aggregate({ _sum: { sizeBytes: true } }),
       transaction.uploadedFile.aggregate({
@@ -136,7 +136,7 @@ export async function withUploadedFileReservation<T>(
 
 export async function ensureUploadedFileRecord(storageKey: string) {
   return prisma.$transaction(async (transaction) => {
-    await transaction.$queryRaw`SELECT pg_advisory_xact_lock(${UPLOAD_QUOTA_LOCK_ID})`;
+    await transaction.$executeRaw`SELECT pg_advisory_xact_lock(${UPLOAD_QUOTA_LOCK_ID})`;
     const sizeBytes = await uploadedFileSize(storageKey);
     if (sizeBytes === null) return null;
     const existing = await transaction.uploadedFile.findUnique({
@@ -173,7 +173,7 @@ export async function uploadedFileDownloadName(storageKey: string) {
 
 export async function deleteUploadedFileWithRecord(storageKey: string) {
   await prisma.$transaction(async (transaction) => {
-    await transaction.$queryRaw`SELECT pg_advisory_xact_lock(${UPLOAD_QUOTA_LOCK_ID})`;
+    await transaction.$executeRaw`SELECT pg_advisory_xact_lock(${UPLOAD_QUOTA_LOCK_ID})`;
     await transaction.uploadedFile.deleteMany({ where: { storageKey } });
     await deleteUploadedFile(storageKey);
   });
