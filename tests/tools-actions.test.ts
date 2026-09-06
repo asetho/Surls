@@ -25,7 +25,7 @@ const uploadLimits = vi.hoisted(() => ({
 }));
 
 const prisma = vi.hoisted(() => ({
-  $queryRaw: vi.fn(),
+  $executeRaw: vi.fn(),
   $transaction: vi.fn(),
   apiToken: {
     deleteMany: vi.fn(),

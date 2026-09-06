@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const transaction = vi.hoisted(() => ({
-  $queryRaw: vi.fn(),
+  $executeRaw: vi.fn(),
   appSetting: {
     findUnique: vi.fn(),
     upsert: vi.fn()
@@ -118,7 +118,7 @@ describe("uploaded file quota reservations", () => {
     expect(transaction.appSetting.upsert.mock.invocationCallOrder[0]).toBeLessThan(
       transaction.uploadedFile.aggregate.mock.invocationCallOrder[0]
     );
-    expect(transaction.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(transaction.$executeRaw.mock.invocationCallOrder[0]).toBeLessThan(
       uploads.storedUploadsOnDisk.mock.invocationCallOrder[0]
     );
   });
@@ -165,7 +165,7 @@ describe("uploaded file quota reservations", () => {
       where: { storageKey: "legacy-report.pdf" }
     });
     expect(uploads.deleteUploadedFile).toHaveBeenCalledWith("legacy-report.pdf");
-    expect(transaction.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(transaction.$executeRaw.mock.invocationCallOrder[0]).toBeLessThan(
       uploads.deleteUploadedFile.mock.invocationCallOrder[0]
     );
   });
@@ -180,7 +180,7 @@ describe("uploaded file quota reservations", () => {
       storageKey: "0123456789abcdef.pdf"
     }, operation)).resolves.toBe("created");
 
-    expect(transaction.$queryRaw).toHaveBeenCalledOnce();
+    expect(transaction.$executeRaw).toHaveBeenCalledOnce();
     expect(transaction.uploadedFile.create).toHaveBeenCalledWith({
       data: {
         downloadName: "Report.pdf",
