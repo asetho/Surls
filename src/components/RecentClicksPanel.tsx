@@ -5,6 +5,7 @@ import type { RecentClicksView } from "@/lib/recent-clicks-view";
 import { MAX_RECENT_CLICK_PAGE_SIZE } from "@/lib/recent-clicks-constants";
 
 type RecentClicksPanelProps = {
+  csrf: string;
   initialData: RecentClicksView;
   linkId: string;
 };
@@ -16,6 +17,15 @@ function isRecentClicksView(payload: unknown): payload is RecentClicksView {
       "pagination" in payload &&
       "rows" in payload &&
       "summary" in payload
+  );
+}
+
+function isPageSizePreference(payload: unknown): payload is { pageSize: number } {
+  return Boolean(
+    payload &&
+      typeof payload === "object" &&
+      "pageSize" in payload &&
+      typeof payload.pageSize === "number"
   );
 }
 
@@ -70,21 +80,50 @@ function ReferrerValue({ referrerLabel }: { referrerLabel: string }) {
   );
 }
 
-export function RecentClicksPanel({ initialData, linkId }: RecentClicksPanelProps) {
+export function RecentClicksPanel({ csrf, initialData, linkId }: RecentClicksPanelProps) {
   const [data, setData] = useState(initialData);
   const [pageSizeInput, setPageSizeInput] = useState(String(initialData.pagination.pageSize));
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const loadPage = async (page: number, pageSize = Number.parseInt(pageSizeInput, 10)) => {
-    const nextPageSize = Number.isFinite(pageSize) ? pageSize : data.pagination.pageSize;
-    const params = new URLSearchParams({
-      page: String(page),
-      pageSize: String(nextPageSize)
-    });
+  const loadPage = async (
+    page: number,
+    pageSize = Number.parseInt(pageSizeInput, 10),
+    persistPageSize = false
+  ) => {
+    let nextPageSize = Number.isFinite(pageSize) ? pageSize : data.pagination.pageSize;
     setError("");
     setIsLoading(true);
     try {
+      if (persistPageSize) {
+        const preferenceResponse = await fetch(`/api/links/${linkId}/recent-clicks`, {
+          body: JSON.stringify({ pageSize: nextPageSize }),
+          headers: {
+            accept: "application/json",
+            "content-type": "application/json",
+            "X-Surls-CSRF": csrf
+          },
+          method: "POST"
+        });
+        const preferencePayload: unknown = await preferenceResponse.json().catch(() => null);
+        if (!preferenceResponse.ok || !isPageSizePreference(preferencePayload)) {
+          const errorMessage =
+            preferencePayload &&
+            typeof preferencePayload === "object" &&
+            "error" in preferencePayload &&
+            typeof preferencePayload.error === "string"
+              ? preferencePayload.error
+              : "The recent-click row preference could not be saved.";
+          setError(errorMessage);
+          return;
+        }
+        nextPageSize = preferencePayload.pageSize;
+      }
+
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(nextPageSize)
+      });
       const response = await fetch(`/api/links/${linkId}/recent-clicks?${params}`, {
         cache: "no-store",
         headers: { accept: "application/json" }
@@ -100,6 +139,8 @@ export function RecentClicksPanel({ initialData, linkId }: RecentClicksPanelProp
       }
       setData(payload);
       setPageSizeInput(String(payload.pagination.pageSize));
+    } catch {
+      setError("Recent clicks could not be loaded.");
     } finally {
       setIsLoading(false);
     }
@@ -107,7 +148,7 @@ export function RecentClicksPanel({ initialData, linkId }: RecentClicksPanelProp
 
   const applyPageSize = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    void loadPage(1);
+    void loadPage(1, Number.parseInt(pageSizeInput, 10), true);
   };
 
   return (

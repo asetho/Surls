@@ -158,6 +158,26 @@ describe("upload download grants", () => {
     )).resolves.toBe(true);
   });
 
+  it("accepts a primary upload destination with an existing query string", async () => {
+    const queryDestination = `${destinationUrl}?download=1`;
+    shortLink.findUnique.mockResolvedValue({
+      archivedAt: null,
+      clickCount: 0,
+      destinationUrl: queryDestination,
+      enabled: true,
+      expiresAt: null,
+      maxClicks: null
+    });
+    const grantedUrl = grantUploadDownloadUrl(queryDestination, "link_123", "GET", now);
+
+    await expect(hasValidUploadDownloadGrant(
+      new Request(grantedUrl),
+      "0123456789abcdef.txt",
+      "GET",
+      new Date(now.getTime() + 1_000)
+    )).resolves.toBe(true);
+  });
+
   it("does not add grants to external destinations", () => {
     expect(grantUploadDownloadUrl("https://example.test/report.pdf", "link_123", "GET", now))
       .toBe("https://example.test/report.pdf");

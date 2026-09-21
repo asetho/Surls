@@ -262,6 +262,16 @@ function validateSvg(svg: string) {
   if (/<script(?:\s|>)/i.test(trimmed)) throw new Error("SVG favicon cannot contain scripts.");
   if (/\son[a-z]+\s*=/i.test(trimmed)) throw new Error("SVG favicon cannot contain inline event handlers.");
   if (/javascript:/i.test(trimmed)) throw new Error("SVG favicon cannot contain javascript: URLs.");
+  if (/<!DOCTYPE|<!ENTITY/i.test(trimmed)) throw new Error("SVG favicon cannot contain document declarations or entities.");
+  if (/<(?:foreignObject|iframe|object|embed)(?:\s|>)/i.test(trimmed)) {
+    throw new Error("SVG favicon cannot embed active content.");
+  }
+  if (/\b(?:href|xlink:href)\s*=\s*["']\s*(?!#|data:image\/)/i.test(trimmed)) {
+    throw new Error("SVG favicon cannot reference external content.");
+  }
+  if (/url\(\s*["']?\s*(?!#|data:image\/)/i.test(trimmed)) {
+    throw new Error("SVG favicon cannot reference external styles or images.");
+  }
 }
 
 function validateManifest(manifest: string) {
@@ -302,6 +312,9 @@ function faviconAssetFromBuffer(fileName: string, reportedType: string, buffer: 
 
 async function faviconAssetFromFile(value: FormDataEntryValue | null, spec: FaviconAssetSpec) {
   if (!isFileLike(value) || value.size === 0) return null;
+  if (value.size > spec.maxBytes) {
+    throw new Error(`${spec.label} must be ${Math.ceil(spec.maxBytes / 1024)} KB or smaller.`);
+  }
   const fileName = value.name.trim() || spec.url.slice(1);
   if (!acceptsReportedMimeType(value, spec)) {
     throw new Error(`${spec.label} must use one of these content types: ${spec.mimeTypes.join(", ")}.`);
@@ -385,14 +398,19 @@ export function faviconResponse(
   if (!spec || !asset) return null;
 
   const body = options.method?.toUpperCase() === "HEAD" ? null : Buffer.from(asset.base64, "base64");
-  return new Response(body, {
-    headers: {
+  const headers: Record<string, string> = {
       "Cache-Control": "public, max-age=300",
       "Content-Length": String(asset.size),
       "Content-Type": asset.contentType,
       "Last-Modified": new Date(asset.updatedAt).toUTCString(),
       "X-Content-Type-Options": "nosniff"
-    }
+  };
+  if (key === "faviconSvg") {
+    headers["Content-Security-Policy"] = "default-src 'none'; img-src data:; style-src 'unsafe-inline'; frame-ancestors 'none'; sandbox";
+  }
+
+  return new Response(body, {
+    headers
   });
 }
 

@@ -20,6 +20,8 @@ const navigation = vi.hoisted(() => ({
   })
 }));
 
+const rateLimit = vi.hoisted(() => ({ checkRateLimit: vi.fn() }));
+
 const prisma = vi.hoisted(() => ({
   $transaction: vi.fn(),
   backupCode: {
@@ -41,6 +43,7 @@ const prisma = vi.hoisted(() => ({
 vi.mock("@/lib/auth", () => auth);
 vi.mock("@/lib/csrf", () => csrf);
 vi.mock("@/lib/prisma", () => ({ prisma }));
+vi.mock("@/lib/rate-limit", () => rateLimit);
 vi.mock("next/cache", () => nextCache);
 vi.mock("next/navigation", () => navigation);
 vi.mock("@/lib/audit", () => ({ auditLog: vi.fn() }));
@@ -86,6 +89,7 @@ describe("profile identity actions", () => {
     auth.requireSiteAdmin.mockResolvedValue({ id: "admin_1", role: "ADMIN" });
     backupCodes.generateBackupCodes.mockReturnValue([]);
     backupCodes.hashBackupCode.mockResolvedValue("hashed-backup-code");
+    rateLimit.checkRateLimit.mockResolvedValue({ allowed: true });
     prisma.$transaction.mockResolvedValue([]);
     prisma.backupCode.create.mockResolvedValue({});
     prisma.backupCode.deleteMany.mockResolvedValue({ count: 0 });

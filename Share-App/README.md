@@ -23,11 +23,11 @@ The Mac app is versioned with the main Surls repository, while its application s
 
 The app depends on the Surls upload API in `src/app/api/uploads/route.ts` and `src/lib/upload-and-shorten.ts`. Changes to that contract should be reviewed and released with the corresponding app changes.
 
-Public releases use tags in the form `surls-share-vX.Y.Z`, where `X.Y.Z` must match `CFBundleShortVersionString`. A release build is signed with Developer ID, packaged as a DMG, submitted with `notarytool`, stapled, verified, and attached to a dedicated GitHub release.
+Public releases are started manually with the **Surls Share** workflow's `workflow_dispatch` trigger on `main`. The workflow derives a tag in the form `surls-share-vX.Y.Z` from `CFBundleShortVersionString`. A release build is signed with Developer ID, packaged as a DMG, submitted with `notarytool`, stapled, verified, and attached to a dedicated GitHub release.
 
 After each successful publication, the workflow retains DMG and checksum assets for the newest three Surls Share versions. Older release records and tags remain available without their installer assets.
 
-Before tagging, update `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in `project.yml`, run `xcodegen generate --spec Share-App/project.yml` from the repository root, and merge that version change to `main`. The release workflow rejects tags that are not contained in `main` or do not match the project version.
+Before dispatching the workflow, update `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in `project.yml`, run `xcodegen generate --spec Share-App/project.yml` from the repository root, and merge that version change to `main`. Dispatch the workflow from `main`; it rejects attempts to reuse an existing version tag that points to a different commit.
 
 The release job requires the following repository configuration:
 

@@ -4,12 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
 import { createSession, safeRedirectPath, setSessionCookie } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { requestIp, requestIpHash } from "@/lib/request";
+import { requestIp, requestIpHash, requestOriginMatchesApp } from "@/lib/request";
 import { auditLog } from "@/lib/audit";
 import { validateCsrf } from "@/lib/csrf";
 import { appBaseUrl } from "@/lib/env";
 import { encodePendingLogin, PENDING_LOGIN_COOKIE, pendingLoginCookieOptions } from "@/lib/pending-login";
 import { verifyTurnstileChallenge } from "@/lib/turnstile";
+
+const DUMMY_PASSWORD_HASH = "$argon2id$v=19$m=19456,p=1,t=3$c3VybHMtbG9naW4tZHVtbXk$uccdR/gVmdReosoPXP3TFJjL/XDtwC+aBw4EBoflFVs";
 
 function loginRedirect(error: string, extras?: Record<string, string>, returnPath = "/admin") {
   const url = new URL(safeRedirectPath(returnPath), appBaseUrl());
@@ -21,6 +23,10 @@ function loginRedirect(error: string, extras?: Record<string, string>, returnPat
 }
 
 export async function POST(request: NextRequest) {
+  if (!requestOriginMatchesApp(request)) {
+    return loginRedirect("The login request could not be verified. Please try again.");
+  }
+
   const formData = await request.formData();
   const nextPath = safeRedirectPath(formData.get("next"));
   const loginContext = String(formData.get("loginContext") ?? "");
@@ -50,7 +56,7 @@ export async function POST(request: NextRequest) {
     where: { email },
     include: { totpCredential: true }
   });
-  const passwordOk = user ? await verifyPassword(user.passwordHash, password) : false;
+  const passwordOk = await verifyPassword(user?.passwordHash ?? DUMMY_PASSWORD_HASH, password);
 
   if (!user || !passwordOk) {
     await auditLog({

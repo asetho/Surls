@@ -93,6 +93,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
             <strong>{displayName}</strong>
             {user.name ? <span className="admin-sidebar-email">{user.email}</span> : null}
             <form action="/api/auth/logout" method="post">
+              <input type="hidden" name="csrf" value={csrf} />
               <button className="admin-sidebar-logout" type="submit">
                 <LogOut size={16} aria-hidden />
                 Logout

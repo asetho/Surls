@@ -177,7 +177,14 @@ Admins can upload files from Tools -> Upload & Shorten. Files are stored under o
 SURLS_UPLOADS_PATH="./uploads"
 ```
 
-Create the host directory before starting Docker. The upload bind mount uses `create_host_path: false`, so a missing or incorrect path fails fast instead of creating an unintended directory. If an existing installation still uses the former `surls-uploads` named volume, copy its contents into the configured host directory before recreating the app container and keep the old volume until the migrated files have been verified.
+Create the host directory before starting Docker and make it writable by UID/GID `1000:1000`, the unprivileged `node` user that runs Surls in the container:
+
+```bash
+mkdir -p ./uploads
+sudo chown -R 1000:1000 ./uploads
+```
+
+The upload bind mount uses `create_host_path: false`, so a missing or incorrect path fails fast instead of creating an unintended directory. Existing installations must update the directory ownership before recreating the app container. If an installation still uses the former `surls-uploads` named volume, copy its contents into the configured host directory before recreating the app container and keep the old volume until the migrated files have been verified.
 
 ## Health Checks
 
@@ -291,6 +298,7 @@ hashed IP and visitor values are still populated for statistics.
 - Destination URLs must be absolute HTTP/HTTPS URLs.
 - `javascript:`, `data:`, `file:`, localhost, `.local`, private IP ranges, and metadata/internal destinations are blocked by default.
 - Server-side link checks resolve DNS and reject private/internal addresses before fetching.
+- Before redirecting, Surls re-resolves non-upload destinations and blocks private/internal answers by default. This is a best-effort safeguard: browser or split-horizon DNS, rebinding after the server check, and downstream browser redirects can still resolve differently. `ALLOW_PRIVATE_DESTINATIONS=true` intentionally permits private answers, and exact same-origin uploaded-file links are exempt.
 - Admin forms are CSRF protected.
 - Sessions use HttpOnly cookies, `SameSite=Lax`, and secure cookies in production.
 - Passwords and backup codes use one-way Argon2id hashes.

@@ -9,19 +9,24 @@ const pageTitle = vi.hoisted(() => ({
   fetchPageTitle: vi.fn()
 }));
 
+const rateLimit = vi.hoisted(() => ({ checkRateLimit: vi.fn() }));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: { shortLink }
 }));
 
 vi.mock("@/lib/page-title", () => pageTitle);
+vi.mock("@/lib/rate-limit", () => rateLimit);
 
-import { createShortLink, normalizeOptionalDate, normalizeOptionalPositiveInt, normalizeShortLinkTags } from "@/lib/links";
+import { createShortLink, normalizeOptionalDate, normalizeOptionalPositiveInt, normalizeShortLinkTags, normalizeShortLinkTextFields } from "@/lib/links";
 
 describe("short link creation", () => {
   beforeEach(() => {
     shortLink.create.mockReset();
     shortLink.findUnique.mockReset();
     pageTitle.fetchPageTitle.mockReset();
+    rateLimit.checkRateLimit.mockReset();
+    rateLimit.checkRateLimit.mockResolvedValue({ allowed: true });
     shortLink.create.mockImplementation(async ({ data }) => ({ id: "link_1", ...data, tags: [] }));
   });
 
@@ -64,14 +69,14 @@ describe("short link creation", () => {
       code: "news",
       title: "Manual Title",
       createdByApiTokenName: "  WordPress publisher  ",
-      createdByApiTokenPrefix: "  surls_abc123  "
+      createdByApiTokenPrefix: "  demo-prefix  "
     }, undefined, { assertSafeResolution });
 
     expect(shortLink.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           createdByApiTokenName: "WordPress publisher",
-          createdByApiTokenPrefix: "surls_abc123"
+          createdByApiTokenPrefix: "demo-prefix"
         })
       })
     );
@@ -100,5 +105,27 @@ describe("short link creation", () => {
   it("rejects tag arrays with excessive count or aggregate input", () => {
     expect(() => normalizeShortLinkTags(Array.from({ length: 101 }, () => "tag"))).toThrow(/too many tags/i);
     expect(() => normalizeShortLinkTags(["x".repeat(8_001)])).toThrow(/too many tags/i);
+  });
+
+  it("rejects oversized shared-domain fields", async () => {
+    expect(() => normalizeShortLinkTextFields({ title: "x".repeat(241) })).toThrow(/240 characters or fewer/i);
+    await expect(createShortLink({
+      destinationUrl: `https://example.com/${"x".repeat(4_100)}`,
+      fetchTitle: false
+    })).rejects.toThrow(/4096 characters or fewer/i);
+  });
+
+  it("skips automatic title fetching when the user budget is exhausted", async () => {
+    rateLimit.checkRateLimit.mockResolvedValue({ allowed: false });
+    const assertSafeResolution = vi.fn().mockResolvedValue(true);
+
+    await createShortLink({
+      destinationUrl: "https://example.com/article",
+      code: "news",
+      createdById: "user-1"
+    }, undefined, { assertSafeResolution });
+
+    expect(pageTitle.fetchPageTitle).not.toHaveBeenCalled();
+    expect(shortLink.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ title: null }) }));
   });
 });

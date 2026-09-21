@@ -8,6 +8,8 @@ const MAX_TITLE_BYTES = 64 * 1024;
 const MAX_REDIRECTS = 3;
 const MAX_TITLE_LENGTH = 180;
 const HTML_CONTENT_TYPE = /\b(?:text\/html|application\/xhtml\+xml)\b/i;
+const MAX_CONCURRENT_TITLE_FETCHES = 8;
+let activeTitleFetches = 0;
 
 export type PinnedRequestInit = RequestInit & {
   resolvedAddress: ResolvedHttpAddress;
@@ -59,17 +61,27 @@ export function fetchWithPinnedAddress(input: string | URL, init: PinnedRequestI
         }
 
         const status = response.statusCode ?? 500;
+        if (!Number.isSafeInteger(status) || status < 200 || status > 599) {
+          response.resume();
+          reject(new Error("Upstream returned an invalid HTTP status."));
+          return;
+        }
         const hasNullBody = init.method?.toUpperCase() === "HEAD" || status === 204 || status === 205 || status === 304;
         const body = hasNullBody ? null : Readable.toWeb(response) as ReadableStream<Uint8Array>;
         if (hasNullBody) response.resume();
 
-        resolve(
-          new Response(body, {
-            headers,
-            status,
-            statusText: response.statusMessage
-          })
-        );
+        try {
+          resolve(
+            new Response(body, {
+              headers,
+              status,
+              statusText: response.statusMessage
+            })
+          );
+        } catch (error) {
+          response.resume();
+          reject(error);
+        }
       }
     );
 
@@ -137,6 +149,8 @@ function redirectUrl(currentUrl: string, location: string) {
 }
 
 export async function fetchPageTitle(destinationUrl: string, options: FetchPageTitleOptions = {}) {
+  if (activeTitleFetches >= MAX_CONCURRENT_TITLE_FETCHES) return null;
+  activeTitleFetches += 1;
   const fetchImpl = options.fetchImpl ?? fetchWithPinnedAddress;
   const resolveSafeAddress = options.resolveSafeAddress ?? resolveSafeHttpAddress;
   const timeoutMs = options.timeoutMs ?? FETCH_TIMEOUT_MS;
@@ -144,50 +158,61 @@ export async function fetchPageTitle(destinationUrl: string, options: FetchPageT
   const maxRedirects = options.maxRedirects ?? MAX_REDIRECTS;
   let currentUrl = destinationUrl;
 
-  for (let redirects = 0; redirects <= maxRedirects; redirects += 1) {
-    const safe = parseSafeHttpUrl(currentUrl);
-    if (!safe.ok) return null;
+  try {
+    for (let redirects = 0; redirects <= maxRedirects; redirects += 1) {
+      const safe = parseSafeHttpUrl(currentUrl);
+      if (!safe.ok) return null;
 
-    let resolvedAddress: ResolvedHttpAddress;
-    try {
-      resolvedAddress = await resolveSafeAddress(safe.url);
-    } catch {
-      return null;
-    }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const response = await fetchImpl(safe.url, {
-        headers: {
-          accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.1",
-          "user-agent": "Surls title fetcher"
-        },
-        redirect: "manual",
-        resolvedAddress,
-        signal: controller.signal
-      });
-
-      if (response.status >= 300 && response.status < 400) {
-        const location = response.headers.get("location");
-        if (!location) return null;
-        const nextUrl = redirectUrl(safe.url, location);
-        if (!nextUrl) return null;
-        currentUrl = nextUrl;
-        continue;
+      let resolvedAddress: ResolvedHttpAddress;
+      try {
+        resolvedAddress = await resolveSafeAddress(safe.url);
+      } catch {
+        return null;
       }
 
-      if (!response.ok) return null;
-      const contentType = response.headers.get("content-type") ?? "";
-      if (!HTML_CONTENT_TYPE.test(contentType)) return null;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetchImpl(safe.url, {
+          headers: {
+            accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.1",
+            "user-agent": "Surls title fetcher"
+          },
+          redirect: "manual",
+          resolvedAddress,
+          signal: controller.signal
+        });
 
-      return extractHtmlTitle(await readTextPrefix(response, maxBytes));
-    } catch {
-      return null;
-    } finally {
-      clearTimeout(timeout);
+        if (response.status >= 300 && response.status < 400) {
+          const location = response.headers.get("location");
+          await response.body?.cancel().catch(() => null);
+          if (!location) return null;
+          const nextUrl = redirectUrl(safe.url, location);
+          if (!nextUrl) return null;
+          currentUrl = nextUrl;
+          continue;
+        }
+
+        if (!response.ok) {
+          await response.body?.cancel().catch(() => null);
+          return null;
+        }
+        const contentType = response.headers.get("content-type") ?? "";
+        if (!HTML_CONTENT_TYPE.test(contentType)) {
+          await response.body?.cancel().catch(() => null);
+          return null;
+        }
+
+        return extractHtmlTitle(await readTextPrefix(response, maxBytes));
+      } catch {
+        return null;
+      } finally {
+        clearTimeout(timeout);
+      }
     }
-  }
 
-  return null;
+    return null;
+  } finally {
+    activeTitleFetches -= 1;
+  }
 }

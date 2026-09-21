@@ -7,6 +7,7 @@ export const API_TOKEN_SCOPE_LINKS_CREATE = "links:create";
 export const API_TOKEN_SCOPE_UPLOADS_CREATE = "uploads:create";
 
 const DEFAULT_API_TOKEN_SCOPES = [API_TOKEN_SCOPE_LINKS_CREATE, API_TOKEN_SCOPE_UPLOADS_CREATE];
+const API_TOKEN_NAME_MAX_LENGTH = 120;
 type ApiTokenClient = Pick<Prisma.TransactionClient, "apiToken">;
 
 function defaultApiTokenExpiresAt(now = new Date()) {
@@ -30,19 +31,29 @@ export function createPlainApiToken() {
   return `surls_${randomToken(32)}`;
 }
 
+export function normalizeApiTokenName(value: unknown) {
+  const name = String(value ?? "").trim();
+  if (!name) throw new Error("API token name is required.");
+  if (name.length > API_TOKEN_NAME_MAX_LENGTH) {
+    throw new Error(`API token name must be ${API_TOKEN_NAME_MAX_LENGTH} characters or fewer.`);
+  }
+  return name;
+}
+
 export async function createApiToken(
   userId: string,
   name: string,
   options: { expiresAt?: Date | null; scopes?: string[] } = {},
   db: ApiTokenClient = prisma
 ) {
+  const normalizedName = normalizeApiTokenName(name);
   const token = createPlainApiToken();
   const tokenPrefix = token.slice(0, 12);
   const scopes = normalizeScopes(options.scopes);
   const row = await db.apiToken.create({
     data: {
       userId,
-      name,
+      name: normalizedName,
       scopes: scopes.join(","),
       expiresAt: options.expiresAt === undefined ? defaultApiTokenExpiresAt() : options.expiresAt,
       tokenPrefix,

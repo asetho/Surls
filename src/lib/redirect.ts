@@ -6,17 +6,43 @@ import { linkUnavailableReason } from "./links";
 import { recordClick } from "./clicks";
 import { checkRateLimit } from "./rate-limit";
 import { requestIpHash } from "./request";
-import { appendForwardedQuery } from "./url-safety";
+import { appendForwardedQuery, assertNoPrivateResolutionWithTimeout } from "./url-safety";
 import { appBaseUrl } from "./env";
 import { DEFAULT_DASHBOARD_THEME } from "./dashboard-theme";
 import { publicWebrootNotFoundResponse, publicWebrootResponse } from "./webroot";
 import { checkPublicLinkLookupRate, publicLinkLookupRateLimitResponse } from "./public-link-lookup";
 import { grantUploadDownloadUrl } from "./upload-grants";
+import { uploadedFilenameFromDestination } from "./uploads";
 
 export const REDIRECT_ANALYTICS_RATE_LIMIT = {
   limit: 120,
   windowMs: 60 * 1000
 } as const;
+
+export const REDIRECT_DESTINATION_DNS_CHECK = {
+  timeoutMs: 2_000
+} as const;
+
+const redirectDestinationChecks = new Map<string, Promise<void>>();
+
+async function assertSafeRedirectDestination(destinationUrl: string) {
+  const hostname = new URL(destinationUrl).hostname.toLowerCase();
+  const existing = redirectDestinationChecks.get(hostname);
+  if (existing) return existing;
+
+  const check = assertNoPrivateResolutionWithTimeout(
+    destinationUrl,
+    REDIRECT_DESTINATION_DNS_CHECK.timeoutMs
+  ).then(() => undefined);
+  redirectDestinationChecks.set(hostname, check);
+  try {
+    await check;
+  } finally {
+    if (redirectDestinationChecks.get(hostname) === check) {
+      redirectDestinationChecks.delete(hostname);
+    }
+  }
+}
 
 export function isAdminReferrer(referrer: string | null, baseUrl = appBaseUrl()) {
   if (!referrer) return false;
@@ -168,11 +194,11 @@ function unavailableFallbackHtml(siteName: string, reason: string) {
 </html>`;
 }
 
-async function unavailableResponse(reason: string, isHead = false) {
+async function unavailableResponse(reason: string, isHead = false, status = 410) {
   const customUnavailablePage = await publicWebrootResponse(["unavailable.html"], {
     cacheControl: "private, no-store, max-age=0",
     method: isHead ? "HEAD" : "GET",
-    status: 410
+    status
   });
   if (customUnavailablePage) return customUnavailablePage;
 
@@ -180,7 +206,7 @@ async function unavailableResponse(reason: string, isHead = false) {
   return new NextResponse(
     isHead ? null : unavailableFallbackHtml(siteName, reason),
     {
-      status: 410,
+      status,
       headers: {
         "cache-control": "private, no-store, max-age=0",
         "content-type": "text/html; charset=utf-8",
@@ -215,6 +241,17 @@ export async function handleShortRedirect(request: NextRequest, code: string, is
     getSetting("trackAdminClicks"),
     getSetting("preserveRedirectQuery")
   ]);
+  let forwardedDestination: string;
+  try {
+    forwardedDestination = preserveRedirectQuery
+      ? appendForwardedQuery(link.destinationUrl, request.nextUrl.searchParams.toString())
+      : link.destinationUrl;
+    if (!uploadedFilenameFromDestination(forwardedDestination)) {
+      await assertSafeRedirectDestination(forwardedDestination);
+    }
+  } catch {
+    return unavailableResponse("This short URL destination could not be safely resolved.", isHead, 502);
+  }
   const isAdminClick = isAdminUser(session?.user);
   const adminReferrer = isAdminReferrer(request.headers.get("referer"));
   const adminIgnored = (isAdminClick || adminReferrer) && !trackAdminClicks;
@@ -266,9 +303,6 @@ export async function handleShortRedirect(request: NextRequest, code: string, is
     }
   }
 
-  const forwardedDestination = preserveRedirectQuery
-    ? appendForwardedQuery(link.destinationUrl, request.nextUrl.searchParams.toString())
-    : link.destinationUrl;
   const destination = grantUploadDownloadUrl(forwardedDestination, link.id, isHead ? "HEAD" : "GET");
   const response = setNoStoreHeaders(NextResponse.redirect(destination, 302));
   if (adminIgnored) {

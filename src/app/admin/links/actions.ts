@@ -6,8 +6,23 @@ import { redirect } from "next/navigation";
 import { auditLog } from "@/lib/audit";
 import { isAdminUser, requireAdmin, requireSiteAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
-import { archiveShortLink, deleteShortLink, restoreShortLink } from "@/lib/link-lifecycle";
-import { normalizeOptionalDate, normalizeOptionalPositiveInt, normalizeShortLinkTags } from "@/lib/links";
+import {
+  DEFAULT_LINK_PAGE_SIZE,
+  archiveShortLink,
+  deleteShortLink,
+  normalizeLinkListPageSize,
+  normalizeLinkListSort,
+  normalizeLinkListTag,
+  normalizeLinkListView,
+  restoreShortLink
+} from "@/lib/link-lifecycle";
+import {
+  normalizeOptionalDate,
+  normalizeOptionalPositiveInt,
+  normalizeShortLinkDestinationUrl,
+  normalizeShortLinkTags,
+  normalizeShortLinkTextFields
+} from "@/lib/links";
 import { prisma } from "@/lib/prisma";
 import { safeRedirectPath } from "@/lib/redirect-path";
 import { assertNoPrivateResolution, parseSafeHttpUrl } from "@/lib/url-safety";
@@ -28,6 +43,40 @@ function tagList(value: FormDataEntryValue | null) {
     .filter(Boolean);
 }
 
+function linkListPath(formData: FormData, pageSize: number) {
+  const params = new URLSearchParams();
+  const view = normalizeLinkListView(formData.get("view"));
+  const query = String(formData.get("q") ?? "").trim();
+  const sort = normalizeLinkListSort(formData.get("sort"));
+  const tag = normalizeLinkListTag(formData.get("tag"));
+
+  if (view === "archived") params.set("view", view);
+  if (query) params.set("q", query);
+  if (tag) params.set("tag", tag);
+  if (sort !== "newest") params.set("sort", sort);
+  if (pageSize !== DEFAULT_LINK_PAGE_SIZE) params.set("pageSize", String(pageSize));
+
+  const search = params.toString();
+  return search ? `/admin/links?${search}` : "/admin/links";
+}
+
+export async function filterLinksAction(formData: FormData) {
+  validateCsrf(formData);
+  const admin = await requireAdmin();
+  if (!admin) redirect("/admin");
+
+  const pageSize = normalizeLinkListPageSize(formData.get("pageSize"));
+  if (pageSize !== admin.linkListPageSize) {
+    await prisma.user.update({
+      where: { id: admin.id },
+      data: { linkListPageSize: pageSize }
+    });
+  }
+
+  revalidatePath("/admin/links");
+  redirect(linkListPath(formData, pageSize));
+}
+
 export async function createLinkAction(formData: FormData) {
   const link = await createLinkFromFormData(formData);
   if (!link) redirect("/admin?next=/admin/links");
@@ -39,19 +88,24 @@ export async function updateLinkAction(formData: FormData) {
   const admin = await requireAdmin();
   if (!admin) redirect("/admin");
   const id = String(formData.get("id") ?? "");
-  const safe = parseSafeHttpUrl(String(formData.get("destinationUrl") ?? ""));
+  const safe = parseSafeHttpUrl(normalizeShortLinkDestinationUrl(formData.get("destinationUrl")));
   if (!safe.ok) throw new Error(safe.error);
   await assertNoPrivateResolution(safe.url);
   const tags = normalizeShortLinkTags(tagList(formData.get("tags")));
+  const text = normalizeShortLinkTextFields({
+    title: formData.get("title"),
+    description: formData.get("description"),
+    notes: formData.get("notes")
+  });
 
   const link = await prisma.shortLink.update({
     // Keep the owner predicate in the database update so a guessed link ID cannot cross accounts.
     where: isAdminUser(admin) ? { id } : { id, createdById: admin.id },
     data: {
       destinationUrl: safe.url,
-      title: String(formData.get("title") ?? "") || null,
-      description: String(formData.get("description") ?? "") || null,
-      notes: String(formData.get("notes") ?? "") || null,
+      title: text.title,
+      description: text.description,
+      notes: text.notes,
       enabled: formData.get("enabled") === "on",
       expiresAt: optionalDate(formData.get("expiresAt")),
       maxClicks: optionalInt(formData.get("maxClicks")),

@@ -15,6 +15,7 @@ import {
   API_TOKEN_SCOPE_UPLOADS_CREATE,
   authenticateApiToken,
   createApiToken,
+  normalizeApiTokenName,
   tokenHasScope
 } from "@/lib/api-tokens";
 
@@ -31,6 +32,10 @@ afterEach(() => {
 });
 
 describe("API token hardening", () => {
+  it("rejects missing and oversized token names", () => {
+    expect(() => normalizeApiTokenName(" ")).toThrow(/required/i);
+    expect(() => normalizeApiTokenName("x".repeat(121))).toThrow(/120 characters or fewer/i);
+  });
   it("creates scoped API tokens with the default expiration window", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-11T12:00:00.000Z"));

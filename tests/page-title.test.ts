@@ -10,7 +10,10 @@ describe("page title fetching", () => {
   });
 
   it("returns null when a response is not HTML", async () => {
-    const fetchImpl = vi.fn(async () => new Response("{}", { headers: { "content-type": "application/json" } }));
+    const cancelled = vi.fn();
+    const fetchImpl = vi.fn(async () => new Response(new ReadableStream({ cancel: cancelled }), {
+      headers: { "content-type": "application/json" }
+    }));
 
     await expect(
       fetchPageTitle("https://example.com/data", {
@@ -18,6 +21,7 @@ describe("page title fetching", () => {
         fetchImpl
       })
     ).resolves.toBeNull();
+    expect(cancelled).toHaveBeenCalledOnce();
   });
 
   it("follows safe redirects and reads the destination title", async () => {

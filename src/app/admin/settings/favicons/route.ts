@@ -7,7 +7,11 @@ import { requireSiteAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
 import { appBaseUrl } from "@/lib/env";
 import { faviconsFromUpload, getFaviconManifestNames } from "@/lib/favicons";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { readFormDataWithLimit, requestOriginMatchesApp } from "@/lib/request";
 import { getSettings, setSetting } from "@/lib/settings";
+
+const FAVICON_UPLOAD_REQUEST_MAX_BYTES = 5 * 1024 * 1024;
 
 function faviconToastUrl(kind: "error" | "success", message: string) {
   const toastType = kind === "success" ? "success" : "error";
@@ -37,17 +41,28 @@ function revalidateFaviconPaths() {
 }
 
 export async function POST(request: NextRequest) {
-  let formData: FormData;
-  try {
-    formData = await request.formData();
-    validateCsrf(formData);
-  } catch {
-    return redirectToFaviconEditor("error", "The form expired. Please try again.");
-  }
-
   const admin = await requireSiteAdmin();
   if (!admin) {
     return NextResponse.redirect(new URL("/admin?next=/admin/settings/favicons/editor", appBaseUrl()), 303);
+  }
+  if (!requestOriginMatchesApp(request)) {
+    return redirectToFaviconEditor("error", "The upload request could not be verified. Please try again.");
+  }
+  const rate = await checkRateLimit(`settings:favicons:${admin.id}`, 10, 15 * 60 * 1000);
+  if (!rate.allowed) {
+    return redirectToFaviconEditor("error", "Too many favicon uploads. Please wait and try again.");
+  }
+
+  const body = await readFormDataWithLimit(request, FAVICON_UPLOAD_REQUEST_MAX_BYTES);
+  if (!body.ok) {
+    const message = body.error === "too_large" ? "The favicon upload is too large." : "The favicon form could not be read.";
+    return redirectToFaviconEditor("error", message);
+  }
+  const formData = body.value;
+  try {
+    validateCsrf(formData);
+  } catch {
+    return redirectToFaviconEditor("error", "The form expired. Please try again.");
   }
 
   const settings = await getSettings();

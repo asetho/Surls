@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
-import { analyticsOptOutReason, handleShortRedirect, isAdminReferrer, shouldRecordRedirectClick } from "@/lib/redirect";
+import {
+  analyticsOptOutReason,
+  handleShortRedirect,
+  isAdminReferrer,
+  REDIRECT_DESTINATION_DNS_CHECK,
+  shouldRecordRedirectClick
+} from "@/lib/redirect";
 import { linkUnavailableReason } from "@/lib/links";
 import { UPLOAD_GRANT_QUERY_PARAM } from "@/lib/upload-grants";
 
@@ -13,7 +19,8 @@ const redirectMocks = vi.hoisted(() => ({
   isAdminUser: vi.fn(),
   recordClick: vi.fn(),
   publicWebrootNotFoundResponse: vi.fn(),
-  publicWebrootResponse: vi.fn()
+  publicWebrootResponse: vi.fn(),
+  assertNoPrivateResolutionWithTimeout: vi.fn()
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -47,6 +54,14 @@ vi.mock("@/lib/webroot", () => ({
   publicWebrootResponse: redirectMocks.publicWebrootResponse
 }));
 
+vi.mock("@/lib/url-safety", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/url-safety")>("@/lib/url-safety");
+  return {
+    ...actual,
+    assertNoPrivateResolutionWithTimeout: redirectMocks.assertNoPrivateResolutionWithTimeout
+  };
+});
+
 function requestFor(path: string, headers?: HeadersInit) {
   const request = new Request(`http://localhost:3000${path}`, { headers }) as unknown as NextRequest;
   Object.defineProperty(request, "nextUrl", { value: new URL(`http://localhost:3000${path}`) });
@@ -64,6 +79,7 @@ describe("redirect behavior", () => {
     redirectMocks.recordClick.mockReset();
     redirectMocks.publicWebrootNotFoundResponse.mockReset();
     redirectMocks.publicWebrootResponse.mockReset();
+    redirectMocks.assertNoPrivateResolutionWithTimeout.mockReset();
     redirectMocks.checkRateLimit.mockResolvedValue({ allowed: true, remaining: 119, resetAt: new Date("2026-06-11T12:01:00.000Z") });
     redirectMocks.getCurrentSession.mockResolvedValue(null);
     redirectMocks.isAdminUser.mockImplementation((user: { role?: string } | null | undefined) => user?.role === "ADMIN");
@@ -74,7 +90,9 @@ describe("redirect behavior", () => {
     });
     redirectMocks.publicWebrootNotFoundResponse.mockResolvedValue(new Response("Not found", { status: 404 }));
     redirectMocks.publicWebrootResponse.mockResolvedValue(null);
+    redirectMocks.getSiteName.mockResolvedValue("Surls");
     redirectMocks.recordClick.mockResolvedValue(true);
+    redirectMocks.assertNoPrivateResolutionWithTimeout.mockResolvedValue(true);
   });
 
   it("does not record authenticated admin clicks by default", () => {
@@ -251,6 +269,10 @@ describe("redirect behavior", () => {
     expect(response.headers.get("location")).toBe("https://example.com/");
     expect(response.headers.get("cache-control")).toBe("private, no-store, max-age=0");
     expect(response.headers.get("pragma")).toBe("no-cache");
+    expect(redirectMocks.assertNoPrivateResolutionWithTimeout).toHaveBeenCalledWith(
+      "https://example.com",
+      REDIRECT_DESTINATION_DNS_CHECK.timeoutMs
+    );
     expect(redirectMocks.checkRateLimit).toHaveBeenCalledTimes(2);
     expect(redirectMocks.recordClick).toHaveBeenCalledOnce();
   });
@@ -273,7 +295,208 @@ describe("redirect behavior", () => {
     expect(response.status).toBe(302);
     expect(location.pathname).toBe("/uploads/0123456789abcdef.txt");
     expect(location.searchParams.get(UPLOAD_GRANT_QUERY_PARAM)).toBeTruthy();
+    expect(redirectMocks.assertNoPrivateResolutionWithTimeout).not.toHaveBeenCalled();
     expect(redirectMocks.recordClick).toHaveBeenCalledWith(expect.objectContaining({ shortLinkId: "link_1" }));
+  });
+
+  it("checks the final query-forwarded destination before redirecting", async () => {
+    redirectMocks.findUnique.mockResolvedValue({
+      id: "link_1",
+      code: "abc",
+      destinationUrl: "https://example.com/path?source=stored",
+      enabled: true,
+      archivedAt: null,
+      expiresAt: null,
+      maxClicks: null,
+      clickCount: 0
+    });
+    redirectMocks.getSetting.mockImplementation((key: string) => {
+      if (key === "trackAdminClicks") return Promise.resolve(false);
+      if (key === "preserveRedirectQuery") return Promise.resolve(true);
+      return Promise.resolve(null);
+    });
+
+    const response = await handleShortRedirect(requestFor("/abc?source=request&campaign=fall"), "abc");
+
+    expect(response.status).toBe(302);
+    expect(redirectMocks.assertNoPrivateResolutionWithTimeout).toHaveBeenCalledWith(
+      "https://example.com/path?source=stored&campaign=fall",
+      REDIRECT_DESTINATION_DNS_CHECK.timeoutMs
+    );
+    expect(response.headers.get("location")).toBe("https://example.com/path?source=stored&campaign=fall");
+  });
+
+  it.each([
+    { isHead: false, method: "GET" },
+    { isHead: true, method: "HEAD" }
+  ])("blocks an unsafe resolution before a $method redirect or click mutation", async ({ isHead }) => {
+    redirectMocks.findUnique.mockResolvedValue({
+      id: "link_1",
+      code: "abc",
+      destinationUrl: "https://rebind.example/path",
+      enabled: true,
+      archivedAt: null,
+      expiresAt: null,
+      maxClicks: 3,
+      clickCount: 1
+    });
+    redirectMocks.assertNoPrivateResolutionWithTimeout.mockRejectedValue(
+      new Error("Destination resolves to a private or internal address.")
+    );
+    redirectMocks.getSiteName.mockResolvedValue("Surls");
+
+    const response = await handleShortRedirect(requestFor("/abc"), "abc", isHead);
+
+    expect(response.status).toBe(502);
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.headers.get("cache-control")).toBe("private, no-store, max-age=0");
+    expect(redirectMocks.assertNoPrivateResolutionWithTimeout).toHaveBeenCalledWith(
+      "https://rebind.example/path",
+      REDIRECT_DESTINATION_DNS_CHECK.timeoutMs
+    );
+    expect(redirectMocks.checkRateLimit).toHaveBeenCalledOnce();
+    expect(redirectMocks.recordClick).not.toHaveBeenCalled();
+    if (isHead) await expect(response.text()).resolves.toBe("");
+  });
+
+  it("does not exempt an external upload-looking destination", async () => {
+    redirectMocks.findUnique.mockResolvedValue({
+      id: "link_1",
+      code: "abc",
+      destinationUrl: "https://files.example/uploads/report.pdf",
+      enabled: true,
+      archivedAt: null,
+      expiresAt: null,
+      maxClicks: null,
+      clickCount: 0
+    });
+    redirectMocks.assertNoPrivateResolutionWithTimeout.mockRejectedValue(new Error("Unsafe destination."));
+    redirectMocks.getSiteName.mockResolvedValue("Surls");
+
+    const response = await handleShortRedirect(requestFor("/abc"), "abc");
+
+    expect(response.status).toBe(502);
+    expect(response.headers.get("location")).toBeNull();
+    expect(redirectMocks.assertNoPrivateResolutionWithTimeout).toHaveBeenCalledWith(
+      "https://files.example/uploads/report.pdf",
+      REDIRECT_DESTINATION_DNS_CHECK.timeoutMs
+    );
+  });
+
+  it("returns a controlled response for a malformed legacy destination with query forwarding", async () => {
+    redirectMocks.findUnique.mockResolvedValue({
+      id: "link_1",
+      code: "abc",
+      destinationUrl: "not a URL",
+      enabled: true,
+      archivedAt: null,
+      expiresAt: null,
+      maxClicks: 3,
+      clickCount: 1
+    });
+    redirectMocks.getSetting.mockImplementation((key: string) => {
+      if (key === "trackAdminClicks") return Promise.resolve(false);
+      if (key === "preserveRedirectQuery") return Promise.resolve(true);
+      return Promise.resolve(null);
+    });
+
+    const response = await handleShortRedirect(requestFor("/abc?campaign=fall"), "abc");
+
+    expect(response.status).toBe(502);
+    expect(response.headers.get("location")).toBeNull();
+    expect(redirectMocks.assertNoPrivateResolutionWithTimeout).not.toHaveBeenCalled();
+    expect(redirectMocks.checkRateLimit).toHaveBeenCalledOnce();
+    expect(redirectMocks.recordClick).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when a destination DNS check exceeds its deadline", async () => {
+    redirectMocks.findUnique.mockResolvedValue({
+      id: "link_1",
+      code: "abc",
+      destinationUrl: "https://slow.example",
+      enabled: true,
+      archivedAt: null,
+      expiresAt: null,
+      maxClicks: 3,
+      clickCount: 1
+    });
+    redirectMocks.assertNoPrivateResolutionWithTimeout.mockRejectedValue(
+      new Error("Destination DNS lookup timed out.")
+    );
+
+    const response = await handleShortRedirect(requestFor("/abc"), "abc");
+
+    expect(response.status).toBe(502);
+    expect(response.headers.get("location")).toBeNull();
+    expect(redirectMocks.recordClick).not.toHaveBeenCalled();
+    expect(redirectMocks.assertNoPrivateResolutionWithTimeout).toHaveBeenCalledWith(
+      "https://slow.example",
+      REDIRECT_DESTINATION_DNS_CHECK.timeoutMs
+    );
+  });
+
+  it("coalesces concurrent checks for one hostname without blocking other destinations", async () => {
+    let releaseSlowCheck: (() => void) | undefined;
+    redirectMocks.findUnique.mockImplementation(({ where }: { where: { code: string } }) =>
+      Promise.resolve({
+        id: `link_${where.code}`,
+        code: where.code,
+        destinationUrl: where.code === "slow" ? "https://slow.example/path" : "https://safe.example/path",
+        enabled: true,
+        archivedAt: null,
+        expiresAt: null,
+        maxClicks: null,
+        clickCount: 0
+      })
+    );
+    redirectMocks.assertNoPrivateResolutionWithTimeout.mockImplementation((destinationUrl: string) => {
+      if (destinationUrl.includes("slow.example")) {
+        return new Promise<void>((resolve) => {
+          releaseSlowCheck = resolve;
+        });
+      }
+      return Promise.resolve(true);
+    });
+
+    const slowRequests = Array.from({ length: 8 }, () =>
+      handleShortRedirect(requestFor("/slow"), "slow")
+    );
+    await vi.waitFor(() => {
+      expect(redirectMocks.assertNoPrivateResolutionWithTimeout).toHaveBeenCalledTimes(1);
+    });
+
+    const safeResponse = await handleShortRedirect(requestFor("/safe"), "safe");
+
+    expect(safeResponse.status).toBe(302);
+    expect(safeResponse.headers.get("location")).toBe("https://safe.example/path");
+    expect(redirectMocks.assertNoPrivateResolutionWithTimeout).toHaveBeenCalledTimes(2);
+
+    releaseSlowCheck?.();
+    const responses = await Promise.all(slowRequests);
+    expect(responses.every((response) => response.status === 302)).toBe(true);
+  });
+
+  it("preserves the operator private-destination opt-in decision", async () => {
+    redirectMocks.findUnique.mockResolvedValue({
+      id: "link_1",
+      code: "abc",
+      destinationUrl: "http://10.0.0.5/admin",
+      enabled: true,
+      archivedAt: null,
+      expiresAt: null,
+      maxClicks: null,
+      clickCount: 0
+    });
+    redirectMocks.assertNoPrivateResolutionWithTimeout.mockResolvedValue(true);
+
+    const response = await handleShortRedirect(requestFor("/abc"), "abc");
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("http://10.0.0.5/admin");
+    expect(redirectMocks.assertNoPrivateResolutionWithTimeout).toHaveBeenCalledWith(
+      "http://10.0.0.5/admin",
+      REDIRECT_DESTINATION_DNS_CHECK.timeoutMs
+    );
   });
 
   it("redirects but skips analytics when the visitor opts out", async () => {

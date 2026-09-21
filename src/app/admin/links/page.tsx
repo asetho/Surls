@@ -27,7 +27,7 @@ import {
 import { shortUrl } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
-import { restoreLinkAction } from "./actions";
+import { filterLinksAction, restoreLinkAction } from "./actions";
 
 export const metadata: Metadata = {
   title: "Links"
@@ -90,12 +90,6 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
   const requestedPage = normalizeLinkListPage(params.page);
   const hasPageSizeParam = Object.hasOwn(params, "pageSize");
   const pageSize = resolveLinkListPageSize(hasPageSizeParam ? params.pageSize : undefined, currentUser.linkListPageSize);
-  if (hasPageSizeParam && pageSize !== currentUser.linkListPageSize) {
-    await prisma.user.update({
-      where: { id: currentUser.id },
-      data: { linkListPageSize: pageSize }
-    });
-  }
   const csrf = getCsrfToken();
   const listHref = (overrides: Partial<{
     page: number;
@@ -184,7 +178,8 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
               Showing {firstRow}-{lastRow} of {totalLinks} {totalLinks === 1 ? "link" : "links"}.
             </p>
           </div>
-          <form className="row-actions link-filter-form" key={`${view}-${q ?? ""}-${tag ?? ""}-${sort}-${pageSize}`}>
+          <form action={filterLinksAction} className="row-actions link-filter-form" key={`${view}-${q ?? ""}-${tag ?? ""}-${sort}-${pageSize}`}>
+            <input type="hidden" name="csrf" value={csrf} />
             {view === "archived" ? <input type="hidden" name="view" value="archived" /> : null}
             {tag ? <input type="hidden" name="tag" value={tag} /> : null}
             <input name="q" placeholder="Search links or tags" defaultValue={q ?? ""} />

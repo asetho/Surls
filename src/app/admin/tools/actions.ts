@@ -4,7 +4,7 @@ import { Buffer } from "node:buffer";
 import { AuditAction } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { auditLog } from "@/lib/audit";
-import { createApiToken } from "@/lib/api-tokens";
+import { createApiToken, normalizeApiTokenName } from "@/lib/api-tokens";
 import { requireAdmin } from "@/lib/auth";
 import { parseCsvRows } from "@/lib/csv";
 import { validateCsrf } from "@/lib/csrf";
@@ -50,7 +50,12 @@ export async function createTokenAction(_state: { token?: string; error?: string
   const admin = await requireAdmin();
   if (!admin) return { error: "Unauthorized" };
   const fallbackName = `${await getSiteName()} API token`;
-  const name = String(formData.get("name") ?? "").trim() || fallbackName;
+  let name: string;
+  try {
+    name = normalizeApiTokenName(String(formData.get("name") ?? "").trim() || fallbackName);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Enter a valid API token name." };
+  }
   const expiresAt = tokenExpiresAt(formData.get("expiresInDays"));
   const { row, token } = await createApiToken(admin.id, name, { expiresAt });
   await auditLog({

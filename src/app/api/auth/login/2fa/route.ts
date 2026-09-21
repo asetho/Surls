@@ -12,7 +12,7 @@ import {
 } from "@/lib/pending-login";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { requestIp, requestIpHash } from "@/lib/request";
+import { requestIp, requestIpHash, requestOriginMatchesApp } from "@/lib/request";
 import { verifyTotpCode } from "@/lib/totp";
 
 function pendingLoginRedirect(error: string, clearPending = false) {
@@ -34,6 +34,10 @@ function restartLoginRedirect(error: string) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!requestOriginMatchesApp(request)) {
+    return restartLoginRedirect("The login request could not be verified. Please try again.");
+  }
+
   const formData = await request.formData();
   try {
     validateCsrf(formData);
@@ -46,8 +50,11 @@ export async function POST(request: NextRequest) {
     return restartLoginRedirect("Sign in again to continue.");
   }
 
-  const rate = await checkRateLimit(`login-2fa:${requestIp(request)}:${pendingLogin.userId}`, 8, 15 * 60 * 1000);
-  if (!rate.allowed) {
+  const [sourceRate, accountRate] = await Promise.all([
+    checkRateLimit(`login-2fa:${requestIp(request)}:${pendingLogin.userId}`, 8, 15 * 60 * 1000),
+    checkRateLimit(`login-2fa:account:${pendingLogin.userId}`, 8, 15 * 60 * 1000)
+  ]);
+  if (!sourceRate.allowed || !accountRate.allowed) {
     return pendingLoginRedirect("Too many 2FA attempts. Please wait and try again.");
   }
 

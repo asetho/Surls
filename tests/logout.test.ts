@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getCsrfToken } from "@/lib/csrf";
 
 const auth = vi.hoisted(() => ({
   clearSessionCookie: vi.fn((response: NextResponse) => {
@@ -19,10 +20,14 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 vi.mock("@/lib/audit", () => audit);
+vi.mock("@/lib/request", () => ({ requestOriginMatchesApp: (request: NextRequest) => request.headers.get("origin") === "http://localhost:3000" }));
 
-function logoutRequest(cookie?: string) {
+function logoutRequest(cookie?: string, csrf = getCsrfToken(), origin = "http://localhost:3000") {
+  const formData = new FormData();
+  formData.set("csrf", csrf);
   return new NextRequest("http://localhost:3000/api/auth/logout", {
-    headers: cookie ? { cookie } : undefined,
+    body: formData,
+    headers: { origin, ...(cookie ? { cookie } : {}) },
     method: "POST"
   });
 }
@@ -43,5 +48,14 @@ describe("logout route", () => {
     expect(auth.clearSessionCookie).toHaveBeenCalledWith(response);
     expect(response.headers.get("set-cookie")).toContain("surls_session=");
     expect(audit.auditLog).toHaveBeenCalledWith(expect.objectContaining({ action: "LOGOUT" }));
+  });
+
+  it("rejects cross-origin and invalid-CSRF logout requests", async () => {
+    const { POST } = await import("@/app/api/auth/logout/route");
+
+    await expect(POST(logoutRequest("surls_session=session-token", getCsrfToken(), "https://attacker.example"))).resolves.toMatchObject({ status: 403 });
+    await expect(POST(logoutRequest("surls_session=session-token", "invalid"))).resolves.toMatchObject({ status: 403 });
+
+    expect(auth.destroySession).not.toHaveBeenCalled();
   });
 });

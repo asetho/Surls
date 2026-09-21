@@ -81,9 +81,10 @@ run("ssh", [
     "if ! grep -q '^NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=' .env || grep -q '^NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=$' .env; then key=$(openssl rand -base64 32); if grep -q '^NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=' .env; then sed -i \"s|^NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=.*|NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=$key|\" .env; else printf '\\nNEXT_SERVER_ACTIONS_ENCRYPTION_KEY=%s\\n' \"$key\" >> .env; fi; fi",
     "compose_file_value=$(sed -n 's/^COMPOSE_FILE=//p' .env | tail -n 1); compose_files=''; if [ -n \"$compose_file_value\" ]; then old_ifs=$IFS; IFS=':'; for compose_file in $compose_file_value; do if [ -f \"$compose_file\" ]; then compose_files=\"$compose_files -f $compose_file\"; fi; done; IFS=$old_ifs; fi; if [ -z \"$compose_files\" ]; then compose_files='-f docker-compose.yml'; fi; has_compose_override=0; for override in docker-compose.override.yml docker-compose.*.override.yml; do if [ -f \"$override\" ]; then compose_files=\"$compose_files -f $override\"; has_compose_override=1; fi; done",
     "docker compose $compose_files build app",
+    "docker compose $compose_files run --rm --no-deps --user root --entrypoint chown app -R 1000:1000 /app/uploads",
     "up_flags='-d --no-build --remove-orphans'; if [ \"$has_compose_override\" = '1' ]; then up_flags=\"$up_flags --no-deps\"; fi",
     "docker compose $compose_files up $up_flags app",
-    `for attempt in $(seq 1 30); do if health=$(curl -fsS http://127.0.0.1:${port}/api/health/ready 2>/tmp/surls-health.err); then printf '%s\\n' "$health"; break; fi; if [ "$attempt" = '30' ]; then cat /tmp/surls-health.err >&2; exit 1; fi; sleep 2; done`,
+    `for attempt in $(seq 1 30); do if health=$(curl -fsS http://127.0.0.1:${port}/api/health/ready 2>&1); then printf '%s\\n' "$health"; break; fi; if [ "$attempt" = '30' ]; then printf '%s\\n' "$health" >&2; exit 1; fi; sleep 2; done`,
     "docker compose $compose_files ps app"
   ].join(" && ")
 ]);

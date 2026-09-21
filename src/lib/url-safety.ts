@@ -1,4 +1,4 @@
-import dns from "node:dns/promises";
+import dns, { Resolver } from "node:dns/promises";
 import net from "node:net";
 import { env } from "./env";
 
@@ -32,6 +32,18 @@ export type ResolvedHttpAddress = {
   address: string;
   family: 4 | 6;
 };
+
+function validatedResolvedAddress(records: ResolvedHttpAddress[], allowPrivate: boolean) {
+  if (!records.length || (!allowPrivate && records.some((record) => isPrivateAddress(record.address)))) {
+    throw new Error("Destination resolves to a private or internal address.");
+  }
+  return records[0];
+}
+
+function noAddressForFamily(error: unknown) {
+  const code = error && typeof error === "object" && "code" in error ? error.code : null;
+  return code === "ENODATA" || code === "ENOTFOUND";
+}
 
 function ipv4FromMappedIPv6(ip: string) {
   const normalized = normalizeIpLiteral(ip);
@@ -108,21 +120,72 @@ export async function resolveSafeHttpAddress(
 ): Promise<ResolvedHttpAddress> {
   const parsed = new URL(urlText);
   const records = await dns.lookup(normalizeIpLiteral(parsed.hostname), { all: true, verbatim: true });
-  if (!records.length || (!allowPrivate && records.some((record) => isPrivateAddress(record.address)))) {
-    throw new Error("Destination resolves to a private or internal address.");
+  const resolved = records.map((record): ResolvedHttpAddress => {
+    const family = net.isIP(record.address);
+    if (family !== 4 && family !== 6) {
+      throw new Error("Destination did not resolve to an IP address.");
+    }
+    return { address: record.address, family };
+  });
+  return validatedResolvedAddress(resolved, allowPrivate);
+}
+
+export async function resolveSafeHttpAddressWithTimeout(
+  urlText: string,
+  timeoutMs: number,
+  allowPrivate = env.ALLOW_PRIVATE_DESTINATIONS
+): Promise<ResolvedHttpAddress> {
+  const parsed = new URL(urlText);
+  const hostname = normalizeIpLiteral(parsed.hostname);
+  const literalFamily = net.isIP(hostname);
+  if (literalFamily === 4 || literalFamily === 6) {
+    return validatedResolvedAddress([{ address: hostname, family: literalFamily }], allowPrivate);
   }
 
-  const record = records[0];
-  const family = net.isIP(record.address);
-  if (family !== 4 && family !== 6) {
-    throw new Error("Destination did not resolve to an IP address.");
-  }
+  const resolver = new Resolver();
+  const query = Promise.all([
+    resolver.resolve4(hostname).catch((error: unknown) => {
+      if (noAddressForFamily(error)) return [];
+      throw error;
+    }),
+    resolver.resolve6(hostname).catch((error: unknown) => {
+      if (noAddressForFamily(error)) return [];
+      throw error;
+    })
+  ]).then(([ipv4, ipv6]) => [
+    ...ipv4.map((address): ResolvedHttpAddress => ({ address, family: 4 })),
+    ...ipv6.map((address): ResolvedHttpAddress => ({ address, family: 6 }))
+  ]);
 
-  return { address: record.address, family };
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const records = await Promise.race([
+      query,
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => {
+          resolver.cancel();
+          reject(new Error("Destination DNS lookup timed out."));
+        }, Math.max(1, timeoutMs));
+        timeout.unref?.();
+      })
+    ]);
+    return validatedResolvedAddress(records, allowPrivate);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 }
 
 export async function assertNoPrivateResolution(urlText: string, allowPrivate = env.ALLOW_PRIVATE_DESTINATIONS) {
   await resolveSafeHttpAddress(urlText, allowPrivate);
+  return true;
+}
+
+export async function assertNoPrivateResolutionWithTimeout(
+  urlText: string,
+  timeoutMs: number,
+  allowPrivate = env.ALLOW_PRIVATE_DESTINATIONS
+) {
+  await resolveSafeHttpAddressWithTimeout(urlText, timeoutMs, allowPrivate);
   return true;
 }
 
