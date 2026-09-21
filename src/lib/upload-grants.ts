@@ -1,7 +1,7 @@
 import { signValue, verifySignedValue } from "./crypto";
 import { prisma } from "./prisma";
 import { ensureUploadedFileRecord } from "./uploaded-file-records";
-import { uploadedFilenameFromDestination, uploadedFileUrl } from "./uploads";
+import { uploadedFilenameFromDestination } from "./uploads";
 
 export const UPLOAD_GRANT_QUERY_PARAM = "_surls_download";
 export const UPLOAD_GRANT_TTL_MS = 30 * 1000;
@@ -91,7 +91,7 @@ export async function hasValidUploadDownloadGrant(
   });
   if (!link || !link.enabled || link.archivedAt || (link.expiresAt && link.expiresAt <= now)) return false;
   if (link.maxClicks !== null && link.clickCount > link.maxClicks) return false;
-  if (link.destinationUrl !== uploadedFileUrl(filename)) return false;
+  if (uploadedFilenameFromDestination(link.destinationUrl) !== filename) return false;
   const uploadedFile = await ensureUploadedFileRecord(filename);
   return uploadedFile?.shortLinkId === payload.linkId;
 }

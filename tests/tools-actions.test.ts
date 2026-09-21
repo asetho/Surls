@@ -5,7 +5,12 @@ const auth = vi.hoisted(() => ({
 }));
 
 const apiTokens = vi.hoisted(() => ({
-  createApiToken: vi.fn()
+  createApiToken: vi.fn(),
+  normalizeApiTokenName: vi.fn((value: unknown) => {
+    const name = String(value ?? "").trim();
+    if (!name || name.length > 120) throw new Error("API token name must be 120 characters or fewer.");
+    return name;
+  })
 }));
 
 const audit = vi.hoisted(() => ({

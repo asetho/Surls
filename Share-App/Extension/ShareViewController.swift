@@ -20,6 +20,7 @@ final class ShareViewController: NSViewController, URLSessionTaskDelegate, NSTex
     private var uploadSession: URLSession?
     private var uploadTask: URLSessionUploadTask?
     private var uploadAttempt: UUID?
+    private var uploadBodyURL: URL?
     private var keywordCheckTask: URLSessionDataTask?
     private var keywordCheckWorkItem: DispatchWorkItem?
     private var keywordCheckAttempt: UUID?
@@ -183,6 +184,7 @@ final class ShareViewController: NSViewController, URLSessionTaskDelegate, NSTex
         uploadSession?.invalidateAndCancel()
         uploadTask = nil
         uploadSession = nil
+        removeUploadBody()
         cancelFileLoad()
         hasFailed = false
         generatedShortURL = nil
@@ -286,7 +288,7 @@ final class ShareViewController: NSViewController, URLSessionTaskDelegate, NSTex
         }
         fileLoadTimeout = timeout
         DispatchQueue.main.asyncAfter(deadline: .now() + 15, execute: timeout)
-        fileLoadProgress = loadFile(from: provider) { [weak self] result in
+        fileLoadProgress = loadFile(from: provider, maximumBytes: limit.maximumReadableBytes) { [weak self] result in
             guard let self, self.fileLoadAttempt == attempt else { return }
             self.fileLoadAttempt = nil
             self.fileLoadTimeout?.cancel()
@@ -310,19 +312,24 @@ final class ShareViewController: NSViewController, URLSessionTaskDelegate, NSTex
             .first
     }
 
-    private func loadFile(from provider: NSItemProvider, completion: @escaping (Result<SharedFile, Error>) -> Void) -> Progress? {
+    private func loadFile(
+        from provider: NSItemProvider,
+        maximumBytes: Int64,
+        completion: @escaping (Result<SharedFile, Error>) -> Void
+    ) -> Progress? {
         if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+            let progress = Progress(totalUnitCount: maximumBytes)
             provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, error in
                 if let error { return DispatchQueue.main.async { completion(.failure(error)) } }
                 guard let url = Self.fileURL(from: item) else {
                     return DispatchQueue.main.async { completion(.failure(ShareError("Couldn’t read the shared file."))) }
                 }
                 DispatchQueue.global(qos: .userInitiated).async {
-                    let result = Result { try SharedFile(url: url) }
+                    let result = Result { try SharedFile(url: url, maximumBytes: maximumBytes, progress: progress) }
                     DispatchQueue.main.async { completion(result) }
                 }
             }
-            return nil
+            return progress
         }
 
         guard let typeIdentifier = provider.registeredTypeIdentifiers.first(where: {
@@ -337,7 +344,12 @@ final class ShareViewController: NSViewController, URLSessionTaskDelegate, NSTex
                 return DispatchQueue.main.async { completion(.failure(ShareError("Couldn’t load the shared file."))) }
             }
             let result = Result {
-                try SharedFile(url: url, suggestedName: provider.suggestedName, typeIdentifier: typeIdentifier)
+                try SharedFile(
+                    url: url,
+                    suggestedName: provider.suggestedName,
+                    typeIdentifier: typeIdentifier,
+                    maximumBytes: maximumBytes
+                )
             }
             DispatchQueue.main.async { completion(result) }
         }
@@ -469,13 +481,23 @@ final class ShareViewController: NSViewController, URLSessionTaskDelegate, NSTex
         request.timeoutInterval = 30
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        let body = MultipartBody(boundary: boundary)
-            .field(name: "filenameMode", value: "safe")
-            .field(name: "title", value: file.name)
-            .field(name: "code", value: code)
-            .file(name: "file", filename: file.name, mimeType: file.mimeType, data: file.data)
-            .finish()
-        request.setValue(String(body.count), forHTTPHeaderField: "Content-Length")
+        let bodyURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("surls-share-\(UUID().uuidString).multipart")
+        let bodyLength: Int64
+        do {
+            bodyLength = try MultipartBody.write(
+                boundary: boundary,
+                fields: [("filenameMode", "safe"), ("title", file.name), ("code", code)],
+                file: file,
+                to: bodyURL
+            )
+        } catch {
+            try? FileManager.default.removeItem(at: bodyURL)
+            showFailure(error.localizedDescription)
+            return
+        }
+        uploadBodyURL = bodyURL
+        request.setValue(String(bodyLength), forHTTPHeaderField: "Content-Length")
 
         progress.stopAnimation(nil)
         progress.isHidden = true
@@ -487,9 +509,11 @@ final class ShareViewController: NSViewController, URLSessionTaskDelegate, NSTex
         uploadAttempt = attempt
         let session = URLSession(configuration: .ephemeral, delegate: self, delegateQueue: .main)
         uploadSession = session
-        uploadTask = session.uploadTask(with: request, from: body) { [weak self] data, response, error in
+        uploadTask = session.uploadTask(with: request, fromFile: bodyURL) { [weak self] data, response, error in
+            try? FileManager.default.removeItem(at: bodyURL)
             DispatchQueue.main.async {
                 guard let self, self.uploadAttempt == attempt else { return }
+                if self.uploadBodyURL == bodyURL { self.uploadBodyURL = nil }
                 self.uploadAttempt = nil
                 self.uploadTask = nil
                 self.uploadSession?.finishTasksAndInvalidate()
@@ -603,6 +627,7 @@ final class ShareViewController: NSViewController, URLSessionTaskDelegate, NSTex
         uploadSession?.invalidateAndCancel()
         uploadTask = nil
         uploadSession = nil
+        removeUploadBody()
         cancelKeywordCheck()
         cancelFileLoad()
         if hasFailed || generatedShortURL != nil {
@@ -646,6 +671,12 @@ final class ShareViewController: NSViewController, URLSessionTaskDelegate, NSTex
         fileLoadAttempt = nil
     }
 
+    private func removeUploadBody() {
+        guard let uploadBodyURL else { return }
+        try? FileManager.default.removeItem(at: uploadBodyURL)
+        self.uploadBodyURL = nil
+    }
+
     private static func isKeywordError(_ message: String) -> Bool {
         let lowercased = message.lowercased()
         return lowercased.contains("alias")
@@ -679,10 +710,37 @@ private struct SharedFile {
     let name: String
     let mimeType: String
 
-    init(url: URL, suggestedName: String? = nil, typeIdentifier: String? = nil) throws {
+    init(
+        url: URL,
+        suggestedName: String? = nil,
+        typeIdentifier: String? = nil,
+        maximumBytes: Int64,
+        progress: Progress? = nil
+    ) throws {
         let accessed = url.startAccessingSecurityScopedResource()
         defer { if accessed { url.stopAccessingSecurityScopedResource() } }
-        data = try Data(contentsOf: url, options: .mappedIfSafe)
+        let reportedSize = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize
+        if let reportedSize, Int64(reportedSize) > maximumBytes {
+            throw ShareError("The selected file is larger than the allowed upload limit.")
+        }
+
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        var boundedData = Data()
+        let chunkSize = 1024 * 1024
+        while true {
+            if progress?.isCancelled == true { throw CancellationError() }
+            let remaining = maximumBytes - Int64(boundedData.count)
+            if remaining < 0 { throw ShareError("The selected file is larger than the allowed upload limit.") }
+            let readSize = Int(min(Int64(chunkSize), remaining + 1))
+            guard readSize > 0, let chunk = try handle.read(upToCount: readSize), !chunk.isEmpty else { break }
+            boundedData.append(chunk)
+            if Int64(boundedData.count) > maximumBytes {
+                throw ShareError("The selected file is larger than the allowed upload limit.")
+            }
+            progress?.completedUnitCount = Int64(boundedData.count)
+        }
+        data = boundedData
         name = suggestedName?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty ?? url.lastPathComponent
         let type = typeIdentifier.flatMap(UTType.init) ?? UTType(filenameExtension: url.pathExtension)
         mimeType = type?.preferredMIMEType ?? "application/octet-stream"
@@ -705,42 +763,35 @@ private struct ShareError: LocalizedError {
     var errorDescription: String? { message }
 }
 
-private struct MultipartBody {
-    private let boundary: String
-    private var data = Data()
+private enum MultipartBody {
+    static func write(
+        boundary: String,
+        fields: [(String, String)],
+        file: SharedFile,
+        to url: URL
+    ) throws -> Int64 {
+        FileManager.default.createFile(atPath: url.path, contents: nil)
+        let handle = try FileHandle(forWritingTo: url)
+        defer { try? handle.close() }
 
-    init(boundary: String) { self.boundary = boundary }
-
-    func field(name: String, value: String) -> MultipartBody {
-        var copy = self
-        copy.append("--\(boundary)\r\n")
-        copy.append("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n")
-        copy.append("\(value)\r\n")
-        return copy
-    }
-
-    func file(name: String, filename: String, mimeType: String, data fileData: Data) -> MultipartBody {
-        var copy = self
+        func write(_ value: String) throws {
+            try handle.write(contentsOf: Data(value.utf8))
+        }
+        for (name, value) in fields {
+            try write("--\(boundary)\r\n")
+            try write("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n")
+            try write("\(value)\r\n")
+        }
         let unsafeCharacters = CharacterSet.controlCharacters.union(CharacterSet(charactersIn: "\\\""))
-        let safeFilename = filename.unicodeScalars
+        let safeFilename = file.name.unicodeScalars
             .map { unsafeCharacters.contains($0) ? "_" : String($0) }
             .joined()
-        copy.append("--\(boundary)\r\n")
-        copy.append("Content-Disposition: form-data; name=\"\(name)\"; filename=\"\(safeFilename)\"\r\n")
-        copy.append("Content-Type: \(mimeType)\r\n\r\n")
-        copy.data.append(fileData)
-        copy.append("\r\n")
-        return copy
-    }
-
-    func finish() -> Data {
-        var copy = self
-        copy.append("--\(boundary)--\r\n")
-        return copy.data
-    }
-
-    private mutating func append(_ string: String) {
-        data.append(Data(string.utf8))
+        try write("--\(boundary)\r\n")
+        try write("Content-Disposition: form-data; name=\"file\"; filename=\"\(safeFilename)\"\r\n")
+        try write("Content-Type: \(file.mimeType)\r\n\r\n")
+        try handle.write(contentsOf: file.data)
+        try write("\r\n--\(boundary)--\r\n")
+        return Int64(try handle.offset())
     }
 }
 

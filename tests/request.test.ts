@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { clientIpFromHeaders } from "@/lib/request";
+import { NextRequest } from "next/server";
+import { clientIpFromHeaders, readFormDataWithLimit } from "@/lib/request";
 
 describe("request IP handling", () => {
   it("ignores forwarded IP headers unless proxy trust is enabled", () => {
@@ -27,5 +28,28 @@ describe("request IP handling", () => {
     });
 
     expect(clientIpFromHeaders(headers, true)).toBe("2001:db8::1");
+  });
+});
+
+describe("bounded multipart parsing", () => {
+  it("parses a multipart form below the byte limit", async () => {
+    const formData = new FormData();
+    formData.set("name", "favicon");
+    const request = new NextRequest("http://localhost:3000/upload", { body: formData, method: "POST" });
+
+    const result = await readFormDataWithLimit(request, 1024);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.get("name")).toBe("favicon");
+  });
+
+  it("rejects an oversized declared body before parsing", async () => {
+    const request = new NextRequest("http://localhost:3000/upload", {
+      body: "oversized",
+      headers: { "content-length": "10000", "content-type": "multipart/form-data; boundary=test" },
+      method: "POST"
+    });
+
+    await expect(readFormDataWithLimit(request, 1024)).resolves.toEqual({ ok: false, error: "too_large" });
   });
 });

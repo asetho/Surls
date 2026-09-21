@@ -100,4 +100,14 @@ describe("link update authorization", () => {
       })
     }));
   });
+
+  it("rejects oversized destinations before resolution or persistence", async () => {
+    const { updateLinkAction } = await import("@/app/admin/links/actions");
+    const formData = updateForm("link_123");
+    formData.set("destinationUrl", `https://example.com/${"x".repeat(4_100)}`);
+
+    await expect(updateLinkAction(formData)).rejects.toThrow(/4096 characters or fewer/i);
+    expect(urlSafety.assertNoPrivateResolution).not.toHaveBeenCalled();
+    expect(prisma.shortLink.update).not.toHaveBeenCalled();
+  });
 });

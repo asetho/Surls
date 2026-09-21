@@ -3,11 +3,13 @@ import { verifyAuthenticationResponse, type AuthenticationResponseJSON } from "@
 import { NextResponse, type NextRequest } from "next/server";
 import { auditLog } from "@/lib/audit";
 import { createSession, setSessionCookie } from "@/lib/auth";
+import { hashToken } from "@/lib/crypto";
 import { env } from "@/lib/env";
 import {
   decodePasskeyChallenge,
   expiredPasskeyCookieOptions,
   PASSKEY_AUTHENTICATION_COOKIE,
+  PASSKEY_CHALLENGE_MAX_AGE_SECONDS,
   passkeyToWebAuthnCredential
 } from "@/lib/passkeys";
 import { prisma } from "@/lib/prisma";
@@ -37,7 +39,8 @@ async function authError(message: string, request: NextRequest, status = 400) {
 }
 
 export async function POST(request: NextRequest) {
-  const rate = await checkRateLimit(`passkey:verify:${requestIp(request)}`, 30, 15 * 60 * 1000);
+  const ip = requestIp(request);
+  const rate = await checkRateLimit(`passkey:verify:${ip}`, ip === "unknown" ? 3_000 : 30, 15 * 60 * 1000);
   if (!rate.allowed) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
 
   const body = (await request.json().catch(() => null)) as AuthenticationPayload | null;
@@ -63,6 +66,13 @@ export async function POST(request: NextRequest) {
     });
 
     if (!verification.verified) return authError("Could not verify that passkey.", request, 401);
+
+    const challengeUse = await checkRateLimit(
+      `passkey:authentication-challenge:${hashToken(challenge.challenge)}`,
+      1,
+      PASSKEY_CHALLENGE_MAX_AGE_SECONDS * 2 * 1000
+    );
+    if (!challengeUse.allowed) return authError("Passkey sign-in expired. Please try again.", request, 401);
 
     await prisma.passkey.update({
       where: { id: passkey.id },

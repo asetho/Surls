@@ -7,7 +7,13 @@ import { auditLog } from "@/lib/audit";
 import { isAdminUser, requireAdmin, requireSiteAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
 import { archiveShortLink, deleteShortLink, restoreShortLink } from "@/lib/link-lifecycle";
-import { normalizeOptionalDate, normalizeOptionalPositiveInt, normalizeShortLinkTags } from "@/lib/links";
+import {
+  normalizeOptionalDate,
+  normalizeOptionalPositiveInt,
+  normalizeShortLinkDestinationUrl,
+  normalizeShortLinkTags,
+  normalizeShortLinkTextFields
+} from "@/lib/links";
 import { prisma } from "@/lib/prisma";
 import { safeRedirectPath } from "@/lib/redirect-path";
 import { assertNoPrivateResolution, parseSafeHttpUrl } from "@/lib/url-safety";
@@ -39,19 +45,24 @@ export async function updateLinkAction(formData: FormData) {
   const admin = await requireAdmin();
   if (!admin) redirect("/admin");
   const id = String(formData.get("id") ?? "");
-  const safe = parseSafeHttpUrl(String(formData.get("destinationUrl") ?? ""));
+  const safe = parseSafeHttpUrl(normalizeShortLinkDestinationUrl(formData.get("destinationUrl")));
   if (!safe.ok) throw new Error(safe.error);
   await assertNoPrivateResolution(safe.url);
   const tags = normalizeShortLinkTags(tagList(formData.get("tags")));
+  const text = normalizeShortLinkTextFields({
+    title: formData.get("title"),
+    description: formData.get("description"),
+    notes: formData.get("notes")
+  });
 
   const link = await prisma.shortLink.update({
     // Keep the owner predicate in the database update so a guessed link ID cannot cross accounts.
     where: isAdminUser(admin) ? { id } : { id, createdById: admin.id },
     data: {
       destinationUrl: safe.url,
-      title: String(formData.get("title") ?? "") || null,
-      description: String(formData.get("description") ?? "") || null,
-      notes: String(formData.get("notes") ?? "") || null,
+      title: text.title,
+      description: text.description,
+      notes: text.notes,
       enabled: formData.get("enabled") === "on",
       expiresAt: optionalDate(formData.get("expiresAt")),
       maxClicks: optionalInt(formData.get("maxClicks")),

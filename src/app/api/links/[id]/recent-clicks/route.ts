@@ -24,12 +24,6 @@ export async function GET(request: NextRequest, { params }: Params) {
 
   const requestedPageSize = request.nextUrl.searchParams.get("pageSize");
   const pageSize = resolveRecentClickPageSize(requestedPageSize ?? undefined, user.recentClickPageSize);
-  if (requestedPageSize !== null && pageSize !== user.recentClickPageSize) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { recentClickPageSize: pageSize }
-    });
-  }
 
   const [settings, recent] = await Promise.all([
     getSettings(),

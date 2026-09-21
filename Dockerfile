@@ -21,16 +21,17 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
-COPY package.json package-lock.json* ./
+COPY --chown=node:node package.json package-lock.json* ./
 RUN npm ci --omit=dev && npm cache clean --force
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
-COPY --from=builder /app/scripts/bootstrap.mjs ./scripts/bootstrap.mjs
-COPY --from=builder /app/scripts/docker-entrypoint.mjs ./scripts/docker-entrypoint.mjs
-COPY --from=builder /app/scripts/seed-demo.mjs ./scripts/seed-demo.mjs
+COPY --chown=node:node --from=builder /app/.next/standalone ./
+COPY --chown=node:node --from=builder /app/.next/static ./.next/static
+COPY --chown=node:node --from=builder /app/public ./public
+COPY --chown=node:node --from=builder /app/prisma ./prisma
+COPY --chown=node:node --from=builder /app/prisma.config.ts ./prisma.config.ts
+COPY --chown=node:node --from=builder /app/scripts/bootstrap.mjs ./scripts/bootstrap.mjs
+COPY --chown=node:node --from=builder /app/scripts/docker-entrypoint.mjs ./scripts/docker-entrypoint.mjs
+COPY --chown=node:node --from=builder /app/scripts/seed-demo.mjs ./scripts/seed-demo.mjs
+RUN mkdir -p /app/uploads && chown node:node /app/uploads
 ARG SURLS_GIT_SHA=""
 ENV NEXT_PUBLIC_GIT_SHA=${SURLS_GIT_SHA}
 ENV SURLS_GIT_SHA=${SURLS_GIT_SHA}
@@ -39,5 +40,6 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 CMD node 
 LABEL org.opencontainers.image.title="Surls"
 LABEL org.opencontainers.image.description="Personal short URL system"
 LABEL org.opencontainers.image.revision="${SURLS_GIT_SHA}"
+USER node
 ENTRYPOINT ["node", "scripts/docker-entrypoint.mjs"]
 CMD ["node", "server.js"]

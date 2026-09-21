@@ -2,6 +2,7 @@ import Foundation
 
 enum UploadLimit: Equatable {
     static let responseHeader = "X-Surls-Upload-Max-Bytes"
+    static let localMaximumBytes: Int64 = 25 * 1024 * 1024
 
     case unknown
     case unlimited
@@ -26,6 +27,13 @@ enum UploadLimit: Equatable {
         case .unknown: "Connection successful"
         case .unlimited: "Connection successful · no upload limit"
         case .bytes(let bytes): "Connection successful · \(Self.fileSizeLabel(bytes)) limit"
+        }
+    }
+
+    var maximumReadableBytes: Int64 {
+        switch self {
+        case .bytes(let bytes): min(bytes, Self.localMaximumBytes)
+        case .unknown, .unlimited: Self.localMaximumBytes
         }
     }
 

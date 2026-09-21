@@ -62,7 +62,7 @@ export function decodePasskeyChallenge(
   try {
     const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as PasskeyChallengePayload;
     if (payload.purpose !== purpose || !payload.challenge || !payload.issuedAt) return null;
-    if (Date.now() - payload.issuedAt > PASSKEY_CHALLENGE_MAX_AGE_SECONDS * 1000) return null;
+    if (Date.now() - payload.issuedAt >= PASSKEY_CHALLENGE_MAX_AGE_SECONDS * 1000) return null;
     return payload;
   } catch {
     return null;

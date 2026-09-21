@@ -141,6 +141,25 @@ describe("favicon uploads", () => {
       )
     ).rejects.toThrow(/valid JSON/i);
   });
+
+  it("rejects embedded SVG content and external references", async () => {
+    await expect(
+      faviconsFromUpload(faviconForm({
+        faviconSvg: new File(["<svg><foreignObject><iframe src='https://example.test'></iframe></foreignObject></svg>"], "favicon.svg", { type: "image/svg+xml" })
+      }))
+    ).rejects.toThrow(/active content/i);
+
+    await expect(
+      faviconsFromUpload(faviconForm({
+        faviconSvg: new File(["<svg><image href='https://example.test/icon.png'/></svg>"], "favicon.svg", { type: "image/svg+xml" })
+      }))
+    ).rejects.toThrow(/external content/i);
+  });
+
+  it("rejects oversized assets before decoding their contents", async () => {
+    const oversized = new File([new Uint8Array(128 * 1024 + 1)], "favicon.svg", { type: "image/svg+xml" });
+    await expect(faviconsFromUpload(faviconForm({ faviconSvg: oversized }))).rejects.toThrow(/128 KB or smaller/i);
+  });
 });
 
 describe("favicon responses", () => {
@@ -152,6 +171,14 @@ describe("favicon responses", () => {
     expect(response?.headers.get("x-content-type-options")).toBe("nosniff");
     expect(response?.headers.get("content-length")).toBe(String(icoBytes.byteLength));
     expect(new Uint8Array(await response!.arrayBuffer())).toEqual(icoBytes);
+  });
+
+  it("sandboxes SVG favicon responses", async () => {
+    const favicons = await faviconsFromUpload(faviconForm());
+    const response = faviconResponse(favicons, "faviconSvg");
+
+    expect(response?.headers.get("content-security-policy")).toContain("default-src 'none'");
+    expect(response?.headers.get("content-security-policy")).toContain("sandbox");
   });
 
   it("generates a web manifest when none was uploaded", async () => {

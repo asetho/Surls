@@ -10,7 +10,8 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { requestIp } from "@/lib/request";
 
 export async function POST(request: NextRequest) {
-  const rate = await checkRateLimit(`passkey:options:${requestIp(request)}`, 30, 60 * 1000);
+  const ip = requestIp(request);
+  const rate = await checkRateLimit(`passkey:options:${ip}`, ip === "unknown" ? 3_000 : 30, 60 * 1000);
   if (!rate.allowed) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
 
   const options = await generateAuthenticationOptions({

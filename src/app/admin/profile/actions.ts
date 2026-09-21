@@ -9,6 +9,7 @@ import { generateBackupCodes, hashBackupCode } from "@/lib/backup-codes";
 import { validateCsrf } from "@/lib/csrf";
 import { normalizeMobileMenuSide } from "@/lib/mobile-menu";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { getSiteName } from "@/lib/settings";
 import { createTotpSecret, verifyTotpCode } from "@/lib/totp";
 import { normalizeUserProfileFormData } from "@/lib/user-profile";
@@ -117,6 +118,8 @@ export async function regenerateBackupCodesAction(_state: { codes: string[]; gen
   validateCsrf(formData);
   const admin = await requireAdmin();
   if (!admin) throw new Error("Unauthorized");
+  const rate = await checkRateLimit(`profile:backup-codes:${admin.id}`, 3, 15 * 60 * 1000);
+  if (!rate.allowed) throw new Error("Too many backup code regeneration attempts. Please wait and try again.");
   const generatedAt = new Date();
   const codes = generateBackupCodes();
   const hashedCodes = await Promise.all(codes.map(async (code) => ({ code, codeHash: await hashBackupCode(code) })));

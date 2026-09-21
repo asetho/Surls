@@ -77,10 +77,7 @@ describe("GET /api/links/[id]/recent-clicks", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
-    expect(prisma.user.update).toHaveBeenCalledWith({
-      where: { id: "user_1" },
-      data: { recentClickPageSize: 10 }
-    });
+    expect(prisma.user.update).not.toHaveBeenCalled();
     expect(clicks.recentClicksPage).toHaveBeenCalledWith("link_123", { page: "2", pageSize: 10 });
     expect(prisma.shortLink.findFirst).toHaveBeenCalledWith({
       where: { id: "link_123", createdById: "user_1" },

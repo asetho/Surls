@@ -190,7 +190,13 @@ describe("link lifecycle helpers", () => {
     await deleteShortLink("link_1", "/demo");
 
     expect(shortLink.findFirst).toHaveBeenCalledWith({
-      where: { destinationUrl: "http://localhost:3000/uploads/report.pdf" },
+      where: {
+        OR: [
+          { destinationUrl: "http://localhost:3000/uploads/report.pdf" },
+          { destinationUrl: { startsWith: "http://localhost:3000/uploads/report.pdf?" } },
+          { destinationUrl: { startsWith: "http://localhost:3000/uploads/report.pdf#" } }
+        ]
+      },
       select: { id: true }
     });
     expect(uploadedFileRecords.deleteUploadedFileWithRecord).toHaveBeenCalledWith("report.pdf");

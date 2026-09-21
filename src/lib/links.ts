@@ -3,6 +3,14 @@ import { generateAlias, validateAlias } from "./alias";
 import { fetchPageTitle } from "./page-title";
 import { assertNoPrivateResolution, parseSafeHttpUrl } from "./url-safety";
 import { prisma } from "./prisma";
+import { checkRateLimit } from "./rate-limit";
+
+const DESTINATION_URL_MAX_LENGTH = 4_096;
+const SHORT_LINK_TITLE_MAX_LENGTH = 240;
+const SHORT_LINK_DESCRIPTION_MAX_LENGTH = 4_000;
+const SHORT_LINK_NOTES_MAX_LENGTH = 8_000;
+const TOKEN_SOURCE_NAME_MAX_LENGTH = 120;
+const TOKEN_SOURCE_PREFIX_MAX_LENGTH = 32;
 
 export type CreateShortLinkInput = {
   destinationUrl: string;
@@ -77,12 +85,43 @@ export function normalizeShortLinkTags(tags: string[] | undefined) {
     });
 }
 
+function normalizeBoundedOptionalText(value: unknown, label: string, maxLength: number) {
+  const text = String(value ?? "").trim();
+  if (text.length > maxLength) throw new Error(`${label} must be ${maxLength} characters or fewer.`);
+  return text || null;
+}
+
+export function normalizeShortLinkTextFields(input: {
+  title?: unknown;
+  description?: unknown;
+  notes?: unknown;
+  createdByApiTokenName?: unknown;
+  createdByApiTokenPrefix?: unknown;
+}) {
+  return {
+    title: normalizeBoundedOptionalText(input.title, "Title", SHORT_LINK_TITLE_MAX_LENGTH),
+    description: normalizeBoundedOptionalText(input.description, "Description", SHORT_LINK_DESCRIPTION_MAX_LENGTH),
+    notes: normalizeBoundedOptionalText(input.notes, "Notes", SHORT_LINK_NOTES_MAX_LENGTH),
+    createdByApiTokenName: normalizeBoundedOptionalText(input.createdByApiTokenName, "API token name", TOKEN_SOURCE_NAME_MAX_LENGTH),
+    createdByApiTokenPrefix: normalizeBoundedOptionalText(input.createdByApiTokenPrefix, "API token prefix", TOKEN_SOURCE_PREFIX_MAX_LENGTH)
+  };
+}
+
+export function normalizeShortLinkDestinationUrl(value: unknown) {
+  const destinationUrl = String(value ?? "").trim();
+  if (destinationUrl.length > DESTINATION_URL_MAX_LENGTH) {
+    throw new Error(`Destination URL must be ${DESTINATION_URL_MAX_LENGTH} characters or fewer.`);
+  }
+  return destinationUrl;
+}
+
 export async function createShortLink(
   input: CreateShortLinkInput,
   db: ShortLinkClient = prisma,
   options: CreateShortLinkOptions = {}
 ) {
-  const safeUrl = parseSafeHttpUrl(input.destinationUrl, options.allowPrivateDestination);
+  const destinationUrl = normalizeShortLinkDestinationUrl(input.destinationUrl);
+  const safeUrl = parseSafeHttpUrl(destinationUrl, options.allowPrivateDestination);
   if (!safeUrl.ok) {
     throw new Error(safeUrl.error);
   }
@@ -103,9 +142,15 @@ export async function createShortLink(
   const aliasError = validateAlias(code);
   if (aliasError) throw new Error(aliasError);
 
-  const title = input.title?.trim() || (input.fetchTitle === false ? null : await fetchPageTitle(safeUrl.url));
-  const createdByApiTokenName = input.createdByApiTokenName?.trim() || null;
-  const createdByApiTokenPrefix = input.createdByApiTokenPrefix?.trim() || null;
+  const text = normalizeShortLinkTextFields(input);
+  let title = text.title;
+  if (!title && input.fetchTitle !== false) {
+    const titleFetchAllowed = !input.createdById
+      || (await checkRateLimit(`link:title-fetch:${input.createdById}`, 20, 60 * 1000)).allowed;
+    if (titleFetchAllowed) {
+      title = normalizeBoundedOptionalText(await fetchPageTitle(safeUrl.url), "Title", SHORT_LINK_TITLE_MAX_LENGTH);
+    }
+  }
 
   try {
     const link = await db.shortLink.create({
@@ -113,14 +158,14 @@ export async function createShortLink(
         code,
         destinationUrl: safeUrl.url,
         title,
-        description: input.description?.trim() || null,
-        notes: input.notes?.trim() || null,
+        description: text.description,
+        notes: text.notes,
         enabled: input.enabled ?? true,
         expiresAt,
         maxClicks,
         createdById: input.createdById,
-        createdByApiTokenName,
-        createdByApiTokenPrefix,
+        createdByApiTokenName: text.createdByApiTokenName,
+        createdByApiTokenPrefix: text.createdByApiTokenPrefix,
         tags: tags.length
           ? {
               create: tags.map(({ name, slug }) => {
