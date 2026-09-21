@@ -170,8 +170,9 @@ jobs:
           [[ "${current_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           recovery_version="$(node -e "const [major, minor, patch] = process.argv[1].split('.').map(Number); process.stdout.write([major, minor, patch + 1].join('.'))" "${current_version}")"
           recovery_tag="v${recovery_version}"
+          auth_header="$(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 -w 0)"
 
-          git fetch --force origin main --tags
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth_header}" fetch --force origin main --tags
           origin_main="$(git rev-parse refs/remotes/origin/main)"
           publish_mutable=false
 
@@ -200,12 +201,7 @@ jobs:
             git config user.email "${RELEASE_ACTOR_EMAIL}"
             npm version patch -m "Release v%s [skip ci]"
             release_version="$(node -p "require('./package.json').version")"
-            auth_header="$(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 -w 0)"
-            git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ${auth_header}"
-            trap 'git config --local --unset-all http.https://github.com/.extraheader || true' EXIT
-            git push --atomic origin HEAD:main "refs/tags/v${release_version}"
-            git config --local --unset-all http.https://github.com/.extraheader
-            trap - EXIT
+            git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth_header}" push --atomic origin HEAD:main "refs/tags/v${release_version}"
             publish_mutable=true
           fi
 
