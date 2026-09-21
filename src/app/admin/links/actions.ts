@@ -6,7 +6,16 @@ import { redirect } from "next/navigation";
 import { auditLog } from "@/lib/audit";
 import { isAdminUser, requireAdmin, requireSiteAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
-import { archiveShortLink, deleteShortLink, restoreShortLink } from "@/lib/link-lifecycle";
+import {
+  DEFAULT_LINK_PAGE_SIZE,
+  archiveShortLink,
+  deleteShortLink,
+  normalizeLinkListPageSize,
+  normalizeLinkListSort,
+  normalizeLinkListTag,
+  normalizeLinkListView,
+  restoreShortLink
+} from "@/lib/link-lifecycle";
 import {
   normalizeOptionalDate,
   normalizeOptionalPositiveInt,
@@ -32,6 +41,40 @@ function tagList(value: FormDataEntryValue | null) {
     .split(",")
     .map((tag) => tag.trim())
     .filter(Boolean);
+}
+
+function linkListPath(formData: FormData, pageSize: number) {
+  const params = new URLSearchParams();
+  const view = normalizeLinkListView(formData.get("view"));
+  const query = String(formData.get("q") ?? "").trim();
+  const sort = normalizeLinkListSort(formData.get("sort"));
+  const tag = normalizeLinkListTag(formData.get("tag"));
+
+  if (view === "archived") params.set("view", view);
+  if (query) params.set("q", query);
+  if (tag) params.set("tag", tag);
+  if (sort !== "newest") params.set("sort", sort);
+  if (pageSize !== DEFAULT_LINK_PAGE_SIZE) params.set("pageSize", String(pageSize));
+
+  const search = params.toString();
+  return search ? `/admin/links?${search}` : "/admin/links";
+}
+
+export async function filterLinksAction(formData: FormData) {
+  validateCsrf(formData);
+  const admin = await requireAdmin();
+  if (!admin) redirect("/admin");
+
+  const pageSize = normalizeLinkListPageSize(formData.get("pageSize"));
+  if (pageSize !== admin.linkListPageSize) {
+    await prisma.user.update({
+      where: { id: admin.id },
+      data: { linkListPageSize: pageSize }
+    });
+  }
+
+  revalidatePath("/admin/links");
+  redirect(linkListPath(formData, pageSize));
 }
 
 export async function createLinkAction(formData: FormData) {

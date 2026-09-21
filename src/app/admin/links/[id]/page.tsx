@@ -47,17 +47,10 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
   if (!currentUser) redirect(adminLoginPath(linkDetailNextPath(id, query)));
 
   const recentPage = normalizeRecentClickPage(query.clickPage);
-  const hasRecentPageSizeParam = Object.hasOwn(query, "clickPageSize");
   const recentPageSize = resolveRecentClickPageSize(
-    hasRecentPageSizeParam ? query.clickPageSize : undefined,
+    query.clickPageSize,
     currentUser.recentClickPageSize
   );
-  if (hasRecentPageSizeParam && recentPageSize !== currentUser.recentClickPageSize) {
-    await prisma.user.update({
-      where: { id: currentUser.id },
-      data: { recentClickPageSize: recentPageSize }
-    });
-  }
   const [link, settings] = await Promise.all([
     prisma.shortLink.findFirst({
       where: isAdminUser(currentUser) ? { id } : { id, createdById: currentUser.id },
@@ -253,7 +246,7 @@ export default async function LinkDetailPage({ params, searchParams }: PageProps
         ]}
       />
 
-      <RecentClicksPanel initialData={recentClicks} linkId={link.id} />
+      <RecentClicksPanel csrf={csrf} initialData={recentClicks} linkId={link.id} />
 
       <section className="surface surface-panel">
         <h2>

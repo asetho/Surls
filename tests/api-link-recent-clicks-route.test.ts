@@ -22,10 +22,17 @@ const settings = vi.hoisted(() => ({
 const clicks = vi.hoisted(() => ({
   recentClicksPage: vi.fn()
 }));
+const csrf = vi.hoisted(() => ({ validateCsrfValue: vi.fn() }));
+const requestSafety = vi.hoisted(() => ({ requestOriginMatchesApp: vi.fn() }));
 
 vi.mock("@/lib/auth", () => auth);
 vi.mock("@/lib/prisma", () => ({ prisma }));
 vi.mock("@/lib/settings", () => settings);
+vi.mock("@/lib/csrf", () => csrf);
+vi.mock("@/lib/request", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/request")>(),
+  requestOriginMatchesApp: requestSafety.requestOriginMatchesApp
+}));
 vi.mock("@/lib/clicks", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/clicks")>(),
   recentClicksPage: clicks.recentClicksPage
@@ -33,6 +40,18 @@ vi.mock("@/lib/clicks", async (importOriginal) => ({
 
 function request(query = "page=2&pageSize=10") {
   return new NextRequest(`http://localhost:3000/api/links/link_123/recent-clicks?${query}`);
+}
+
+function preferenceRequest(pageSize: number, csrfToken = "csrf-token") {
+  return new NextRequest("http://localhost:3000/api/links/link_123/recent-clicks", {
+    body: JSON.stringify({ pageSize }),
+    headers: {
+      "content-type": "application/json",
+      origin: "http://localhost:3000",
+      "X-Surls-CSRF": csrfToken
+    },
+    method: "POST"
+  });
 }
 
 function recentRow() {
@@ -57,6 +76,7 @@ describe("GET /api/links/[id]/recent-clicks", () => {
     });
     prisma.shortLink.findFirst.mockResolvedValue({ id: "link_123" });
     prisma.user.update.mockResolvedValue({ id: "user_1" });
+    requestSafety.requestOriginMatchesApp.mockReturnValue(true);
     settings.getSettings.mockResolvedValue({ displayTimeZone: "America/New_York" });
     clicks.recentClicksPage.mockResolvedValue({
       recent: [recentRow()],
@@ -123,6 +143,46 @@ describe("GET /api/links/[id]/recent-clicks", () => {
     expect(response.status).toBe(200);
     expect(prisma.user.update).not.toHaveBeenCalled();
     expect(clicks.recentClicksPage).toHaveBeenCalledWith("link_123", { page: "1", pageSize: 30 });
+  });
+
+  it("persists a selected row count through an authenticated CSRF-protected POST", async () => {
+    const { POST } = await import("@/app/api/links/[id]/recent-clicks/route");
+
+    const response = await POST(preferenceRequest(35), { params: Promise.resolve({ id: "link_123" }) });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(csrf.validateCsrfValue).toHaveBeenCalledWith("csrf-token");
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: "user_1" },
+      data: { recentClickPageSize: 35 }
+    });
+    await expect(response.json()).resolves.toEqual({ pageSize: 35 });
+  });
+
+  it("rejects cross-origin preference changes", async () => {
+    const { POST } = await import("@/app/api/links/[id]/recent-clicks/route");
+    requestSafety.requestOriginMatchesApp.mockReturnValue(false);
+
+    const response = await POST(preferenceRequest(35), { params: Promise.resolve({ id: "link_123" }) });
+
+    expect(response.status).toBe(403);
+    expect(csrf.validateCsrfValue).not.toHaveBeenCalled();
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects preference changes with invalid CSRF tokens", async () => {
+    const { POST } = await import("@/app/api/links/[id]/recent-clicks/route");
+    csrf.validateCsrfValue.mockImplementation(() => {
+      throw new Error("Invalid CSRF token.");
+    });
+
+    const response = await POST(preferenceRequest(35, "invalid"), {
+      params: Promise.resolve({ id: "link_123" })
+    });
+
+    expect(response.status).toBe(403);
+    expect(prisma.user.update).not.toHaveBeenCalled();
   });
 
   it("falls back to the site default timezone when the user has no preference", async () => {

@@ -9,21 +9,26 @@ const auth = vi.hoisted(() => ({
 const audit = vi.hoisted(() => ({ auditLog: vi.fn() }));
 const csrf = vi.hoisted(() => ({ validateCsrf: vi.fn() }));
 const nextCache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
-const prisma = vi.hoisted(() => ({ shortLink: { update: vi.fn() } }));
+const navigation = vi.hoisted(() => ({ redirect: vi.fn() }));
+const prisma = vi.hoisted(() => ({
+  shortLink: { update: vi.fn() },
+  user: { update: vi.fn() }
+}));
 const urlSafety = vi.hoisted(() => ({ assertNoPrivateResolution: vi.fn() }));
 
 vi.mock("@/lib/auth", () => auth);
 vi.mock("@/lib/audit", () => audit);
 vi.mock("@/lib/csrf", () => csrf);
 vi.mock("@/lib/prisma", () => ({ prisma }));
-vi.mock("@/lib/link-lifecycle", () => ({
+vi.mock("@/lib/link-lifecycle", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/link-lifecycle")>(),
   archiveShortLink: vi.fn(),
   deleteShortLink: vi.fn(),
   restoreShortLink: vi.fn()
 }));
 vi.mock("@/app/admin/links/create-link", () => ({ createLinkFromFormData: vi.fn() }));
 vi.mock("next/cache", () => nextCache);
-vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
+vi.mock("next/navigation", () => navigation);
 vi.mock("@/lib/url-safety", async () => {
   const actual = await vi.importActual<typeof import("@/lib/url-safety")>("@/lib/url-safety");
   return { ...actual, assertNoPrivateResolution: urlSafety.assertNoPrivateResolution };
@@ -109,5 +114,35 @@ describe("link update authorization", () => {
     await expect(updateLinkAction(formData)).rejects.toThrow(/4096 characters or fewer/i);
     expect(urlSafety.assertNoPrivateResolution).not.toHaveBeenCalled();
     expect(prisma.shortLink.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("link list preferences", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    auth.requireAdmin.mockResolvedValue({ id: "user_123", linkListPageSize: 20, role: "USER" });
+    prisma.user.update.mockResolvedValue({ id: "user_123" });
+  });
+
+  it("persists the selected page size through a CSRF-protected action", async () => {
+    const { filterLinksAction } = await import("@/app/admin/links/actions");
+    const formData = new FormData();
+    formData.set("csrf", "csrf-token");
+    formData.set("pageSize", "75");
+    formData.set("q", "client docs");
+    formData.set("sort", "url_desc");
+    formData.set("tag", "shared");
+    formData.set("view", "archived");
+
+    await filterLinksAction(formData);
+
+    expect(csrf.validateCsrf).toHaveBeenCalledWith(formData);
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: "user_123" },
+      data: { linkListPageSize: 75 }
+    });
+    expect(navigation.redirect).toHaveBeenCalledWith(
+      "/admin/links?view=archived&q=client+docs&tag=shared&sort=url_desc&pageSize=75"
+    );
   });
 });
