@@ -6,7 +6,7 @@ import { linkUnavailableReason } from "./links";
 import { recordClick } from "./clicks";
 import { checkRateLimit } from "./rate-limit";
 import { requestIpHash } from "./request";
-import { appendForwardedQuery, assertNoPrivateResolution } from "./url-safety";
+import { appendForwardedQuery, assertNoPrivateResolutionWithTimeout } from "./url-safety";
 import { appBaseUrl } from "./env";
 import { DEFAULT_DASHBOARD_THEME } from "./dashboard-theme";
 import { publicWebrootNotFoundResponse, publicWebrootResponse } from "./webroot";
@@ -20,36 +20,27 @@ export const REDIRECT_ANALYTICS_RATE_LIMIT = {
 } as const;
 
 export const REDIRECT_DESTINATION_DNS_CHECK = {
-  maxConcurrent: 8,
   timeoutMs: 2_000
 } as const;
 
-let activeRedirectDestinationChecks = 0;
+const redirectDestinationChecks = new Map<string, Promise<void>>();
 
 async function assertSafeRedirectDestination(destinationUrl: string) {
-  if (activeRedirectDestinationChecks >= REDIRECT_DESTINATION_DNS_CHECK.maxConcurrent) {
-    throw new Error("Redirect destination checks are busy.");
-  }
+  const hostname = new URL(destinationUrl).hostname.toLowerCase();
+  const existing = redirectDestinationChecks.get(hostname);
+  if (existing) return existing;
 
-  activeRedirectDestinationChecks += 1;
-  const check = Promise.resolve()
-    .then(() => assertNoPrivateResolution(destinationUrl))
-    .finally(() => {
-      activeRedirectDestinationChecks -= 1;
-    });
-  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const check = assertNoPrivateResolutionWithTimeout(
+    destinationUrl,
+    REDIRECT_DESTINATION_DNS_CHECK.timeoutMs
+  ).then(() => undefined);
+  redirectDestinationChecks.set(hostname, check);
   try {
-    await Promise.race([
-      check,
-      new Promise<never>((_, reject) => {
-        timeout = setTimeout(
-          () => reject(new Error("Redirect destination check timed out.")),
-          REDIRECT_DESTINATION_DNS_CHECK.timeoutMs
-        );
-      })
-    ]);
+    await check;
   } finally {
-    if (timeout) clearTimeout(timeout);
+    if (redirectDestinationChecks.get(hostname) === check) {
+      redirectDestinationChecks.delete(hostname);
+    }
   }
 }
 
