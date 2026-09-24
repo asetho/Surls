@@ -22,6 +22,8 @@ export type AppSettings = {
   displayTimeZone: string;
   trackAdminClicks: boolean;
   preserveRedirectQuery: boolean;
+  localLoginEnabled: boolean;
+  externalAutoProvisionUsers: boolean;
   uploadMaxBytes: number | null;
   enablePasswordProtectedLinks: boolean;
   enableQrCodes: boolean;
@@ -38,6 +40,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   displayTimeZone: DEFAULT_DISPLAY_TIME_ZONE,
   trackAdminClicks: false,
   preserveRedirectQuery: false,
+  localLoginEnabled: true,
+  externalAutoProvisionUsers: false,
   uploadMaxBytes: env.UPLOAD_MAX_BYTES,
   enablePasswordProtectedLinks: true,
   enableQrCodes: true,

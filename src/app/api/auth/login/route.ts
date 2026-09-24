@@ -10,6 +10,7 @@ import { validateCsrf } from "@/lib/csrf";
 import { appBaseUrl } from "@/lib/env";
 import { encodePendingLogin, PENDING_LOGIN_COOKIE, pendingLoginCookieOptions } from "@/lib/pending-login";
 import { verifyTurnstileChallenge } from "@/lib/turnstile";
+import { getSetting } from "@/lib/settings";
 
 const DUMMY_PASSWORD_HASH = "$argon2id$v=19$m=19456,p=1,t=3$c3VybHMtbG9naW4tZHVtbXk$uccdR/gVmdReosoPXP3TFJjL/XDtwC+aBw4EBoflFVs";
 
@@ -23,6 +24,9 @@ function loginRedirect(error: string, extras?: Record<string, string>, returnPat
 }
 
 export async function POST(request: NextRequest) {
+  if (!(await getSetting("localLoginEnabled"))) {
+    return loginRedirect("Password sign-in is disabled. Choose an external provider.");
+  }
   if (!requestOriginMatchesApp(request)) {
     return loginRedirect("The login request could not be verified. Please try again.");
   }

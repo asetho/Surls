@@ -1,11 +1,12 @@
-import { createReadStream } from "node:fs";
-import { stat } from "node:fs/promises";
+import { constants, createReadStream } from "node:fs";
+import { access, stat } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { env } from "./env";
 
 const PUBLIC_WEBROOT_INDEX = "index.html";
 const PUBLIC_WEBROOT_NOT_FOUND = "404.html";
+const HEALTH_CHECK_PAGE_FILES = [PUBLIC_WEBROOT_INDEX, PUBLIC_WEBROOT_NOT_FOUND, "unavailable.html"];
 const RESERVED_PUBLIC_WEBROOT_FILES = new Set(["login.html"]);
 
 const CONTENT_TYPES: Record<string, string> = {
@@ -60,6 +61,36 @@ function normalizedWebrootRoot(rootDir: string) {
 
 export function publicWebrootLocation(rootDir = env.PUBLIC_WEBROOT_DIR) {
   return normalizedWebrootRoot(rootDir) ?? rootDir;
+}
+
+export async function publicWebrootHealthStatus(rootDir = env.PUBLIC_WEBROOT_DIR) {
+  const root = normalizedWebrootRoot(rootDir);
+  if (!root) return "invalid";
+
+  try {
+    const rootStats = await stat(/* turbopackIgnore: true */ root);
+    if (!rootStats.isDirectory()) return "invalid";
+    await access(root, constants.X_OK);
+
+    for (const fileName of HEALTH_CHECK_PAGE_FILES) {
+      const filePath = path.join(/* turbopackIgnore: true */ root, fileName);
+      try {
+        const fileStats = await stat(/* turbopackIgnore: true */ filePath);
+        if (fileStats.isFile()) await access(filePath, constants.R_OK);
+      } catch (error) {
+        const code = error && typeof error === "object" && "code" in error ? error.code : "";
+        if (code === "ENOENT") continue;
+        throw error;
+      }
+    }
+
+    return "ok";
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? error.code : "";
+    if (code === "ENOENT" || code === "ENOTDIR") return "missing";
+    if (code === "EACCES" || code === "EPERM") return "unreadable";
+    return "error";
+  }
 }
 
 function contentTypeFor(filePath: string) {

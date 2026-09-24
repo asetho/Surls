@@ -7,7 +7,7 @@ It is inspired by the product shape of URL shorteners such as YOURLS and Tiny.cc
 ## What It Includes
 
 - Built-in informational homepage with a mounted public webroot for owner-controlled overrides and additional static files.
-- Secure admin login with Argon2id password hashing, HttpOnly sessions, CSRF-protected admin forms, login rate limiting, TOTP, backup codes, and passkey sign-in.
+- Secure admin login with Argon2id password hashing, HttpOnly sessions, CSRF-protected admin forms, login rate limiting, TOTP, backup codes, passkey sign-in, and optional external providers.
 - TOTP 2FA setup with QR/manual key verification.
 - One-time backup codes stored only as hashes.
 - Admin dashboard with totals, recent activity, top links, and attention states.
@@ -101,6 +101,8 @@ To require a Cloudflare Turnstile security check before password login forms loa
 
 ## 1Panel Install
 
+For Keycloak SSO and independent Google, GitHub, Discord, Microsoft, Facebook, or X sign-in, see the [external sign-in guide](docs/external-sign-in.md). Admin settings can disable local password and passkey sign-in after an external account has been connected and tested.
+
 Use the production compose files in `deploy/1panel`:
 
 ```bash
@@ -153,6 +155,8 @@ SURLS_PUBLIC_WEBROOT_PATH="./www"
 
 Create that host directory before starting Docker. The compose bind mount uses `create_host_path: false`, so Docker will fail fast instead of silently creating a default directory in the wrong place.
 
+The container runs as UID/GID `1000:1000`. That user needs traverse permission on the webroot and its public subdirectories, plus read permission on each page and asset it serves. Existing ownership can remain unchanged. The readiness check verifies the webroot and `index.html`, `404.html`, and `unavailable.html` when present. Check other public assets and the `login.html` template from inside the running container after copying or syncing files.
+
 If you set `PUBLIC_WEBROOT_DIR` or `CUSTOM_PAGES_DIR` directly without Docker Compose, use an absolute path.
 
 Public file behavior:
@@ -168,6 +172,8 @@ Public file behavior:
 Admin-managed favicons can be uploaded from Settings without writing to the read-only webroot. Uploaded favicons are served from standard root URLs that custom pages can reference directly: `/favicon.ico`, `/favicon.svg`, `/apple-touch-icon.png`, `/icon-192.png`, `/icon-512.png`, and `/site.webmanifest`. If no admin-managed favicon package is configured, these paths fall back to matching files in the public webroot when present.
 
 Public webroot HTML is served as same-origin trusted owner content. Keep this directory writable only by trusted admins. If you want stronger isolation for arbitrary third-party HTML, serve that content from a separate domain.
+
+Keep backups, credentials, and other private files outside the public webroot. Readable files beneath it, including files in subdirectories, may be served by URL.
 
 ## Uploaded Files
 
@@ -189,7 +195,7 @@ The upload bind mount uses `create_host_path: false`, so a missing or incorrect 
 ## Health Checks
 
 - `/api/health/live` checks that the Next.js process can answer HTTP requests.
-- `/api/health/ready` checks that the app can reach PostgreSQL and is the endpoint used by Docker and 1Panel healthchecks.
+- `/api/health/ready` checks PostgreSQL and the configured public webroot and is the endpoint used by Docker and 1Panel healthchecks.
 - `/api/health` remains a liveness alias, and `/health` remains a readiness alias for older monitors.
 
 Images are published by GitHub Actions to:

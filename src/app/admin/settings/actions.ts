@@ -12,6 +12,9 @@ import { DEFAULT_DASHBOARD_THEME, dashboardThemeFromFormData } from "@/lib/dashb
 import { requireDisplayTimeZone } from "@/lib/dates";
 import { faviconsWithManifestNames } from "@/lib/favicons";
 import { getSettings, normalizeSiteName, setSetting } from "@/lib/settings";
+import { configuredExternalProviders } from "@/lib/external-auth";
+import { isConfiguredExternalIdentity } from "@/lib/external-identity";
+import { prisma } from "@/lib/prisma";
 import { siteUploadLimitFromFormData } from "@/lib/upload-limits";
 
 function actionErrorMessage(error: unknown, fallback: string) {
@@ -32,6 +35,18 @@ export async function updateSettingsAction(formData: FormData) {
   if (!admin) redirect(adminToastPath("/admin", "error", "Sign in again to continue."));
   const trackAdminClicks = formData.get("trackAdminClicks") === "on";
   const preserveRedirectQuery = formData.get("preserveRedirectQuery") === "on";
+  const updateAuthSettings = formData.get("authSettingsPresent") === "1";
+  const localLoginEnabled = formData.get("localLoginEnabled") === "on";
+  const externalAutoProvisionUsers = formData.get("externalAutoProvisionUsers") === "on";
+  if (updateAuthSettings && !localLoginEnabled) {
+    const current = await getSettings();
+    if (current.localLoginEnabled) {
+      const identities = await prisma.externalIdentity.findMany({ where: { userId: admin.id }, select: { provider: true } });
+      if (configuredExternalProviders().length === 0 || !identities.some((identity) => isConfiguredExternalIdentity(identity.provider))) {
+        redirectWithToast(formData, "error", "Connect and test an external provider in your profile before disabling password and passkey sign-in.", "/admin/settings");
+      }
+    }
+  }
   const siteName = normalizeSiteName(formData.get("siteName"));
   let uploadMaxBytes: number | null;
   let displayTimeZone: string;
@@ -46,6 +61,10 @@ export async function updateSettingsAction(formData: FormData) {
   await setSetting("siteName", siteName);
   await setSetting("displayTimeZone", displayTimeZone);
   await setSetting("uploadMaxBytes", uploadMaxBytes);
+  if (updateAuthSettings) {
+    await setSetting("localLoginEnabled", localLoginEnabled);
+    await setSetting("externalAutoProvisionUsers", externalAutoProvisionUsers);
+  }
   await auditLog({
     userId: admin.id,
     action: AuditAction.SETTINGS_CHANGED,
@@ -55,7 +74,8 @@ export async function updateSettingsAction(formData: FormData) {
       displayTimeZone,
       trackAdminClicks,
       preserveRedirectQuery,
-      uploadMaxBytes
+      uploadMaxBytes,
+      ...(updateAuthSettings ? { localLoginEnabled, externalAutoProvisionUsers } : {})
     }
   });
   revalidatePath("/", "layout");

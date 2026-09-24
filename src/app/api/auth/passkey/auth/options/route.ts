@@ -8,8 +8,10 @@ import {
 } from "@/lib/passkeys";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { requestIp } from "@/lib/request";
+import { getSetting } from "@/lib/settings";
 
 export async function POST(request: NextRequest) {
+  if (!(await getSetting("localLoginEnabled"))) return NextResponse.json({ error: "Passkey sign-in is disabled." }, { status: 403 });
   const ip = requestIp(request);
   const rate = await checkRateLimit(`passkey:options:${ip}`, ip === "unknown" ? 3_000 : 30, 60 * 1000);
   if (!rate.allowed) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
