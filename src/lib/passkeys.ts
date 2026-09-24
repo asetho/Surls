@@ -1,4 +1,4 @@
-import type { AuthenticatorTransportFuture, WebAuthnCredential } from "@simplewebauthn/server";
+import type { WebAuthnCredential } from "@simplewebauthn/server";
 import type { Passkey } from "@prisma/client";
 import { signValue, verifySignedValue } from "./crypto";
 import { isProduction } from "./env";
@@ -15,7 +15,9 @@ type PasskeyChallengePayload = {
   userId?: string;
 };
 
-const transports = new Set<AuthenticatorTransportFuture>([
+type PasskeyTransport = NonNullable<WebAuthnCredential["transports"]>[number];
+
+const transports = new Set<PasskeyTransport>([
   "ble",
   "cable",
   "hybrid",
@@ -87,8 +89,8 @@ export function parsePasskeyTransports(value: string | null | undefined) {
   try {
     const parsed = JSON.parse(value) as unknown;
     if (!Array.isArray(parsed)) return undefined;
-    const valid = parsed.filter((transport): transport is AuthenticatorTransportFuture => {
-      return typeof transport === "string" && transports.has(transport as AuthenticatorTransportFuture);
+    const valid = parsed.filter((transport): transport is PasskeyTransport => {
+      return typeof transport === "string" && transports.has(transport as PasskeyTransport);
     });
     return valid.length ? valid : undefined;
   } catch {
