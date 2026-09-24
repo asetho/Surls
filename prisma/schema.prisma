@@ -50,10 +50,23 @@ model User {
   totpCredential TotpCredential?
   backupCodes   BackupCode[]
   passkeys      Passkey[]
+  externalIdentities ExternalIdentity[]
   shortLinks    ShortLink[]      @relation("CreatedLinks")
   uploadedFiles UploadedFile[]
   apiTokens     ApiToken[]
   auditLogs     AuditLog[]
+}
+
+model ExternalIdentity {
+  id        String   @id @default(cuid())
+  provider  String
+  subject   String
+  userId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, subject])
+  @@index([userId])
 }
 
 model UploadedFile {

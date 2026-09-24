@@ -14,6 +14,7 @@ import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { requestIp, requestIpHash, requestOriginMatchesApp } from "@/lib/request";
 import { verifyTotpCode } from "@/lib/totp";
+import { getSetting } from "@/lib/settings";
 
 function pendingLoginRedirect(error: string, clearPending = false) {
   const url = new URL("/admin/2fa", appBaseUrl());
@@ -48,6 +49,9 @@ export async function POST(request: NextRequest) {
   const pendingLogin = decodePendingLogin(request.cookies.get(PENDING_LOGIN_COOKIE)?.value);
   if (!pendingLogin) {
     return restartLoginRedirect("Sign in again to continue.");
+  }
+  if (pendingLogin.purpose === "login_2fa" && !(await getSetting("localLoginEnabled"))) {
+    return restartLoginRedirect("Password sign-in is disabled. Choose an external provider.");
   }
 
   const [sourceRate, accountRate] = await Promise.all([
@@ -108,7 +112,7 @@ export async function POST(request: NextRequest) {
     action: AuditAction.LOGIN_SUCCESS,
     ipHash: requestIpHash(request),
     userAgent: request.headers.get("user-agent"),
-    details: { secondFactor: method }
+    details: { secondFactor: method, external: pendingLogin.purpose === "external_2fa" }
   });
 
   // The signed pending-login decoder normalizes nextPath with safeRedirectPath.

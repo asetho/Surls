@@ -9,7 +9,7 @@ type PendingLoginPayload = {
   email: string;
   issuedAt: number;
   nextPath: string;
-  purpose: "login_2fa";
+  purpose: "login_2fa" | "external_2fa";
   userId: string;
 };
 
@@ -34,12 +34,12 @@ export function expiredPendingLoginCookieOptions() {
   };
 }
 
-export function encodePendingLogin(payload: Omit<PendingLoginPayload, "issuedAt" | "purpose" | "nextPath"> & { nextPath?: unknown }) {
+export function encodePendingLogin(payload: Omit<PendingLoginPayload, "issuedAt" | "purpose" | "nextPath"> & { nextPath?: unknown; purpose?: PendingLoginPayload["purpose"] }) {
   const encoded = Buffer.from(
     JSON.stringify({
       ...payload,
       nextPath: safeRedirectPath(payload.nextPath),
-      purpose: "login_2fa",
+      purpose: payload.purpose ?? "login_2fa",
       issuedAt: Date.now()
     }),
     "utf8"
@@ -54,7 +54,7 @@ export function decodePendingLogin(signedValue: string | undefined): PendingLogi
 
   try {
     const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as PendingLoginPayload;
-    if (payload.purpose !== "login_2fa" || !payload.userId || !payload.email || !payload.issuedAt) return null;
+    if ((payload.purpose !== "login_2fa" && payload.purpose !== "external_2fa") || !payload.userId || !payload.email || !payload.issuedAt) return null;
     if (Date.now() - payload.issuedAt > PENDING_LOGIN_MAX_AGE_SECONDS * 1000) return null;
     return {
       ...payload,

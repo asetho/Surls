@@ -13,6 +13,8 @@ import { formatDateTime, resolveDisplayTimeZone } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 import { sessionClientSummary, sessionLocationLabel } from "@/lib/session-display";
 import { getDisplayTimeZone, getSiteName } from "@/lib/settings";
+import { getSettings } from "@/lib/settings";
+import { configuredExternalProviders, externalProviderConfig, externalProviderKey } from "@/lib/external-auth";
 import { getTotpSecret, totpOtpAuthUrl } from "@/lib/totp";
 import {
   cancelTotpSetupAction,
@@ -27,12 +29,13 @@ export const metadata: Metadata = {
   title: "Profile"
 };
 
-export default async function ProfilePage() {
+export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ error?: string; connected?: string }> }) {
+  const profileParams = await searchParams;
   const currentSession = await getCurrentSession();
   if (!currentSession) redirect(adminLoginPath("/admin/profile"));
   const admin = currentSession.user;
   const csrf = getCsrfToken();
-  const [credential, backupCount, latestBackupCode, passkeys, sessions, siteName, siteDefaultTimeZone] = await Promise.all([
+  const [credential, backupCount, latestBackupCode, passkeys, sessions, siteName, siteDefaultTimeZone, settings, externalIdentities] = await Promise.all([
     prisma.totpCredential.findUnique({ where: { userId: admin.id } }),
     prisma.backupCode.count({ where: { userId: admin.id, usedAt: null } }),
     prisma.backupCode.findFirst({
@@ -55,7 +58,9 @@ export default async function ProfilePage() {
       }
     }),
     getSiteName(),
-    getDisplayTimeZone()
+    getDisplayTimeZone(),
+    getSettings(),
+    prisma.externalIdentity.findMany({ where: { userId: admin.id }, select: { provider: true } })
   ]);
   const displayTimeZone = resolveDisplayTimeZone(admin.displayTimeZone, siteDefaultTimeZone);
 
@@ -98,6 +103,26 @@ export default async function ProfilePage() {
             name: admin.name
           }}
         />
+      </section>
+
+      <section className="surface surface-panel profile-card">
+        <h2>External sign-in</h2>
+        {profileParams.error ? <p className="alert">{profileParams.error}</p> : null}
+        {profileParams.connected ? <p className="success">External account connected.</p> : null}
+        <p className="muted">Connect a provider while signed in. Facebook and X require this step before they can be used for sign-in.</p>
+        {configuredExternalProviders().length ? (
+          <div className="form-stack">
+            {configuredExternalProviders().map((provider) => {
+              const linked = externalIdentities.some((identity) => identity.provider === externalProviderKey(provider));
+              return (
+                <div className="row-actions" key={provider}>
+                  <span>{externalProviderConfig(provider)!.label}: {linked ? "Connected" : "Not connected"}</span>
+                  {!linked ? <form action={`/api/auth/external/${provider}`} method="post"><input type="hidden" name="csrf" value={csrf} /><button className="secondary" type="submit">Connect</button></form> : null}
+                </div>
+              );
+            })}
+          </div>
+        ) : <p className="muted">No external providers are configured yet.</p>}
       </section>
 
       <RememberedDetails
@@ -167,14 +192,14 @@ export default async function ProfilePage() {
           />
         </section>
 
-        <section className="profile-security-panel">
+        {settings.localLoginEnabled ? <section className="profile-security-panel">
           <h3>Passkeys</h3>
           <p className="muted">
             Register a device passkey for passwordless sign-in. Passkey sign-in still requires local user verification
             such as Face ID, Touch ID, Windows Hello, a PIN, or a security key gesture.
           </p>
           <PasskeyManager csrf={csrf} passkeys={passkeyItems} />
-        </section>
+        </section> : null}
       </RememberedDetails>
 
       <RememberedDetails

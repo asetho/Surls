@@ -16,6 +16,7 @@ import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { safeRedirectPath } from "@/lib/redirect-path";
 import { requestIp, requestIpHash } from "@/lib/request";
+import { getSetting } from "@/lib/settings";
 
 type AuthenticationPayload = {
   next?: string;
@@ -39,6 +40,7 @@ async function authError(message: string, request: NextRequest, status = 400) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!(await getSetting("localLoginEnabled"))) return NextResponse.json({ error: "Passkey sign-in is disabled." }, { status: 403 });
   const ip = requestIp(request);
   const rate = await checkRateLimit(`passkey:verify:${ip}`, ip === "unknown" ? 3_000 : 30, 15 * 60 * 1000);
   if (!rate.allowed) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
