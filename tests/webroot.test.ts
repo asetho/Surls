@@ -1,8 +1,14 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { isBlockedPublicWebrootPath, publicWebrootFile, publicWebrootNotFoundResponse, publicWebrootResponse } from "@/lib/webroot";
+import {
+  isBlockedPublicWebrootPath,
+  publicWebrootFile,
+  publicWebrootHealthStatus,
+  publicWebrootNotFoundResponse,
+  publicWebrootResponse
+} from "@/lib/webroot";
 
 async function withTempDir(run: (dir: string) => Promise<void>) {
   const dir = await mkdtemp(path.join(os.tmpdir(), "surls-webroot-"));
@@ -68,6 +74,36 @@ describe("public webroot", () => {
 
   it("requires an absolute webroot path", async () => {
     await expect(publicWebrootResponse([], { rootDir: "./www" })).resolves.toBeNull();
+    await expect(publicWebrootHealthStatus("./www")).resolves.toBe("invalid");
+  });
+
+  it("reports a missing configured webroot", async () => {
+    await withTempDir(async (dir) => {
+      await expect(publicWebrootHealthStatus(path.join(dir, "missing"))).resolves.toBe("missing");
+    });
+  });
+
+  it.skipIf(process.getuid?.() === 0)("detects unreadable mounted pages without requiring directory listing", async () => {
+    await withTempDir(async (dir) => {
+      const indexPath = path.join(dir, "index.html");
+      await writeFile(indexPath, "<h1>Home</h1>");
+      await chmod(dir, 0o711);
+      await expect(publicWebrootHealthStatus(dir)).resolves.toBe("ok");
+
+      await chmod(dir, 0o600);
+      try {
+        await expect(publicWebrootHealthStatus(dir)).resolves.toBe("unreadable");
+      } finally {
+        await chmod(dir, 0o711);
+      }
+
+      await chmod(indexPath, 0o000);
+      try {
+        await expect(publicWebrootHealthStatus(dir)).resolves.toBe("unreadable");
+      } finally {
+        await chmod(indexPath, 0o600);
+      }
+    });
   });
 
   it("allows .well-known files", async () => {

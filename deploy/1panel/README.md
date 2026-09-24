@@ -58,7 +58,9 @@ The compose file can build the Surls image from the cloned repo. It passes `NEXT
 
 The first app boot runs migrations, creates missing app settings, purges expired raw IP addresses, click events, and audit logs, and creates the initial admin if no users exist. Set `AUTH_SECRET` and `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` to high-entropy values such as output from `openssl rand -base64 32`; placeholder values are rejected in production for `AUTH_SECRET`. Keep `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` stable across rebuilds so self-hosted Server Action forms from an already-loaded page do not fail after a deploy.
 
-The app container healthcheck uses `/api/health/ready`, which verifies both the Surls process and PostgreSQL access.
+The app container healthcheck uses `/api/health/ready`, which verifies PostgreSQL access and the configured public webroot.
+
+To enable Keycloak OIDC or a separate social sign-in button, add that provider's credentials to `deploy/1panel/.env`, then restart the app container. The [external sign-in guide](../../docs/external-sign-in.md) lists exact callback URLs, provider setup, account matching, and how to disable local sign-in safely.
 
 Keep `TRUST_PROXY=false` unless the app container is reachable only through a trusted reverse proxy that overwrites `X-Forwarded-For` and related geo headers.
 
@@ -79,11 +81,15 @@ Put public files in that host directory:
 
 The bind mount uses `create_host_path: false`, so Docker fails fast if the configured directory does not exist instead of auto-creating `/opt/surls/www` or another unintended path.
 
+The app runs as UID/GID `1000:1000`. Give that user traverse permission on the webroot and its public subdirectories and read permission on each page and asset. Ownership need not change. `/api/health/ready` checks the webroot and `index.html`, `404.html`, and `unavailable.html` when present. Check other public assets and the `login.html` template from inside the app container after copying or syncing files. For a custom homepage, run `docker compose exec app sh -c 'test -x /app/www && test -r /app/www/index.html'` from the stack directory.
+
 If you set `PUBLIC_WEBROOT_DIR` or `CUSTOM_PAGES_DIR` directly without Docker Compose, use an absolute path.
 
 `login.html` in this directory is reserved for the app-owned admin login template and is not served as a public file. It must include exactly one `{{LOGIN_FORM}}` placeholder where the secure Surls login form should appear. You can also place optional `{{LOGIN_TITLE}}` and `{{LOGIN_TAGLINE}}` placeholders anywhere in the template; Surls replaces them with the current login-step heading text. The inserted form exposes stable styling hooks such as `[data-surls-auth-form]`, `[data-surls-auth-input]`, `[data-surls-auth-submit]`, `[data-surls-auth-secondary]`, and `[data-surls-auth-passkey]`, plus CSS variables like `--surls-login-input-background` and `--surls-login-button-background`.
 
 Public webroot HTML is served as same-origin trusted owner content. Keep this directory writable only by trusted admins. File contents are read at request time, so normal HTML changes do not require a container rebuild.
+
+Keep backups, credentials, and other private files outside the public webroot. Readable files beneath it, including files in subdirectories, may be served by URL.
 
 ## Uploaded Files
 

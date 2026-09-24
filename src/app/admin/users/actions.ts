@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { requireSiteAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
 import { hashPassword } from "@/lib/password";
+import { randomToken } from "@/lib/crypto";
 import { prisma } from "@/lib/prisma";
 import { userUploadLimitFromFormData } from "@/lib/upload-limits";
 import { normalizeUserProfileFormData, normalizeUserProfileInput } from "@/lib/user-profile";
@@ -53,7 +54,7 @@ export async function createUserAction(_state: CreateUserState | null, formData:
 
   if (parsedProfile.error) return { error: parsedProfile.error };
   if (!parsedProfile.data) return { error: "Enter a valid email address." };
-  if (password.length < 12) return { error: "Temporary passwords must be at least 12 characters." };
+  if (password && password.length < 12) return { error: "Temporary passwords must be at least 12 characters." };
 
   const { email, name } = parsedProfile.data;
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -63,7 +64,7 @@ export async function createUserAction(_state: CreateUserState | null, formData:
     data: {
       email,
       name,
-      passwordHash: await hashPassword(password),
+      passwordHash: await hashPassword(password || randomToken(48)),
       role
     }
   });

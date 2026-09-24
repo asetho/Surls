@@ -14,8 +14,10 @@ import {
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { requestIp } from "@/lib/request";
+import { getSetting } from "@/lib/settings";
 
 export async function POST(request: NextRequest) {
+  if (!(await getSetting("localLoginEnabled"))) return NextResponse.json({ error: "Passkey registration is disabled." }, { status: 403 });
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
