@@ -19,7 +19,7 @@ export async function faviconRouteResponse(key: FaviconAssetKey, options: { meth
   );
 }
 
-export async function webManifestRouteResponse(options: { method?: string } = {}) {
+export async function webManifestRouteResponse(options: { method?: string; startPath?: string } = {}) {
   const settings = await getSettings();
   const dashboardTheme = settings.dashboardTheme;
   const manifestOptions = dashboardTheme
@@ -33,7 +33,7 @@ export async function webManifestRouteResponse(options: { method?: string } = {}
     : options;
   return (
     webManifestResponse(settings.favicons, settings.siteName, manifestOptions) ??
-    (await publicWebrootResponse(["site.webmanifest"], options)) ??
+    (await publicWebrootResponse(["site.webmanifest"], options.method ? { method: options.method } : {})) ??
     new Response(options.method?.toUpperCase() === "HEAD" ? null : "Not found", { status: 404 })
   );
 }

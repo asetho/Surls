@@ -214,14 +214,16 @@ describe("favicon responses", () => {
         buildGeneratedWebManifest(
           "Surls",
           { name: "asetho link", shortName: "ase.link" },
-          { backgroundColor: "#e9f2f6", themeColor: "#087e8b" }
+          { backgroundColor: "#e9f2f6", themeColor: "#087e8b" },
+          "/admin"
         )
       )
     ).toMatchObject({
       background_color: "#e9f2f6",
       name: "asetho link",
       short_name: "ase.link",
-      start_url: "/",
+      start_url: "/admin",
+      scope: "/",
       theme_color: "#087e8b"
     });
   });

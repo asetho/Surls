@@ -21,9 +21,10 @@ vi.mock("@/lib/env", () => ({
 
 import { decryptSecret } from "@/lib/crypto";
 import {
-  disableExternalProviderSetting, externalProviderKey, getExternalProviderConfig, getExternalProviderSummaries,
+  disableExternalProviderSetting, externalProviderKey, externalProviderType, getExternalProviderConfig, getExternalProviderSummaries,
   getConfiguredExternalProviders, removeExternalProviderSetting, saveExternalProviderSetting
 } from "@/lib/external-provider-settings";
+import { providerProfileKey } from "@/lib/provider-profile-key";
 import { externalAuthorizationUrl } from "@/lib/external-auth";
 
 const googleValues = { clientId: "saved-client", clientSecret: "saved-secret", label: "", issuer: "", tenantId: "" };
@@ -76,6 +77,22 @@ describe("external provider settings", () => {
     const summaries = await getExternalProviderSummaries();
     expect(summaries.find((item) => item.key === firstKey)?.callbackUrl).toBe(`https://links.example.com/api/auth/external/${firstKey}/callback`);
     expect(summaries.find((item) => item.key === "oidc")).toMatchObject({ source: "none", logoDataUrl: null });
+  });
+
+  it("uses the client ID for a new callback and refuses to overwrite an existing profile", async () => {
+    const key = providerProfileKey("oidc", "asetho-link");
+    expect(key).toBe("oidc-asetho-link");
+    expect(externalProviderType(key)).toBe("oidc");
+    await saveExternalProviderSetting("oidc", { ...oidcValues, clientId: "asetho-link", key, newProfile: true });
+    const saved = prisma.externalProviderSetting.upsert.mock.calls[0][0].create;
+    expect(saved.provider).toBe(key);
+
+    prisma.externalProviderSetting.findUnique.mockResolvedValue(saved);
+    await expect(saveExternalProviderSetting("oidc", { ...oidcValues, clientId: "asetho-link", key, newProfile: true }))
+      .rejects.toThrow("already uses this callback URL");
+    await expect(saveExternalProviderSetting("oidc", { ...oidcValues, clientId: "another-client", key, newProfile: true }))
+      .rejects.toThrow("no longer matches the client ID");
+    expect(prisma.externalProviderSetting.upsert).toHaveBeenCalledTimes(1);
   });
 
   it("does not copy environment credentials into a new provider profile", async () => {

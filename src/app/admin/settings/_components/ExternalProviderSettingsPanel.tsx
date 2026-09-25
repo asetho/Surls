@@ -5,8 +5,9 @@ import { createPortal, flushSync, useFormStatus } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Pencil, Plus, Search, Settings2, Trash2, X } from "lucide-react";
+import { Check, Copy, Pencil, Plus, RotateCcw, Search, Settings2, Trash2, X } from "lucide-react";
 import type { ExternalProvider, ExternalProviderSummary } from "@/lib/external-provider-settings";
+import { providerProfileKey } from "@/lib/provider-profile-key";
 import { PROVIDER_LOGOS } from "@/lib/provider-logos";
 import {
   disableExternalProviderAction,
@@ -114,6 +115,24 @@ function ProviderRemovalButtons({ onCancel }: { onCancel: () => void }) {
   </div>;
 }
 
+function pastedLogoPreview(value: string): string | null {
+  const code = value.trim().replace(/\s/g, "");
+  if (!code || code.length > 350000) return null;
+  const dataUri = /^data:(image\/(?:svg\+xml|png|webp|jpeg));base64,([A-Za-z0-9+/]+={0,2})$/i.exec(code);
+  if (dataUri) return code;
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(code)) return null;
+  try {
+    const prefix = atob(code.slice(0, Math.min(code.length - code.length % 4, 512)));
+    const mime = prefix.startsWith("\x89PNG\r\n\x1a\n") ? "image/png" :
+      prefix.startsWith("RIFF") && prefix.slice(8, 12) === "WEBP" ? "image/webp" :
+      prefix.startsWith("\xff\xd8\xff") ? "image/jpeg" :
+      /^(?:<\?xml[^>]*>\s*)?<svg(?:\s|>)/i.test(prefix.trim()) ? "image/svg+xml" : null;
+    return mime ? `data:${mime};base64,${code}` : null;
+  } catch {
+    return null;
+  }
+}
+
 function ProviderEditor({ provider, csrf, titleId, onCancel }: {
   provider: ExternalProviderSummary;
   csrf: string;
@@ -121,6 +140,36 @@ function ProviderEditor({ provider, csrf, titleId, onCancel }: {
   onCancel: () => void;
 }) {
   const formId = useId();
+  const isNew = provider.source === "none";
+  const [clientId, setClientId] = useState(provider.clientId);
+  const [logoCode, setLogoCode] = useState("");
+  const [uploadedLogo, setUploadedLogo] = useState<string | null>(null);
+  const [removeLogo, setRemoveLogo] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const logoReadRef = useRef(0);
+  const profileKey = isNew ? providerProfileKey(provider.provider, clientId) : provider.key;
+  const callbackUrl = profileKey ? provider.callbackUrl.replace(`/${provider.key}/callback`, `/${profileKey}/callback`) : null;
+  const logoPreview = removeLogo ? null : uploadedLogo ?? pastedLogoPreview(logoCode) ?? provider.logoDataUrl;
+
+  function resetLogo() {
+    logoReadRef.current += 1;
+    setLogoCode("");
+    setUploadedLogo(null);
+    setRemoveLogo(Boolean(provider.logoDataUrl));
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  async function copyCallback() {
+    if (!callbackUrl) return;
+    try {
+      await navigator.clipboard.writeText(callbackUrl);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  }
+
   return (
     <div className="config-provider-editor-panel">
       <header className="config-provider-editor-header">
@@ -137,7 +186,8 @@ function ProviderEditor({ provider, csrf, titleId, onCancel }: {
       <form id={formId} action={saveExternalProviderAction} className="form-stack">
         <input type="hidden" name="csrf" value={csrf} />
         <input type="hidden" name="provider" value={provider.provider} />
-        <input type="hidden" name="key" value={provider.key} />
+        <input type="hidden" name="key" value={profileKey ?? ""} />
+        {isNew ? <input type="hidden" name="newProfile" value="true" /> : null}
         <label>Button label<input name="label" defaultValue={provider.label} required maxLength={80} autoComplete="off" /></label>
         {provider.provider === "oidc" ? (
           <label>Issuer URL<input name="issuer" type="url" defaultValue={provider.issuer} placeholder="https://auth.example.com/realms/example" required maxLength={512} autoComplete="off" /></label>
@@ -145,16 +195,40 @@ function ProviderEditor({ provider, csrf, titleId, onCancel }: {
         {provider.provider === "microsoft" ? (
           <label>Tenant ID or domain<input name="tenantId" defaultValue={provider.tenantId} required maxLength={253} autoComplete="off" /></label>
         ) : null}
-        <label>Client ID<input name="clientId" defaultValue={provider.clientId} required maxLength={512} autoComplete="off" /></label>
+        <label>Client ID<input name="clientId" value={clientId} onChange={(event) => { setClientId(event.target.value); setCopied(false); }} required maxLength={512} autoComplete="off" /></label>
         <label>Client secret<input name="clientSecret" type="password" placeholder={provider.hasSecret ? "Saved — leave blank to keep" : "Enter client secret"} maxLength={4096} autoComplete="new-password" /></label>
         {provider.provider === "oidc" ? <div className="config-provider-logo-field">
-          <div className="config-provider-logo-preview"><ProviderIcon provider={provider.provider} logoDataUrl={provider.logoDataUrl} /><span>{provider.logoDataUrl ? "Custom logo" : "Default provider logo"}</span></div>
-          <label>Upload logo<input name="logoFile" type="file" accept="image/svg+xml,image/png,image/webp,image/jpeg" /></label>
-          <label>Or paste base64 image code<textarea name="logoBase64" rows={3} maxLength={350000} placeholder="data:image/svg+xml;base64,… or raw base64" spellCheck={false} /></label>
+          <div className="config-provider-logo-preview"><ProviderIcon provider={provider.provider} logoDataUrl={logoPreview} /><span>{logoPreview ? "Custom logo preview" : "Default provider logo"}</span>
+            <button className="icon-button config-provider-logo-reset" type="button" onClick={resetLogo}
+              disabled={!logoCode && !uploadedLogo && (!provider.logoDataUrl || removeLogo)} aria-label="Reset to default provider logo" title="Reset to default provider logo"><RotateCcw size={16} aria-hidden="true" /></button>
+          </div>
+          <label>Upload logo<input ref={fileRef} name="logoFile" type="file" accept="image/svg+xml,image/png,image/webp,image/jpeg" onChange={(event) => {
+            const file = event.target.files?.[0];
+            const readId = ++logoReadRef.current;
+            setLogoCode("");
+            setRemoveLogo(false);
+            if (!file || file.size > 256 * 1024 || !["image/svg+xml", "image/png", "image/webp", "image/jpeg"].includes(file.type)) {
+              setUploadedLogo(null);
+              return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => { if (readId === logoReadRef.current) setUploadedLogo(typeof reader.result === "string" ? reader.result : null); };
+            reader.readAsDataURL(file);
+          }} /></label>
+          <label>Or paste base64 image code<textarea name="logoBase64" value={logoCode} onChange={(event) => {
+            logoReadRef.current += 1;
+            setLogoCode(event.target.value);
+            setUploadedLogo(null);
+            setRemoveLogo(false);
+            if (fileRef.current) fileRef.current.value = "";
+          }} rows={3} maxLength={350000} placeholder="data:image/svg+xml;base64,… or raw base64" spellCheck={false} /></label>
           <p className="muted small">SVG, PNG, WebP, or JPEG, up to 256 KB. Leave both blank to keep the current logo.</p>
-          {provider.logoDataUrl ? <label className="checkbox-label"><input type="checkbox" name="removeLogo" /> Remove custom logo and use default</label> : null}
+          {removeLogo ? <input type="hidden" name="removeLogo" value="on" /> : null}
         </div> : null}
-        <div className="form-field"><strong>Callback URL</strong><code className="config-callback-url">{provider.callbackUrl}</code></div>
+        <div className="form-field"><strong>Callback URL</strong><div className="config-callback-row">
+          <code className="config-callback-url">{callbackUrl ?? "Enter a client ID to generate the callback URL."}</code>
+          {callbackUrl ? <button className="icon-button config-callback-copy" type="button" onClick={copyCallback} aria-label={copied ? "Callback URL copied" : "Copy callback URL"} title={copied ? "Copied" : "Copy callback URL"}>{copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}</button> : null}
+        </div></div>
         <p className="muted small">Register this exact callback URL with {provider.name}. Saved secrets are encrypted and never shown again.</p>
       </form>
       {provider.enabled ? (
@@ -168,7 +242,7 @@ function ProviderEditor({ provider, csrf, titleId, onCancel }: {
       </div>
       <footer className="config-provider-editor-footer">
         <button className="button secondary" type="button" onClick={onCancel}>Close</button>
-        <button type="submit" form={formId}>Save and enable {provider.name}</button>
+        <button type="submit" form={formId} disabled={!profileKey}>Save and enable {provider.name}</button>
       </footer>
     </div>
   );
@@ -227,11 +301,10 @@ export function ExternalProviderSettingsPanel({ providers, csrf, externalLoginEn
   function chooseProvider(provider: ExternalProvider) {
     const template = providers.find((item) => item.key === provider);
     if (!template) return;
-    const key = `${provider}--${crypto.randomUUID()}`;
     pickerRef.current?.close();
-    openEditor({ ...template, key, label: template.name, logoDataUrl: null, clientId: "", issuer: "", tenantId: "",
+    openEditor({ ...template, label: template.name, logoDataUrl: null, clientId: "", issuer: "", tenantId: "",
       source: "none", enabled: false, hasSecret: false, needsSecret: false,
-      callbackUrl: template.callbackUrl.replace(`/${provider}/callback`, `/${key}/callback`) });
+      callbackUrl: template.callbackUrl });
   }
 
   function openEditor(provider: ExternalProviderSummary) {

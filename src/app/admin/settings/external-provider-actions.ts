@@ -82,6 +82,7 @@ export async function saveExternalProviderAction(formData: FormData) {
       await ensureProviderCanChange(admin.id, key, transaction);
       await saveExternalProviderSetting(provider, {
         key,
+        newProfile: formData.get("newProfile") === "true",
         clientId: formData.get("clientId"),
         clientSecret: formData.get("clientSecret"),
         label: formData.get("label"),

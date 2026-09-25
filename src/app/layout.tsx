@@ -6,9 +6,9 @@ import "./globals.css";
 import "./admin-data.css";
 import "./admin-theme-editor.css";
 import { ThemeScript } from "@/components/ThemeScript";
+import { CurrentPageManifest } from "@/components/CurrentPageManifest";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { DEFAULT_DASHBOARD_THEME, dashboardThemeCssVariables } from "@/lib/dashboard-theme";
-import { FAVICON_MANIFEST_PATH } from "@/lib/favicons";
 import { getSettings, getSiteName } from "@/lib/settings";
 
 export const viewport: Viewport = {
@@ -36,8 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
         { url: "/favicon.svg", type: "image/svg+xml" }
       ],
       apple: [{ url: "/apple-touch-icon.png" }]
-    },
-    manifest: FAVICON_MANIFEST_PATH
+    }
   };
 }
 
@@ -64,6 +63,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <link rel="preconnect" href="https://use.typekit.net" />
         <link rel="preconnect" href="https://p.typekit.net" />
         <link rel="stylesheet" href="https://use.typekit.net/ynp6ech.css" />
+        <CurrentPageManifest />
         <ThemeScript />
       </head>
       <body>{children}</body>
