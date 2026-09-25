@@ -23,5 +23,6 @@ describe("session display", () => {
   it("formats coarse location without requiring an IP address", () => {
     expect(sessionLocationLabel("US", "Pennsylvania")).toBe("Pennsylvania, United States");
     expect(sessionLocationLabel(null, null)).toBe("Unavailable");
+    expect(sessionLocationLabel(null, null, true)).toBe("Local network");
   });
 });

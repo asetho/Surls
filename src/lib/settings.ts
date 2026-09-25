@@ -23,6 +23,7 @@ export type AppSettings = {
   trackAdminClicks: boolean;
   preserveRedirectQuery: boolean;
   localLoginEnabled: boolean;
+  externalLoginEnabled: boolean;
   externalAutoProvisionUsers: boolean;
   uploadMaxBytes: number | null;
   enablePasswordProtectedLinks: boolean;
@@ -41,6 +42,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   trackAdminClicks: false,
   preserveRedirectQuery: false,
   localLoginEnabled: true,
+  externalLoginEnabled: true,
   externalAutoProvisionUsers: false,
   uploadMaxBytes: env.UPLOAD_MAX_BYTES,
   enablePasswordProtectedLinks: true,

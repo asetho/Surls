@@ -12,7 +12,7 @@ import { DEFAULT_DASHBOARD_THEME, dashboardThemeFromFormData } from "@/lib/dashb
 import { requireDisplayTimeZone } from "@/lib/dates";
 import { faviconsWithManifestNames } from "@/lib/favicons";
 import { getSettings, normalizeSiteName, setSetting } from "@/lib/settings";
-import { configuredExternalProviders } from "@/lib/external-auth";
+import { getConfiguredExternalProviders } from "@/lib/external-provider-settings";
 import { isConfiguredExternalIdentity } from "@/lib/external-identity";
 import { prisma } from "@/lib/prisma";
 import { siteUploadLimitFromFormData } from "@/lib/upload-limits";
@@ -35,18 +35,6 @@ export async function updateSettingsAction(formData: FormData) {
   if (!admin) redirect(adminToastPath("/admin", "error", "Sign in again to continue."));
   const trackAdminClicks = formData.get("trackAdminClicks") === "on";
   const preserveRedirectQuery = formData.get("preserveRedirectQuery") === "on";
-  const updateAuthSettings = formData.get("authSettingsPresent") === "1";
-  const localLoginEnabled = formData.get("localLoginEnabled") === "on";
-  const externalAutoProvisionUsers = formData.get("externalAutoProvisionUsers") === "on";
-  if (updateAuthSettings && !localLoginEnabled) {
-    const current = await getSettings();
-    if (current.localLoginEnabled) {
-      const identities = await prisma.externalIdentity.findMany({ where: { userId: admin.id }, select: { provider: true } });
-      if (configuredExternalProviders().length === 0 || !identities.some((identity) => isConfiguredExternalIdentity(identity.provider))) {
-        redirectWithToast(formData, "error", "Connect and test an external provider in your profile before disabling password and passkey sign-in.", "/admin/settings");
-      }
-    }
-  }
   const siteName = normalizeSiteName(formData.get("siteName"));
   let uploadMaxBytes: number | null;
   let displayTimeZone: string;
@@ -61,10 +49,6 @@ export async function updateSettingsAction(formData: FormData) {
   await setSetting("siteName", siteName);
   await setSetting("displayTimeZone", displayTimeZone);
   await setSetting("uploadMaxBytes", uploadMaxBytes);
-  if (updateAuthSettings) {
-    await setSetting("localLoginEnabled", localLoginEnabled);
-    await setSetting("externalAutoProvisionUsers", externalAutoProvisionUsers);
-  }
   await auditLog({
     userId: admin.id,
     action: AuditAction.SETTINGS_CHANGED,
@@ -74,8 +58,7 @@ export async function updateSettingsAction(formData: FormData) {
       displayTimeZone,
       trackAdminClicks,
       preserveRedirectQuery,
-      uploadMaxBytes,
-      ...(updateAuthSettings ? { localLoginEnabled, externalAutoProvisionUsers } : {})
+      uploadMaxBytes
     }
   });
   revalidatePath("/", "layout");
@@ -86,6 +69,40 @@ export async function updateSettingsAction(formData: FormData) {
   revalidatePath("/admin/tools");
   revalidatePath("/admin/users");
   redirectWithToast(formData, "success", "Settings saved.", "/admin/settings");
+}
+
+export async function updateSignInMethodsAction(formData: FormData) {
+  try {
+    validateCsrf(formData);
+  } catch {
+    redirectWithToast(formData, "error", "The form expired. Please try again.", "/admin/settings");
+  }
+  const admin = await requireSiteAdmin();
+  if (!admin) redirect(adminToastPath("/admin", "error", "Sign in again to continue."));
+  const localLoginEnabled = formData.get("localLoginEnabled") === "on";
+  const externalAutoProvisionUsers = formData.get("externalAutoProvisionUsers") === "on";
+  if (!localLoginEnabled) {
+    const current = await getSettings();
+    if (!current.externalLoginEnabled) {
+      redirectWithToast(formData, "error", "Enable external sign-in before disabling password and passkey sign-in.", "/admin/settings");
+    }
+    if (current.localLoginEnabled) {
+      const identities = await prisma.externalIdentity.findMany({ where: { userId: admin.id }, select: { provider: true } });
+      const configs = await getConfiguredExternalProviders();
+      if (configs.length === 0 || !identities.some((identity) => isConfiguredExternalIdentity(identity.provider, configs))) {
+        redirectWithToast(formData, "error", "Connect and test an external provider in your profile before disabling password and passkey sign-in.", "/admin/settings");
+      }
+    }
+  }
+  await setSetting("localLoginEnabled", localLoginEnabled);
+  await setSetting("externalAutoProvisionUsers", externalAutoProvisionUsers);
+  await auditLog({ userId: admin.id, action: AuditAction.SETTINGS_CHANGED,
+    entityType: "AppSetting", details: { localLoginEnabled, externalAutoProvisionUsers } });
+  revalidatePath("/admin", "layout");
+  revalidatePath("/admin/settings");
+  revalidatePath("/admin/profile");
+  revalidatePath("/bookmarklet");
+  redirectWithToast(formData, "success", "Sign-in methods saved.", "/admin/settings");
 }
 
 export async function updateDashboardThemeAction(formData: FormData) {
@@ -118,6 +135,7 @@ export async function updateDashboardThemeAction(formData: FormData) {
   });
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/settings");
+  revalidatePath("/admin/settings");
   revalidatePath("/admin/settings/theme");
   redirectWithToast(formData, "success", "Dashboard theme saved.", "/admin/settings/theme");
 }
@@ -141,6 +159,7 @@ export async function resetDashboardThemeAction(formData: FormData) {
   });
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/settings");
+  revalidatePath("/admin/settings");
   revalidatePath("/admin/settings/theme");
   redirectWithToast(formData, "success", "Dashboard theme reset to the built-in palette.", "/admin/settings/theme");
 }
@@ -150,11 +169,13 @@ function revalidateCustomPagePaths() {
   revalidatePath("/admin");
   revalidatePath("/admin/2fa");
   revalidatePath("/admin/settings");
+  revalidatePath("/admin/settings");
 }
 
 function revalidateFaviconPaths() {
   revalidatePath("/", "layout");
   revalidatePath("/admin", "layout");
+  revalidatePath("/admin/settings");
   revalidatePath("/admin/settings");
   revalidatePath("/admin/settings/favicons/editor");
   revalidatePath("/favicon.ico");

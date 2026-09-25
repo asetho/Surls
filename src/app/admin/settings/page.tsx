@@ -7,8 +7,8 @@ import { getCsrfToken } from "@/lib/csrf";
 import { filesystemCustomPageLocation, pageFromFilesystem } from "@/lib/custom-pages";
 import { isDefaultDashboardTheme } from "@/lib/dashboard-theme";
 import { COMMON_DISPLAY_TIME_ZONES } from "@/lib/dates";
-import { appBaseUrl } from "@/lib/env";
-import { configuredExternalProviders, externalProviderConfig } from "@/lib/external-auth";
+import { appBaseUrl, env } from "@/lib/env";
+import { getExternalProviderSummaries } from "@/lib/external-provider-settings";
 import { getSettings } from "@/lib/settings";
 import { uploadBytesToMegabytes } from "@/lib/upload-limits";
 import { publicWebrootFile } from "@/lib/webroot";
@@ -19,7 +19,8 @@ import {
   getWebrootFaviconFiles,
   type CustomPageStatus
 } from "./_components/SettingsPanels";
-import { updateSettingsAction } from "./actions";
+import { updateSettingsAction, updateSignInMethodsAction } from "./actions";
+import { ExternalProviderSettingsPanel } from "./_components/ExternalProviderSettingsPanel";
 
 export const metadata: Metadata = {
   title: "Settings"
@@ -29,14 +30,15 @@ export default async function SettingsPage() {
   const admin = await requireSiteAdmin();
   if (!admin) redirect(adminLoginPath("/admin/settings"));
 
-  const [settings, filesystemLoginPage, webrootIndexPage, webrootNotFoundPage, webrootUnavailablePage, webrootFaviconFiles] =
+  const [settings, filesystemLoginPage, webrootIndexPage, webrootNotFoundPage, webrootUnavailablePage, webrootFaviconFiles, externalProviders] =
     await Promise.all([
       getSettings(),
       pageFromFilesystem("login"),
       publicWebrootFile([]),
       publicWebrootFile(["404.html"], { allowReservedPath: true }),
       publicWebrootFile(["unavailable.html"]),
-      getWebrootFaviconFiles()
+      getWebrootFaviconFiles(),
+      getExternalProviderSummaries()
     ]);
   const csrf = getCsrfToken();
   const loginFilesystemPath = filesystemCustomPageLocation("login");
@@ -106,7 +108,7 @@ export default async function SettingsPage() {
     <main className="admin-content">
       <div className="content-header content-header-topbar">
         <div>
-          <h1>{settings.siteName} settings</h1>
+          <h1>Settings</h1>
           <p className="muted">Control privacy, redirect behavior, branding, and UI defaults.</p>
         </div>
         <div className="content-header-actions">
@@ -209,20 +211,31 @@ export default async function SettingsPage() {
               not already define the same key.
             </span>
           </label>
-          <div className="form-field">
-            <h2>Sign-in methods</h2>
-            <input type="hidden" name="authSettingsPresent" value="1" />
-            <p className="muted small">Configured external providers: {configuredExternalProviders().map((provider) => externalProviderConfig(provider)!.label).join(", ") || "none"}. Set provider credentials in the server environment and restart Surls.</p>
-            <label><span><input className="inline-control" name="localLoginEnabled" type="checkbox" defaultChecked={settings.localLoginEnabled} />{" "}Allow password and passkey sign-in</span></label>
-            <p className="muted small">Before turning this off, connect an external provider to your own profile and test sign-in. Existing sessions and API tokens remain active.</p>
-            <label><span><input className="inline-control" name="externalAutoProvisionUsers" type="checkbox" defaultChecked={settings.externalAutoProvisionUsers} />{" "}Create users automatically from verified external email</span></label>
-            <p className="muted small">Off by default. New users receive the User role. Facebook and X require connecting from an existing profile because they do not provide a verified email for this flow.</p>
-          </div>
           <div className="success">
             The Light, Dark, and Auto theme selector is available in the header and admin toolbar. Each browser stores its
             own choice locally and in a first-party cookie; Auto follows the operating-system preference.
           </div>
-          <button type="submit">Save settings</button>
+          <button className="settings-save-button" type="submit">Save settings</button>
+        </form>
+      </section>
+
+      <section className="surface settings-primary-card sign-in-methods-card" aria-labelledby="sign-in-methods-heading">
+        <form className="form-stack" action={updateSignInMethodsAction}>
+          <input type="hidden" name="csrf" value={csrf} />
+          <div className="config-signin-heading">
+            <h2 id="sign-in-methods-heading">Sign-in methods</h2>
+            <ExternalProviderSettingsPanel providers={externalProviders} csrf={csrf} externalLoginEnabled={settings.externalLoginEnabled} localLoginEnabled={settings.localLoginEnabled} />
+          </div>
+          <p className="muted small">Configured external providers: {externalProviders.filter((provider) => provider.enabled).map((provider) => provider.label).join(", ") || "none"}. Use the gear to manage providers.</p>
+          <div className="sign-in-method-option">
+            <label><span><input className="inline-control" name="localLoginEnabled" type="checkbox" defaultChecked={settings.localLoginEnabled} />{" "}Allow password and passkey sign-in</span></label>
+            <p className="muted small">Before turning this off, connect an external provider to your own profile and test sign-in. Existing sessions and API tokens remain active.</p>
+          </div>
+          <div className="sign-in-method-option">
+            <label><span><input className="inline-control" name="externalAutoProvisionUsers" type="checkbox" defaultChecked={settings.externalAutoProvisionUsers} />{" "}Create users automatically from verified external email</span></label>
+            <p className="muted small">Off by default. New users receive the User role. Facebook and X require connecting from an existing profile because they do not provide a verified email for this flow.</p>
+          </div>
+          <button className="settings-save-button" type="submit">Save sign-in methods</button>
         </form>
       </section>
 
@@ -258,6 +271,7 @@ export default async function SettingsPage() {
       <div className="settings-status-grid">
         <section className="surface surface-panel">
           <CustomPageStatusList activeCount={activeCustomPageCount} pages={customPageStatuses} />
+          {env.SURLS_LOGIN_DEV_ENABLED ? <Link className="button secondary" href="/login-dev?custom=yes">Preview login page</Link> : null}
         </section>
 
         <section className="surface surface-panel">

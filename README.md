@@ -99,9 +99,11 @@ Change `AUTH_SECRET`, `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, database credentials
 
 To require a Cloudflare Turnstile security check before password login forms load, set both `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`. If either value is left empty, Turnstile stays disabled. If only one is configured, startup fails so the login form cannot be half-protected.
 
-## 1Panel Install
+## External sign-in
 
-For Keycloak SSO and independent Google, GitHub, Discord, Microsoft, Facebook, or X sign-in, see the [external sign-in guide](docs/external-sign-in.md). Admin settings can disable local password and passkey sign-in after an external account has been connected and tested.
+Site admins can set up Keycloak/OIDC and independent Google, GitHub, Discord, Microsoft, Facebook, or X sign-in from the gear beside **Settings → Sign-in methods**. See the [external sign-in guide](docs/external-sign-in.md). Settings can also disable local password and passkey sign-in after an external account has been connected and tested.
+
+## 1Panel Install
 
 Use the production compose files in `deploy/1panel`:
 
@@ -167,7 +169,7 @@ Public file behavior:
 - Exact public files win before short-link redirects, so `/test.html` serves the file if it exists; otherwise one-segment paths can still resolve as short links.
 - App-owned paths such as `/admin`, `/api`, `/_next`, `/health`, and `/s/:code` remain reserved.
 
-`login.html` in the webroot is reserved for the app-owned admin login template and is not served as a public file. It must include exactly one `{{LOGIN_FORM}}` placeholder where the secure Surls login form should appear. You can also place optional `{{LOGIN_TITLE}}` and `{{LOGIN_TAGLINE}}` placeholders anywhere in the template; Surls replaces them with the current login-step heading text. The inserted form exposes stable styling hooks such as `[data-surls-auth-form]`, `[data-surls-auth-input]`, `[data-surls-auth-submit]`, `[data-surls-auth-secondary]`, and `[data-surls-auth-passkey]`, plus CSS variables like `--surls-login-input-background` and `--surls-login-button-background`.
+`login.html` in the webroot is reserved for the app-owned admin login template and is not served as a public file. It must include exactly one `{{LOGIN_FORM}}` placeholder where the secure Surls login form should appear. You can also place optional `{{LOGIN_TITLE}}` and `{{LOGIN_TAGLINE}}` placeholders anywhere in the template; Surls replaces them with the current login-step heading text. The inserted form exposes stable styling hooks such as `[data-surls-auth-form]`, `[data-surls-auth-input]`, `[data-surls-auth-submit]`, `[data-surls-auth-secondary]`, and `[data-surls-auth-passkey]`, plus CSS variables like `--surls-login-input-background` and `--surls-login-button-background`. Custom secondary buttons, including SSO links, share `--surls-login-secondary-border`, `--surls-login-secondary-hover-border`, and `--surls-login-secondary-hover-background`. Keyboard focus uses `--surls-login-focus-color`, falling back to the custom primary button color.
 
 Admin-managed favicons can be uploaded from Settings without writing to the read-only webroot. Uploaded favicons are served from standard root URLs that custom pages can reference directly: `/favicon.ico`, `/favicon.svg`, `/apple-touch-icon.png`, `/icon-192.png`, `/icon-512.png`, and `/site.webmanifest`. If no admin-managed favicon package is configured, these paths fall back to matching files in the public webroot when present.
 
@@ -311,6 +313,12 @@ hashed IP and visitor values are still populated for statistics.
 - TOTP secrets are encrypted with `AUTH_SECRET`.
 - Raw IPs are purged after 30 days; click-event rows and audit logs use configurable retention windows.
 - Do not commit real secrets.
+
+## Session locations
+
+With `TRUST_PROXY=true`, Profile shows approximate country/region values supplied by a trusted proxy. For Cloudflare, enable [Add visitor location headers](https://developers.cloudflare.com/rules/transform/managed-transforms/reference/#add-visitor-location-headers) and forward `CF-IPCountry` and `CF-Region` to Surls. Cloudflare's Network → IP Geolocation option alone supplies only the country. A proxy using a local GeoIP database can supply `X-Geo-Country` and `X-Geo-Region` instead.
+
+The proxy must overwrite client IP headers and strip caller-supplied location headers, accepting Cloudflare headers only from verified Cloudflare traffic. Private, loopback, link-local, and Tailscale addresses in the trusted client IP header show **Local network**. Session locations refresh when that session is used; inactive older sessions remain unavailable until their next visit. Surls stores only country, region, and a local-network flag, never the raw session address or precise coordinates. Missing trustworthy location data remains **Unavailable**.
 
 ## Production Checklist
 

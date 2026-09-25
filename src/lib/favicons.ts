@@ -256,21 +256,21 @@ function hasIcoSignature(bytes: Uint8Array) {
   return bytes.length >= 6 && bytes[0] === 0 && bytes[1] === 0 && bytes[2] === 1 && bytes[3] === 0 && (bytes[4] !== 0 || bytes[5] !== 0);
 }
 
-function validateSvg(svg: string) {
+export function validateSvgImage(svg: string, label = "SVG favicon") {
   const trimmed = svg.trim();
-  if (!/<svg(?:\s|>)/i.test(trimmed)) throw new Error("SVG favicon must contain an <svg> root element.");
-  if (/<script(?:\s|>)/i.test(trimmed)) throw new Error("SVG favicon cannot contain scripts.");
-  if (/\son[a-z]+\s*=/i.test(trimmed)) throw new Error("SVG favicon cannot contain inline event handlers.");
-  if (/javascript:/i.test(trimmed)) throw new Error("SVG favicon cannot contain javascript: URLs.");
-  if (/<!DOCTYPE|<!ENTITY/i.test(trimmed)) throw new Error("SVG favicon cannot contain document declarations or entities.");
+  if (!/^(?:<\?xml[^>]*>\s*)?<svg(?:\s|>)/i.test(trimmed)) throw new Error(`${label} must contain an <svg> root element.`);
+  if (/<script(?:\s|>)/i.test(trimmed)) throw new Error(`${label} cannot contain scripts.`);
+  if (/\son[a-z]+\s*=/i.test(trimmed)) throw new Error(`${label} cannot contain inline event handlers.`);
+  if (/javascript:/i.test(trimmed)) throw new Error(`${label} cannot contain javascript: URLs.`);
+  if (/<!DOCTYPE|<!ENTITY/i.test(trimmed)) throw new Error(`${label} cannot contain document declarations or entities.`);
   if (/<(?:foreignObject|iframe|object|embed)(?:\s|>)/i.test(trimmed)) {
-    throw new Error("SVG favicon cannot embed active content.");
+    throw new Error(`${label} cannot embed active content.`);
   }
   if (/\b(?:href|xlink:href)\s*=\s*["']\s*(?!#|data:image\/)/i.test(trimmed)) {
-    throw new Error("SVG favicon cannot reference external content.");
+    throw new Error(`${label} cannot reference external content.`);
   }
   if (/url\(\s*["']?\s*(?!#|data:image\/)/i.test(trimmed)) {
-    throw new Error("SVG favicon cannot reference external styles or images.");
+    throw new Error(`${label} cannot reference external styles or images.`);
   }
 }
 
@@ -298,7 +298,7 @@ function faviconAssetFromBuffer(fileName: string, reportedType: string, buffer: 
   const bytes = new Uint8Array(buffer);
   if (spec.extension === ".png" && !hasPngSignature(bytes)) throw new Error(`${spec.label} must be a PNG image.`);
   if (spec.extension === ".ico" && !hasIcoSignature(bytes)) throw new Error(`${spec.label} must be an ICO file.`);
-  if (spec.extension === ".svg") validateSvg(buffer.toString("utf8"));
+  if (spec.extension === ".svg") validateSvgImage(buffer.toString("utf8"));
   if (spec.extension === ".webmanifest") validateManifest(buffer.toString("utf8"));
 
   return {

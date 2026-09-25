@@ -1,7 +1,7 @@
 import { Prisma, UserRole } from "@prisma/client";
 import { randomToken } from "./crypto";
-import { env } from "./env";
-import { externalProviderKey, type ExternalProvider, type ExternalIdentityProfile } from "./external-auth";
+import { type ExternalIdentityProfile } from "./external-auth";
+import { externalProviderKey, type ExternalProviderConfig } from "./external-provider-settings";
 import { hashPassword } from "./password";
 import { prisma } from "./prisma";
 import { getSetting } from "./settings";
@@ -13,8 +13,8 @@ function verifiedEmail(profile: ExternalIdentityProfile) {
   return profile.emailVerified && email.length <= 320 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
 }
 
-export async function resolveExternalIdentity(provider: ExternalProvider, profile: ExternalIdentityProfile, linkUserId: string | null) {
-  const providerKey = externalProviderKey(provider);
+export async function resolveExternalIdentity(config: ExternalProviderConfig, profile: ExternalIdentityProfile, linkUserId: string | null) {
+  const providerKey = externalProviderKey(config);
   if (!profile.subject || profile.subject.length > 512) throw new ExternalIdentityError("The provider returned an invalid identity.");
   const email = verifiedEmail(profile);
   const autoProvision = await getSetting("externalAutoProvisionUsers");
@@ -45,12 +45,6 @@ export async function resolveExternalIdentity(provider: ExternalProvider, profil
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 }
 
-export function isConfiguredExternalIdentity(providerKey: string) {
-  if (providerKey === "google") return Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
-  if (providerKey === "facebook") return Boolean(env.FACEBOOK_CLIENT_ID && env.FACEBOOK_CLIENT_SECRET);
-  if (providerKey === "x") return Boolean(env.X_CLIENT_ID && env.X_CLIENT_SECRET);
-  if (providerKey === "github") return Boolean(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET);
-  if (providerKey === "discord") return Boolean(env.DISCORD_CLIENT_ID && env.DISCORD_CLIENT_SECRET);
-  if (providerKey === `microsoft:${env.MICROSOFT_TENANT_ID}`) return Boolean(env.MICROSOFT_CLIENT_ID && env.MICROSOFT_CLIENT_SECRET && env.MICROSOFT_TENANT_ID);
-  return providerKey === `oidc:${env.OIDC_ISSUER}` && Boolean(env.OIDC_ISSUER && env.OIDC_CLIENT_ID && env.OIDC_CLIENT_SECRET);
+export function isConfiguredExternalIdentity(providerKey: string, configs: ExternalProviderConfig[]) {
+  return configs.some((config) => externalProviderKey(config) === providerKey);
 }

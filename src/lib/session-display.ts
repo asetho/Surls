@@ -7,7 +7,8 @@ function countryName(country: string | null) {
   }
 }
 
-export function sessionLocationLabel(country: string | null, region: string | null) {
+export function sessionLocationLabel(country: string | null, region: string | null, localNetwork = false) {
+  if (localNetwork) return "Local network";
   const parts = [region, countryName(country)].filter(Boolean);
   return parts.length > 0 ? parts.join(", ") : "Unavailable";
 }

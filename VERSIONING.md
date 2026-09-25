@@ -1,6 +1,6 @@
 # Surls Versioning Policy
 
-Current Version: 1.13.5
+Current Version: 1.15.0
 
 Surls follows Semantic Versioning (SemVer):
 
@@ -79,6 +79,8 @@ For every future task:
 Never bump versions automatically.
 Never invent changes.
 Always explain why a version change is or is not required.
+
+CI publishes only the version explicitly selected in `package.json`. It tags the reviewed main-branch commit directly and does not create a separate version-bump commit. Commits must be signed with an identity GitHub can verify; squash merges should show **Verified** before release verification is considered complete.
 
 ## GitHub Release Notes Format
 

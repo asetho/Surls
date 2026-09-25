@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.15.0 - 2026-09-24
+
+### Added
+
+* Configure multiple profiles for each external sign-in provider, with separate credentials and labels.
+* Preview the default and uploaded custom login pages at `/login-dev` when the dev preview setting is enabled.
+* Show approximate session locations from trusted proxy headers and identify local/Tailscale connections as Local network.
+
+### Changed
+
+* Use compact admin action buttons and full-width login actions with matching smaller icons.
+* Keep provider editing in its drawer, return there after saving, and offer Edit/Remove actions with removal confirmation.
+* Keep built-in provider logos for hosted services; custom logos remain available for custom OpenID Connect profiles.
+* Successful external sign-in uses the provider's authentication instead of requesting an additional Surls TOTP code. Password sign-in retains Surls 2FA.
+
+### Fixed
+
+* Apply uploaded login-theme colors to secondary button borders, hover, and keyboard focus.
+* Align active-session details at the top of their cards.
+* Close unused page-title response connections, isolate malformed passkey traffic from other users, preserve equivalent encoded upload references, and clean signing material before artifact publication.
+* Update dependencies, including Next.js 16.3.6, SimpleWebAuthn 14, and matching Vitest 5 coverage support.
+
+### Upgrade Notes
+
+Run the included database migrations before starting this version; standard Compose startup applies them automatically. Existing external-provider settings are retained. Configure trusted proxy location headers to display public session regions/countries; session IP addresses are not stored. The `/login-dev` preview stays disabled unless explicitly enabled for dev.
+
 ## 1.14.8 - 2026-07-15
 
 ### Security

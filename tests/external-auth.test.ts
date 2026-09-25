@@ -24,4 +24,11 @@ describe("external sign-in state", () => {
       vi.useRealTimers();
     }
   });
+
+  it("preserves a distinct provider profile in signed callback state", () => {
+    const key = "oidc--11111111-1111-4111-8111-111111111111";
+    const cookie = encodeExternalAuth({ provider: key, ...newExternalAuthValues(), nextPath: "/admin", userId: null });
+    expect(decodeExternalAuth(cookie)?.provider).toBe(key);
+    expect(externalCallbackUrl(key)).toBe(`http://localhost:3000/api/auth/external/${key}/callback`);
+  });
 });

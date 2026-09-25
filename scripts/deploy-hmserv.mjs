@@ -1,9 +1,17 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
+import { existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const migrationsDir = path.join(repoRoot, "prisma", "migrations");
+for (const entry of readdirSync(migrationsDir, { withFileTypes: true })) {
+  if (entry.isDirectory() && !existsSync(path.join(migrationsDir, entry.name, "migration.sql"))) {
+    console.error(`Migration ${entry.name} has no migration.sql; refusing to deploy.`);
+    process.exit(1);
+  }
+}
 
 const args = new Map();
 for (let index = 2; index < process.argv.length; index += 1) {
@@ -48,6 +56,12 @@ const rsyncExcludes = [
   "node_modules/",
   ".next/",
   ".env",
+  ".env.bak.*",
+  ".codex-backups/",
+  "backups/",
+  ".playwright-cli/",
+  "AGENTS.md",
+  "CLAUDE.md",
   "output/",
   "tsconfig.tsbuildinfo",
   "*.log",

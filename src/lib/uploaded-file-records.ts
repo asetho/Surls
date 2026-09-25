@@ -171,9 +171,25 @@ export async function uploadedFileDownloadName(storageKey: string) {
   return uploadedFile?.downloadName ?? null;
 }
 
-export async function deleteUploadedFileWithRecord(storageKey: string) {
+export async function deleteUploadedFileWithRecord(storageKey: string, options: { onlyIfUnreferenced?: boolean } = {}) {
   await prisma.$transaction(async (transaction) => {
     await transaction.$executeRaw`SELECT pg_advisory_xact_lock(${UPLOAD_QUOTA_LOCK_ID})`;
+    if (options.onlyIfUnreferenced) {
+      let cursor: string | undefined;
+      while (true) {
+        const links = await transaction.shortLink.findMany({
+          where: { destinationUrl: { contains: "/uploads/" } },
+          select: { destinationUrl: true, id: true },
+          orderBy: { id: "asc" },
+          take: 200,
+          ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {})
+        });
+        // Match the same decoded identity as upload downloads, including URL encoding and suffixes.
+        if (links.some((link) => uploadedFilenameFromDestination(link.destinationUrl) === storageKey)) return;
+        if (links.length < 200) break;
+        cursor = links[links.length - 1].id;
+      }
+    }
     await transaction.uploadedFile.deleteMany({ where: { storageKey } });
     await deleteUploadedFile(storageKey);
   });

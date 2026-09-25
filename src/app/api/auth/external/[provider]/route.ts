@@ -4,17 +4,23 @@ import { appBaseUrl } from "@/lib/env";
 import { validateCsrf } from "@/lib/csrf";
 import {
   encodeExternalAuth, EXTERNAL_AUTH_COOKIE, externalAuthCookieOptions, externalAuthorizationUrl,
-  externalProviderConfig, isExternalProvider, newExternalAuthValues
+  newExternalAuthValues
 } from "@/lib/external-auth";
+import { getExternalProviderConfig } from "@/lib/external-provider-settings";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getSetting } from "@/lib/settings";
 import { requestIp, requestOriginMatchesApp } from "@/lib/request";
 import { safeRedirectPath } from "@/lib/redirect-path";
 
 type ProviderContext = { params: Promise<{ provider: string }> };
 
 async function start(request: NextRequest, context: ProviderContext, userId: string | null, nextValue: unknown) {
+  if (!(await getSetting("externalLoginEnabled"))) {
+    return NextResponse.json({ error: "External sign-in is disabled." }, { status: 403 });
+  }
   const { provider } = await context.params;
-  if (!isExternalProvider(provider) || !externalProviderConfig(provider)) {
+  const config = await getExternalProviderConfig(provider);
+  if (!config) {
     return NextResponse.json({ error: "Sign-in provider unavailable." }, { status: 404 });
   }
   const ip = requestIp(request);
@@ -24,10 +30,10 @@ async function start(request: NextRequest, context: ProviderContext, userId: str
   const nextPath = safeRedirectPath(nextValue, userId ? "/admin/profile" : "/admin");
   const values = newExternalAuthValues();
   try {
-    const authorizationUrl = await externalAuthorizationUrl(provider, values.state, values.verifier, values.nonce);
+    const authorizationUrl = await externalAuthorizationUrl(config.provider, values.state, values.verifier, values.nonce, config);
     const response = NextResponse.redirect(authorizationUrl, 303);
     response.headers.set("Cache-Control", "no-store");
-    response.cookies.set(EXTERNAL_AUTH_COOKIE, encodeExternalAuth({ provider, ...values, nextPath, userId }), externalAuthCookieOptions());
+    response.cookies.set(EXTERNAL_AUTH_COOKIE, encodeExternalAuth({ provider: config.key, ...values, nextPath, userId }), externalAuthCookieOptions());
     return response;
   } catch {
     return NextResponse.redirect(new URL(userId ? "/admin/profile?error=Sign-in%20provider%20unavailable." : "/admin?error=Sign-in%20provider%20unavailable.", appBaseUrl()), 303);
