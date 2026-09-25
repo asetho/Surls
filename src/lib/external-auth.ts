@@ -66,7 +66,16 @@ async function oidcConfiguration(provider: "oidc" | "google" | "microsoft", cred
   return oidc.discovery(new URL(oidcIssuer(provider, credentials)), credentials.id, { client_secret: credentials.secret }, oidc.ClientSecretPost(credentials.secret));
 }
 
-export type ExternalIdentityProfile = { subject: string; email: string | null; emailVerified: boolean; name: string | null };
+export type ExternalIdentityProfile = {
+  subject: string; email: string | null; emailVerified: boolean; name: string | null; mfaVerified: boolean
+};
+
+function confirmsMfa(amr: unknown): boolean {
+  if (!Array.isArray(amr) || !amr.every((method) => typeof method === "string")) return false;
+  // RFC 8176 methods are case-sensitive. An arbitrary ACR level or passkey
+  // possession alone does not establish that multiple factors were verified.
+  return amr.includes("mfa") || (amr.includes("pwd") && amr.includes("otp"));
+}
 
 export async function externalAuthorizationUrl(provider: ExternalProvider, state: string, verifier: string, nonce: string, credentials: ExternalProviderConfig) {
   const challenge = await oidc.calculatePKCECodeChallenge(verifier);
@@ -122,6 +131,9 @@ export async function externalProfile(provider: ExternalProvider, callback: URL,
       subject: claims.sub,
       email: verifiedEmail,
       emailVerified: Boolean(verifiedEmail),
+      // Only use the ID token validated by the nonce-bound HTTPS code exchange.
+      // UserInfo, account enrollment, and callback parameters are not MFA proof.
+      mfaVerified: confirmsMfa(claims.amr),
       name: typeof claims.name === "string" ? claims.name : typeof userInfo?.name === "string" ? userInfo.name : null
     };
   }
@@ -141,7 +153,7 @@ export async function externalProfile(provider: ExternalProvider, callback: URL,
     const profile = await jsonResponse(await fetch(url, { headers: { authorization: `Bearer ${token.access_token}` }, cache: "no-store" }));
     if (typeof profile.id !== "string" || !profile.id) throw new Error("Facebook did not return an identity.");
     return { subject: profile.id, email: typeof profile.email === "string" ? profile.email : null,
-      emailVerified: false, name: typeof profile.name === "string" ? profile.name : null };
+      emailVerified: false, mfaVerified: false, name: typeof profile.name === "string" ? profile.name : null };
   }
   if (provider === "github" || provider === "discord") {
     const token = await jsonResponse(await fetch(provider === "github" ? "https://github.com/login/oauth/access_token" : "https://discord.com/api/oauth2/token", {
@@ -157,14 +169,14 @@ export async function externalProfile(provider: ExternalProvider, callback: URL,
     if (provider === "discord") {
       if (typeof user.id !== "string" || !user.id) throw new Error("Discord did not return an identity.");
       return { subject: user.id, email: typeof user.email === "string" ? user.email : null,
-        emailVerified: user.verified === true, name: typeof user.global_name === "string" ? user.global_name : null };
+        emailVerified: user.verified === true, mfaVerified: false, name: typeof user.global_name === "string" ? user.global_name : null };
     }
     if (typeof user.id !== "number" || !Number.isSafeInteger(user.id)) throw new Error("GitHub did not return an identity.");
     const emailsResponse = await fetch("https://api.github.com/user/emails", { headers, cache: "no-store" });
     const emails: unknown = emailsResponse.ok ? await emailsResponse.json() : [];
     const primary = Array.isArray(emails) ? emails.find((item) => item && typeof item === "object" && item.primary === true && item.verified === true) : null;
     return { subject: String(user.id), email: primary && typeof primary.email === "string" ? primary.email : null,
-      emailVerified: Boolean(primary), name: typeof user.name === "string" ? user.name : null };
+      emailVerified: Boolean(primary), mfaVerified: false, name: typeof user.name === "string" ? user.name : null };
   }
   const token = await jsonResponse(await fetch("https://api.x.com/2/oauth2/token", {
     method: "POST",
@@ -181,7 +193,7 @@ export async function externalProfile(provider: ExternalProvider, callback: URL,
     throw new Error("X did not return an identity.");
   }
   const user = data as Record<string, unknown>;
-  return { subject: user.id as string, email: null, emailVerified: false,
+  return { subject: user.id as string, email: null, emailVerified: false, mfaVerified: false,
     name: typeof user.name === "string" ? user.name : null };
 }
 

@@ -13,7 +13,7 @@
 * Use compact admin action buttons and full-width login actions with matching smaller icons.
 * Keep provider editing in its drawer, return there after saving, and offer Edit/Remove actions with removal confirmation.
 * Keep built-in provider logos for hosted services; custom logos remain available for custom OpenID Connect profiles.
-* Successful external sign-in uses the provider's authentication instead of requesting an additional Surls TOTP code. Password sign-in retains Surls 2FA.
+* Skip an enabled Surls TOTP challenge only when the external provider confirms completed MFA. Reuse valid provider SSO sessions; password sign-in retains Surls 2FA.
 
 ### Fixed
 
@@ -24,7 +24,7 @@
 
 ### Upgrade Notes
 
-Run the included database migrations before starting this version; standard Compose startup applies them automatically. Existing external-provider settings are retained. Configure trusted proxy location headers to display public session regions/countries; session IP addresses are not stored. The `/login-dev` preview stays disabled unless explicitly enabled for dev.
+Run the included database migrations before starting this version; standard Compose startup applies them automatically. Existing external-provider settings are retained. To avoid duplicate MFA prompts, configure the OIDC provider to report completed MFA in its ID-token `amr` claim as described in `docs/external-sign-in.md`; otherwise accounts with Surls TOTP enabled still require their Surls code. Configure trusted proxy location headers to display public session regions/countries; session IP addresses are not stored. The `/login-dev` preview stays disabled unless explicitly enabled for dev.
 
 ## 1.14.8 - 2026-07-15
 

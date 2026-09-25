@@ -8,7 +8,7 @@ Surls can show separate sign-in buttons for a custom OpenID Connect (OIDC) provi
 2. Sign in as a site admin, open **Settings → Sign-in methods** (`/admin/settings`), and select the gear. Turn on **External sign-in** if needed, then select **Add provider** and choose a supported provider from the searchable panel. Create a confidential web application in the provider console and register the exact callback URL shown in its editor. Enter its client ID and secret, then select **Save and enable**. The button appears on `/admin` and `/bookmarklet` without a restart. Its text is **Continue with** followed by the configured button label. The OpenID Connect editor also lets you upload a custom SVG, PNG, WebP, or JPEG logo, or paste its raw base64 or `data:image/...;base64,...` value (up to 256 KB); leaving both blank keeps the current logo, and **Remove custom logo** restores the built-in provider icon. Google, GitHub, Discord, Microsoft, Facebook, and X/Twitter always use their built-in logos.
 3. Open a private browser window and test the button. Sign in as the site admin, then use **Profile → External sign-in** to connect any provider that does not supply a verified email.
 4. If desired, enable automatic user creation in the separate **Sign-in methods** section and select **Save sign-in methods**. It is off by default. A new user receives the **User** role only when the provider supplies a verified email. With this setting off, an admin must first create a Surls user with the same email. The temporary password can be left blank for an external-only user.
-5. Only after testing an external sign-in for the site admin, turn off **Allow password and passkey sign-in** and select **Save sign-in methods**. The admin setting refuses to turn this off unless external sign-in is enabled and the current admin has a connected, configured provider. The switch also hides the passkey button and blocks password, pending password 2FA, and passkey authentication and registration routes. Authenticated external sign-in does not require a separate Surls TOTP code; configure MFA with the external provider if needed. Existing sessions and API tokens stay active.
+5. Only after testing an external sign-in for the site admin, turn off **Allow password and passkey sign-in** and select **Save sign-in methods**. The admin setting refuses to turn this off unless external sign-in is enabled and the current admin has a connected, configured provider. The switch also hides the passkey button and blocks password, pending password 2FA, and passkey authentication and registration routes. External sign-in skips enabled Surls TOTP only when the provider confirms completed MFA; the external TOTP fallback remains available when local login is disabled. Existing sessions and API tokens stay active.
 
 Surls links accounts by the provider's stable subject or user ID. A verified email is used only for the first match or optional user creation. Facebook, X, and Microsoft in this integration do not supply a verified email claim that Surls can rely on, so users must connect them while already signed in. GitHub uses the primary verified email, Discord uses its verified email flag, and OIDC providers must return `email_verified: true`. After the first connection, sign-in uses the provider ID even if an email changes. Provider accounts never grant the Admin role automatically.
 
@@ -39,6 +39,20 @@ OIDC_CLIENT_ID=surls
 OIDC_CLIENT_SECRET=<secret from Keycloak>
 OIDC_PROVIDER_NAME=Keycloak
 ```
+
+### MFA confirmation and passkeys
+
+Surls reads MFA evidence only from the ID token validated by its HTTPS authorization-code exchange, including issuer, audience, expiration, state, PKCE, and nonce checks. Its `amr` claim must be an array of case-sensitive strings containing `mfa`, or both `pwd` and `otp` ([RFC 8176](https://www.rfc-editor.org/rfc/rfc8176.html)). A verified email, an enrolled authenticator, UserInfo attributes, a bare passkey method, or an arbitrary `acr` value such as `2` does not establish completed MFA. OAuth providers without this ID-token evidence use the Surls TOTP fallback when the Surls account has TOTP enabled. Accounts without Surls TOTP enabled can continue signing in normally.
+
+For Keycloak, add an **Authentication Method Reference (AMR)** protocol mapper to the Surls client's effective client scope and enable **Add to ID token**. Configure authentication execution references to describe methods that actually completed:
+
+- For password plus OTP, use `pwd` on the password execution and `otp` on the OTP execution.
+- For a dedicated passwordless WebAuthn/passkey execution, require **User Verification** in the WebAuthn Passwordless Policy. That requires a device PIN or biometric check as well as possession of the passkey. Only an execution that always enforces that verification should report `mfa`.
+- Do not attach a constant `mfa` claim to every login or label a combined password/passkey execution as MFA if it can also succeed with a password alone. A touch-only security-key assertion does not prove user verification.
+
+See the [Keycloak authentication guide](https://www.keycloak.org/docs/latest/server_admin/#_authentication-flows) and [AMR mapper reference](https://www.keycloak.org/admin-api/protocol-mappers). Verify the ID-token claim for both the password-plus-OTP and passkey paths in your configured flow before relying on the exemption; Surls does not change Keycloak configuration.
+
+Surls does not request `prompt=login` or `max_age=0`. A new sign-in can reuse a valid Keycloak SSO session whose ID token still reports completed MFA. Keycloak's session and authentication policies control when verification must be repeated; existing Surls sessions are unaffected. If the claim is absent or insufficient, an account with Surls TOTP enabled receives the usual five-minute Surls code challenge before a session is created.
 
 ## Other provider setup
 

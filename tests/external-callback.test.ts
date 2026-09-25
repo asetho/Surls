@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { decodePendingLogin, PENDING_LOGIN_COOKIE } from "@/lib/pending-login";
 
 const external = vi.hoisted(() => ({
   decodeExternalAuth: vi.fn(), externalProfile: vi.fn(),
@@ -29,7 +30,9 @@ vi.mock("@/lib/auth", () => auth);
 vi.mock("@/lib/rate-limit", () => rate);
 vi.mock("@/lib/audit", () => audit);
 vi.mock("@/lib/prisma", () => ({ prisma }));
-vi.mock("@/lib/crypto", () => ({ hashToken: () => "state-hash" }));
+vi.mock("@/lib/crypto", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/crypto")>(), hashToken: () => "state-hash"
+}));
 vi.mock("@/lib/request", () => ({ requestIpHash: () => "ip-hash" }));
 
 function callback(state = "valid-state") {
@@ -44,7 +47,7 @@ describe("external sign-in callback", () => {
     settings.getSetting.mockResolvedValue(true);
     providers.getExternalProviderConfig.mockResolvedValue({ provider: "google", id: "client", secret: "secret", label: "Google", issuer: null, tenantId: null, source: "settings" });
     external.decodeExternalAuth.mockReturnValue({ provider: "google", state: "valid-state", verifier: "verifier", nonce: "nonce", nextPath: "/admin/links", userId: null });
-    external.externalProfile.mockResolvedValue({ subject: "subject", email: "user@example.com", emailVerified: true, name: null });
+    external.externalProfile.mockResolvedValue({ subject: "subject", email: "user@example.com", emailVerified: true, name: null, mfaVerified: false });
     identity.resolveExternalIdentity.mockResolvedValue("user_1");
     rate.checkRateLimit.mockResolvedValue({ allowed: true });
     audit.auditLog.mockResolvedValue(undefined);
@@ -98,14 +101,43 @@ describe("external sign-in callback", () => {
     expect(auth.createSession).not.toHaveBeenCalled();
   });
 
-  it("does not require Surls TOTP after authenticated external sign-in", async () => {
-    prisma.user.findUnique.mockResolvedValue({ id: "user_1", totpCredential: { enabled: true } });
+  it.each([false, undefined, "true"])("requires enabled Surls TOTP when provider MFA is not confirmed (%s)", async (mfaVerified) => {
+    external.externalProfile.mockResolvedValue({ subject: "subject", emailVerified: true, mfaVerified });
+    prisma.user.findUnique.mockResolvedValue({ email: "user@example.com", totpCredential: { enabled: true } });
     const { GET } = await import("@/app/api/auth/external/[provider]/callback/route");
     const response = await GET(callback(), { params: Promise.resolve({ provider: "google" }) });
-    expect(prisma.user.findUnique).toHaveBeenCalledWith({ where: { id: "user_1" }, select: { id: true } });
+    expect(response.headers.get("location")).toBe("http://localhost:3000/admin/2fa");
+    const pending = response.cookies.get(PENDING_LOGIN_COOKIE);
+    expect(decodePendingLogin(pending?.value)).toMatchObject({
+      purpose: "external_2fa", userId: "user_1", email: "user@example.com", nextPath: "/admin/links"
+    });
+    expect(pending).toMatchObject({ httpOnly: true, sameSite: "lax", path: "/", maxAge: 300 });
+    expect(auth.createSession).not.toHaveBeenCalled();
+    expect(auth.setSessionCookie).not.toHaveBeenCalled();
+    expect(audit.auditLog).not.toHaveBeenCalled();
+  });
+
+  it("accepts confirmed provider MFA without an additional Surls TOTP prompt", async () => {
+    external.externalProfile.mockResolvedValue({ subject: "subject", emailVerified: true, mfaVerified: true });
+    prisma.user.findUnique.mockResolvedValue({ email: "user@example.com", totpCredential: { enabled: true } });
+    const { GET } = await import("@/app/api/auth/external/[provider]/callback/route");
+    const response = await GET(callback(), { params: Promise.resolve({ provider: "google" }) });
     expect(response.headers.get("location")).toBe("http://localhost:3000/admin/links");
     expect(auth.createSession).toHaveBeenCalledWith("user_1", expect.any(NextRequest));
     expect(response.headers.get("set-cookie")).toContain("surls_session");
+    expect(response.cookies.get(PENDING_LOGIN_COOKIE)).toBeUndefined();
+  });
+
+  it("connects an identity to the existing session without creating a new session", async () => {
+    external.decodeExternalAuth.mockReturnValue({ provider: "google", state: "valid-state", verifier: "verifier", nonce: "nonce", nextPath: "/admin/profile", userId: "user_1" });
+    auth.getCurrentSession.mockResolvedValue({ userId: "user_1" });
+    const { GET } = await import("@/app/api/auth/external/[provider]/callback/route");
+    const response = await GET(callback(), { params: Promise.resolve({ provider: "google" }) });
+    expect(response.headers.get("location")).toBe("http://localhost:3000/admin/profile?connected=1");
+    expect(identity.resolveExternalIdentity).toHaveBeenCalledWith(expect.anything(), expect.anything(), "user_1");
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(auth.createSession).not.toHaveBeenCalled();
+    expect(response.cookies.get(PENDING_LOGIN_COOKIE)).toBeUndefined();
   });
 
   it("binds profile connection to the initiating Surls user", async () => {
