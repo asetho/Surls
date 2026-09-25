@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.1.1 - 2026-09-25
+
+### Fixed
+
+* Make the Profile page's Connect button open external sign-in providers again when they use a different domain.
+
+### Upgrade Notes
+
+No manual upgrade steps required. Existing external provider settings remain unchanged.
+
 ## 2.1.0 - 2026-09-25
 
 ### Added

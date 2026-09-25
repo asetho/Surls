@@ -14,6 +14,30 @@ import { safeRedirectPath } from "@/lib/redirect-path";
 
 type ProviderContext = { params: Promise<{ provider: string }> };
 
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  })[character]!);
+}
+
+function linkAuthorizationPage(authorizationUrl: URL) {
+  if (authorizationUrl.protocol !== "https:" && authorizationUrl.protocol !== "http:") {
+    throw new Error("Unsupported authorization URL protocol.");
+  }
+  const url = escapeHtml(authorizationUrl.toString());
+  return new NextResponse(
+    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=${url}"><title>Connecting to sign-in provider</title></head><body><p>Connecting to sign-in provider…</p><p><a href="${url}">Continue</a></p></body></html>`,
+    {
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "Content-Security-Policy": "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+      }
+    }
+  );
+}
+
 async function start(request: NextRequest, context: ProviderContext, userId: string | null, nextValue: unknown) {
   if (!(await getSetting("externalLoginEnabled"))) {
     return NextResponse.json({ error: "External sign-in is disabled." }, { status: 403 });
@@ -31,7 +55,9 @@ async function start(request: NextRequest, context: ProviderContext, userId: str
   const values = newExternalAuthValues();
   try {
     const authorizationUrl = await externalAuthorizationUrl(config.provider, values.state, values.verifier, values.nonce, config);
-    const response = NextResponse.redirect(authorizationUrl, 303);
+    // A POST form cannot follow a cross-origin redirect under the profile page's
+    // form-action 'self' CSP. Return a same-origin document that starts a new navigation.
+    const response = userId ? linkAuthorizationPage(authorizationUrl) : NextResponse.redirect(authorizationUrl, 303);
     response.headers.set("Cache-Control", "no-store");
     response.cookies.set(EXTERNAL_AUTH_COOKIE, encodeExternalAuth({ provider: config.key, ...values, nextPath, userId }), externalAuthCookieOptions());
     return response;
