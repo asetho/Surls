@@ -208,6 +208,7 @@ function ProviderEditor({ provider, csrf, titleId, onCancel }: {
             setLogoCode("");
             setRemoveLogo(false);
             if (!file || file.size > 256 * 1024 || !["image/svg+xml", "image/png", "image/webp", "image/jpeg"].includes(file.type)) {
+              event.currentTarget.value = "";
               setUploadedLogo(null);
               return;
             }
