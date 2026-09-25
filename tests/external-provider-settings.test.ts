@@ -98,10 +98,17 @@ describe("external provider settings", () => {
   it("keeps valid punctuation and non-Latin client IDs usable", () => {
     for (const clientId of ["!!!", "認証クライアント"]) {
       const key = providerProfileKey("oidc", clientId);
-      expect(key).toMatch(/^oidc-id-[0-9a-f]{8}$/);
+      expect(key).toMatch(/^oidc-id-[0-9a-f]{16}$/);
       expect(providerProfileKey("oidc", clientId)).toBe(key);
       expect(externalProviderType(key)).toBe("oidc");
     }
+  });
+
+  it("does not merge different client IDs that have the same readable slug", () => {
+    const keys = ["client-a", "client.a", "Client-A"].map((clientId) => providerProfileKey("oidc", clientId));
+    expect(keys[0]).toBe("oidc-client-a");
+    expect(new Set(keys).size).toBe(3);
+    expect(keys.every((key) => externalProviderType(key) === "oidc")).toBe(true);
   });
 
   it("does not copy environment credentials into a new provider profile", async () => {
