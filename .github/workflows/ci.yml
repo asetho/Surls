@@ -155,72 +155,52 @@ jobs:
           node-version: "26"
           cache: npm
 
-      - name: Bump patch version
+      - name: Select explicit release version
         id: version
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_ACTOR_NAME: github-actions[bot]
-          RELEASE_ACTOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
         run: |
           set -euo pipefail
-
           event_sha="${GITHUB_SHA}"
           current_version="$(node -p "require('./package.json').version")"
           current_tag="v${current_version}"
           [[ "${current_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          recovery_version="$(node -e "const [major, minor, patch] = process.argv[1].split('.').map(Number); process.stdout.write([major, minor, patch + 1].join('.'))" "${current_version}")"
-          recovery_tag="v${recovery_version}"
           auth_header="$(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 -w 0)"
-
-          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth_header}" fetch --force origin main --tags
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth_header}" fetch origin main --tags
           origin_main="$(git rev-parse refs/remotes/origin/main)"
-          publish_mutable=false
+          echo "publish=false" >> "${GITHUB_OUTPUT}"
 
-          if git tag --points-at "${event_sha}" | grep -Fxq "${current_tag}"; then
-            release_version="${current_version}"
-            [[ "${event_sha}" == "${origin_main}" ]] && publish_mutable=true
-            git checkout --detach "${event_sha}"
-          elif tagged_sha="$(git rev-list -n 1 "${recovery_tag}" 2>/dev/null)" && [[ -n "${tagged_sha}" ]]; then
-            release_parent="$(git rev-parse "${tagged_sha}^")"
-            release_subject="$(git log -1 --format=%s "${tagged_sha}")"
-            tagged_version="$(git show "${tagged_sha}:package.json" | node -e "let json = ''; process.stdin.on('data', chunk => json += chunk); process.stdin.on('end', () => process.stdout.write(JSON.parse(json).version));")"
-
-            if [[ "${release_parent}" != "${event_sha}" || "${release_subject}" != "Release ${recovery_tag} [skip ci]" || "${tagged_version}" != "${recovery_version}" ]]; then
-              echo "${recovery_tag} does not identify the release commit for ${event_sha}" >&2
-              exit 1
-            fi
-
-            release_version="${recovery_version}"
-            [[ "${tagged_sha}" == "${origin_main}" ]] && publish_mutable=true
-            git checkout --detach "${tagged_sha}"
-          elif [[ "${origin_main}" != "${event_sha}" ]]; then
-            echo "main advanced beyond this workflow's revision before it created ${recovery_tag}" >&2
-            exit 1
-          else
-            git config user.name "${RELEASE_ACTOR_NAME}"
-            git config user.email "${RELEASE_ACTOR_EMAIL}"
-            npm version patch -m "Release v%s [skip ci]"
-            release_version="$(node -p "require('./package.json').version")"
-            git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth_header}" push --atomic origin HEAD:main "refs/tags/v${release_version}"
-            publish_mutable=true
+          if [[ "${event_sha}" != "${origin_main}" ]]; then
+            echo "main advanced; the newer revision will decide whether to publish."
+            exit 0
           fi
-
-          [[ "${release_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          release_sha="$(git rev-parse HEAD)"
-          major_minor="$(node -e "const [major, minor] = process.argv[1].split('.'); process.stdout.write(major + '.' + minor)" "${release_version}")"
-
+          tagged_sha="$(git rev-list -n 1 "${current_tag}" 2>/dev/null || true)"
+          if [[ -n "${tagged_sha}" && "${tagged_sha}" != "${event_sha}" ]]; then
+            echo "${current_tag} is already released; no explicit version bump."
+            exit 0
+          fi
+          if [[ -z "${tagged_sha}" ]]; then
+            node scripts/check-release-version.mjs "${current_version}"
+            # Tag the reviewed commit directly; CI never creates unsigned version commits.
+            git tag "${current_tag}" "${event_sha}"
+            git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth_header}" push origin "refs/tags/${current_tag}"
+          fi
+          major_minor="$(node -e "process.stdout.write(process.argv[1].split('.').slice(0, 2).join('.'))" "${current_version}")"
           {
-            echo "version=${release_version}"
+            echo "version=${current_version}"
             echo "major_minor=${major_minor}"
-            echo "publish_mutable=${publish_mutable}"
-            echo "tag=v${release_version}"
-            echo "sha=${release_sha}"
+            echo "publish=true"
+            echo "publish_mutable=true"
+            echo "tag=${current_tag}"
+            echo "sha=${event_sha}"
           } >> "${GITHUB_OUTPUT}"
 
       - name: Set up Docker Buildx
+        if: steps.version.outputs.publish == 'true'
         uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
 
       - name: Docker metadata
+        if: steps.version.outputs.publish == 'true'
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
@@ -232,6 +212,7 @@ jobs:
             type=raw,value=${{ steps.version.outputs.major_minor }},enable=${{ steps.version.outputs.publish_mutable == 'true' }}
 
       - name: Log in to GitHub Container Registry
+        if: steps.version.outputs.publish == 'true'
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
@@ -239,7 +220,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and publish release image
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        if: steps.version.outputs.publish == 'true'
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           push: true
@@ -253,6 +235,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Create GitHub release
+        if: steps.version.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_SHA: ${{ steps.version.outputs.sha }}
@@ -262,7 +245,9 @@ jobs:
           if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
             exit 0
           fi
+          release_notes_path="${RUNNER_TEMP}/surls-release-notes.md"
+          node scripts/release-notes.mjs "${RELEASE_TAG#v}" > "${release_notes_path}"
           gh release create "${RELEASE_TAG}" \
             --target "${RELEASE_SHA}" \
-            --title "Surls ${RELEASE_TAG}" \
-            --generate-notes
+            --title "🚀 Surls ${RELEASE_TAG}" \
+            --notes-file "${release_notes_path}"
