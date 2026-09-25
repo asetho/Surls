@@ -7,6 +7,7 @@ import { BookmarkletPopupActions } from "@/components/BookmarkletPopupActions";
 import { AliasAvailabilityInput } from "@/components/AliasAvailabilityInput";
 import { BookmarkletShortUrl } from "@/components/BookmarkletShortUrl";
 import { PasskeyLoginButton } from "@/components/PasskeyLoginButton";
+import { ExternalLoginButtons } from "@/components/ExternalLoginButtons";
 import { TitleAutoFill } from "@/components/TitleAutoFill";
 import { TurnstileGate } from "@/components/TurnstileGate";
 import { requireAdmin } from "@/lib/auth";
@@ -83,7 +84,7 @@ export default async function BookmarkletPage({ searchParams }: { searchParams: 
         </div>
 
         {!user ? (
-          <form className="surface bookmarklet-card form-stack" action="/api/auth/login" method="post">
+          <div className="surface bookmarklet-card form-stack">
             <div className="bookmarklet-card-header">
               <LogIn size={20} aria-hidden />
               <div>
@@ -93,10 +94,12 @@ export default async function BookmarkletPage({ searchParams }: { searchParams: 
             </div>
             {params.error ? <div className="alert">{params.error}</div> : null}
             {needsSecondFactor ? <div className="success">Enter your 2FA code or one unused backup code.</div> : null}
-            <input type="hidden" name="csrf" value={csrf} />
-            <input type="hidden" name="next" value={nextPath} />
-            <input type="hidden" name="loginContext" value="bookmarklet" />
-            <TurnstileGate siteKey={loginTurnstileSiteKey}>
+            {settings.localLoginEnabled ? (
+              <form className="form-stack" action="/api/auth/login" method="post">
+                <input type="hidden" name="csrf" value={csrf} />
+                <input type="hidden" name="next" value={nextPath} />
+                <input type="hidden" name="loginContext" value="bookmarklet" />
+                <TurnstileGate siteKey={loginTurnstileSiteKey}>
               <label>
                 Email
                 <input name="email" type="email" autoComplete="username" required defaultValue={params.email ?? ""} />
@@ -119,8 +122,11 @@ export default async function BookmarkletPage({ searchParams }: { searchParams: 
                 <span>or</span>
               </div>
               <PasskeyLoginButton nextPath={nextPath} />
-            </TurnstileGate>
-          </form>
+                </TurnstileGate>
+              </form>
+            ) : null}
+            <ExternalLoginButtons nextPath={nextPath} required={!settings.localLoginEnabled} />
+          </div>
         ) : createdLink && createdUrl ? (
           <div className="surface bookmarklet-card form-stack">
             <div className="bookmarklet-card-header">

@@ -31,6 +31,23 @@ const envSchema = z
     APP_NAME: emptyToUndefined(z.string().default("Surls")),
     BASE_URL: emptyToUndefined(z.string().url().default("http://localhost:3000")),
     AUTH_SECRET: emptyToUndefined(z.string().min(32).default("development-secret-change-before-production")),
+    OIDC_ISSUER: emptyToUndefined(z.string().url().max(512).optional()),
+    OIDC_CLIENT_ID: emptyToUndefined(z.string().optional()),
+    OIDC_CLIENT_SECRET: emptyToUndefined(z.string().optional()),
+    OIDC_PROVIDER_NAME: emptyToUndefined(z.string().max(80).default("Single sign-on")),
+    GOOGLE_CLIENT_ID: emptyToUndefined(z.string().optional()),
+    GOOGLE_CLIENT_SECRET: emptyToUndefined(z.string().optional()),
+    FACEBOOK_CLIENT_ID: emptyToUndefined(z.string().optional()),
+    FACEBOOK_CLIENT_SECRET: emptyToUndefined(z.string().optional()),
+    X_CLIENT_ID: emptyToUndefined(z.string().optional()),
+    X_CLIENT_SECRET: emptyToUndefined(z.string().optional()),
+    GITHUB_CLIENT_ID: emptyToUndefined(z.string().optional()),
+    GITHUB_CLIENT_SECRET: emptyToUndefined(z.string().optional()),
+    DISCORD_CLIENT_ID: emptyToUndefined(z.string().optional()),
+    DISCORD_CLIENT_SECRET: emptyToUndefined(z.string().optional()),
+    MICROSOFT_CLIENT_ID: emptyToUndefined(z.string().optional()),
+    MICROSOFT_CLIENT_SECRET: emptyToUndefined(z.string().optional()),
+    MICROSOFT_TENANT_ID: emptyToUndefined(z.string().optional()),
     CUSTOM_PAGES_DIR: emptyToUndefined(z.string().default("/app/www")),
     PUBLIC_WEBROOT_DIR: emptyToUndefined(z.string().optional()),
     UPLOADS_DIR: emptyToUndefined(z.string().optional()),
@@ -79,6 +96,46 @@ const envSchema = z
         path: ["TURNSTILE_SITE_KEY"],
         message: "TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY must be configured together."
       });
+    }
+    const oidcValues = [value.OIDC_ISSUER, value.OIDC_CLIENT_ID, value.OIDC_CLIENT_SECRET];
+    if (oidcValues.some(Boolean) && !oidcValues.every(Boolean)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["OIDC_ISSUER"],
+        message: "OIDC_ISSUER, OIDC_CLIENT_ID, and OIDC_CLIENT_SECRET must be configured together."
+      });
+    }
+    for (const provider of ["GOOGLE", "FACEBOOK", "X", "GITHUB", "DISCORD", "MICROSOFT"] as const) {
+      if (Boolean(value[`${provider}_CLIENT_ID`]) !== Boolean(value[`${provider}_CLIENT_SECRET`])) {
+        ctx.addIssue({
+          code: "custom",
+          path: [`${provider}_CLIENT_ID`],
+          message: `${provider}_CLIENT_ID and ${provider}_CLIENT_SECRET must be configured together.`
+        });
+      }
+    }
+    if (Boolean(value.MICROSOFT_CLIENT_ID) !== Boolean(value.MICROSOFT_TENANT_ID)) {
+      ctx.addIssue({ code: "custom", path: ["MICROSOFT_TENANT_ID"], message: "MICROSOFT_TENANT_ID is required with Microsoft credentials." });
+    }
+    if (value.MICROSOFT_TENANT_ID && (!/^[A-Za-z0-9.-]+$/.test(value.MICROSOFT_TENANT_ID) || ["common", "organizations", "consumers"].includes(value.MICROSOFT_TENANT_ID))) {
+      ctx.addIssue({ code: "custom", path: ["MICROSOFT_TENANT_ID"], message: "Set a specific Microsoft tenant ID or domain." });
+    }
+    if (value.NODE_ENV === "production" && !isNextProductionBuild() && oidcValues.some(Boolean)) {
+      if (value.OIDC_ISSUER && !value.OIDC_ISSUER.startsWith("https://")) {
+        ctx.addIssue({ code: "custom", path: ["OIDC_ISSUER"], message: "OIDC_ISSUER must use HTTPS in production." });
+      }
+    }
+    if (value.OIDC_ISSUER) {
+      const issuer = new URL(value.OIDC_ISSUER);
+      if (issuer.search || issuer.hash) {
+        ctx.addIssue({ code: "custom", path: ["OIDC_ISSUER"], message: "OIDC_ISSUER must not contain a query or fragment." });
+      }
+    }
+    if (value.NODE_ENV === "production" && !isNextProductionBuild() &&
+        [...oidcValues, value.GOOGLE_CLIENT_ID, value.GITHUB_CLIENT_ID, value.DISCORD_CLIENT_ID,
+          value.MICROSOFT_CLIENT_ID, value.FACEBOOK_CLIENT_ID, value.X_CLIENT_ID].some(Boolean) &&
+        !value.BASE_URL.startsWith("https://")) {
+      ctx.addIssue({ code: "custom", path: ["BASE_URL"], message: "External sign-in requires an HTTPS BASE_URL in production." });
     }
   });
 

@@ -41,6 +41,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: S
           error={params.error}
           nextPath={nextPath}
           siteName={settings.siteName}
+          localLoginEnabled={settings.localLoginEnabled}
         />
       </LoginPageShell>
     );

@@ -13,6 +13,7 @@ import {
   uint8ArrayToBase64Url
 } from "@/lib/passkeys";
 import { prisma } from "@/lib/prisma";
+import { getSetting } from "@/lib/settings";
 
 type RegistrationPayload = {
   csrf?: string;
@@ -27,6 +28,7 @@ function registrationError(message: string, status = 400) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!(await getSetting("localLoginEnabled"))) return registrationError("Passkey registration is disabled.", 403);
   const admin = await requireAdmin();
   if (!admin) return registrationError("Unauthorized", 401);
 

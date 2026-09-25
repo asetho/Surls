@@ -34,8 +34,8 @@ export function CreateUserForm({ csrf }: { csrf: string }) {
         </select>
       </label>
       <label>
-        Temporary password
-        <input name="password" type="password" autoComplete="new-password" minLength={12} required />
+        Temporary password (optional for external sign-in)
+        <input name="password" type="password" autoComplete="new-password" minLength={12} />
       </label>
       <button type="submit" disabled={pending}>
         <UserPlus size={16} aria-hidden />
