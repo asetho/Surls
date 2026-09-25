@@ -37,7 +37,10 @@ const uploads = vi.hoisted(() => ({
   uploadedFileUrl: vi.fn((storageKey: string) => `http://localhost:3000/uploads/${storageKey}`)
 }));
 
-vi.mock("@/lib/uploads", () => uploads);
+vi.mock("@/lib/uploads", async (importOriginal) => ({
+  ...uploads,
+  uploadedFilenameFromDestination: (await importOriginal<typeof import("@/lib/uploads")>()).uploadedFilenameFromDestination
+}));
 
 import {
   deleteUploadedFileWithRecord,
@@ -168,6 +171,26 @@ describe("uploaded file quota reservations", () => {
     expect(transaction.$executeRaw.mock.invocationCallOrder[0]).toBeLessThan(
       uploads.deleteUploadedFile.mock.invocationCallOrder[0]
     );
+  });
+
+  it.each(["report.pdf", "%72eport.pdf", "report%2Epdf", "report%2epdf?download=1", "report.pdf#page=2"])("retains a file referenced using %s", async (filename) => {
+    transaction.shortLink.findMany.mockResolvedValue([{ id: "other_link", destinationUrl: `http://localhost:3000/uploads/${filename}` }]);
+    await deleteUploadedFileWithRecord("report.pdf", { onlyIfUnreferenced: true });
+    expect(transaction.uploadedFile.deleteMany).not.toHaveBeenCalled();
+    expect(uploads.deleteUploadedFile).not.toHaveBeenCalled();
+  });
+
+  it("checks later reference pages and ignores another origin or a different decoded file", async () => {
+    transaction.shortLink.findMany
+      .mockResolvedValueOnce(Array.from({ length: 200 }, (_, index) => ({ id: `other_${index}`, destinationUrl: "https://other.example/uploads/report.pdf" })))
+      .mockResolvedValueOnce([{ id: "last", destinationUrl: "http://localhost:3000/uploads/%72eport.pdf" }]);
+    await deleteUploadedFileWithRecord("report.pdf", { onlyIfUnreferenced: true });
+    expect(transaction.shortLink.findMany).toHaveBeenCalledTimes(2);
+    expect(uploads.deleteUploadedFile).not.toHaveBeenCalled();
+
+    transaction.shortLink.findMany.mockResolvedValue([{ id: "different", destinationUrl: "http://localhost:3000/uploads/report.pdf.bak" }]);
+    await deleteUploadedFileWithRecord("report.pdf", { onlyIfUnreferenced: true });
+    expect(uploads.deleteUploadedFile).toHaveBeenCalledWith("report.pdf");
   });
 
   it("serializes quota accounting and creates metadata in the caller transaction", async () => {

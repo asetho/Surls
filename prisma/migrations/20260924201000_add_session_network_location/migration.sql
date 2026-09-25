@@ -1,0 +1,1 @@
+ALTER TABLE "Session" ADD COLUMN "localNetwork" BOOLEAN NOT NULL DEFAULT false;

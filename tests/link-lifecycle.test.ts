@@ -189,20 +189,10 @@ describe("link lifecycle helpers", () => {
 
     await deleteShortLink("link_1", "/demo");
 
-    expect(shortLink.findFirst).toHaveBeenCalledWith({
-      where: {
-        OR: [
-          { destinationUrl: "http://localhost:3000/uploads/report.pdf" },
-          { destinationUrl: { startsWith: "http://localhost:3000/uploads/report.pdf?" } },
-          { destinationUrl: { startsWith: "http://localhost:3000/uploads/report.pdf#" } }
-        ]
-      },
-      select: { id: true }
-    });
-    expect(uploadedFileRecords.deleteUploadedFileWithRecord).toHaveBeenCalledWith("report.pdf");
+    expect(uploadedFileRecords.deleteUploadedFileWithRecord).toHaveBeenCalledWith("report.pdf", { onlyIfUnreferenced: true });
   });
 
-  it("keeps a shared uploaded file while another short link still references it", async () => {
+  it("requires a shared-reference check when deleting a non-primary upload link", async () => {
     shortLink.findUnique.mockResolvedValue({
       id: "link_1",
       code: "demo",
@@ -212,7 +202,7 @@ describe("link lifecycle helpers", () => {
 
     await deleteShortLink("link_1", "/demo");
 
-    expect(uploadedFileRecords.deleteUploadedFileWithRecord).not.toHaveBeenCalled();
+    expect(uploadedFileRecords.deleteUploadedFileWithRecord).toHaveBeenCalledWith("report.pdf", { onlyIfUnreferenced: true });
   });
 
   it("deletes a primary uploaded file even when an unrelated link copied its raw destination", async () => {

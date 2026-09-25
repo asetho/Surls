@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - ".github/workflows/surls-share.yml"
+      - "scripts/cleanup-share-signing.sh"
       - "Share-App/**"
       - "src/app/api/uploads/route.ts"
       - "src/lib/upload-and-shorten.ts"
@@ -15,6 +16,7 @@ on:
       - main
     paths:
       - ".github/workflows/surls-share.yml"
+      - "scripts/cleanup-share-signing.sh"
       - "Share-App/**"
       - "src/app/api/uploads/route.ts"
       - "src/lib/upload-and-shorten.ts"
@@ -165,6 +167,7 @@ jobs:
           app_profile_source="${RUNNER_TEMP}/surls-share-app.provisionprofile"
           extension_profile_source="${RUNNER_TEMP}/surls-share-extension.provisionprofile"
           profile_directory="${HOME}/Library/MobileDevice/Provisioning Profiles"
+          umask 077
 
           printf '%s' "${DEVELOPER_ID_P12_BASE64}" | base64 -D > "${certificate_path}"
           printf '%s' "${APP_PROFILE_BASE64}" | base64 -D > "${app_profile_source}"
@@ -195,13 +198,12 @@ jobs:
           extension_profile_uuid="$(/usr/libexec/PlistBuddy -c "Print :UUID" "${extension_profile_plist}")"
           app_profile_path="${profile_directory}/${app_profile_uuid}.provisionprofile"
           extension_profile_path="${profile_directory}/${extension_profile_uuid}.provisionprofile"
-          cp "${app_profile_source}" "${app_profile_path}"
-          cp "${extension_profile_source}" "${extension_profile_path}"
           {
-            echo "SURLS_SHARE_KEYCHAIN_PATH=${keychain_path}"
             echo "SURLS_SHARE_APP_PROFILE_PATH=${app_profile_path}"
             echo "SURLS_SHARE_EXTENSION_PROFILE_PATH=${extension_profile_path}"
           } >> "${GITHUB_ENV}"
+          cp "${app_profile_source}" "${app_profile_path}"
+          cp "${extension_profile_source}" "${extension_profile_path}"
 
       - name: Archive Developer ID build
         env:
@@ -252,6 +254,8 @@ jobs:
         run: |
           set -euo pipefail
           notary_key_path="${RUNNER_TEMP}/AuthKey_${NOTARY_KEY_ID}.p8"
+          echo "SURLS_SHARE_NOTARY_KEY_PATH=${notary_key_path}" >> "${GITHUB_ENV}"
+          umask 077
           printf '%s' "${NOTARY_KEY_BASE64}" | base64 -D > "${notary_key_path}"
           xcrun notarytool submit "${SURLS_SHARE_DMG_PATH}" \
             --key "${notary_key_path}" \
@@ -262,6 +266,10 @@ jobs:
           xcrun stapler staple "${SURLS_SHARE_DMG_PATH}"
           xcrun stapler validate "${SURLS_SHARE_DMG_PATH}"
           spctl --assess --type open --context context:primary-signature --verbose=2 "${SURLS_SHARE_DMG_PATH}"
+
+      - name: Remove signing materials
+        if: always()
+        run: bash scripts/cleanup-share-signing.sh
 
       - name: Create checksum
         run: |
@@ -343,16 +351,3 @@ jobs:
                   "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}"
               done
           done <<< "${old_release_ids}"
-
-      - name: Remove signing materials
-        if: always()
-        run: |
-          if [[ -n "${SURLS_SHARE_KEYCHAIN_PATH:-}" ]]; then
-            security delete-keychain "${SURLS_SHARE_KEYCHAIN_PATH}" || true
-          fi
-          if [[ -n "${SURLS_SHARE_APP_PROFILE_PATH:-}" ]]; then
-            rm -f "${SURLS_SHARE_APP_PROFILE_PATH}"
-          fi
-          if [[ -n "${SURLS_SHARE_EXTENSION_PROFILE_PATH:-}" ]]; then
-            rm -f "${SURLS_SHARE_EXTENSION_PROFILE_PATH}"
-          fi

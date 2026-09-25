@@ -3,6 +3,27 @@ import { describe, expect, it, vi } from "vitest";
 import { extractHtmlTitle, fetchPageTitle, fetchWithPinnedAddress } from "@/lib/page-title";
 
 describe("page title fetching", () => {
+  it.each([205, 600])("closes an unfinished upstream body for status %s", async (status) => {
+    let closed = false;
+    const server = http.createServer((_request, response) => {
+      response.on("close", () => { closed = true; });
+      response.writeHead(status, { "content-type": "text/html" });
+      response.write("unfinished body");
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("Expected a TCP listener");
+    try {
+      await expect(fetchPageTitle(`http://unfinished.example:${address.port}/`, {
+        resolveSafeAddress: async () => ({ address: "127.0.0.1", family: 4 })
+      })).resolves.toBeNull();
+      await vi.waitFor(() => expect(closed).toBe(true), { timeout: 300 });
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
   it("extracts and normalizes HTML titles", () => {
     expect(extractHtmlTitle("<html><head><title> Example &amp; Co.\n Page </title></head></html>")).toBe(
       "Example & Co. Page"

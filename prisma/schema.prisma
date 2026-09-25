@@ -91,6 +91,7 @@ model Session {
   userAgent   String?
   country     String?
   region      String?
+  localNetwork Boolean @default(false)
   createdAt   DateTime @default(now())
   lastSeenAt  DateTime @default(now())
   expiresAt   DateTime
@@ -242,6 +243,18 @@ model AppSetting {
   key       String   @id
   value     Json
   updatedAt DateTime @updatedAt
+}
+
+model ExternalProviderSetting {
+  provider        String   @id
+  clientId        String
+  secretEncrypted String
+  label           String
+  logoDataUrl     String?
+  issuer          String?
+  tenantId        String?
+  enabled         Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
 }
 
 model CookieConsent {

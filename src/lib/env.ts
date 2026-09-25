@@ -30,6 +30,9 @@ const envSchema = z
   .object({
     APP_NAME: emptyToUndefined(z.string().default("Surls")),
     BASE_URL: emptyToUndefined(z.string().url().default("http://localhost:3000")),
+    SURLS_LOGIN_DEV_ENABLED: emptyToUndefined(
+      z.enum(["true", "false"]).default("false").transform((value) => value === "true")
+    ),
     AUTH_SECRET: emptyToUndefined(z.string().min(32).default("development-secret-change-before-production")),
     OIDC_ISSUER: emptyToUndefined(z.string().url().max(512).optional()),
     OIDC_CLIENT_ID: emptyToUndefined(z.string().optional()),

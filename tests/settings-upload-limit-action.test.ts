@@ -9,6 +9,7 @@ const settings = vi.hoisted(() => ({
 }));
 const audit = vi.hoisted(() => ({ auditLog: vi.fn() }));
 const prisma = vi.hoisted(() => ({ externalIdentity: { findMany: vi.fn() } }));
+const providers = vi.hoisted(() => ({ getConfiguredExternalProviders: vi.fn() }));
 const nextCache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 const navigation = vi.hoisted(() => ({
   redirect: vi.fn((path: string) => {
@@ -21,6 +22,7 @@ vi.mock("@/lib/csrf", () => csrf);
 vi.mock("@/lib/settings", () => settings);
 vi.mock("@/lib/audit", () => audit);
 vi.mock("@/lib/prisma", () => ({ prisma }));
+vi.mock("@/lib/external-provider-settings", () => providers);
 vi.mock("next/cache", () => nextCache);
 vi.mock("next/navigation", () => navigation);
 vi.mock("@/lib/admin-toast", () => ({
@@ -38,27 +40,52 @@ function settingsForm(mode: "limited" | "unlimited", megabytes = "25") {
   return formData;
 }
 
-describe("site upload limit settings action", () => {
+function signInForm(localLoginEnabled: boolean, externalAutoProvisionUsers = false) {
+  const formData = new FormData();
+  if (localLoginEnabled) formData.set("localLoginEnabled", "on");
+  if (externalAutoProvisionUsers) formData.set("externalAutoProvisionUsers", "on");
+  return formData;
+}
+
+describe("settings actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     auth.requireSiteAdmin.mockResolvedValue({ id: "admin_1" });
     settings.setSetting.mockResolvedValue({});
-    settings.getSettings.mockResolvedValue({ localLoginEnabled: true });
+    settings.getSettings.mockResolvedValue({ localLoginEnabled: true, externalLoginEnabled: true });
     prisma.externalIdentity.findMany.mockResolvedValue([]);
+    providers.getConfiguredExternalProviders.mockResolvedValue([]);
   });
 
-  it("does not disable local sign-in from an older settings form", async () => {
+  it("does not change sign-in methods when saving site settings", async () => {
     const { updateSettingsAction } = await import("@/app/admin/settings/actions");
     await expect(updateSettingsAction(settingsForm("limited"))).rejects.toThrow("redirect:/admin/settings?saved=true");
-    expect(settings.setSetting).not.toHaveBeenCalledWith("localLoginEnabled", false);
+    expect(settings.setSetting).not.toHaveBeenCalledWith("localLoginEnabled", expect.anything());
+    expect(settings.setSetting).not.toHaveBeenCalledWith("externalAutoProvisionUsers", expect.anything());
   });
 
   it("refuses to disable local sign-in without a connected provider", async () => {
-    const form = settingsForm("limited");
-    form.set("authSettingsPresent", "1");
-    const { updateSettingsAction } = await import("@/app/admin/settings/actions");
-    await expect(updateSettingsAction(form)).rejects.toThrow("redirect:/admin/settings?saved=true");
+    const { updateSignInMethodsAction } = await import("@/app/admin/settings/actions");
+    await expect(updateSignInMethodsAction(signInForm(false))).rejects.toThrow("redirect:/admin/settings?saved=true");
     expect(settings.setSetting).not.toHaveBeenCalledWith("localLoginEnabled", false);
+  });
+
+  it("refuses to disable local sign-in while external sign-in is off", async () => {
+    settings.getSettings.mockResolvedValue({ localLoginEnabled: true, externalLoginEnabled: false });
+    const { updateSignInMethodsAction } = await import("@/app/admin/settings/actions");
+    await expect(updateSignInMethodsAction(signInForm(false))).rejects.toThrow("redirect:/admin/settings?saved=true");
+    expect(settings.setSetting).not.toHaveBeenCalledWith("localLoginEnabled", false);
+    expect(prisma.externalIdentity.findMany).not.toHaveBeenCalled();
+  });
+
+  it("saves sign-in methods without changing the other site settings", async () => {
+    const { updateSignInMethodsAction } = await import("@/app/admin/settings/actions");
+    await expect(updateSignInMethodsAction(signInForm(true, true))).rejects.toThrow("redirect:/admin/settings?saved=true");
+    expect(settings.setSetting).toHaveBeenCalledWith("localLoginEnabled", true);
+    expect(settings.setSetting).toHaveBeenCalledWith("externalAutoProvisionUsers", true);
+    expect(settings.setSetting).toHaveBeenCalledTimes(2);
+    expect(nextCache.revalidatePath).toHaveBeenCalledWith("/admin/profile");
+    expect(nextCache.revalidatePath).toHaveBeenCalledWith("/bookmarklet");
   });
 
   it("stores a site-wide maximum upload size", async () => {

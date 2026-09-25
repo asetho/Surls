@@ -70,7 +70,6 @@
 
 @media (max-width: 700px) {
   .dashboard-theme-editor-toolbar,
-  .dashboard-theme-editor-toolbar > button,
   .dashboard-theme-editor-toolbar > select,
   .dashboard-theme-filter {
     width: 100%;

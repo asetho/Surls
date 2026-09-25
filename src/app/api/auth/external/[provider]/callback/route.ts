@@ -5,14 +5,16 @@ import { createSession, getCurrentSession, setSessionCookie } from "@/lib/auth";
 import { appBaseUrl } from "@/lib/env";
 import {
   decodeExternalAuth, EXTERNAL_AUTH_COOKIE, expiredExternalAuthCookieOptions,
-  externalProfile, externalProviderConfig, isExternalProvider
+  externalProfile
 } from "@/lib/external-auth";
+import { getExternalProviderConfig } from "@/lib/external-provider-settings";
 import { ExternalIdentityError, resolveExternalIdentity } from "@/lib/external-identity";
 import { hashToken } from "@/lib/crypto";
-import { prisma } from "@/lib/prisma";
 import { encodePendingLogin, PENDING_LOGIN_COOKIE, pendingLoginCookieOptions } from "@/lib/pending-login";
+import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { requestIpHash } from "@/lib/request";
+import { getSetting } from "@/lib/settings";
 
 function errorResponse(message: string, link: boolean) {
   const url = new URL(link ? "/admin/profile" : "/admin", appBaseUrl());
@@ -26,7 +28,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const link = Boolean(pending?.userId);
   let response: NextResponse;
   try {
-    if (!isExternalProvider(provider) || !externalProviderConfig(provider) || !pending || pending.provider !== provider) {
+    if (!(await getSetting("externalLoginEnabled"))) throw new Error("External sign-in is disabled.");
+    const config = await getExternalProviderConfig(provider);
+    if (!config || !pending || pending.provider !== provider) {
       throw new Error("The sign-in request expired. Please try again.");
     }
     if (request.nextUrl.searchParams.get("state") !== pending.state) throw new Error("The sign-in request could not be verified.");
@@ -38,17 +42,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       if (current?.userId !== pending.userId) throw new Error("Sign in again before connecting this provider.");
     }
     const callback = new URL(`${appBaseUrl()}${request.nextUrl.pathname}${request.nextUrl.search}`);
-    const profile = await externalProfile(provider, callback, pending);
-    const userId = await resolveExternalIdentity(provider, profile, pending.userId);
+    const profile = await externalProfile(config.provider, callback, pending, config);
+    const userId = await resolveExternalIdentity(config, profile, pending.userId);
     if (pending.userId) {
       response = NextResponse.redirect(new URL("/admin/profile?connected=1", appBaseUrl()), 303);
     } else {
-      const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, totpCredential: { select: { enabled: true } } } });
+      const user = await prisma.user.findUnique({
+        where: { id: userId }, select: { email: true, totpCredential: { select: { enabled: true } } }
+      });
       if (!user) throw new Error("The user no longer exists.");
-      if (user.totpCredential?.enabled) {
+      if (user.totpCredential?.enabled && profile.mfaVerified !== true) {
         response = NextResponse.redirect(new URL("/admin/2fa", appBaseUrl()), 303);
-        response.cookies.set(PENDING_LOGIN_COOKIE, encodePendingLogin({ email: user.email, nextPath: pending.nextPath,
-          purpose: "external_2fa", userId }), pendingLoginCookieOptions());
+        response.cookies.set(PENDING_LOGIN_COOKIE, encodePendingLogin({
+          email: user.email, nextPath: pending.nextPath, purpose: "external_2fa", userId
+        }), pendingLoginCookieOptions());
       } else {
         const { token, expiresAt } = await createSession(userId, request);
         await auditLog({ userId, action: AuditAction.LOGIN_SUCCESS, ipHash: requestIpHash(request),

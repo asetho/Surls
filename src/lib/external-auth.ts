@@ -1,59 +1,19 @@
 import { createHmac } from "node:crypto";
 import * as oidc from "openid-client";
-import { appBaseUrl, env, isProduction } from "./env";
+import { isProduction } from "./env";
 import { randomToken, signValue, verifySignedValue } from "./crypto";
+import {
+  externalCallbackUrl, externalProviderType, type ExternalProvider, type ExternalProviderConfig
+} from "./external-provider-settings";
 import { safeRedirectPath } from "./redirect-path";
+
+export { externalCallbackUrl, isExternalProvider } from "./external-provider-settings";
+export type { ExternalProvider } from "./external-provider-settings";
 
 export const EXTERNAL_AUTH_COOKIE = "surls_external_auth";
 const MAX_AGE_SECONDS = 10 * 60;
-export const EXTERNAL_PROVIDERS = ["oidc", "google", "github", "discord", "microsoft", "facebook", "x"] as const;
-export type ExternalProvider = (typeof EXTERNAL_PROVIDERS)[number];
-
-export function isExternalProvider(value: string): value is ExternalProvider {
-  return EXTERNAL_PROVIDERS.some((provider) => provider === value);
-}
-
-export function externalProviderConfig(provider: ExternalProvider) {
-  if (provider === "oidc" && env.OIDC_ISSUER && env.OIDC_CLIENT_ID && env.OIDC_CLIENT_SECRET) {
-    return { id: env.OIDC_CLIENT_ID, secret: env.OIDC_CLIENT_SECRET, label: env.OIDC_PROVIDER_NAME };
-  }
-  if (provider === "google" && env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
-    return { id: env.GOOGLE_CLIENT_ID, secret: env.GOOGLE_CLIENT_SECRET, label: "Google" };
-  }
-  if (provider === "facebook" && env.FACEBOOK_CLIENT_ID && env.FACEBOOK_CLIENT_SECRET) {
-    return { id: env.FACEBOOK_CLIENT_ID, secret: env.FACEBOOK_CLIENT_SECRET, label: "Facebook" };
-  }
-  if (provider === "x" && env.X_CLIENT_ID && env.X_CLIENT_SECRET) {
-    return { id: env.X_CLIENT_ID, secret: env.X_CLIENT_SECRET, label: "X" };
-  }
-  if (provider === "github" && env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
-    return { id: env.GITHUB_CLIENT_ID, secret: env.GITHUB_CLIENT_SECRET, label: "GitHub" };
-  }
-  if (provider === "discord" && env.DISCORD_CLIENT_ID && env.DISCORD_CLIENT_SECRET) {
-    return { id: env.DISCORD_CLIENT_ID, secret: env.DISCORD_CLIENT_SECRET, label: "Discord" };
-  }
-  if (provider === "microsoft" && env.MICROSOFT_CLIENT_ID && env.MICROSOFT_CLIENT_SECRET && env.MICROSOFT_TENANT_ID) {
-    return { id: env.MICROSOFT_CLIENT_ID, secret: env.MICROSOFT_CLIENT_SECRET, label: "Microsoft" };
-  }
-  return null;
-}
-
-export function configuredExternalProviders() {
-  return EXTERNAL_PROVIDERS.filter((provider) => externalProviderConfig(provider));
-}
-
-export function externalProviderKey(provider: ExternalProvider) {
-  if (provider === "oidc") return `oidc:${env.OIDC_ISSUER}`;
-  if (provider === "microsoft") return `microsoft:${env.MICROSOFT_TENANT_ID}`;
-  return provider;
-}
-
-export function externalCallbackUrl(provider: ExternalProvider) {
-  return `${appBaseUrl()}/api/auth/external/${provider}/callback`;
-}
-
 type PendingExternalAuth = {
-  provider: ExternalProvider;
+  provider: string;
   state: string;
   verifier: string;
   nonce: string;
@@ -80,7 +40,7 @@ export function decodeExternalAuth(value: string | undefined): PendingExternalAu
   if (!encoded) return null;
   try {
     const parsed = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as PendingExternalAuth;
-    if (!isExternalProvider(parsed.provider) || typeof parsed.state !== "string" || parsed.state.length < 30 ||
+    if (!externalProviderType(parsed.provider) || typeof parsed.state !== "string" || parsed.state.length < 30 ||
         typeof parsed.verifier !== "string" || parsed.verifier.length < 30 || typeof parsed.nonce !== "string" ||
         parsed.nonce.length < 30 || (parsed.userId !== null && typeof parsed.userId !== "string") ||
         !Number.isSafeInteger(parsed.issuedAt) || parsed.issuedAt > Date.now() + 30_000 ||
@@ -91,10 +51,10 @@ export function decodeExternalAuth(value: string | undefined): PendingExternalAu
   }
 }
 
-function oidcIssuer(provider: "oidc" | "google" | "microsoft") {
+function oidcIssuer(provider: "oidc" | "google" | "microsoft", credentials: ExternalProviderConfig) {
   if (provider === "google") return "https://accounts.google.com";
-  if (provider === "microsoft") return `https://login.microsoftonline.com/${env.MICROSOFT_TENANT_ID}/v2.0`;
-  return env.OIDC_ISSUER!;
+  if (provider === "microsoft") return `https://login.microsoftonline.com/${credentials.tenantId}/v2.0`;
+  return credentials.issuer!;
 }
 
 function basicClientAuthorization(clientId: string, clientSecret: string) {
@@ -102,20 +62,26 @@ function basicClientAuthorization(clientId: string, clientSecret: string) {
   return `Basic ${Buffer.from(`${formEncode(clientId)}:${formEncode(clientSecret)}`).toString("base64")}`;
 }
 
-async function oidcConfiguration(provider: "oidc" | "google" | "microsoft") {
-  const credentials = externalProviderConfig(provider)!;
-  return oidc.discovery(new URL(oidcIssuer(provider)), credentials.id, { client_secret: credentials.secret }, oidc.ClientSecretPost(credentials.secret));
+async function oidcConfiguration(provider: "oidc" | "google" | "microsoft", credentials: ExternalProviderConfig) {
+  return oidc.discovery(new URL(oidcIssuer(provider, credentials)), credentials.id, { client_secret: credentials.secret }, oidc.ClientSecretPost(credentials.secret));
 }
 
-export type ExternalIdentityProfile = { subject: string; email: string | null; emailVerified: boolean; name: string | null };
+export type ExternalIdentityProfile = {
+  subject: string; email: string | null; emailVerified: boolean; name: string | null; mfaVerified: boolean
+};
 
-export async function externalAuthorizationUrl(provider: ExternalProvider, state: string, verifier: string, nonce: string) {
-  const credentials = externalProviderConfig(provider);
-  if (!credentials) throw new Error("This sign-in provider is not configured.");
+function confirmsMfa(amr: unknown): boolean {
+  if (!Array.isArray(amr) || !amr.every((method) => typeof method === "string")) return false;
+  // RFC 8176 methods are case-sensitive. An arbitrary ACR level or passkey
+  // possession alone does not establish that multiple factors were verified.
+  return amr.includes("mfa") || (amr.includes("pwd") && amr.includes("otp"));
+}
+
+export async function externalAuthorizationUrl(provider: ExternalProvider, state: string, verifier: string, nonce: string, credentials: ExternalProviderConfig) {
   const challenge = await oidc.calculatePKCECodeChallenge(verifier);
-  const callback = externalCallbackUrl(provider);
+  const callback = externalCallbackUrl(credentials.key);
   if (provider === "oidc" || provider === "google" || provider === "microsoft") {
-    const configuration = await oidcConfiguration(provider);
+    const configuration = await oidcConfiguration(provider, credentials);
     return oidc.buildAuthorizationUrl(configuration, {
       response_type: "code", client_id: credentials.id, redirect_uri: callback,
       scope: "openid email profile", state, nonce, code_challenge: challenge, code_challenge_method: "S256"
@@ -146,11 +112,9 @@ async function jsonResponse(response: Response): Promise<Record<string, unknown>
   return body as Record<string, unknown>;
 }
 
-export async function externalProfile(provider: ExternalProvider, callback: URL, pending: PendingExternalAuth): Promise<ExternalIdentityProfile> {
-  const credentials = externalProviderConfig(provider);
-  if (!credentials) throw new Error("This sign-in provider is not configured.");
+export async function externalProfile(provider: ExternalProvider, callback: URL, pending: PendingExternalAuth, credentials: ExternalProviderConfig): Promise<ExternalIdentityProfile> {
   if (provider === "oidc" || provider === "google" || provider === "microsoft") {
-    const configuration = await oidcConfiguration(provider);
+    const configuration = await oidcConfiguration(provider, credentials);
     const tokens = await oidc.authorizationCodeGrant(configuration, callback, {
       pkceCodeVerifier: pending.verifier, expectedState: pending.state, expectedNonce: pending.nonce, idTokenExpected: true
     });
@@ -167,6 +131,9 @@ export async function externalProfile(provider: ExternalProvider, callback: URL,
       subject: claims.sub,
       email: verifiedEmail,
       emailVerified: Boolean(verifiedEmail),
+      // Only use the ID token validated by the nonce-bound HTTPS code exchange.
+      // UserInfo, account enrollment, and callback parameters are not MFA proof.
+      mfaVerified: confirmsMfa(claims.amr),
       name: typeof claims.name === "string" ? claims.name : typeof userInfo?.name === "string" ? userInfo.name : null
     };
   }
@@ -176,7 +143,7 @@ export async function externalProfile(provider: ExternalProvider, callback: URL,
     const token = await jsonResponse(await fetch("https://graph.facebook.com/oauth/access_token", {
       method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ client_id: credentials.id, client_secret: credentials.secret,
-        redirect_uri: externalCallbackUrl(provider), code }), cache: "no-store"
+        redirect_uri: externalCallbackUrl(credentials.key), code }), cache: "no-store"
     }));
     if (typeof token.access_token !== "string") throw new Error("Facebook did not return an access token.");
     const proof = createHmac("sha256", credentials.secret).update(token.access_token).digest("hex");
@@ -186,14 +153,14 @@ export async function externalProfile(provider: ExternalProvider, callback: URL,
     const profile = await jsonResponse(await fetch(url, { headers: { authorization: `Bearer ${token.access_token}` }, cache: "no-store" }));
     if (typeof profile.id !== "string" || !profile.id) throw new Error("Facebook did not return an identity.");
     return { subject: profile.id, email: typeof profile.email === "string" ? profile.email : null,
-      emailVerified: false, name: typeof profile.name === "string" ? profile.name : null };
+      emailVerified: false, mfaVerified: false, name: typeof profile.name === "string" ? profile.name : null };
   }
   if (provider === "github" || provider === "discord") {
     const token = await jsonResponse(await fetch(provider === "github" ? "https://github.com/login/oauth/access_token" : "https://discord.com/api/oauth2/token", {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
       body: new URLSearchParams({ client_id: credentials.id, client_secret: credentials.secret,
-        code, redirect_uri: externalCallbackUrl(provider), grant_type: "authorization_code", code_verifier: pending.verifier }),
+        code, redirect_uri: externalCallbackUrl(credentials.key), grant_type: "authorization_code", code_verifier: pending.verifier }),
       cache: "no-store"
     }));
     if (typeof token.access_token !== "string") throw new Error("The provider did not return an access token.");
@@ -202,19 +169,19 @@ export async function externalProfile(provider: ExternalProvider, callback: URL,
     if (provider === "discord") {
       if (typeof user.id !== "string" || !user.id) throw new Error("Discord did not return an identity.");
       return { subject: user.id, email: typeof user.email === "string" ? user.email : null,
-        emailVerified: user.verified === true, name: typeof user.global_name === "string" ? user.global_name : null };
+        emailVerified: user.verified === true, mfaVerified: false, name: typeof user.global_name === "string" ? user.global_name : null };
     }
     if (typeof user.id !== "number" || !Number.isSafeInteger(user.id)) throw new Error("GitHub did not return an identity.");
     const emailsResponse = await fetch("https://api.github.com/user/emails", { headers, cache: "no-store" });
     const emails: unknown = emailsResponse.ok ? await emailsResponse.json() : [];
     const primary = Array.isArray(emails) ? emails.find((item) => item && typeof item === "object" && item.primary === true && item.verified === true) : null;
     return { subject: String(user.id), email: primary && typeof primary.email === "string" ? primary.email : null,
-      emailVerified: Boolean(primary), name: typeof user.name === "string" ? user.name : null };
+      emailVerified: Boolean(primary), mfaVerified: false, name: typeof user.name === "string" ? user.name : null };
   }
   const token = await jsonResponse(await fetch("https://api.x.com/2/oauth2/token", {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded", authorization: basicClientAuthorization(credentials.id, credentials.secret) },
-    body: new URLSearchParams({ grant_type: "authorization_code", code, redirect_uri: externalCallbackUrl(provider), code_verifier: pending.verifier }),
+    body: new URLSearchParams({ grant_type: "authorization_code", code, redirect_uri: externalCallbackUrl(credentials.key), code_verifier: pending.verifier }),
     cache: "no-store"
   }));
   if (typeof token.access_token !== "string") throw new Error("X did not return an access token.");
@@ -226,7 +193,7 @@ export async function externalProfile(provider: ExternalProvider, callback: URL,
     throw new Error("X did not return an identity.");
   }
   const user = data as Record<string, unknown>;
-  return { subject: user.id as string, email: null, emailVerified: false,
+  return { subject: user.id as string, email: null, emailVerified: false, mfaVerified: false,
     name: typeof user.name === "string" ? user.name : null };
 }
 

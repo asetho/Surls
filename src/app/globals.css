@@ -118,10 +118,13 @@ button,
   font-weight: 700;
   gap: 0.34rem;
   justify-content: center;
+  justify-self: start;
   line-height: 1.15;
+  max-width: 100%;
   min-height: 1.9rem;
   padding: 0.28rem 0.46rem;
   text-decoration: none;
+  width: fit-content;
   transition:
     background-color 150ms ease,
     border-color 150ms ease,
@@ -404,6 +407,26 @@ button.danger-outline:hover {
   padding: 1rem;
 }
 
+.settings-save-button {
+  justify-self: start;
+  padding-inline: 0.85rem;
+  width: fit-content;
+}
+
+.sign-in-methods-card .form-stack {
+  gap: 0.65rem;
+}
+
+.sign-in-methods-card .form-stack > p,
+.sign-in-method-option p {
+  margin: 0;
+}
+
+.sign-in-method-option {
+  display: grid;
+  gap: 0.15rem;
+}
+
 .upload-limit-setting-row {
   align-items: center;
   display: grid;
@@ -442,6 +465,453 @@ button.danger-outline:hover {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.config-signin-heading,
+.config-provider-section-header,
+.config-provider-editor-header {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.config-signin-heading {
+  justify-content: flex-start;
+  gap: 0.8rem;
+}
+
+.config-signin-heading h2,
+.config-provider-section-header h3 {
+  margin: 0;
+}
+
+.config-provider-gear {
+  align-items: center;
+  display: inline-flex;
+  flex: none;
+  justify-content: center;
+}
+
+.config-provider-drawer,
+.config-provider-picker,
+.config-provider-editor-dialog {
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  height: 100dvh;
+  margin: 0 0 0 auto;
+  max-height: 100dvh;
+  max-width: min(680px, calc(100vw - 1rem));
+  padding: 0;
+  width: min(680px, calc(100vw - 1rem));
+}
+
+.config-provider-picker,
+.config-provider-editor-dialog {
+  max-width: min(560px, calc(100vw - 1rem));
+  width: min(560px, calc(100vw - 1rem));
+}
+
+.config-provider-drawer::backdrop,
+.config-provider-picker::backdrop,
+.config-provider-editor-dialog::backdrop {
+  background: var(--overlay-background);
+  opacity: 0.58;
+}
+
+.config-provider-drawer-panel,
+.config-provider-picker-panel,
+.config-provider-editor-panel {
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100%;
+  min-width: 0;
+}
+
+.config-provider-drawer-header,
+.config-provider-drawer-footer,
+.config-provider-picker-panel > header,
+.config-provider-picker-panel > footer,
+.config-provider-editor-header,
+.config-provider-editor-footer {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+}
+
+.config-provider-drawer-header,
+.config-provider-picker-panel > header,
+.config-provider-editor-header {
+  border-bottom: 1px solid var(--border);
+}
+
+.config-provider-drawer-footer,
+.config-provider-picker-panel > footer,
+.config-provider-editor-footer {
+  border-top: 1px solid var(--border);
+}
+
+.config-provider-drawer-header h2,
+.config-provider-picker-panel h2,
+.config-provider-editor-header h2 {
+  margin: 0;
+}
+
+.config-provider-drawer-header p {
+  margin: 0.3rem 0 0;
+}
+
+.config-provider-drawer-content,
+.config-provider-picker-panel,
+.config-provider-editor-content {
+  overflow: auto;
+}
+
+.config-provider-drawer-content {
+  display: grid;
+  gap: 1.25rem;
+  align-content: start;
+  padding: 1.5rem;
+}
+
+.config-provider-auth-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.config-provider-auth-card .config-provider-section-header {
+  background: var(--surface-strong);
+  border-bottom: 1px solid var(--border);
+  padding: 0.45rem 0.75rem;
+}
+
+.config-provider-auth-content {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.config-provider-enable-row {
+  align-items: center;
+  display: flex;
+  gap: 0.65rem;
+  font-weight: 700;
+}
+
+.config-provider-switch-help {
+  margin: 0;
+}
+
+.config-provider-switch {
+  align-items: center;
+  background: var(--border);
+  border: 0;
+  border-radius: 999px;
+  display: flex;
+  height: 1.7rem;
+  justify-content: flex-start;
+  padding: 0.2rem;
+  width: 3rem;
+}
+
+.config-provider-switch[aria-checked="true"] {
+  background: var(--color-teal);
+}
+
+.config-provider-switch span {
+  background: var(--surface);
+  border-radius: 50%;
+  display: block;
+  height: 1.3rem;
+  width: 1.3rem;
+}
+
+.config-provider-switch[aria-checked="true"] span {
+  margin-left: auto;
+}
+
+.config-provider-list {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.config-provider-row,
+.config-provider-option {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  display: flex;
+  gap: 0.75rem;
+  text-align: left;
+  width: 100%;
+}
+
+.config-provider-row {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  min-height: 3.6rem;
+  min-width: 0;
+  padding: 0.6rem;
+}
+
+.config-provider-row:hover,
+.config-provider-option:hover {
+  background: var(--surface-strong);
+}
+
+.config-provider-row-wrapper {
+  min-width: 0;
+}
+
+.config-provider-menu {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  inset: auto;
+  margin: 0;
+  max-width: calc(100vw - 1rem);
+  min-width: 9rem;
+  padding: 0.3rem;
+  position: fixed;
+}
+
+.config-provider-menu:popover-open {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.config-provider-menu > button {
+  border-color: transparent;
+  gap: 0.55rem;
+  justify-content: flex-start;
+  min-height: 2rem;
+  padding: 0.45rem 0.6rem;
+  width: 100%;
+}
+
+.modal-dialog.config-provider-remove-dialog {
+  max-width: min(460px, calc(100vw - 2rem));
+  width: min(460px, calc(100vw - 2rem));
+}
+
+.config-provider-remove-dialog .modal-panel {
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.config-provider-remove-description p {
+  margin: 0 0 0.75rem;
+}
+
+.config-provider-remove-description p:last-child {
+  margin-bottom: 0;
+}
+
+.config-provider-remove-actions {
+  justify-content: flex-end;
+}
+
+.config-provider-row-label,
+.config-provider-option > span:last-child {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.config-provider-row strong,
+.config-provider-option strong,
+.config-provider-icon {
+  color: var(--text);
+}
+
+.config-provider-row small,
+.config-provider-option small {
+  font-size: 0.78rem;
+  font-weight: 400;
+}
+
+.config-provider-icon {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  display: inline-flex;
+  flex: none;
+  height: 2.2rem;
+  justify-content: center;
+  width: 2.2rem;
+}
+
+.config-provider-logo {
+  height: 1.55rem;
+  object-fit: contain;
+  width: 1.55rem;
+}
+
+:root[data-theme="dark"] .config-provider-icon[data-custom-logo="false"][data-provider="github"] .config-provider-logo,
+:root[data-theme="dark"] .config-provider-icon[data-custom-logo="false"][data-provider="x"] .config-provider-logo {
+  filter: invert(1);
+}
+
+.config-provider-empty {
+  align-self: center;
+  margin: 0;
+}
+
+.config-provider-add {
+  align-items: center;
+  display: flex;
+  gap: 0.4rem;
+  justify-content: center;
+  justify-self: stretch;
+  min-height: 3.6rem;
+  width: 100%;
+}
+
+.config-provider-editor-title {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.config-provider-editor-content {
+  align-content: start;
+  display: grid;
+  gap: 1.1rem;
+  min-height: 0;
+  padding: 1.5rem;
+}
+
+.config-provider-editor-header p {
+  margin: 0.25rem 0 0;
+}
+
+.config-provider-editor-footer {
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.config-provider-editor input {
+  min-width: 0;
+  width: 100%;
+}
+
+.config-provider-logo-field {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.config-provider-logo-field label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.config-provider-logo-field textarea {
+  min-width: 0;
+  width: 100%;
+}
+
+.config-provider-logo-field input[type="checkbox"] {
+  width: auto;
+}
+
+.config-provider-logo-field .checkbox-label {
+  align-items: center;
+  display: flex;
+}
+
+.config-provider-logo-field p {
+  margin: 0;
+}
+
+.config-provider-logo-preview {
+  align-items: center;
+  display: flex;
+  gap: 0.65rem;
+}
+
+.config-provider-picker-panel {
+  align-content: start;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+
+.config-provider-search {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+  margin: 1.25rem 1.5rem 0;
+}
+
+.config-provider-search input {
+  flex: 1;
+  min-width: 0;
+}
+
+.config-provider-picker-grid {
+  align-content: start;
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: auto;
+  padding: 1.25rem 1.5rem;
+}
+
+.config-provider-option {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  min-width: 0;
+  padding: 0.7rem;
+}
+
+.config-callback-url {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: block;
+  overflow-wrap: anywhere;
+  padding: 0.55rem 0.7rem;
+  user-select: text;
+}
+
+@media (max-width: 520px) {
+  .config-provider-drawer,
+  .config-provider-picker,
+  .config-provider-editor-dialog {
+    max-width: 100vw;
+    width: 100vw;
+  }
+
+  .config-provider-drawer-header,
+  .config-provider-drawer-footer,
+  .config-provider-drawer-content,
+  .config-provider-picker-panel > header,
+  .config-provider-picker-panel > footer,
+  .config-provider-picker-grid,
+  .config-provider-editor-header,
+  .config-provider-editor-footer,
+  .config-provider-editor-content {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .config-provider-picker-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .config-provider-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .settings-editor-card {
   align-content: start;
   display: grid;
@@ -474,7 +944,7 @@ button.danger-outline:hover {
 
 .settings-form-actions > button,
 .settings-form-actions > .button {
-  flex: 1 1 14rem;
+  flex: 0 0 auto;
 }
 
 .settings-hidden-form {
@@ -2980,6 +3450,7 @@ button.danger-outline:hover {
 }
 
 .profile-session-card {
+  align-content: start;
   background: var(--surface-strong);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -3009,6 +3480,7 @@ button.danger-outline:hover {
 }
 
 .profile-session-card dl > div {
+  align-items: start;
   display: grid;
   gap: 0.1rem;
   grid-template-columns: minmax(5.3rem, auto) 1fr;
@@ -3198,11 +3670,71 @@ textarea {
   --shadow: var(--dashboard-light-shadow, 0 18px 50px color-mix(in srgb, var(--dark-teal), transparent 84%));
 }
 
+.login-dev-toolbar {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  max-width: calc(100vw - 1.5rem);
+  padding: 0.55rem 0.7rem;
+  position: fixed;
+  right: max(0.75rem, env(safe-area-inset-right));
+  top: max(0.75rem, env(safe-area-inset-top));
+  z-index: 1000;
+}
+
+.login-dev-toolbar a {
+  border-radius: var(--radius);
+  color: inherit;
+  padding: 0.28rem 0.45rem;
+  text-decoration: none;
+}
+
+.login-dev-toolbar a[aria-current="page"] {
+  background: var(--color-teal);
+  color: var(--button-text);
+}
+
+.login-dev-toolbar span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .login-card {
   margin: 0 auto;
   max-width: 440px;
   padding: 1rem;
   width: 100%;
+}
+
+.login-card.surls-auth-form button,
+.login-card.surls-auth-form .external-login-button {
+  justify-self: stretch;
+  width: 100%;
+}
+
+.external-login-button {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.external-login-logo {
+  flex: none;
+  height: 1rem;
+  object-fit: contain;
+  width: 1rem;
+}
+
+:root[data-theme="dark"] .external-login-button[data-custom-logo="false"][data-provider="github"] .external-login-logo,
+:root[data-theme="dark"] .external-login-button[data-custom-logo="false"][data-provider="x"] .external-login-logo {
+  filter: invert(1);
 }
 
 .surls-auth-form-embedded {
@@ -3250,15 +3782,31 @@ textarea {
   background: var(--surls-login-button-hover-background, var(--color-deep-teal));
 }
 
-.surls-auth-form-embedded button.secondary {
+.surls-auth-form-embedded button.secondary,
+.surls-auth-form-embedded .external-login-button {
   background: var(--surls-login-secondary-background, transparent);
   border-color: var(--surls-login-secondary-border, var(--border));
   color: var(--surls-login-secondary-color, inherit);
   -webkit-text-fill-color: var(--surls-login-secondary-color, inherit);
 }
 
-.surls-auth-form-embedded button.secondary:hover {
+.surls-auth-form-embedded button.secondary:hover,
+.surls-auth-form-embedded button.secondary:focus-visible,
+.surls-auth-form-embedded .external-login-button:hover,
+.surls-auth-form-embedded .external-login-button:focus-visible {
   background: var(--surls-login-secondary-hover-background, var(--surface-strong));
+  border-color: var(--surls-login-secondary-hover-border, var(--surls-login-secondary-border, currentColor));
+  color: var(--surls-login-secondary-hover-color, var(--surls-login-secondary-color, inherit));
+}
+
+.surls-auth-form-embedded :is(button, .button, input):focus-visible {
+  outline-color: var(--surls-login-focus-color, var(--surls-login-button-background, currentColor));
+}
+
+.surls-auth-form-embedded button.secondary,
+.surls-auth-form-embedded .external-login-button {
+  min-height: 2rem;
+  padding-block: 0.25rem;
 }
 
 .surls-auth-form-embedded .login-divider {
@@ -5808,26 +6356,29 @@ th {
   .content-header-actions,
   .link-detail-actions,
   .pagination {
-    justify-content: stretch;
+    justify-content: flex-start;
   }
 
   .content-header-actions > *,
   .content-header-actions > .button {
-    flex: 1 1 11rem;
+    flex: 0 0 auto;
   }
 
   .link-summary-list {
     grid-template-columns: 1fr;
   }
 
-  .link-lifecycle-actions > button,
   .link-lifecycle-actions > form,
-  .link-lifecycle-actions > form > button,
   .passkey-row,
   .role-form,
   .user-upload-limit-form,
   .user-identity-form {
     width: 100%;
+  }
+
+  .link-lifecycle-actions > button,
+  .link-lifecycle-actions > form > button {
+    width: fit-content;
   }
 
   .passkey-row,
@@ -5947,10 +6498,9 @@ th {
   }
 
   table.responsive-table .row-actions > *,
-  table.responsive-table .row-actions > form > button,
   table.responsive-table td[data-label="Actions"] > form,
   table.responsive-table td[data-label="Action"] > form {
-    width: 100%;
+    width: auto;
   }
 
   table.responsive-table td[data-label="Actions"] .row-actions,

@@ -62,13 +62,13 @@ export function fetchWithPinnedAddress(input: string | URL, init: PinnedRequestI
 
         const status = response.statusCode ?? 500;
         if (!Number.isSafeInteger(status) || status < 200 || status > 599) {
-          response.resume();
+          response.destroy();
           reject(new Error("Upstream returned an invalid HTTP status."));
           return;
         }
         const hasNullBody = init.method?.toUpperCase() === "HEAD" || status === 204 || status === 205 || status === 304;
         const body = hasNullBody ? null : Readable.toWeb(response) as ReadableStream<Uint8Array>;
-        if (hasNullBody) response.resume();
+        if (hasNullBody) response.destroy();
 
         try {
           resolve(
@@ -79,7 +79,7 @@ export function fetchWithPinnedAddress(input: string | URL, init: PinnedRequestI
             })
           );
         } catch (error) {
-          response.resume();
+          response.destroy();
           reject(error);
         }
       }

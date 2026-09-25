@@ -15,8 +15,9 @@ import {
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { safeRedirectPath } from "@/lib/redirect-path";
-import { requestIp, requestIpHash } from "@/lib/request";
+import { readJsonBodyWithLimit, requestIp, requestIpHash } from "@/lib/request";
 import { getSetting } from "@/lib/settings";
+import { takePasskeyVerificationSlot } from "@/lib/passkey-auth-limits";
 
 type AuthenticationPayload = {
   next?: string;
@@ -42,22 +43,35 @@ async function authError(message: string, request: NextRequest, status = 400) {
 export async function POST(request: NextRequest) {
   if (!(await getSetting("localLoginEnabled"))) return NextResponse.json({ error: "Passkey sign-in is disabled." }, { status: 403 });
   const ip = requestIp(request);
-  const rate = await checkRateLimit(`passkey:verify:${ip}`, ip === "unknown" ? 3_000 : 30, 15 * 60 * 1000);
-  if (!rate.allowed) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
-
-  const body = (await request.json().catch(() => null)) as AuthenticationPayload | null;
-  if (!body?.response) return authError("Missing passkey authentication response.", request);
+  if (ip !== "unknown") {
+    const rate = await checkRateLimit(`passkey:verify:${ip}`, 30, 15 * 60 * 1000);
+    if (!rate.allowed) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+  }
 
   const challenge = decodePasskeyChallenge(request.cookies.get(PASSKEY_AUTHENTICATION_COOKIE)?.value, "authentication");
-  if (!challenge) return authError("Passkey sign-in expired. Please try again.", request);
+  if (!challenge) {
+    // Limit invalid-request audit writes separately so they cannot lock out valid challenges.
+    const invalidRate = await checkRateLimit(`passkey:invalid-challenge:${ip}`, 30, 60 * 1000);
+    if (!invalidRate.allowed) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+    return authError("Passkey sign-in expired. Please try again.", request);
+  }
+  const attemptRate = await checkRateLimit(`passkey:attempt:${hashToken(challenge.challenge)}`, 30, PASSKEY_CHALLENGE_MAX_AGE_SECONDS * 1000);
+  if (!attemptRate.allowed) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
 
-  const passkey = await prisma.passkey.findUnique({
-    where: { credentialId: body.response.id },
-    include: { user: true }
-  });
-  if (!passkey) return authError("That passkey is not registered for this site.", request, 401);
+  const parsed = await readJsonBodyWithLimit(request, 64 * 1024);
+  const body = (parsed.ok ? parsed.value : null) as AuthenticationPayload | null;
+  if (!body?.response || typeof body.response.id !== "string" || !body.response.id || body.response.id.length > 1024) {
+    return authError("Missing or invalid passkey authentication response.", request, parsed.ok || parsed.error !== "too_large" ? 400 : 413);
+  }
+  const release = takePasskeyVerificationSlot();
+  if (!release) return NextResponse.json({ error: "Sign-in is busy. Please try again." }, { status: 429 });
 
   try {
+    const passkey = await prisma.passkey.findUnique({
+      where: { credentialId: body.response.id },
+      include: { user: true }
+    });
+    if (!passkey) return await authError("That passkey is not registered for this site.", request, 401);
     const verification = await verifyAuthenticationResponse({
       response: body.response,
       expectedChallenge: challenge.challenge,
@@ -67,14 +81,14 @@ export async function POST(request: NextRequest) {
       requireUserVerification: true
     });
 
-    if (!verification.verified) return authError("Could not verify that passkey.", request, 401);
+    if (!verification.verified) return await authError("Could not verify that passkey.", request, 401);
 
     const challengeUse = await checkRateLimit(
       `passkey:authentication-challenge:${hashToken(challenge.challenge)}`,
       1,
       PASSKEY_CHALLENGE_MAX_AGE_SECONDS * 2 * 1000
     );
-    if (!challengeUse.allowed) return authError("Passkey sign-in expired. Please try again.", request, 401);
+    if (!challengeUse.allowed) return await authError("Passkey sign-in expired. Please try again.", request, 401);
 
     await prisma.passkey.update({
       where: { id: passkey.id },
@@ -99,6 +113,8 @@ export async function POST(request: NextRequest) {
     setSessionCookie(response, token, expiresAt);
     return response;
   } catch {
-    return authError("Passkey sign-in failed.", request, 401);
+    return await authError("Passkey sign-in failed.", request, 401);
+  } finally {
+    release();
   }
 }

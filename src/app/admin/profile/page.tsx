@@ -14,7 +14,7 @@ import { prisma } from "@/lib/prisma";
 import { sessionClientSummary, sessionLocationLabel } from "@/lib/session-display";
 import { getDisplayTimeZone, getSiteName } from "@/lib/settings";
 import { getSettings } from "@/lib/settings";
-import { configuredExternalProviders, externalProviderConfig, externalProviderKey } from "@/lib/external-auth";
+import { externalProviderKey, getConfiguredExternalProviders } from "@/lib/external-provider-settings";
 import { getTotpSecret, totpOtpAuthUrl } from "@/lib/totp";
 import {
   cancelTotpSetupAction,
@@ -35,7 +35,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   if (!currentSession) redirect(adminLoginPath("/admin/profile"));
   const admin = currentSession.user;
   const csrf = getCsrfToken();
-  const [credential, backupCount, latestBackupCode, passkeys, sessions, siteName, siteDefaultTimeZone, settings, externalIdentities] = await Promise.all([
+  const [credential, backupCount, latestBackupCode, passkeys, sessions, siteName, siteDefaultTimeZone, settings, externalIdentities, externalProviders] = await Promise.all([
     prisma.totpCredential.findUnique({ where: { userId: admin.id } }),
     prisma.backupCode.count({ where: { userId: admin.id, usedAt: null } }),
     prisma.backupCode.findFirst({
@@ -51,6 +51,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         id: true,
         country: true,
         region: true,
+        localNetwork: true,
         userAgent: true,
         createdAt: true,
         lastSeenAt: true,
@@ -60,7 +61,8 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
     getSiteName(),
     getDisplayTimeZone(),
     getSettings(),
-    prisma.externalIdentity.findMany({ where: { userId: admin.id }, select: { provider: true } })
+    prisma.externalIdentity.findMany({ where: { userId: admin.id }, select: { provider: true } }),
+    getConfiguredExternalProviders()
   ]);
   const displayTimeZone = resolveDisplayTimeZone(admin.displayTimeZone, siteDefaultTimeZone);
 
@@ -79,7 +81,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
     ...session,
     ...sessionClientSummary(session.userAgent),
     current: session.id === currentSession.id,
-    location: sessionLocationLabel(session.country, session.region)
+    location: sessionLocationLabel(session.country, session.region, session.localNetwork)
   }));
 
   return (
@@ -109,15 +111,15 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         <h2>External sign-in</h2>
         {profileParams.error ? <p className="alert">{profileParams.error}</p> : null}
         {profileParams.connected ? <p className="success">External account connected.</p> : null}
-        <p className="muted">Connect a provider while signed in. Facebook and X require this step before they can be used for sign-in.</p>
-        {configuredExternalProviders().length ? (
+        <p className="muted">{settings.externalLoginEnabled ? "Connect a provider while signed in. Facebook and X require this step before they can be used for sign-in." : "External sign-in is currently disabled by the site administrator."}</p>
+        {externalProviders.length ? (
           <div className="form-stack">
-            {configuredExternalProviders().map((provider) => {
-              const linked = externalIdentities.some((identity) => identity.provider === externalProviderKey(provider));
+            {externalProviders.map((config) => {
+              const linked = externalIdentities.some((identity) => identity.provider === externalProviderKey(config));
               return (
-                <div className="row-actions" key={provider}>
-                  <span>{externalProviderConfig(provider)!.label}: {linked ? "Connected" : "Not connected"}</span>
-                  {!linked ? <form action={`/api/auth/external/${provider}`} method="post"><input type="hidden" name="csrf" value={csrf} /><button className="secondary" type="submit">Connect</button></form> : null}
+                <div className="row-actions" key={config.key}>
+                  <span>{config.label}: {linked ? "Connected" : "Not connected"}</span>
+                  {!linked && settings.externalLoginEnabled ? <form action={`/api/auth/external/${config.key}`} method="post"><input type="hidden" name="csrf" value={csrf} /><button className="secondary" type="submit">Connect</button></form> : null}
                 </div>
               );
             })}
@@ -213,8 +215,8 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
           <div>
             <h3>Active sessions</h3>
             <p className="muted">
-              Review where your account is signed in. Locations are coarse region and country values supplied by the
-              trusted proxy; Surls does not store session IP addresses.
+              Review where your account is signed in. Locations are approximate regions and countries.
+              Private and Tailscale connections show as Local network. Surls does not store session IP addresses.
             </p>
           </div>
 

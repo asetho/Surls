@@ -1,11 +1,12 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { prisma } from "./prisma";
 import { hashToken, randomToken } from "./crypto";
 import { env, isProduction } from "./env";
-import { requestCountry, requestIpHash, requestRegion } from "./request";
+import { requestIpHash } from "./request";
+import { sessionLocationFromHeaders } from "./session-location";
 import { adminLoginPath } from "./admin-login-path";
 import { safeRedirectPath } from "./redirect-path";
 
@@ -22,8 +23,7 @@ export async function createSession(userId: string, request: NextRequest) {
       tokenHash: hashToken(token),
       ipHash: requestIpHash(request),
       userAgent: request.headers.get("user-agent"),
-      country: requestCountry(request),
-      region: requestRegion(request),
+      ...sessionLocationFromHeaders(request.headers, env.TRUST_PROXY),
       expiresAt
     }
   });
@@ -80,7 +80,7 @@ export async function getCurrentSession() {
 
   await prisma.session.update({
     where: { id: session.id },
-    data: { lastSeenAt: new Date() }
+    data: { lastSeenAt: new Date(), ...sessionLocationFromHeaders(await headers(), env.TRUST_PROXY) }
   });
 
   return session;
