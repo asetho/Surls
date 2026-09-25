@@ -7,7 +7,6 @@ import { LoginPreviewLink } from "./LoginPreviewLink";
 import { LoginPreviewSurface } from "./LoginPreviewSurface";
 import { adminLoginPath } from "@/lib/admin-login-path";
 import { requireSiteAdmin } from "@/lib/auth";
-import { getCsrfToken } from "@/lib/csrf";
 import { pageFromFilesystem } from "@/lib/custom-pages";
 import { env } from "@/lib/env";
 import { getSettings } from "@/lib/settings";
@@ -54,7 +53,8 @@ export default async function LoginDevPage({ searchParams }: { searchParams: Sea
           title={title}
         >
           <PasswordLoginForm
-            csrf={getCsrfToken()}
+            csrf=""
+            preview
             embedded={Boolean(customPage)}
             nextPath="/admin"
             siteName={settings.siteName}

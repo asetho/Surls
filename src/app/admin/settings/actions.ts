@@ -14,8 +14,8 @@ import { faviconsWithManifestNames } from "@/lib/favicons";
 import { getSettings, normalizeSiteName, setSetting } from "@/lib/settings";
 import { getConfiguredExternalProviders } from "@/lib/external-provider-settings";
 import { isConfiguredExternalIdentity } from "@/lib/external-identity";
-import { prisma } from "@/lib/prisma";
 import { siteUploadLimitFromFormData } from "@/lib/upload-limits";
+import { withSignInConfiguration } from "@/lib/sign-in-configuration";
 
 function actionErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
@@ -81,21 +81,23 @@ export async function updateSignInMethodsAction(formData: FormData) {
   if (!admin) redirect(adminToastPath("/admin", "error", "Sign in again to continue."));
   const localLoginEnabled = formData.get("localLoginEnabled") === "on";
   const externalAutoProvisionUsers = formData.get("externalAutoProvisionUsers") === "on";
-  if (!localLoginEnabled) {
-    const current = await getSettings();
-    if (!current.externalLoginEnabled) {
-      redirectWithToast(formData, "error", "Enable external sign-in before disabling password and passkey sign-in.", "/admin/settings");
-    }
-    if (current.localLoginEnabled) {
-      const identities = await prisma.externalIdentity.findMany({ where: { userId: admin.id }, select: { provider: true } });
-      const configs = await getConfiguredExternalProviders();
-      if (configs.length === 0 || !identities.some((identity) => isConfiguredExternalIdentity(identity.provider, configs))) {
-        redirectWithToast(formData, "error", "Connect and test an external provider in your profile before disabling password and passkey sign-in.", "/admin/settings");
+  await withSignInConfiguration(async (transaction) => {
+    if (!localLoginEnabled) {
+      const current = await getSettings(transaction);
+      if (!current.externalLoginEnabled) {
+        redirectWithToast(formData, "error", "Enable external sign-in before disabling password and passkey sign-in.", "/admin/settings");
+      }
+      if (current.localLoginEnabled) {
+        const identities = await transaction.externalIdentity.findMany({ where: { userId: admin.id }, select: { provider: true } });
+        const configs = await getConfiguredExternalProviders(transaction);
+        if (configs.length === 0 || !identities.some((identity) => isConfiguredExternalIdentity(identity.provider, configs))) {
+          redirectWithToast(formData, "error", "Connect and test an external provider in your profile before disabling password and passkey sign-in.", "/admin/settings");
+        }
       }
     }
-  }
-  await setSetting("localLoginEnabled", localLoginEnabled);
-  await setSetting("externalAutoProvisionUsers", externalAutoProvisionUsers);
+    await setSetting("localLoginEnabled", localLoginEnabled, transaction);
+    await setSetting("externalAutoProvisionUsers", externalAutoProvisionUsers, transaction);
+  });
   await auditLog({ userId: admin.id, action: AuditAction.SETTINGS_CHANGED,
     entityType: "AppSetting", details: { localLoginEnabled, externalAutoProvisionUsers } });
   revalidatePath("/admin", "layout");

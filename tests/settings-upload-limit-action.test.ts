@@ -8,7 +8,7 @@ const settings = vi.hoisted(() => ({
   setSetting: vi.fn()
 }));
 const audit = vi.hoisted(() => ({ auditLog: vi.fn() }));
-const prisma = vi.hoisted(() => ({ externalIdentity: { findMany: vi.fn() } }));
+const prisma = vi.hoisted(() => ({ $transaction: vi.fn(), $executeRaw: vi.fn(), externalIdentity: { findMany: vi.fn() } }));
 const providers = vi.hoisted(() => ({ getConfiguredExternalProviders: vi.fn() }));
 const nextCache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 const navigation = vi.hoisted(() => ({
@@ -50,6 +50,8 @@ function signInForm(localLoginEnabled: boolean, externalAutoProvisionUsers = fal
 describe("settings actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    prisma.$transaction.mockImplementation(async (operation) => operation(prisma));
+    prisma.$executeRaw.mockResolvedValue(1);
     auth.requireSiteAdmin.mockResolvedValue({ id: "admin_1" });
     settings.setSetting.mockResolvedValue({});
     settings.getSettings.mockResolvedValue({ localLoginEnabled: true, externalLoginEnabled: true });
@@ -67,22 +69,22 @@ describe("settings actions", () => {
   it("refuses to disable local sign-in without a connected provider", async () => {
     const { updateSignInMethodsAction } = await import("@/app/admin/settings/actions");
     await expect(updateSignInMethodsAction(signInForm(false))).rejects.toThrow("redirect:/admin/settings?saved=true");
-    expect(settings.setSetting).not.toHaveBeenCalledWith("localLoginEnabled", false);
+    expect(settings.setSetting).not.toHaveBeenCalledWith("localLoginEnabled", false, prisma);
   });
 
   it("refuses to disable local sign-in while external sign-in is off", async () => {
     settings.getSettings.mockResolvedValue({ localLoginEnabled: true, externalLoginEnabled: false });
     const { updateSignInMethodsAction } = await import("@/app/admin/settings/actions");
     await expect(updateSignInMethodsAction(signInForm(false))).rejects.toThrow("redirect:/admin/settings?saved=true");
-    expect(settings.setSetting).not.toHaveBeenCalledWith("localLoginEnabled", false);
+    expect(settings.setSetting).not.toHaveBeenCalledWith("localLoginEnabled", false, prisma);
     expect(prisma.externalIdentity.findMany).not.toHaveBeenCalled();
   });
 
   it("saves sign-in methods without changing the other site settings", async () => {
     const { updateSignInMethodsAction } = await import("@/app/admin/settings/actions");
     await expect(updateSignInMethodsAction(signInForm(true, true))).rejects.toThrow("redirect:/admin/settings?saved=true");
-    expect(settings.setSetting).toHaveBeenCalledWith("localLoginEnabled", true);
-    expect(settings.setSetting).toHaveBeenCalledWith("externalAutoProvisionUsers", true);
+    expect(settings.setSetting).toHaveBeenCalledWith("localLoginEnabled", true, prisma);
+    expect(settings.setSetting).toHaveBeenCalledWith("externalAutoProvisionUsers", true, prisma);
     expect(settings.setSetting).toHaveBeenCalledTimes(2);
     expect(nextCache.revalidatePath).toHaveBeenCalledWith("/admin/profile");
     expect(nextCache.revalidatePath).toHaveBeenCalledWith("/bookmarklet");

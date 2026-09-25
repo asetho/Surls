@@ -17,6 +17,7 @@
 
 ### Fixed
 
+* Protect the last external provider even when the acting admin has no linked provider, and keep login previews non-submitting before JavaScript loads.
 * Apply uploaded login-theme colors to secondary button borders, hover, and keyboard focus.
 * Align active-session details at the top of their cards.
 * Close unused page-title response connections, isolate malformed passkey traffic from other users, preserve equivalent encoded upload references, and clean signing material before artifact publication.

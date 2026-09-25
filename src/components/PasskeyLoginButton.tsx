@@ -8,7 +8,7 @@ import {
 import { KeyRound } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
-export function PasskeyLoginButton({ nextPath }: { nextPath: string }) {
+export function PasskeyLoginButton({ nextPath, preview = false }: { nextPath: string; preview?: boolean }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,6 +28,7 @@ export function PasskeyLoginButton({ nextPath }: { nextPath: string }) {
   );
 
   useEffect(() => {
+    if (preview) return;
     let active = true;
 
     async function startConditionalPasskeySignIn() {
@@ -50,9 +51,10 @@ export function PasskeyLoginButton({ nextPath }: { nextPath: string }) {
     return () => {
       active = false;
     };
-  }, [verifyAuthentication]);
+  }, [preview, verifyAuthentication]);
 
   async function signInWithPasskey() {
+    if (preview) return;
     setPending(true);
     setError(null);
     try {
@@ -78,7 +80,8 @@ export function PasskeyLoginButton({ nextPath }: { nextPath: string }) {
       <button
         className="secondary"
         type="button"
-        onClick={signInWithPasskey}
+        onClick={preview ? undefined : signInWithPasskey}
+        aria-disabled={preview || undefined}
         disabled={pending}
         data-surls-auth-secondary
       >
