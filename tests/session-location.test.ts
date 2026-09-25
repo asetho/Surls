@@ -27,6 +27,18 @@ describe("session location", () => {
       .toEqual({ country: null, region: null, city: "Toronto", localNetwork: false });
   });
 
+  it("decodes Cloudflare city names and rejects malformed or unsafe escapes", () => {
+    expect(sessionLocationFromHeaders(new Headers({ "cf-ipcity": "S%C3%A3o%20Paulo" }), true))
+      .toEqual({ country: null, region: null, city: "São Paulo", localNetwork: false });
+    expect(sessionLocationFromHeaders(new Headers({ "cf-ipcity": "%C3%A9".repeat(25) }), true)?.city)
+      .toBe("é".repeat(25));
+    for (const city of ["S%C3%ZZo", "New%0AYork"]) {
+      expect(sessionLocationFromHeaders(new Headers({ "cf-ipcity": city }), true)).toBeNull();
+      expect(sessionLocationFromHeaders(new Headers({ "cf-ipcity": city, "x-geo-city": "Toronto" }), true))
+        .toEqual({ country: null, region: null, city: "Toronto", localNetwork: false });
+    }
+  });
+
   it.each(["", "  ", "a".repeat(129), "city\u0001name", "city\u007fname"])("discards invalid city headers (%j)", (city) => {
     expect(sessionLocationFromHeaders(new Headers({ "cf-ipcity": city }), true)).toBeNull();
     expect(sessionLocationFromHeaders(new Headers({ "cf-ipcountry": "US", "x-geo-city": city }), true))
