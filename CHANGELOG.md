@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.16.0 - 2026-09-24
+## 2.0.0 - 2026-09-24
 
 ### Added
 
@@ -18,7 +18,7 @@
 
 ### Upgrade Notes
 
-Run the included database migration before starting this version; standard Compose startup applies it automatically. To display cities, enable `TRUST_PROXY` only behind a trusted proxy that replaces incoming location headers. Existing sessions may show their previous location until they are used again. No other manual upgrade steps are required.
+The 1Panel-specific installer is no longer in the repository. Existing installations may keep their current Compose files for this update. If switching to the root Compose setup, preserve the existing PostgreSQL volume name, uploads and webroot paths, and application secrets; see `docs/deployment.md`. Run the included database migration before starting this version; standard Compose startup applies it automatically. To display cities, enable `TRUST_PROXY` only behind a trusted proxy that replaces incoming location headers. Existing sessions may show their previous location until they are used again.
 
 ## 1.15.0 - 2026-09-24
 

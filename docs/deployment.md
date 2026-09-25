@@ -23,7 +23,7 @@ Use a hex database password because Compose inserts it into a connection URL. Ke
 
 | Setting | Value or purpose |
 | --- | --- |
-| `SURLS_IMAGE` | A published tag, for example `ghcr.io/asetho/surls:1.16.0`. `latest` tracks new releases. |
+| `SURLS_IMAGE` | A published tag, for example `ghcr.io/asetho/surls:2.0.0`. `latest` tracks new releases. |
 | `POSTGRES_USER`, `POSTGRES_DB` | Defaults are `surls`. |
 | `POSTGRES_PASSWORD` | Generated hex password from above. |
 | `AUTH_SECRET` | Generated random value; production rejects empty or placeholder values. |
