@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.16.0 - 2026-09-24
+
+### Added
+
+* Show the approximate city alongside the region and country for active sessions when a trusted proxy supplies it.
+* Include screenshots of the default setup and asetho.link's custom public page and admin theme colors in the README.
+
+### Changed
+
+* Consolidate Compose installation, upgrade, backup, and external sign-in guidance; warn that the macOS Share app is unsigned.
+* Remove the obsolete 1Panel-specific installer and tracked visual-audit preview files.
+
+### Fixed
+
+* Decode Cloudflare's encoded city names and discard malformed values before showing or storing session locations.
+
+### Upgrade Notes
+
+Run the included database migration before starting this version; standard Compose startup applies it automatically. To display cities, enable `TRUST_PROXY` only behind a trusted proxy that replaces incoming location headers. Existing sessions may show their previous location until they are used again. No other manual upgrade steps are required.
+
 ## 1.15.0 - 2026-09-24
 
 ### Added
