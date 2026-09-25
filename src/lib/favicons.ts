@@ -1,4 +1,6 @@
-export const FAVICON_MANIFEST_PATH = "/site.webmanifest";
+import { WEB_APP_MANIFEST_PATH, safeManifestStartPath } from "./manifest-start";
+
+export const FAVICON_MANIFEST_PATH = WEB_APP_MANIFEST_PATH;
 
 export type FaviconAssetKey = "faviconIco" | "faviconSvg" | "appleTouchIcon" | "icon192" | "icon512";
 export type FaviconPackageKey = FaviconAssetKey | "siteManifest";
@@ -366,7 +368,8 @@ export async function faviconsFromUpload(
 export function buildGeneratedWebManifest(
   siteName: string,
   names?: Partial<FaviconManifestNames>,
-  colors: FaviconManifestThemeColors = {}
+  colors: FaviconManifestThemeColors = {},
+  startPath = "/"
 ) {
   const name = normalizeFaviconManifestName(names?.name, siteName);
   const shortName = normalizeFaviconManifestShortName(names?.shortName, name);
@@ -378,7 +381,8 @@ export function buildGeneratedWebManifest(
         { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
         { src: "/icon-512.png", sizes: "512x512", type: "image/png" }
       ],
-      start_url: "/",
+      start_url: safeManifestStartPath(startPath),
+      scope: "/",
       display: "standalone",
       background_color: colors.backgroundColor ?? "#1f6a5d",
       theme_color: colors.themeColor ?? "#1f6a5d"
@@ -417,10 +421,10 @@ export function faviconResponse(
 export function webManifestResponse(
   favicons: StoredFavicons | null,
   siteName: string,
-  options: { method?: string; themeColors?: FaviconManifestThemeColors } = {}
+  options: { method?: string; themeColors?: FaviconManifestThemeColors; startPath?: string } = {}
 ) {
   if (!favicons) return null;
-  const manifest = buildGeneratedWebManifest(siteName, getFaviconManifestNames(favicons, siteName), options.themeColors);
+  const manifest = buildGeneratedWebManifest(siteName, getFaviconManifestNames(favicons, siteName), options.themeColors, options.startPath);
   const body = options.method?.toUpperCase() === "HEAD" ? null : manifest;
 
   return new Response(body, {

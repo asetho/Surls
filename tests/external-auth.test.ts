@@ -13,6 +13,13 @@ describe("external sign-in state", () => {
     expect(externalCallbackUrl("google")).toBe("http://localhost:3000/api/auth/external/google/callback");
   });
 
+  it("preserves a named provider profile in the signed callback state", () => {
+    const values = newExternalAuthValues();
+    const cookie = encodeExternalAuth({ provider: "oidc-asetho-link", ...values, nextPath: "/admin", userId: null });
+    expect(decodeExternalAuth(cookie)?.provider).toBe("oidc-asetho-link");
+    expect(externalCallbackUrl("oidc-asetho-link")).toBe("http://localhost:3000/api/auth/external/oidc-asetho-link/callback");
+  });
+
   it("expires pending provider state after ten minutes", () => {
     vi.useFakeTimers();
     try {

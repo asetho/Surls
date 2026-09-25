@@ -3,6 +3,7 @@ import { decryptSecret, encryptSecret } from "./crypto";
 import { appBaseUrl, env } from "./env";
 import { validateSvgImage } from "./favicons";
 import { prisma } from "./prisma";
+import { providerProfileKey } from "./provider-profile-key";
 
 type ProviderSettingsClient = Pick<Prisma.TransactionClient, "externalProviderSetting">;
 
@@ -56,7 +57,8 @@ export function isExternalProvider(value: unknown): value is ExternalProvider {
 export function externalProviderType(key: unknown): ExternalProvider | null {
   if (isExternalProvider(key)) return key;
   if (typeof key !== "string") return null;
-  const match = /^([a-z]+)--[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.exec(key);
+  const match = /^([a-z]+)--[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.exec(key) ??
+    /^([a-z]+)-[a-z0-9]+(?:-[a-z0-9]+)*$/.exec(key.length <= 128 ? key : "");
   return match && isExternalProvider(match[1]) ? match[1] : null;
 }
 
@@ -248,6 +250,7 @@ async function validatedProviderLogo(upload: unknown, pasted: unknown, remove: u
 
 export async function saveExternalProviderSetting(provider: ExternalProvider, values: {
   key?: unknown;
+  newProfile?: unknown;
   clientId: unknown;
   clientSecret: unknown;
   label: unknown;
@@ -268,6 +271,14 @@ export async function saveExternalProviderSetting(provider: ExternalProvider, va
     ? requiredText(values.label, "button label", 80) : PROVIDER_NAMES[provider];
   const newSecret = optionalSecret(values.clientSecret);
   const existing = await client.externalProviderSetting.findUnique({ where: { provider: key } });
+  if (values.newProfile === true) {
+    if (key !== providerProfileKey(provider, clientId)) {
+      throw new ExternalProviderSettingsError("The callback URL no longer matches the client ID. Try adding the provider again.");
+    }
+    if (existing) {
+      throw new ExternalProviderSettingsError("A provider profile already uses this callback URL. Choose a different client ID.");
+    }
+  }
   const logo = provider === "oidc"
     ? await validatedProviderLogo(values.logoFile, values.logoBase64, values.removeLogo, existing?.logoDataUrl ?? null)
     : null;

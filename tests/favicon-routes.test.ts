@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
 import { faviconsFromUpload } from "@/lib/favicons";
 
 const routeMocks = vi.hoisted(() => ({
@@ -14,7 +15,8 @@ vi.mock("@/lib/webroot", () => ({
   publicWebrootResponse: routeMocks.publicWebrootResponse
 }));
 
-import { faviconRouteResponse, webManifestRouteResponse } from "@/lib/favicon-routes";
+import { faviconRouteResponse } from "@/lib/favicon-routes";
+import { GET as getWebManifest } from "@/app/site.webmanifest/route";
 
 const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
 const icoBytes = new Uint8Array([0, 0, 1, 0, 1, 0, 16, 16, 0, 0]);
@@ -70,9 +72,19 @@ describe("favicon routes", () => {
       siteName: "Surls"
     });
 
-    const response = await webManifestRouteResponse();
+    const response = await getWebManifest(new NextRequest("https://surls.example/site.webmanifest?start=%2Fadmin"));
 
     expect(response.headers.get("content-type")).toBe("application/manifest+json; charset=utf-8");
-    await expect(response.json()).resolves.toMatchObject({ name: "asetho link", short_name: "ase.link" });
+    await expect(response.json()).resolves.toMatchObject({
+      name: "asetho link",
+      short_name: "ase.link",
+      start_url: "/admin",
+      scope: "/"
+    });
+
+    const unsafeResponse = await getWebManifest(
+      new NextRequest("https://surls.example/site.webmanifest?start=https%3A%2F%2Fother.example%2Fadmin")
+    );
+    await expect(unsafeResponse.json()).resolves.toMatchObject({ start_url: "/" });
   });
 });

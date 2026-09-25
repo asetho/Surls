@@ -839,6 +839,10 @@ button.danger-outline:hover {
   gap: 0.65rem;
 }
 
+.config-provider-logo-reset {
+  margin-left: auto;
+}
+
 .config-provider-picker-panel {
   align-content: start;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
@@ -873,13 +877,30 @@ button.danger-outline:hover {
 }
 
 .config-callback-url {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
   display: block;
   overflow-wrap: anywhere;
   padding: 0.55rem 0.7rem;
   user-select: text;
+}
+
+.config-callback-row {
+  align-items: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+}
+
+.config-callback-row .config-callback-url {
+  flex: 1;
+  min-width: 0;
+}
+
+.config-callback-copy {
+  align-items: center;
+  display: inline-flex;
+  flex: none;
+  margin: 0.15rem;
 }
 
 @media (max-width: 520px) {
