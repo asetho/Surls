@@ -95,6 +95,15 @@ describe("external provider settings", () => {
     expect(prisma.externalProviderSetting.upsert).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps valid punctuation and non-Latin client IDs usable", () => {
+    for (const clientId of ["!!!", "認証クライアント"]) {
+      const key = providerProfileKey("oidc", clientId);
+      expect(key).toMatch(/^oidc-id-[0-9a-f]{8}$/);
+      expect(providerProfileKey("oidc", clientId)).toBe(key);
+      expect(externalProviderType(key)).toBe("oidc");
+    }
+  });
+
   it("does not copy environment credentials into a new provider profile", async () => {
     await expect(saveExternalProviderSetting("google", { ...googleValues, key: "google--11111111-1111-4111-8111-111111111111", clientSecret: "" }))
       .rejects.toThrow("Enter a client secret");
