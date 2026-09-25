@@ -11,3 +11,4 @@ tsconfig.tsbuildinfo
 .env.local
 .env.*.local
 prisma/dev.db
+/visual-audit-preview/

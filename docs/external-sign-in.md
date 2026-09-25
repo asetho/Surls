@@ -12,9 +12,21 @@ Surls can show separate sign-in buttons for a custom OpenID Connect (OIDC) provi
 
 Surls links accounts by the provider's stable subject or user ID. A verified email is used only for the first match or optional user creation. Facebook, X, and Microsoft in this integration do not supply a verified email claim that Surls can rely on, so users must connect them while already signed in. GitHub uses the primary verified email, Discord uses its verified email flag, and OIDC providers must return `email_verified: true`. After the first connection, sign-in uses the provider ID even if an email changes. Provider accounts never grant the Admin role automatically.
 
-You can add more than one profile for the same provider type. Each profile has its own button label, optional logo, client credentials, callback URL, and linked identities. Selecting a type in **Add provider** always starts a new profile with its built-in logo; edit an existing profile from the provider list. Existing profiles keep their callback URLs and linked accounts.
+You can add more than one profile for the same provider type. Each profile has its own button label, client credentials, callback URL, and linked identities; OIDC profiles can also have a custom logo. Selecting a type in **Add provider** always starts a new profile with its built-in logo. The action menu beside an existing profile offers **Edit** or **Remove**; removal asks for confirmation. Saving returns to the External sign-in panel. Clicking outside the provider editor does not dismiss the form.
 
-On a development deployment, set `SURLS_LOGIN_DEV_ENABLED=true` and restart Surls to enable the admin-only login preview. Open `/login-dev?custom=yes` to see the active `login.html` or uploaded login template, or `/login-dev?custom=no` to see the built-in page. The preview displays the current provider buttons but disables sign-in interactions. The flag defaults to `false` and should stay off on public deployments.
+### Link an account with a different email
+
+Sign in to the Surls account you want to keep, open **Profile → External sign-in**, and choose **Connect** beside the provider. Complete the provider's sign-in using the other account. For example, a Google account can be connected to a Surls account whose primary email uses another domain. Future sign-ins with that provider return to the existing Surls account; its primary email and role do not change. An external identity already connected to another Surls user cannot be linked to a second user. Connecting while signed in is safer than relying on automatic email matching.
+
+### Login preview
+
+On a development deployment, set `SURLS_LOGIN_DEV_ENABLED=true` and restart Surls to enable the admin-only login preview. Open `/login-dev?custom=yes` to see the active `login.html` or uploaded login template, or `/login-dev?custom=no` to see the built-in page. The preview displays the current provider buttons but disables sign-in interactions, including before client JavaScript loads, and does not start passkey autofill. The flag defaults to `false` and should stay off on public deployments.
+
+## Callback URLs and environment configuration
+
+**Copy the exact callback URL from the Surls provider editor.** New profiles use a unique key such as `oidc--<uuid>` in `/api/auth/external/<profile-key>/callback`; two profiles of the same type therefore have different callbacks. Existing profiles retain their original callback and linked accounts. Do not register `/login-dev` as an OAuth callback.
+
+The table below lists the original single-profile/environment callbacks. They are not the callbacks for newly added profiles.
 
 | Provider | Callback URL | Optional environment values |
 | --- | --- | --- |
@@ -24,11 +36,11 @@ On a development deployment, set `SURLS_LOGIN_DEV_ENABLED=true` and restart Surl
 | Discord | `<BASE_URL>/api/auth/external/discord/callback` | `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` |
 | Microsoft Entra ID | `<BASE_URL>/api/auth/external/microsoft/callback` | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_TENANT_ID` |
 | Facebook Login | `<BASE_URL>/api/auth/external/facebook/callback` | `FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET` |
-| X | `<BASE_URL>/api/auth/external/x/callback` | `X_CLIENT_ID`, `X_CLIENT_SECRET` |
+| X/Twitter | `<BASE_URL>/api/auth/external/x/callback` | `X_CLIENT_ID`, `X_CLIENT_SECRET` |
 
 ## Keycloak example
 
-On the Keycloak server, select or create a realm. Use its public HTTPS realm URL as the issuer, for example `https://auth.example.com/realms/example`; a host alias such as `ed` is not an issuer URL. In **Clients**, create an OpenID Connect client such as `surls`. Enable client authentication and the standard authorization code flow. Set the exact **Valid redirect URI** to `https://links.example.com/api/auth/external/oidc/callback` and **Web origins** to `https://links.example.com`. Copy the issuer, client ID, and client secret into the OpenID Connect editor in Surls Settings, and set the button label to Keycloak. Ensure the `email` and `email_verified` claims are available to the client for first-time matching, and configure MFA in Keycloak if required. The Surls login button goes to Keycloak's sign-in page; any social identity brokers configured in that realm appear there independently of Surls' own social buttons.
+On the Keycloak server, select or create a realm. Use its public HTTPS realm URL as the issuer, for example `https://auth.example.com/realms/example`; a host alias such as `ed` is not an issuer URL. In **Clients**, create an OpenID Connect client such as `surls`. Enable client authentication and the standard authorization code flow. Set the exact **Valid redirect URI** to the callback shown in the Surls editor and **Web origins** to your Surls origin, such as `https://links.example.com`. The environment-configured profile uses `https://links.example.com/api/auth/external/oidc/callback`; new Settings profiles include their unique profile key. Copy the issuer, client ID, and client secret into the OpenID Connect editor in Surls Settings, and set the button label to Keycloak. Ensure the `email` and `email_verified` claims are available to the client for first-time matching, and configure MFA in Keycloak if required. The Surls login button goes to Keycloak's sign-in page; any social identity brokers configured in that realm appear there independently of Surls' own social buttons.
 
 If you prefer environment configuration, set these values and restart Surls:
 
@@ -56,7 +68,7 @@ Surls does not request `prompt=login` or `max_age=0`. A new sign-in can reuse a 
 
 ## Other provider setup
 
-- **Google:** Create a Web application OAuth client in Google Cloud, configure its consent screen and the `openid`, `email`, and `profile` scopes, and register the Google callback above. [Google OIDC guide](https://developers.google.com/identity/openid-connect/openid-connect).
+- **Google:** Create a Web application OAuth client in Google Cloud, configure its consent screen and the `openid`, `email`, and `profile` scopes, and register the exact callback shown in Surls. [Google OIDC guide](https://developers.google.com/identity/openid-connect/openid-connect).
 - **GitHub:** Create an OAuth app, set its authorization callback URL, and grant `read:user` and `user:email`. Surls reads the primary verified email to match a user. [GitHub OAuth app guide](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps).
 - **Discord:** Create an application in the Discord Developer Portal, configure its OAuth2 redirect, and allow `identify` and `email`. [Discord OAuth2 guide](https://discord.com/developers/docs/topics/oauth2).
 - **Microsoft:** Register a confidential Web app in the Microsoft Entra admin center with the Microsoft callback. Set `MICROSOFT_TENANT_ID` to the tenant GUID or domain, not `common`, so the issuer is pinned. Sign in locally once to connect the Microsoft account from Profile. [Microsoft authorization code guide](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow).
@@ -67,6 +79,6 @@ Configure only providers you intend to offer. The global **External sign-in** sw
 
 ## Recovery and rollout
 
-Keep a tested admin external connection before disabling local login. Settings refuses to disable or change the current admin's only connected external provider while local login is off. If a provider is unavailable, existing sessions and API tokens continue until they expire or are revoked. An operator with database access can restore `localLoginEnabled` to `true` in the `AppSetting` table and restart if necessary; preserve a database backup before making direct changes. If external login fails, first compare `BASE_URL`, the registered redirect URI, issuer and client credentials, then confirm the provider can be reached from the container. Changing an OIDC issuer or Microsoft tenant changes the identity namespace, so accounts need to reconnect. The Surls app must be released and migrated before configuring live credentials.
+Keep a tested admin external connection before disabling local login. Settings protects the current admin's only connected external provider and the site's last configured external provider while local login is off, including simultaneous settings changes. If a provider is unavailable, existing sessions and API tokens continue until they expire or are revoked. An operator with database access can restore `localLoginEnabled` to `true` in the `AppSetting` table and restart if necessary; preserve a database backup before making direct changes. If external login fails, first compare `BASE_URL`, the registered redirect URI, issuer and client credentials, then confirm the provider can be reached from the container. Changing an OIDC issuer or Microsoft tenant changes the identity namespace, so accounts need to reconnect. The Surls app must be released and migrated before configuring live credentials.
 
 Apple, Instagram, and Notion are not included in this first provider set; their account and identity requirements need separate integration work.

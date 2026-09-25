@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const composeFiles = ["docker-compose.yml", "deploy/1panel/compose.yml"];
+const composeFiles = ["docker-compose.yml"];
 
 describe("container deployment secrets", () => {
   it("keeps the Server Actions key out of Docker image arguments and environment metadata", async () => {

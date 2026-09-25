@@ -91,6 +91,7 @@ model Session {
   userAgent   String?
   country     String?
   region      String?
+  city        String?
   localNetwork Boolean @default(false)
   createdAt   DateTime @default(now())
   lastSeenAt  DateTime @default(now())

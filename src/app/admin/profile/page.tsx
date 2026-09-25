@@ -51,6 +51,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         id: true,
         country: true,
         region: true,
+        city: true,
         localNetwork: true,
         userAgent: true,
         createdAt: true,
@@ -81,7 +82,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
     ...session,
     ...sessionClientSummary(session.userAgent),
     current: session.id === currentSession.id,
-    location: sessionLocationLabel(session.country, session.region, session.localNetwork)
+    location: sessionLocationLabel(session.country, session.region, session.localNetwork, session.city)
   }));
 
   return (
@@ -215,7 +216,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
           <div>
             <h3>Active sessions</h3>
             <p className="muted">
-              Review where your account is signed in. Locations are approximate regions and countries.
+              Review where your account is signed in. Locations show approximate cities, states or regions, and countries when available.
               Private and Tailscale connections show as Local network. Surls does not store session IP addresses.
             </p>
           </div>

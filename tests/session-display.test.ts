@@ -20,9 +20,15 @@ describe("session display", () => {
     ).toEqual({ client: "Safari", device: "iPhone" });
   });
 
-  it("formats coarse location without requiring an IP address", () => {
+  it("formats available city, state, and country fields without requiring an IP address", () => {
+    expect(sessionLocationLabel("US", "Pennsylvania", false, "Philadelphia")).toBe("Philadelphia, Pennsylvania, United States");
+    expect(sessionLocationLabel("US", "PA", false, "Philadelphia")).toBe("Philadelphia, PA, United States");
+    expect(sessionLocationLabel("US", null, false, "Philadelphia")).toBe("Philadelphia, United States");
+    expect(sessionLocationLabel(null, null, false, "Toronto")).toBe("Toronto");
     expect(sessionLocationLabel("US", "Pennsylvania")).toBe("Pennsylvania, United States");
+    expect(sessionLocationLabel("US", null)).toBe("United States");
     expect(sessionLocationLabel(null, null)).toBe("Unavailable");
     expect(sessionLocationLabel(null, null, true)).toBe("Local network");
+    expect(sessionLocationLabel("US", "Pennsylvania", true, "Philadelphia")).toBe("Local network");
   });
 });
