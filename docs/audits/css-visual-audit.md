@@ -1,12 +1,14 @@
 # Surls CSS, Theme, and Visual-Style Audit
 
-Date: 2026-07-01  
-Branch: `audit/css-visual-preview`  
-Preview source: `visual-audit-preview/src/`  
-Static build: `visual-audit-preview/dist/`  
-Local hosted preview: `http://127.0.0.1:4173/`  
-Structured findings: `docs/audits/css-visual-findings.json`  
-Machine-readable inventory: `docs/audits/css-visual-inventory.json`
+> **Archived audit:** This records the July 2026 audit and its original branch, counts, line references, and findings. It is historical evidence, not a current defect list. `visual-audit-preview/` is now an ignored local workspace; the old preview source and screenshots are no longer distributed in the checkout. See the [current product screenshot gallery](../screenshots/README.md).
+
+- Date: 2026-07-01
+- Branch: `audit/css-visual-preview`
+- Historical local preview source: `visual-audit-preview/src/`
+- Historical local build: `visual-audit-preview/dist/`
+- Historical local preview address: `http://127.0.0.1:4173/`
+- Structured findings: `docs/audits/css-visual-findings.json`
+- Machine-readable inventory: `docs/audits/css-visual-inventory.json`
 
 ## Executive Summary
 
@@ -165,7 +167,7 @@ The registry preserves saved-theme compatibility because the stored theme shape 
 
 ## Preview
 
-The isolated preview is in `visual-audit-preview/` and demonstrates:
+The original isolated preview used `visual-audit-preview/` and demonstrated:
 
 - Audit summary dashboard.
 - Prioritized findings.

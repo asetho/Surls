@@ -2,6 +2,8 @@
 
 Create Surls short links from inside WordPress.
 
+Requires WordPress 6.0 or later, PHP 7.4 or later, and a reachable Surls site. The plugin uses the authenticated link-creation API; it does not replace Surls' redirect service.
+
 ## Features
 
 - Settings page under `Settings -> Surls` for the Surls base URL and API token.
@@ -13,10 +15,12 @@ Create Surls short links from inside WordPress.
 
 1. Copy the `surls-link-creator` folder into `wp-content/plugins/`.
 2. Activate `Surls Link Creator` in WordPress.
-3. In Surls, create an API token from `Admin -> Tools`.
+3. In Surls, create a dedicated API token from **Tools → Tokens** and copy it when first shown.
 4. In WordPress, open `Settings -> Surls` and save your Surls base URL and API token.
 
 The base URL should be the public Surls origin, for example `https://links.example.com`.
+
+The token must permit link creation. If it expires, is revoked, or is rolled in Surls, save a replacement in WordPress. Use HTTPS and restrict access to the plugin's settings and WordPress database backups, which contain its configured token.
 
 ## API Contract
 

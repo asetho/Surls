@@ -4,6 +4,32 @@ Surls is a short URL system for managing short links, redirects, and click stati
 
 It is inspired by the product shape of URL shorteners such as YOURLS and Tiny.cc, but the code, branding, UI, and implementation are original to this project.
 
+## Screenshots
+
+The included Surls UI uses the default branding and palettes. These dashboard examples use synthetic data; a fresh installation starts with an empty dashboard.
+
+![Default Surls dashboard in light mode](docs/screenshots/default-dashboard-light.jpg)
+
+The public webroot can provide a completely custom site. Here is [asetho.link](https://asetho.link/) as an owner-customized example:
+
+![Custom public homepage at asetho.link](docs/screenshots/asetho-custom-home.jpg)
+
+The admin interface also supports custom theme colors. These examples use **asetho.link's custom light and dark palettes**, rendered locally with sample account details, links, and statistics:
+
+| Custom light theme | Custom dark theme |
+| --- | --- |
+| ![asetho.link custom light admin dashboard](docs/screenshots/asetho-custom-dashboard-light.jpg) | ![asetho.link custom dark admin dashboard](docs/screenshots/asetho-custom-dashboard-dark.jpg) |
+
+Configure your own palettes under **Settings → Dashboard theme → Open Theme Editor**. See the [full screenshot gallery](docs/screenshots/README.md) for larger custom admin images, the included homepage, login, fresh-install dashboard, default dark theme, and mobile views.
+
+## Documentation
+
+- [Docker Compose installation, configuration, upgrades, and backups](docs/deployment.md)
+- [External sign-in, account linking, Keycloak, and MFA](docs/external-sign-in.md)
+- [Surls Share for macOS — unsigned builds and local signing](Share-App/README.md)
+- [WordPress link-creation plugin](wordpress/surls-link-creator/README.md)
+- [Versioning and release-note format](VERSIONING.md) · [Changelog](CHANGELOG.md)
+
 ## What It Includes
 
 - Built-in informational homepage with a mounted public webroot for owner-controlled overrides and additional static files.
@@ -19,8 +45,8 @@ It is inspired by the product shape of URL shorteners such as YOURLS and Tiny.cc
 - Optional owner-provided public pages from the mounted webroot.
 - Tools page with bookmarklet, API token generation/revocation, CSV import preview/import, exports, SSRF-aware link checker, UTM builder, cleanup summaries, API docs, and system info.
 - Light, Dark, and Auto theme modes. Auto follows the operating system preference.
-- Prisma PostgreSQL schema and initial migration.
-- Dockerfile, production entrypoint, `docker-compose.yml`, and 1Panel deployment files.
+- Prisma PostgreSQL schema and versioned migrations.
+- Dockerfile, production entrypoint, and a standard Docker Compose deployment.
 - GitHub Actions for linting, typechecking, tests, production build, Docker smoke testing, and GHCR image publishing.
 
 ## Stack
@@ -34,118 +60,44 @@ It is inspired by the product shape of URL shorteners such as YOURLS and Tiny.cc
 - Vitest
 - Docker Compose
 
-## Setup
+## Install with Docker Compose
 
-1. Install dependencies:
+Follow the [deployment guide](docs/deployment.md) for the supported Compose setup. It covers the required secrets, writable uploads directory, read-only public webroot, first admin, HTTPS proxy, health checks, upgrades, and backups. Published images are available at `ghcr.io/asetho/surls`; pin a release tag for predictable upgrades.
+
+## Local development
+
+Requires Node.js 26+, npm, and a running PostgreSQL database (the included Compose stack uses PostgreSQL 18).
+
+1. Install the locked dependencies and copy the environment template:
 
    ```bash
-   npm install
-   ```
-
-2. Copy environment defaults:
-
-   ```bash
+   npm ci
    cp .env.example .env
    ```
 
-3. Set at least:
-
-   ```env
-   DATABASE_URL="postgresql://surls:surls@localhost:5432/surls?schema=public"
-   BASE_URL="http://localhost:3000"
-   AUTH_SECRET="replace-with-at-least-32-random-bytes"
-   ```
-
-4. Start PostgreSQL, for example:
+2. Set `DATABASE_URL` to a dedicated local database and `BASE_URL` to `http://localhost:3000`. Generate an `AUTH_SECRET` with `openssl rand -base64 32` and save it in `.env`. For local public-page overrides, set `PUBLIC_WEBROOT_DIR` to an existing absolute path. Next.js loads `.env` for development.
+3. Generate the Prisma client, apply migrations, and seed missing settings:
 
    ```bash
-   docker compose up -d db
-   ```
-
-5. Apply migrations and seed settings:
-
-   ```bash
+   npm run prisma:generate
    npm run prisma:deploy
-   npm run seed
+   node --env-file=.env --run seed
    ```
 
-6. Create the first admin:
+4. Create the first admin (password must be at least 12 characters), then start the app:
 
    ```bash
-   npm run setup:admin
-   ```
-
-7. Run Surls:
-
-   ```bash
+   node --env-file=.env --run setup:admin
    npm run dev
    ```
 
-## Docker Compose
+Open `/admin` to sign in. The command-line setup prompt echoes the entered password; use a private terminal. The root Compose database has no published host port, so starting its `db` service alone does **not** make `localhost:5432` available to a host-run development server. Use a separate local database or an explicit loopback-only port mapping for development.
 
-For a local containerized run, copy the environment template and set at least `POSTGRES_PASSWORD` and `AUTH_SECRET`:
-
-```bash
-cp .env.example .env
-openssl rand -hex 24 # POSTGRES_PASSWORD
-openssl rand -base64 32 # AUTH_SECRET
-openssl rand -base64 32 # NEXT_SERVER_ACTIONS_ENCRYPTION_KEY
-docker compose up --build
-```
-
-The container runs Prisma migrations, seeds missing settings, and purges expired raw IP addresses, click events, and audit logs on startup. To create the first admin automatically, set `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` before first boot. After the first login, remove `INITIAL_ADMIN_PASSWORD` from `.env` and recreate the app container.
-
-Change `AUTH_SECRET`, `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, database credentials, `BASE_URL`, and WebAuthn values before production. Generate `AUTH_SECRET` and `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` with a high-entropy command such as `openssl rand -base64 32`; production startup rejects documented placeholder values for `AUTH_SECRET`. Keep `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` stable across rebuilds so self-hosted Server Action forms from an already-loaded page do not fail after a deploy. Use a URL-safe PostgreSQL password, such as `openssl rand -hex 24`, because the compose file embeds it in `DATABASE_URL`.
-
-To require a Cloudflare Turnstile security check before password login forms load, set both `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`. If either value is left empty, Turnstile stays disabled. If only one is configured, startup fails so the login form cannot be half-protected.
+`npm run seed:demo` adds sample links and click history. Use it only against a disposable development database, with `DATABASE_URL` loaded into the process environment; it is not required for installation.
 
 ## External sign-in
 
 Site admins can set up Keycloak/OIDC and independent Google, GitHub, Discord, Microsoft, Facebook, or X sign-in from the gear beside **Settings → Sign-in methods**. See the [external sign-in guide](docs/external-sign-in.md). Settings can also disable local password and passkey sign-in after an external account has been connected and tested.
-
-## 1Panel Install
-
-Use the production compose files in `deploy/1panel`:
-
-```bash
-cp deploy/1panel/.env.example deploy/1panel/.env
-```
-
-Edit `deploy/1panel/.env`, then create a 1Panel Compose project from:
-
-```text
-/opt/surls/deploy/1panel/compose.yml
-```
-
-See `deploy/1panel/README.md` for the exact 1Panel steps, including the reverse proxy and first-admin cleanup.
-
-## Docker Image
-
-Build a production image locally. Supply the Server Actions key as a BuildKit secret so it is not recorded in the image configuration:
-
-```bash
-NEXT_SERVER_ACTIONS_ENCRYPTION_KEY="$(openssl rand -base64 32)" \
-  docker build --secret id=next_server_actions_encryption_key,env=NEXT_SERVER_ACTIONS_ENCRYPTION_KEY -t surls:latest .
-```
-
-Run the image against a PostgreSQL database:
-
-```bash
-docker run --rm -p 3000:3000 \
-  -e DATABASE_URL="postgresql://surls:surls@host.docker.internal:5432/surls?schema=public" \
-  -e BASE_URL="http://localhost:3000" \
-  -e AUTH_SECRET="replace-with-at-least-32-random-bytes" \
-  surls:latest
-```
-
-The Docker build uses Next.js standalone output and a `.dockerignore` file to keep the runtime image focused on production server files.
-
-The production image starts through `scripts/docker-entrypoint.mjs`, which:
-
-- checks required production environment values;
-- runs `prisma migrate deploy` unless `SURLS_RUN_MIGRATIONS=false`;
-- creates missing default settings, optionally creates the first admin, and purges expired raw IP addresses, click events, and audit logs unless `SURLS_RUN_BOOTSTRAP=false`;
-- starts the Next.js standalone server.
 
 ## Public Webroot
 
@@ -197,7 +149,7 @@ The upload bind mount uses `create_host_path: false`, so a missing or incorrect 
 ## Health Checks
 
 - `/api/health/live` checks that the Next.js process can answer HTTP requests.
-- `/api/health/ready` checks PostgreSQL and the configured public webroot and is the endpoint used by Docker and 1Panel healthchecks.
+- `/api/health/ready` checks PostgreSQL and the configured public webroot and is the endpoint used by the Docker healthcheck.
 - `/api/health` remains a liveness alias, and `/health` remains a readiness alias for older monitors.
 
 Images are published by GitHub Actions to:
@@ -216,15 +168,17 @@ Redirect responses use no-store cache headers because links can be edited, disab
 
 ## Theme Modes
 
-The header and admin toolbar include Light, Dark, and Auto controls. The choice is stored in the browser with `localStorage`. Auto follows `prefers-color-scheme`.
+The admin sidebar footer includes Light, Dark, and Auto controls; the included public homepage has its own theme controls. The admin choice is saved in `localStorage` and a first-party `surls-theme` cookie so server-rendered pages can use the same choice. Auto follows `prefers-color-scheme`.
+
+Site admins can change the default light/dark palettes from **Settings → Dashboard theme → Open Theme Editor**, preview changes, import/export a theme, or reset to the built-in palette. Custom login templates can supply their own colors through the login CSS hooks described above.
 
 ## 2FA And Backup Codes
 
-Open `Admin -> Security` to start TOTP setup. Scan the QR code or enter the manual key, then submit a current code to enable 2FA. Backup codes can be regenerated from the same page. They are shown only after regeneration and stored only as one-way hashes.
+Open **Profile → Security** (`/admin/profile`) to start TOTP setup. Scan the QR code or enter the manual key, then submit a current code to enable 2FA. Backup codes can be regenerated from the same page. They are shown only after regeneration and stored only as one-way hashes.
 
 ## Passkeys
 
-Open `Admin -> Security` to register and remove WebAuthn passkeys. Registration requires a signed-in account and local user verification such as Face ID, Touch ID, Windows Hello, a PIN, or a security key gesture. The login page can then use a registered resident passkey for passwordless sign-in.
+Open **Profile → Security** to register and remove WebAuthn passkeys. Registration and sign-in require local user verification, such as Face ID, Touch ID, Windows Hello, or a security-key PIN; a touch-only key is insufficient. The login page can then use a registered resident passkey for passwordless sign-in.
 
 Set these values for the public HTTPS origin before using passkeys in production:
 
@@ -235,7 +189,7 @@ WEBAUTHN_ORIGIN="https://your.domain"
 
 ## API
 
-Create an API token in `Admin -> Tools`.
+Create an API token in **Tools → Tokens** (`/admin/tools`).
 
 Create a short URL:
 
@@ -256,11 +210,11 @@ curl -X POST http://localhost:3000/api/uploads \
 ```
 
 API token hashes are stored in the database. The plain token is shown once.
-New tokens are limited to link and upload creation, expire after `API_TOKEN_DAYS` unless a shorter supported lifetime is selected, and can be revoked from `Admin -> Tools`. Existing tokens keep their original scopes; generate a new token for the macOS Share extension.
+New tokens are limited to link and upload creation. **Tools → Tokens** offers 30, 90, 180, or 365 days, or **Forever**, with 90 days selected initially. `API_TOKEN_DAYS` is the server fallback when no supported selection is supplied. Tokens can be rolled, revoked, or deleted. Rolling replaces the token and invalidates the old value, so update each client using it. Existing tokens keep their original scopes; generate a new token for the macOS Share extension.
 
 ## Import And Export
 
-- Links CSV/JSON export: `Admin -> Tools`.
+- Links CSV export: **Tools → Import/export**. JSON export requires a site admin.
 - Per-link stats CSV export: link details page.
 - CSV import accepts rows in this shape:
 
@@ -268,7 +222,7 @@ New tokens are limited to link and upload creation, expire after `API_TOKEN_DAYS
   https://example.com,custom-alias,Optional title
   ```
 
-Leave “Confirm import” unchecked to preview validation without creating links.
+Leave “Confirm import” unchecked to preview validation without creating links. Quoted fields, commas inside quotes, and escaped double quotes are supported.
 
 ### YOURLS import
 
@@ -316,9 +270,9 @@ hashed IP and visitor values are still populated for statistics.
 
 ## Session locations
 
-With `TRUST_PROXY=true`, Profile shows approximate country/region values supplied by a trusted proxy. For Cloudflare, enable [Add visitor location headers](https://developers.cloudflare.com/rules/transform/managed-transforms/reference/#add-visitor-location-headers) and forward `CF-IPCountry` and `CF-Region` to Surls. Cloudflare's Network → IP Geolocation option alone supplies only the country. A proxy using a local GeoIP database can supply `X-Geo-Country` and `X-Geo-Region` instead.
+With `TRUST_PROXY=true`, Profile shows approximate city, state/region, and country values supplied by a trusted proxy, for example **Philadelphia, Pennsylvania, United States**. Missing fields are omitted. For Cloudflare, enable [Add visitor location headers](https://developers.cloudflare.com/rules/transform/managed-transforms/reference/#add-visitor-location-headers) and forward `CF-IPCity`, `CF-Region` (or `CF-Region-Code`), and `CF-IPCountry` to Surls. Cloudflare's Network → IP Geolocation option alone supplies only the country. A proxy using a local GeoIP database can supply `X-Geo-City`, `X-Geo-Region`, and `X-Geo-Country` instead. IP-based locations may describe an ISP or VPN exit point rather than the device's actual location.
 
-The proxy must overwrite client IP headers and strip caller-supplied location headers, accepting Cloudflare headers only from verified Cloudflare traffic. Private, loopback, link-local, and Tailscale addresses in the trusted client IP header show **Local network**. Session locations refresh when that session is used; inactive older sessions remain unavailable until their next visit. Surls stores only country, region, and a local-network flag, never the raw session address or precise coordinates. Missing trustworthy location data remains **Unavailable**.
+The proxy must overwrite client IP headers and strip caller-supplied location headers, accepting Cloudflare headers only from verified Cloudflare traffic. Private, loopback, link-local, and Tailscale addresses in the trusted client IP header show **Local network**. Session locations refresh when that session is used; existing sessions gain city information on their next authenticated visit if the proxy supplies it. Inactive sessions keep their previously stored location. Surls stores only city, region, country, and a local-network flag, never the raw session address or precise coordinates. Missing trustworthy location data remains **Unavailable**.
 
 ## Production Checklist
 
@@ -349,12 +303,9 @@ npm test
 npm run build
 npm run prisma:migrate
 npm run prisma:deploy
-npm run setup:admin
+node --env-file=.env --run setup:admin
 ```
 
-## Current Known Follow-Ups
+## Documentation and previews
 
-- Add database-backed integration tests against a disposable PostgreSQL container.
-- Add geolocation only if needed, and keep it approximate.
-- Add password-protected public-link challenge pages.
-- Expand CSV parsing to support quoted commas and richer preview tables.
+Repository screenshots are kept in [`docs/screenshots/`](docs/screenshots/README.md). `visual-audit-preview/` is an ignored local workspace for the historical CSS audit, not an application dependency or a shipped preview. The [archived audit](docs/audits/css-visual-audit.md) records its original scope; it is not a current list of product defects.

@@ -12,3 +12,6 @@ dist
 tsconfig.tsbuildinfo
 surls-home-*.png
 README.local.md
+/visual-audit-preview
+/.playwright-cli
+/docs/screenshots

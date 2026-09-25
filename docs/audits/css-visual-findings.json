@@ -1,6 +1,7 @@
 {
   "schema": "surls-css-visual-findings/v1",
   "auditedAt": "2026-07-01",
+  "archiveNote": "Historical audit snapshot. Preview anchors refer to the now-untracked local visual-audit-preview workspace; use docs/screenshots/README.md for current product screenshots.",
   "branch": "audit/css-visual-preview",
   "productionServicesAccessed": false,
   "findings": [
