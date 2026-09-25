@@ -46,6 +46,7 @@ const turnstile = vi.hoisted(() => ({
 const requestSecurity = vi.hoisted(() => ({
   requestOriginMatchesApp: vi.fn()
 }));
+const settings = vi.hoisted(() => ({ getSetting: vi.fn() }));
 
 vi.mock("@/lib/prisma", () => ({ prisma }));
 vi.mock("@/lib/auth", () => ({
@@ -67,6 +68,7 @@ vi.mock("@/lib/request", () => ({
 vi.mock("@/lib/backup-codes", () => backupCodes);
 vi.mock("@/lib/totp", () => totp);
 vi.mock("@/lib/turnstile", () => turnstile);
+vi.mock("@/lib/settings", () => settings);
 
 function formRequest(path: string, formData: FormData, cookie?: string) {
   return new NextRequest(`http://localhost:3000${path}`, {
@@ -95,6 +97,33 @@ describe("admin login flow", () => {
     });
     turnstile.verifyTurnstileChallenge.mockResolvedValue({ ok: true, skipped: true });
     requestSecurity.requestOriginMatchesApp.mockReturnValue(true);
+    settings.getSetting.mockResolvedValue(true);
+  });
+
+  it("blocks password and pending 2FA login when local sign-in is disabled", async () => {
+    settings.getSetting.mockResolvedValue(false);
+    const { POST: login } = await import("@/app/api/auth/login/route");
+    const { POST: secondFactor } = await import("@/app/api/auth/login/2fa/route");
+    const first = await login(formRequest("/api/auth/login", loginForm({ email: "admin@example.com", password: "some-password" })));
+    const second = await secondFactor(formRequest("/api/auth/login/2fa", loginForm({ code: "123456" })));
+    expect(first.status).toBe(303);
+    expect(second.status).toBe(303);
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(auth.createSession).not.toHaveBeenCalled();
+  });
+
+  it("allows external sign-in to finish existing TOTP when local sign-in is disabled", async () => {
+    settings.getSetting.mockResolvedValue(false);
+    const { POST } = await import("@/app/api/auth/login/2fa/route");
+    prisma.user.findUnique.mockResolvedValue({
+      backupCodes: [], email: "admin@example.com", id: "user_123",
+      totpCredential: { enabled: true, secretEncrypted: "encrypted-secret" }
+    });
+    totp.verifyTotpCode.mockResolvedValue(true);
+    const pending = encodePendingLogin({ email: "admin@example.com", nextPath: "/admin/links", purpose: "external_2fa", userId: "user_123" });
+    const response = await POST(formRequest("/api/auth/login/2fa", loginForm({ code: "123456" }), `${PENDING_LOGIN_COOKIE}=${pending}`));
+    expect(response.status).toBe(303);
+    expect(auth.createSession).toHaveBeenCalledWith("user_123", expect.any(NextRequest));
   });
 
   it("rejects password login before credential checks when the Turnstile challenge fails", async () => {

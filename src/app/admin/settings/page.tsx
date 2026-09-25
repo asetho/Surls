@@ -8,6 +8,7 @@ import { filesystemCustomPageLocation, pageFromFilesystem } from "@/lib/custom-p
 import { isDefaultDashboardTheme } from "@/lib/dashboard-theme";
 import { COMMON_DISPLAY_TIME_ZONES } from "@/lib/dates";
 import { appBaseUrl } from "@/lib/env";
+import { configuredExternalProviders, externalProviderConfig } from "@/lib/external-auth";
 import { getSettings } from "@/lib/settings";
 import { uploadBytesToMegabytes } from "@/lib/upload-limits";
 import { publicWebrootFile } from "@/lib/webroot";
@@ -208,6 +209,15 @@ export default async function SettingsPage() {
               not already define the same key.
             </span>
           </label>
+          <div className="form-field">
+            <h2>Sign-in methods</h2>
+            <input type="hidden" name="authSettingsPresent" value="1" />
+            <p className="muted small">Configured external providers: {configuredExternalProviders().map((provider) => externalProviderConfig(provider)!.label).join(", ") || "none"}. Set provider credentials in the server environment and restart Surls.</p>
+            <label><span><input className="inline-control" name="localLoginEnabled" type="checkbox" defaultChecked={settings.localLoginEnabled} />{" "}Allow password and passkey sign-in</span></label>
+            <p className="muted small">Before turning this off, connect an external provider to your own profile and test sign-in. Existing sessions and API tokens remain active.</p>
+            <label><span><input className="inline-control" name="externalAutoProvisionUsers" type="checkbox" defaultChecked={settings.externalAutoProvisionUsers} />{" "}Create users automatically from verified external email</span></label>
+            <p className="muted small">Off by default. New users receive the User role. Facebook and X require connecting from an existing profile because they do not provide a verified email for this flow.</p>
+          </div>
           <div className="success">
             The Light, Dark, and Auto theme selector is available in the header and admin toolbar. Each browser stores its
             own choice locally and in a first-party cookie; Auto follows the operating-system preference.

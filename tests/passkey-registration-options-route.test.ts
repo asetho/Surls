@@ -13,6 +13,7 @@ const passkeys = vi.hoisted(() => ({
   parsePasskeyTransports: vi.fn()
 }));
 const prisma = vi.hoisted(() => ({ passkey: { findMany: vi.fn() } }));
+const settings = vi.hoisted(() => ({ getSetting: vi.fn() }));
 
 vi.mock("@/lib/auth", () => auth);
 vi.mock("@/lib/csrf", () => ({ validateCsrfValue: vi.fn() }));
@@ -21,6 +22,7 @@ vi.mock("@/lib/password", () => password);
 vi.mock("@/lib/rate-limit", () => rateLimit);
 vi.mock("@/lib/request", () => ({ requestIp: () => "127.0.0.1" }));
 vi.mock("@/lib/prisma", () => ({ prisma }));
+vi.mock("@/lib/settings", () => settings);
 vi.mock("@/lib/passkeys", () => passkeys);
 vi.mock("@simplewebauthn/server", () => webauthn);
 
@@ -40,6 +42,15 @@ describe("POST /api/auth/passkey/register/options", () => {
     rateLimit.checkRateLimit.mockResolvedValue({ allowed: true });
     prisma.passkey.findMany.mockResolvedValue([]);
     webauthn.generateRegistrationOptions.mockResolvedValue({ challenge: "registration-challenge" });
+    settings.getSetting.mockResolvedValue(true);
+  });
+
+  it("blocks passkey registration when local sign-in is disabled", async () => {
+    settings.getSetting.mockResolvedValue(false);
+    const { POST } = await import("@/app/api/auth/passkey/register/options/route");
+    const response = await POST(request({ csrf: "csrf", name: "Laptop", password: "correct" }));
+    expect(response.status).toBe(403);
+    expect(webauthn.generateRegistrationOptions).not.toHaveBeenCalled();
   });
 
   it("rejects a stolen session that cannot prove the current password", async () => {

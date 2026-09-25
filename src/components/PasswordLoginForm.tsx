@@ -1,4 +1,5 @@
 import { PasskeyLoginButton } from "@/components/PasskeyLoginButton";
+import { ExternalLoginButtons } from "@/components/ExternalLoginButtons";
 import { TurnstileGate } from "@/components/TurnstileGate";
 import { turnstileSiteKey } from "@/lib/turnstile";
 
@@ -8,7 +9,8 @@ export function PasswordLoginForm({
   embedded = false,
   error,
   nextPath,
-  siteName
+  siteName,
+  localLoginEnabled
 }: {
   csrf: string;
   email?: string;
@@ -16,6 +18,7 @@ export function PasswordLoginForm({
   error?: string;
   nextPath: string;
   siteName: string;
+  localLoginEnabled: boolean;
 }) {
   const title = `${siteName} login`;
   const tagline = "Sign in to manage private links, redirects, and click statistics.";
@@ -35,39 +38,26 @@ export function PasswordLoginForm({
         </div>
       ) : null}
       {error ? <div className="alert">{error}</div> : null}
-      <input type="hidden" name="csrf" value={csrf} />
-      <input type="hidden" name="next" value={nextPath} />
-      <TurnstileGate siteKey={siteKey}>
-        <label data-surls-auth-field>
-          Email
-          <input
-            name="email"
-            type="email"
-            autoComplete="username webauthn"
-            required
-            defaultValue={email ?? ""}
-            data-surls-auth-input
-          />
-        </label>
-        <label data-surls-auth-field>
-          Password
-          <input
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            minLength={12}
-            data-surls-auth-input
-          />
-        </label>
-        <button type="submit" data-surls-auth-submit>
-          Log in
-        </button>
-        <div className="login-divider" data-surls-auth-divider>
-          <span>or</span>
-        </div>
-        <PasskeyLoginButton nextPath={nextPath} />
-      </TurnstileGate>
+      {localLoginEnabled ? (
+        <>
+          <input type="hidden" name="csrf" value={csrf} />
+          <input type="hidden" name="next" value={nextPath} />
+          <TurnstileGate siteKey={siteKey}>
+            <label data-surls-auth-field>
+              Email
+              <input name="email" type="email" autoComplete="username webauthn" required defaultValue={email ?? ""} data-surls-auth-input />
+            </label>
+            <label data-surls-auth-field>
+              Password
+              <input name="password" type="password" autoComplete="current-password" required minLength={12} data-surls-auth-input />
+            </label>
+            <button type="submit" data-surls-auth-submit>Log in</button>
+            <div className="login-divider" data-surls-auth-divider><span>or</span></div>
+            <PasskeyLoginButton nextPath={nextPath} />
+          </TurnstileGate>
+        </>
+      ) : null}
+      <ExternalLoginButtons nextPath={nextPath} required={!localLoginEnabled} />
     </form>
   );
 }

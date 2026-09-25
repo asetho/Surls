@@ -9,12 +9,14 @@ const auth = vi.hoisted(() => ({
 }));
 const rateLimit = vi.hoisted(() => ({ checkRateLimit: vi.fn() }));
 const audit = vi.hoisted(() => ({ auditLog: vi.fn() }));
+const settings = vi.hoisted(() => ({ getSetting: vi.fn() }));
 
 vi.mock("@simplewebauthn/server", () => webauthn);
 vi.mock("@/lib/prisma", () => ({ prisma }));
 vi.mock("@/lib/auth", () => auth);
 vi.mock("@/lib/rate-limit", () => rateLimit);
 vi.mock("@/lib/audit", () => audit);
+vi.mock("@/lib/settings", () => settings);
 vi.mock("@/lib/crypto", () => ({ hashToken: () => "challenge-hash" }));
 vi.mock("@/lib/request", () => ({ requestIp: () => "127.0.0.1", requestIpHash: () => "ip-hash" }));
 vi.mock("@/lib/passkeys", () => ({
@@ -52,6 +54,16 @@ describe("POST /api/auth/passkey/auth/verify", () => {
       verified: true
     });
     auth.createSession.mockResolvedValue({ expiresAt: new Date("2026-09-20T00:00:00Z"), token: "session-token" });
+    settings.getSetting.mockResolvedValue(true);
+  });
+
+  it("rejects passkey verification before reading credentials when local sign-in is disabled", async () => {
+    settings.getSetting.mockResolvedValue(false);
+    const { POST } = await import("@/app/api/auth/passkey/auth/verify/route");
+    const response = await POST(request());
+    expect(response.status).toBe(403);
+    expect(prisma.passkey.findUnique).not.toHaveBeenCalled();
+    expect(auth.createSession).not.toHaveBeenCalled();
   });
 
   it("atomically accepts a challenge once and rejects a replay", async () => {
