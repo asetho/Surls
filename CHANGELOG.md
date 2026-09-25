@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.1.0 - 2026-09-25
+
+### Added
+
+* Open an installed iPhone or Android web app on the page where it was added to the home screen.
+* Generate readable callback URLs for new external sign-in profiles from their client IDs, and offer an inline copy button after the client ID is entered.
+
+### Changed
+
+* Preview uploaded or pasted OpenID Connect logos before saving, with a reset control for the built-in logo.
+
+### Fixed
+
+* Keep existing provider callback URLs stable when editing a client ID and distinguish new client IDs that would otherwise produce the same URL.
+* Clear invalid logo file selections so they are not submitted later.
+
+### Upgrade Notes
+
+No manual upgrade steps required. Existing provider callback URLs remain unchanged. For a new provider profile, register the exact callback URL shown in its editor with the identity provider.
+
 ## 2.0.0 - 2026-09-24
 
 ### Added
