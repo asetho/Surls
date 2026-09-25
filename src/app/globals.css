@@ -148,7 +148,7 @@ button:active,
 }
 
 button:disabled,
-.button[aria-disabled="true"] {
+.button[aria-disabled="true"]:not([data-surls-auth-preview]) {
   cursor: not-allowed;
   opacity: 0.55;
 }

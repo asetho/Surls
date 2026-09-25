@@ -1,6 +1,6 @@
 "use server";
 
-import { AuditAction } from "@prisma/client";
+import { AuditAction, type Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { adminToastPath } from "@/lib/admin-toast";
@@ -11,8 +11,8 @@ import {
   disableExternalProviderSetting, externalProviderKey, ExternalProviderSettingsError,
   externalProviderType, getConfiguredExternalProviders, isExternalProvider, removeExternalProviderSetting, saveExternalProviderSetting
 } from "@/lib/external-provider-settings";
-import { prisma } from "@/lib/prisma";
 import { getSetting, setSetting } from "@/lib/settings";
+import { withSignInConfiguration } from "@/lib/sign-in-configuration";
 
 function settingsToast(type: "error" | "success", message: string): never {
   redirect(adminToastPath("/admin/settings?externalSignIn=open", type, message));
@@ -33,15 +33,15 @@ async function authenticatedProviderChange(formData: FormData) {
   return { admin, provider, key: key as string };
 }
 
-async function ensureProviderCanChange(adminId: string, key: string) {
-  if (await getSetting("localLoginEnabled")) return;
-  const configs = await getConfiguredExternalProviders();
+async function ensureProviderCanChange(adminId: string, key: string, transaction: Prisma.TransactionClient) {
+  if (await getSetting("localLoginEnabled", transaction)) return;
+  const configs = await getConfiguredExternalProviders(transaction);
   if (!configs.some((config) => config.key === key)) return;
-  const identities = await prisma.externalIdentity.findMany({ where: { userId: adminId }, select: { provider: true } });
+  const identities = await transaction.externalIdentity.findMany({ where: { userId: adminId }, select: { provider: true } });
   const connected = new Set(identities.map((identity) => identity.provider));
   const available = configs.filter((config) => connected.has(externalProviderKey(config)));
-  if (available.length === 1 && available[0].key === key) {
-    settingsToast("error", "Enable password sign-in or connect another provider before changing your only sign-in provider.");
+  if (configs.length === 1 || (available.length === 1 && available[0].key === key)) {
+    throw new ExternalProviderSettingsError("Enable password sign-in or connect another provider before changing your only sign-in provider.");
   }
 }
 
@@ -63,10 +63,12 @@ export async function setExternalLoginEnabledAction(formData: FormData) {
   const requested = formData.get("enabled");
   if (requested !== "true" && requested !== "false") settingsToast("error", "Choose a valid external sign-in state.");
   const enabled = requested === "true";
-  if (!enabled && !(await getSetting("localLoginEnabled"))) {
-    settingsToast("error", "Enable password and passkey sign-in before disabling external sign-in.");
-  }
-  await setSetting("externalLoginEnabled", enabled);
+  await withSignInConfiguration(async (transaction) => {
+    if (!enabled && !(await getSetting("localLoginEnabled", transaction))) {
+      settingsToast("error", "Enable password and passkey sign-in before disabling external sign-in.");
+    }
+    await setSetting("externalLoginEnabled", enabled, transaction);
+  });
   await auditLog({ userId: admin.id, action: AuditAction.SETTINGS_CHANGED,
     entityType: "AppSetting", entityId: "externalLoginEnabled", details: { externalLoginEnabled: enabled } });
   revalidateSignInPages();
@@ -75,18 +77,20 @@ export async function setExternalLoginEnabledAction(formData: FormData) {
 
 export async function saveExternalProviderAction(formData: FormData) {
   const { admin, provider, key } = await authenticatedProviderChange(formData);
-  await ensureProviderCanChange(admin.id, key);
   try {
-    await saveExternalProviderSetting(provider, {
-      key,
-      clientId: formData.get("clientId"),
-      clientSecret: formData.get("clientSecret"),
-      label: formData.get("label"),
-      issuer: formData.get("issuer"),
-      tenantId: formData.get("tenantId"),
-      logoFile: formData.get("logoFile"),
-      logoBase64: formData.get("logoBase64"),
-      removeLogo: formData.get("removeLogo")
+    await withSignInConfiguration(async (transaction) => {
+      await ensureProviderCanChange(admin.id, key, transaction);
+      await saveExternalProviderSetting(provider, {
+        key,
+        clientId: formData.get("clientId"),
+        clientSecret: formData.get("clientSecret"),
+        label: formData.get("label"),
+        issuer: formData.get("issuer"),
+        tenantId: formData.get("tenantId"),
+        logoFile: formData.get("logoFile"),
+        logoBase64: formData.get("logoBase64"),
+        removeLogo: formData.get("removeLogo")
+      }, transaction);
     });
   } catch (error) {
     settingsToast("error", error instanceof ExternalProviderSettingsError ? error.message : "Could not save this provider. Try again.");
@@ -99,9 +103,11 @@ export async function saveExternalProviderAction(formData: FormData) {
 
 export async function disableExternalProviderAction(formData: FormData) {
   const { admin, provider, key } = await authenticatedProviderChange(formData);
-  await ensureProviderCanChange(admin.id, key);
   try {
-    await disableExternalProviderSetting(key);
+    await withSignInConfiguration(async (transaction) => {
+      await ensureProviderCanChange(admin.id, key, transaction);
+      await disableExternalProviderSetting(key, transaction);
+    });
   } catch (error) {
     settingsToast("error", error instanceof ExternalProviderSettingsError ? error.message : "Could not disable this provider. Try again.");
   }
@@ -113,9 +119,11 @@ export async function disableExternalProviderAction(formData: FormData) {
 
 export async function removeExternalProviderAction(formData: FormData) {
   const { admin, provider, key } = await authenticatedProviderChange(formData);
-  await ensureProviderCanChange(admin.id, key);
   try {
-    await removeExternalProviderSetting(key);
+    await withSignInConfiguration(async (transaction) => {
+      await ensureProviderCanChange(admin.id, key, transaction);
+      await removeExternalProviderSetting(key, transaction);
+    });
   } catch (error) {
     settingsToast("error", error instanceof ExternalProviderSettingsError ? error.message : "Could not remove this provider. Try again.");
   }

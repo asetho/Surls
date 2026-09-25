@@ -1,8 +1,10 @@
-import type { ExternalProviderSetting } from "@prisma/client";
+import type { ExternalProviderSetting, Prisma } from "@prisma/client";
 import { decryptSecret, encryptSecret } from "./crypto";
 import { appBaseUrl, env } from "./env";
 import { validateSvgImage } from "./favicons";
 import { prisma } from "./prisma";
+
+type ProviderSettingsClient = Pick<Prisma.TransactionClient, "externalProviderSetting">;
 
 export const EXTERNAL_PROVIDERS = ["oidc", "google", "github", "discord", "microsoft", "facebook", "x"] as const;
 export type ExternalProvider = (typeof EXTERNAL_PROVIDERS)[number];
@@ -111,8 +113,8 @@ export async function getExternalProviderConfig(key: string) {
   return row ? storedConfig(row) : key === provider ? environmentExternalProviderConfig(provider) : null;
 }
 
-export async function getConfiguredExternalProviders() {
-  const rows = await prisma.externalProviderSetting.findMany();
+export async function getConfiguredExternalProviders(client: ProviderSettingsClient = prisma) {
+  const rows = await client.externalProviderSetting.findMany();
   const byProvider = new Map(rows.map((row) => [row.provider, row]));
   return [...EXTERNAL_PROVIDERS.map((provider) => effectiveConfig(provider, byProvider.get(provider))),
     ...rows.filter((row) => !isExternalProvider(row.provider)).map(storedConfig)].filter(
@@ -254,7 +256,7 @@ export async function saveExternalProviderSetting(provider: ExternalProvider, va
   logoFile?: unknown;
   logoBase64?: unknown;
   removeLogo?: unknown;
-}) {
+}, client: ProviderSettingsClient = prisma) {
   const key = values.key === undefined ? provider : values.key;
   if (typeof key !== "string" || externalProviderType(key) !== provider) {
     throw new ExternalProviderSettingsError("Choose a valid provider profile.");
@@ -265,7 +267,7 @@ export async function saveExternalProviderSetting(provider: ExternalProvider, va
   const label = provider === "oidc" || (typeof values.label === "string" && values.label.trim())
     ? requiredText(values.label, "button label", 80) : PROVIDER_NAMES[provider];
   const newSecret = optionalSecret(values.clientSecret);
-  const existing = await prisma.externalProviderSetting.findUnique({ where: { provider: key } });
+  const existing = await client.externalProviderSetting.findUnique({ where: { provider: key } });
   const logo = provider === "oidc"
     ? await validatedProviderLogo(values.logoFile, values.logoBase64, values.removeLogo, existing?.logoDataUrl ?? null)
     : null;
@@ -280,38 +282,38 @@ export async function saveExternalProviderSetting(provider: ExternalProvider, va
   const secretEncrypted = newSecret ? encryptSecret(newSecret) : existing?.secretEncrypted ||
     (environmentSecret ? encryptSecret(environmentSecret) : null);
   if (!secretEncrypted) throw new ExternalProviderSettingsError("Enter a client secret.");
-  return prisma.externalProviderSetting.upsert({
+  return client.externalProviderSetting.upsert({
     where: { provider: key },
     create: { provider: key, clientId, secretEncrypted, issuer, tenantId, label, logoDataUrl: logo, enabled: true },
     update: { clientId, secretEncrypted, issuer, tenantId, label, logoDataUrl: logo, enabled: true }
   });
 }
 
-export async function disableExternalProviderSetting(key: string) {
+export async function disableExternalProviderSetting(key: string, client: ProviderSettingsClient = prisma) {
   const provider = externalProviderType(key);
   if (!provider) throw new ExternalProviderSettingsError("Choose a valid provider profile.");
-  const existing = await prisma.externalProviderSetting.findUnique({ where: { provider: key } });
-  if (existing) return prisma.externalProviderSetting.update({ where: { provider: key }, data: { enabled: false } });
+  const existing = await client.externalProviderSetting.findUnique({ where: { provider: key } });
+  if (existing) return client.externalProviderSetting.update({ where: { provider: key }, data: { enabled: false } });
   if (key !== provider) throw new ExternalProviderSettingsError("This provider is not configured.");
   const config = environmentExternalProviderConfig(provider);
   if (!config) throw new ExternalProviderSettingsError("This provider is not configured.");
-  return prisma.externalProviderSetting.create({ data: {
+  return client.externalProviderSetting.create({ data: {
     provider, clientId: config.id, secretEncrypted: encryptSecret(config.secret), label: config.label,
     issuer: config.issuer, tenantId: config.tenantId, enabled: false
   } });
 }
 
-export async function removeExternalProviderSetting(key: string) {
+export async function removeExternalProviderSetting(key: string, client: ProviderSettingsClient = prisma) {
   const provider = externalProviderType(key);
   if (!provider) throw new ExternalProviderSettingsError("Choose a valid provider profile.");
   if (key !== provider) {
-    await prisma.externalProviderSetting.deleteMany({ where: { provider: key } });
+    await client.externalProviderSetting.deleteMany({ where: { provider: key } });
     return;
   }
   // Keep an empty, disabled override so removing a legacy profile cannot
   // reactivate its environment credentials. Account connections are retained.
   const removed = { enabled: false, clientId: "", secretEncrypted: "", label: "", logoDataUrl: null, issuer: null, tenantId: null };
-  await prisma.externalProviderSetting.upsert({
+  await client.externalProviderSetting.upsert({
     where: { provider: key },
     create: { provider: key, ...removed },
     update: removed

@@ -60,8 +60,8 @@ export function normalizeSiteName(value: unknown) {
   return name || env.APP_NAME || "Surls";
 }
 
-export async function getSetting<K extends keyof AppSettings>(key: K): Promise<AppSettings[K]> {
-  const setting = await prisma.appSetting.findUnique({ where: { key } });
+export async function getSetting<K extends keyof AppSettings>(key: K, client: Pick<Prisma.TransactionClient, "appSetting"> = prisma): Promise<AppSettings[K]> {
+  const setting = await client.appSetting.findUnique({ where: { key } });
   return setting ? (setting.value as AppSettings[K]) : DEFAULT_SETTINGS[key];
 }
 
@@ -96,8 +96,8 @@ export async function getSiteUploadMaxBytes() {
   }
 }
 
-export async function getSettings(): Promise<AppSettings> {
-  const rows = await prisma.appSetting.findMany();
+export async function getSettings(client: Pick<Prisma.TransactionClient, "appSetting"> = prisma): Promise<AppSettings> {
+  const rows = await client.appSetting.findMany();
   const values = new Map(rows.map((row) => [row.key, row.value]));
   const settings = Object.fromEntries(
     Object.entries(DEFAULT_SETTINGS).map(([key, defaultValue]) => [key, values.has(key) ? values.get(key) : defaultValue])
@@ -119,9 +119,9 @@ export function settingJsonValue(value: AppSettings[keyof AppSettings]) {
   return value === null ? Prisma.JsonNull : (value as Prisma.InputJsonValue);
 }
 
-export async function setSetting<K extends keyof AppSettings>(key: K, value: AppSettings[K]) {
+export async function setSetting<K extends keyof AppSettings>(key: K, value: AppSettings[K], client: Pick<Prisma.TransactionClient, "appSetting"> = prisma) {
   const jsonValue = settingJsonValue(value);
-  return prisma.appSetting.upsert({
+  return client.appSetting.upsert({
     where: { key },
     update: { value: jsonValue },
     create: { key, value: jsonValue }

@@ -10,7 +10,8 @@ export function PasswordLoginForm({
   error,
   nextPath,
   siteName,
-  localLoginEnabled
+  localLoginEnabled,
+  preview = false
 }: {
   csrf: string;
   email?: string;
@@ -19,16 +20,18 @@ export function PasswordLoginForm({
   nextPath: string;
   siteName: string;
   localLoginEnabled: boolean;
+  preview?: boolean;
 }) {
   const title = `${siteName} login`;
   const tagline = "Sign in to manage private links, redirects, and click statistics.";
-  const siteKey = turnstileSiteKey();
+  const siteKey = preview ? undefined : turnstileSiteKey();
+  const Form = preview ? "div" : "form";
 
   return (
-    <form
+    <Form
       className={`${embedded ? "surls-auth-form-embedded" : "surface login-card"} surls-auth-form form-stack`}
-      action="/api/auth/login"
-      method="post"
+      action={preview ? undefined : "/api/auth/login"}
+      method={preview ? undefined : "post"}
       data-surls-auth-form
     >
       {!embedded ? (
@@ -40,24 +43,24 @@ export function PasswordLoginForm({
       {error ? <div className="alert">{error}</div> : null}
       {localLoginEnabled ? (
         <>
-          <input type="hidden" name="csrf" value={csrf} />
-          <input type="hidden" name="next" value={nextPath} />
+          {!preview ? <input type="hidden" name="csrf" value={csrf} /> : null}
+          {!preview ? <input type="hidden" name="next" value={nextPath} /> : null}
           <TurnstileGate siteKey={siteKey}>
             <label data-surls-auth-field>
               Email
-              <input name="email" type="email" autoComplete="username webauthn" required defaultValue={email ?? ""} data-surls-auth-input />
+              <input name={preview ? undefined : "email"} type="email" autoComplete={preview ? "off" : "username webauthn"} readOnly={preview} required defaultValue={email ?? ""} data-surls-auth-input />
             </label>
             <label data-surls-auth-field>
               Password
-              <input name="password" type="password" autoComplete="current-password" required minLength={12} data-surls-auth-input />
+              <input name={preview ? undefined : "password"} type="password" autoComplete={preview ? "off" : "current-password"} readOnly={preview} required minLength={12} data-surls-auth-input />
             </label>
-            <button type="submit" data-surls-auth-submit>Log in</button>
+            <button type={preview ? "button" : "submit"} aria-disabled={preview || undefined} data-surls-auth-submit>Log in</button>
             <div className="login-divider" data-surls-auth-divider><span>or</span></div>
-            <PasskeyLoginButton nextPath={nextPath} />
+            <PasskeyLoginButton nextPath={nextPath} preview={preview} />
           </TurnstileGate>
         </>
       ) : null}
-      <ExternalLoginButtons nextPath={nextPath} required={!localLoginEnabled} />
-    </form>
+      <ExternalLoginButtons nextPath={nextPath} required={!localLoginEnabled} preview={preview} />
+    </Form>
   );
 }
