@@ -21,11 +21,9 @@ const LOGIN_PER_EMAIL_LIMIT = 8;
 const LOGIN_PER_SOURCE_WORK_LIMIT = 48;
 const LOGIN_SHARED_WORK_LIMIT = 16;
 const LOGIN_SHARED_WORK_WINDOW_MS = 10 * 1000;
-const MAX_CONCURRENT_PASSWORD_VERIFICATIONS = 8;
-const MAX_CONCURRENT_UNKNOWN_PASSWORD_VERIFICATIONS = 4;
-const UNKNOWN_SOURCE_FAILURE_MINIMUM_MS = 300;
+const MAX_CONCURRENT_PASSWORD_VERIFICATIONS = 4;
+const CREDENTIAL_FAILURE_MINIMUM_MS = 300;
 let activePasswordVerifications = 0;
-let activeUnknownPasswordVerifications = 0;
 
 async function readLoginFormData(request: NextRequest) {
   const contentType = request.headers.get("content-type") ?? "";
@@ -73,16 +71,17 @@ async function readLoginFormData(request: NextRequest) {
   }
 }
 
-async function verifyPasswordWithinWorkLimit(hash: string, password: string, unknownAccount: boolean) {
-  if (activePasswordVerifications >= MAX_CONCURRENT_PASSWORD_VERIFICATIONS ||
-      (unknownAccount && activeUnknownPasswordVerifications >= MAX_CONCURRENT_UNKNOWN_PASSWORD_VERIFICATIONS)) return null;
+async function verifyLoginCredentials(email: string, password: string) {
+  if (activePasswordVerifications >= MAX_CONCURRENT_PASSWORD_VERIFICATIONS) return null;
   activePasswordVerifications += 1;
-  if (unknownAccount) activeUnknownPasswordVerifications += 1;
   try {
-    return await verifyPassword(hash, password);
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { totpCredential: true }
+    });
+    return { user, passwordOk: await verifyPassword(user?.passwordHash ?? DUMMY_PASSWORD_HASH, password) };
   } finally {
     activePasswordVerifications -= 1;
-    if (unknownAccount) activeUnknownPasswordVerifications -= 1;
   }
 }
 
@@ -123,9 +122,9 @@ export async function POST(request: NextRequest) {
 
   const sourceIp = requestIp(request);
   const credentialStartedAt = performance.now();
-  const invalidCredentials = async () => {
-    if (sourceIp === "unknown") {
-      const remaining = UNKNOWN_SOURCE_FAILURE_MINIMUM_MS - (performance.now() - credentialStartedAt);
+  const invalidCredentials = async (padFailure = sourceIp === "unknown") => {
+    if (padFailure) {
+      const remaining = CREDENTIAL_FAILURE_MINIMUM_MS - (performance.now() - credentialStartedAt);
       if (remaining > 0) await new Promise<void>((resolve) => setTimeout(resolve, Math.ceil(remaining)));
     }
     return loginRedirect("Invalid email or password.", failureExtras, failurePath);
@@ -152,27 +151,20 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email },
-    include: { totpCredential: true }
-  });
   if (sourceIp === "unknown") {
-    // Without a trusted proxy, every visitor shares this source. Reserve the
-    // short shared budget for missing accounts, before creating email buckets.
-    if (!user) {
-      const workRate = await checkRateLimit("login:password-work:shared", LOGIN_SHARED_WORK_LIMIT, LOGIN_SHARED_WORK_WINDOW_MS);
-      if (!workRate.allowed) return invalidCredentials();
-    }
+    // Without a trusted proxy, every visitor shares this source. Apply the
+    // work budget before account lookup so admission cannot reveal existence.
+    const workRate = await checkRateLimit("login:password-work:shared", LOGIN_SHARED_WORK_LIMIT, LOGIN_SHARED_WORK_WINDOW_MS);
+    if (!workRate.allowed) return invalidCredentials();
     const rate = await checkRateLimit(`login:${sourceIp}:${email}`, LOGIN_PER_EMAIL_LIMIT, LOGIN_WINDOW_MS);
     if (!rate.allowed) return invalidCredentials();
   }
 
-  const passwordOk = await verifyPasswordWithinWorkLimit(user?.passwordHash ?? DUMMY_PASSWORD_HASH, password, !user);
-  if (passwordOk === null) {
-    return sourceIp === "unknown"
-      ? invalidCredentials()
-      : loginRedirect("Too many login attempts. Please wait and try again.", failureExtras, failurePath);
+  const credentials = await verifyLoginCredentials(email, password);
+  if (!credentials) {
+    return invalidCredentials(true);
   }
+  const { user, passwordOk } = credentials;
 
   if (!user || !passwordOk) {
     await auditLog({
