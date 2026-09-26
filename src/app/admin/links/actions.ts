@@ -24,6 +24,7 @@ import {
   normalizeShortLinkTextFields
 } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
+import { LINK_CREATE_RATE_LIMIT_MESSAGE } from "@/lib/link-create-limits";
 import { safeRedirectPath } from "@/lib/redirect-path";
 import { assertNoPrivateResolution, parseSafeHttpUrl } from "@/lib/url-safety";
 import { createLinkFromFormData } from "./create-link";
@@ -77,8 +78,16 @@ export async function filterLinksAction(formData: FormData) {
   redirect(linkListPath(formData, pageSize));
 }
 
-export async function createLinkAction(formData: FormData) {
-  const link = await createLinkFromFormData(formData);
+export async function createLinkAction(_state: { error?: string } | null, formData: FormData) {
+  let link: Awaited<ReturnType<typeof createLinkFromFormData>>;
+  try {
+    link = await createLinkFromFormData(formData);
+  } catch (error) {
+    if (error instanceof Error && error.message === LINK_CREATE_RATE_LIMIT_MESSAGE) {
+      return { error: LINK_CREATE_RATE_LIMIT_MESSAGE };
+    }
+    throw error;
+  }
   if (!link) redirect("/admin?next=/admin/links");
   redirect(`/admin/links/${link.id}`);
 }

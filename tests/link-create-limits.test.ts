@@ -38,6 +38,18 @@ describe("shared interactive link creation limit", () => {
     expect(links.createShortLink).not.toHaveBeenCalled();
   });
 
+  it("returns the dashboard rate-limit message as form state", async () => {
+    const { createLinkAction } = await import("@/app/admin/links/actions");
+    const formData = new FormData();
+    formData.set("destinationUrl", "https://example.com");
+
+    await expect(createLinkAction(null, formData)).resolves.toEqual({
+      error: "Too many links created. Please wait and try again."
+    });
+    expect(navigation.redirect).not.toHaveBeenCalled();
+    expect(links.createShortLink).not.toHaveBeenCalled();
+  });
+
   it("still creates a link when the shared user budget allows it", async () => {
     rateLimit.checkRateLimit.mockResolvedValue({ allowed: true });
     links.createShortLink.mockResolvedValue({ code: "example", id: "link_1" });
