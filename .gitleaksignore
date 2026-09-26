@@ -17,3 +17,6 @@
 895cbbca067e1ec608c669eed9fd069a17cb0317:tests/uploaded-file-records.test.ts:generic-api-key:180
 895cbbca067e1ec608c669eed9fd069a17cb0317:tests/uploaded-file-records.test.ts:generic-api-key:190
 895cbbca067e1ec608c669eed9fd069a17cb0317:tests/uploaded-file-records.test.ts:generic-api-key:206
+
+# Synthetic AUTH_SECRET fixture in the first security-scan PR commit; the fixture is corrected in the next commit.
+f9cd7feec306ecbd6c6a49b416d92d16a21f789d:tests/smtp-settings.test.ts:generic-api-key:15

@@ -12,7 +12,7 @@ const appSetting = vi.hoisted(() => ({
 
 vi.mock("@/lib/prisma", () => ({ prisma: { appSetting } }));
 vi.mock("@/lib/env", () => ({ env: {
-  AUTH_SECRET: "a-unique-test-key-with-at-least-32-characters",
+  AUTH_SECRET: "test-only-test-only-test-only-test-only",
   SMTP_HOST: "environment.example.com", SMTP_PORT: 587,
   SMTP_FROM: "environment@example.com", SMTP_USER: "env-user", SMTP_PASSWORD: "env-password"
 } }));
