@@ -556,16 +556,16 @@ describe("tools actions hardening", () => {
     });
     uploads.promoteUploadedFile.mockReturnValue(blocked);
     const { uploadAndShortenAction } = await import("@/app/admin/tools/actions");
-    const { UPLOAD_MAX_CONCURRENT_REQUESTS } = await import("@/lib/upload-request-limits");
-    const active = Array.from({ length: UPLOAD_MAX_CONCURRENT_REQUESTS }, () => uploadAndShortenAction(null, uploadForm()));
+    const { UPLOAD_MAX_CONCURRENT_PER_USER } = await import("@/lib/upload-request-limits");
+    const active = Array.from({ length: UPLOAD_MAX_CONCURRENT_PER_USER }, () => uploadAndShortenAction(null, uploadForm()));
     await vi.waitFor(() => {
-      expect(uploads.promoteUploadedFile).toHaveBeenCalledTimes(UPLOAD_MAX_CONCURRENT_REQUESTS);
+      expect(uploads.promoteUploadedFile).toHaveBeenCalledTimes(UPLOAD_MAX_CONCURRENT_PER_USER);
     });
 
     await expect(uploadAndShortenAction(null, uploadForm())).resolves.toEqual({
       error: "Too many uploads are already in progress."
     });
-    expect(uploads.promoteUploadedFile).toHaveBeenCalledTimes(UPLOAD_MAX_CONCURRENT_REQUESTS);
+    expect(uploads.promoteUploadedFile).toHaveBeenCalledTimes(UPLOAD_MAX_CONCURRENT_PER_USER);
 
     releaseUpload();
     await Promise.all(active);

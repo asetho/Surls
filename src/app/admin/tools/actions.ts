@@ -367,7 +367,7 @@ export async function uploadAndShortenAction(
 
   const rate = await checkUploadRateLimit(admin.id);
   if (!rate.allowed) return { error: "Rate limit exceeded" };
-  const releaseUploadRequest = acquireUploadRequest();
+  const releaseUploadRequest = acquireUploadRequest(admin.id);
   if (!releaseUploadRequest) return { error: "Too many uploads are already in progress." };
 
   try {
