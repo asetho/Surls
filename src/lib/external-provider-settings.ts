@@ -282,7 +282,19 @@ export async function saveExternalProviderSetting(provider: ExternalProvider, va
   const logo = provider === "oidc"
     ? await validatedProviderLogo(values.logoFile, values.logoBase64, values.removeLogo, existing?.logoDataUrl ?? null)
     : null;
-  const environmentSecret = existing || key !== provider ? null : environmentExternalProviderConfig(provider)?.secret;
+  const environmentConfig = existing || key !== provider ? null : environmentExternalProviderConfig(provider);
+  if (!newSecret && (existing?.secretEncrypted || environmentConfig?.secret)) {
+    if (clientId !== (existing ? existing.clientId : environmentConfig?.id)) {
+      throw new ExternalProviderSettingsError("Enter a new client secret when changing the client ID.");
+    }
+    if (provider === "oidc" && issuer !== (existing ? existing.issuer : environmentConfig?.issuer)) {
+      throw new ExternalProviderSettingsError("Enter a new client secret when changing the issuer URL.");
+    }
+    if (provider === "microsoft" && tenantId !== (existing ? existing.tenantId : environmentConfig?.tenantId)) {
+      throw new ExternalProviderSettingsError("Enter a new client secret when changing the Microsoft tenant.");
+    }
+  }
+  const environmentSecret = environmentConfig?.secret;
   if (!newSecret && existing?.secretEncrypted) {
     try {
       decryptSecret(existing.secretEncrypted);

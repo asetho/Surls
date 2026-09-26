@@ -16,7 +16,7 @@ vi.mock("node:dns/promises", () => ({
   }
 }));
 
-import { resolveSafeHttpAddressWithTimeout } from "@/lib/url-safety";
+import { DESTINATION_DNS_TIMEOUT_MS, resolveSafeHttpAddress, resolveSafeHttpAddressWithTimeout } from "@/lib/url-safety";
 
 function dnsError(code: string) {
   return Object.assign(new Error(code), { code });
@@ -44,6 +44,24 @@ describe("bounded destination DNS resolution", () => {
     await expect(resolveSafeHttpAddressWithTimeout("https://example.com/path", 2_000)).rejects.toThrow(
       /private or internal/i
     );
+    expect(dnsMocks.cancel).not.toHaveBeenCalled();
+  });
+
+  it("cancels the other address family when one DNS query fails early", async () => {
+    vi.useFakeTimers();
+    let rejectIpv6!: (error: Error) => void;
+    dnsMocks.resolve4.mockRejectedValue(dnsError("ESERVFAIL"));
+    dnsMocks.resolve6.mockReturnValue(new Promise<string[]>((_, reject) => {
+      rejectIpv6 = reject;
+    }));
+    dnsMocks.cancel.mockImplementation(() => rejectIpv6(dnsError("ECANCELLED")));
+
+    await expect(resolveSafeHttpAddressWithTimeout("https://failing.example/path", 50)).rejects.toMatchObject({
+      code: "ESERVFAIL"
+    });
+    expect(dnsMocks.cancel).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
   });
 
   it("cancels outstanding resolver work at the deadline", async () => {
@@ -57,6 +75,153 @@ describe("bounded destination DNS resolution", () => {
 
     await rejection;
     expect(dnsMocks.cancel).toHaveBeenCalledOnce();
+    vi.useRealTimers();
+  });
+
+  it("bounds the default destination resolver used by link and title requests", async () => {
+    vi.useFakeTimers();
+    dnsMocks.resolve4.mockReturnValue(new Promise(() => undefined));
+    dnsMocks.resolve6.mockReturnValue(new Promise(() => undefined));
+
+    const resolution = resolveSafeHttpAddress("https://slow.example/path");
+    const rejection = expect(resolution).rejects.toThrow(/timed out/i);
+    await vi.advanceTimersByTimeAsync(DESTINATION_DNS_TIMEOUT_MS);
+
+    await rejection;
+    expect(dnsMocks.cancel).toHaveBeenCalledOnce();
+    vi.useRealTimers();
+  });
+
+  it("reserves public DNS capacity for redirects and releases slots after timeouts", async () => {
+    vi.useFakeTimers();
+    dnsMocks.resolve4.mockReturnValue(new Promise(() => undefined));
+    dnsMocks.resolve6.mockReturnValue(new Promise(() => undefined));
+
+    const pending = Array.from({ length: 4 }, (_, index) =>
+      resolveSafeHttpAddressWithTimeout(`https://slow${index}.example/`, 50)
+    );
+    await expect(resolveSafeHttpAddressWithTimeout("https://blocked.example/", 50)).rejects.toThrow(
+      /too many destination dns lookups/i
+    );
+    const redirects = Array.from({ length: 4 }, (_, index) =>
+      resolveSafeHttpAddressWithTimeout(`https://redirect${index}.example/`, 50, false, "redirect", index < 2 ? "owner-a" : "owner-b")
+    );
+    await expect(resolveSafeHttpAddressWithTimeout("https://redirect-blocked.example/", 50, false, "redirect", "owner-c"))
+      .rejects.toThrow(/too many destination dns lookups/i);
+    expect(dnsMocks.resolve4).toHaveBeenCalledTimes(8);
+    const rejections = [...pending, ...redirects].map((lookup) => expect(lookup).rejects.toThrow(/timed out/i));
+    await vi.advanceTimersByTimeAsync(50);
+    await Promise.all(rejections);
+    expect(dnsMocks.cancel).toHaveBeenCalledTimes(8);
+
+    dnsMocks.resolve4.mockResolvedValue(["93.184.216.34"]);
+    dnsMocks.resolve6.mockRejectedValue(dnsError("ENODATA"));
+    await expect(resolveSafeHttpAddressWithTimeout("https://recovered.example/", 50)).resolves.toEqual({
+      address: "93.184.216.34",
+      family: 4
+    });
+    vi.useRealTimers();
+  });
+
+  it("keeps a slow link owner from consuming another owner's redirect slots", async () => {
+    vi.useFakeTimers();
+    dnsMocks.resolve4.mockReturnValue(new Promise(() => undefined));
+    dnsMocks.resolve6.mockReturnValue(new Promise(() => undefined));
+
+    const ownerA = [0, 1].map((index) =>
+      resolveSafeHttpAddressWithTimeout(`https://owner-a-${index}.example/`, 50, false, "redirect", "owner-a")
+    );
+    await expect(resolveSafeHttpAddressWithTimeout("https://owner-a-blocked.example/", 50, false, "redirect", "owner-a"))
+      .rejects.toThrow(/too many destination dns lookups/i);
+    const ownerB = resolveSafeHttpAddressWithTimeout("https://owner-b.example/", 50, false, "redirect", "owner-b");
+    expect(dnsMocks.resolve4).toHaveBeenCalledTimes(3);
+
+    const rejections = [...ownerA, ownerB].map((lookup) => expect(lookup).rejects.toThrow(/timed out/i));
+    await vi.advanceTimersByTimeAsync(50);
+    await Promise.all(rejections);
+    vi.useRealTimers();
+  });
+
+  it("admits unrelated ownerless links while reserving DNS capacity for owned links", async () => {
+    vi.useFakeTimers();
+    dnsMocks.resolve4.mockReturnValue(new Promise(() => undefined));
+    dnsMocks.resolve6.mockReturnValue(new Promise(() => undefined));
+
+    const ownerless = Array.from({ length: 4 }, (_, index) =>
+      resolveSafeHttpAddressWithTimeout(`https://orphan-${index}.example/`, 50, false, "redirect", `link:${index}`)
+    );
+    await expect(resolveSafeHttpAddressWithTimeout("https://orphan-blocked.example/", 50, false, "redirect", "link:other"))
+      .rejects.toThrow(/too many destination dns lookups/i);
+    const owned = resolveSafeHttpAddressWithTimeout("https://owned.example/", 50, false, "redirect", "user:owner-a");
+    expect(dnsMocks.resolve4).toHaveBeenCalledTimes(5);
+
+    const rejections = [...ownerless, owned].map((lookup) => expect(lookup).rejects.toThrow(/timed out/i));
+    await vi.advanceTimersByTimeAsync(50);
+    await Promise.all(rejections);
+    vi.useRealTimers();
+  });
+
+  it("preserves system lookup for explicitly allowed private destinations", async () => {
+    dnsMocks.lookup.mockResolvedValue([{ address: "127.0.0.1", family: 4 }]);
+
+    await expect(resolveSafeHttpAddressWithTimeout("http://internal.test/path", 2_000, true)).resolves.toEqual({
+      address: "127.0.0.1",
+      family: 4
+    });
+    expect(dnsMocks.lookup).toHaveBeenCalledWith("internal.test", { all: true, verbatim: true });
+    expect(dnsMocks.resolve4).not.toHaveBeenCalled();
+  });
+
+  it("reserves system DNS capacity for redirects when private destinations are allowed", async () => {
+    vi.useFakeTimers();
+    const releases: Array<(records: Array<{ address: string; family: number }>) => void> = [];
+    dnsMocks.lookup.mockImplementation(() => new Promise((resolve) => { releases.push(resolve); }));
+
+    const pending = Array.from({ length: 4 }, (_, index) =>
+      resolveSafeHttpAddressWithTimeout(`http://internal${index}.test/`, 50, true)
+    );
+    const blocked = resolveSafeHttpAddressWithTimeout("http://internal4.test/", 50, true);
+    await expect(blocked).rejects.toThrow(/too many destination dns lookups/i);
+    const redirects = Array.from({ length: 4 }, (_, index) =>
+      resolveSafeHttpAddressWithTimeout(`http://redirect${index}.test/`, 50, true, "redirect", index < 2 ? "owner-a" : "owner-b")
+    );
+    await expect(resolveSafeHttpAddressWithTimeout("http://redirect-blocked.test/", 50, true, "redirect", "owner-c"))
+      .rejects.toThrow(/too many destination dns lookups/i);
+    const rejections = [...pending, ...redirects].map((lookup) => expect(lookup).rejects.toThrow(/timed out/i));
+    await vi.advanceTimersByTimeAsync(50);
+    await Promise.all(rejections);
+    expect(dnsMocks.lookup).toHaveBeenCalledTimes(8);
+
+    for (const release of releases) release([{ address: "127.0.0.1", family: 4 }]);
+    await vi.advanceTimersByTimeAsync(0);
+    dnsMocks.lookup.mockResolvedValue([{ address: "127.0.0.1", family: 4 }]);
+    await expect(resolveSafeHttpAddressWithTimeout("http://recovered.test/", 50, true)).resolves.toMatchObject({
+      address: "127.0.0.1"
+    });
+    vi.useRealTimers();
+  });
+
+  it("shares the public DNS cap across separately loaded server bundles", async () => {
+    vi.useFakeTimers();
+    dnsMocks.resolve4.mockReturnValue(new Promise(() => undefined));
+    dnsMocks.resolve6.mockReturnValue(new Promise(() => undefined));
+
+    const first = Array.from({ length: 2 }, (_, index) =>
+      resolveSafeHttpAddressWithTimeout(`https://first${index}.example/`, 50)
+    );
+    vi.resetModules();
+    const secondBundle = await import("@/lib/url-safety");
+    const second = Array.from({ length: 2 }, (_, index) =>
+      secondBundle.resolveSafeHttpAddressWithTimeout(`https://second${index}.example/`, 50)
+    );
+    await expect(secondBundle.resolveSafeHttpAddressWithTimeout("https://blocked.example/", 50)).rejects.toThrow(
+      /too many destination dns lookups/i
+    );
+    const redirect = secondBundle.resolveSafeHttpAddressWithTimeout("https://redirect.example/", 50, false, "redirect");
+
+    const rejections = [...first, ...second, redirect].map((resolution) => expect(resolution).rejects.toThrow(/timed out/i));
+    await vi.advanceTimersByTimeAsync(50);
+    await Promise.all(rejections);
     vi.useRealTimers();
   });
 });

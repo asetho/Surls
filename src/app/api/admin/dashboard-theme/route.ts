@@ -1,10 +1,11 @@
 import { AuditAction } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { auditLog } from "@/lib/audit";
 import { requireSiteAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
 import { DEFAULT_DASHBOARD_THEME, dashboardThemeFromFormData } from "@/lib/dashboard-theme";
+import { requestOriginMatchesApp } from "@/lib/request";
 import { setSetting } from "@/lib/settings";
 
 function revalidateDashboardThemePaths() {
@@ -17,9 +18,12 @@ function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const admin = await requireSiteAdmin();
   if (!admin) return NextResponse.json({ error: "Sign in again to continue." }, { status: 401 });
+  if (!requestOriginMatchesApp(request)) {
+    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  }
 
   const formData = await request.formData();
 

@@ -1,9 +1,9 @@
 "use client";
 
 import { browserSupportsWebAuthn, startRegistration } from "@simplewebauthn/browser";
-import { KeyRound, Trash2 } from "lucide-react";
+import { KeyRound, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 import { removePasskeyAction } from "@/app/admin/profile/actions";
 import { dispatchAdminToast } from "@/lib/admin-toast-event";
 import { ConfirmButton } from "./ConfirmButton";
@@ -24,12 +24,39 @@ function initialPasskeySupport() {
 
 export function PasskeyManager({ csrf, passkeys }: { csrf: string; passkeys: PasskeyItem[] }) {
   const router = useRouter();
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [supportsPasskeys] = useState<boolean | null>(initialPasskeySupport);
   const [pending, setPending] = useState(false);
 
+  function openDialog() {
+    const dialog = dialogRef.current;
+    if (!dialog || dialog.open) return;
+    setError("");
+    if (typeof dialog.showModal === "function") {
+      dialog.showModal();
+    } else {
+      dialog.setAttribute("open", "");
+    }
+  }
+
+  function closeDialog() {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (typeof dialog.close === "function") {
+      dialog.close();
+    } else {
+      dialog.removeAttribute("open");
+    }
+    setPassword("");
+    setError("");
+  }
+
   async function registerPasskey() {
+    setError("");
     setPending(true);
     try {
       if (!browserSupportsWebAuthn()) {
@@ -54,14 +81,11 @@ export function PasskeyManager({ csrf, passkeys }: { csrf: string; passkeys: Pas
       if (!verifyResponse.ok) throw new Error(result.error || "Could not save that passkey.");
 
       dispatchAdminToast("success", "Passkey added.");
+      closeDialog();
       setName("");
-      setPassword("");
       router.refresh();
     } catch (registrationError) {
-      dispatchAdminToast(
-        "error",
-        registrationError instanceof Error ? registrationError.message : "Passkey setup failed."
-      );
+      setError(registrationError instanceof Error ? registrationError.message : "Passkey setup failed.");
     } finally {
       setPending(false);
     }
@@ -79,27 +103,62 @@ export function PasskeyManager({ csrf, passkeys }: { csrf: string; passkeys: Pas
             placeholder={PASSKEY_NAME_PLACEHOLDER}
           />
         </label>
-        <label>
-          Current password
-          <input
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            type="password"
-            autoComplete="current-password"
-            required
-          />
-        </label>
-        <div className="field-action">
-          <button
-            type="button"
-            onClick={registerPasskey}
-            disabled={pending || !password || supportsPasskeys === false}
-          >
-            <KeyRound size={16} aria-hidden />
-            {pending ? "Waiting..." : "Add passkey"}
-          </button>
-        </div>
       </div>
+      <button className="icon-button" type="button" onClick={openDialog} disabled={supportsPasskeys === false}>
+        <KeyRound size={16} aria-hidden />
+        Add passkey
+      </button>
+      <dialog
+        className="modal-dialog profile-security-dialog"
+        ref={dialogRef}
+        aria-labelledby={titleId}
+        onClick={(event) => {
+          if (event.target === event.currentTarget && !pending) closeDialog();
+        }}
+        onClose={() => {
+          setPassword("");
+          setError("");
+        }}
+        onCancel={(event) => {
+          if (pending) event.preventDefault();
+        }}
+      >
+        <div className="modal-panel delete-modal-panel">
+          <div className="modal-header">
+            <div>
+              <h2 id={titleId}>Add passkey</h2>
+              <p className="muted small">Confirm your current password before registering a passkey.</p>
+            </div>
+            <button type="button" className="icon-button secondary" onClick={closeDialog} disabled={pending} aria-label="Close add passkey dialog">
+              <X size={16} aria-hidden />
+            </button>
+          </div>
+          <form className="form-stack" onSubmit={(event) => {
+            event.preventDefault();
+            void registerPasskey();
+          }}>
+            <label>
+              Current password
+              <input
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                type="password"
+                autoComplete="current-password"
+                autoFocus
+                required
+              />
+            </label>
+            {error ? <p className="alert" role="alert">{error}</p> : null}
+            <div className="row-actions">
+              <button className="icon-button" type="submit" disabled={pending}>
+                <KeyRound size={16} aria-hidden />
+                {pending ? "Waiting..." : "Add passkey"}
+              </button>
+              <button className="secondary" type="button" onClick={closeDialog} disabled={pending}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      </dialog>
       {supportsPasskeys === false ? (
         <div className="alert">This browser does not support passkeys. Use a browser with WebAuthn support to add one.</div>
       ) : null}

@@ -85,6 +85,16 @@ describe("page title fetching", () => {
     ).resolves.toBeNull();
   });
 
+  it("returns at the title deadline when destination DNS stalls", async () => {
+    const fetchImpl = vi.fn();
+    await expect(fetchPageTitle("https://slow.example/stalled", {
+      resolveSafeAddress: async () => new Promise<never>(() => undefined),
+      fetchImpl,
+      timeoutMs: 20
+    })).resolves.toBeNull();
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it("pins the request to the address validated for the hostname", async () => {
     const server = http.createServer((_request, response) => {
       response.writeHead(200, { "content-type": "text/html" });

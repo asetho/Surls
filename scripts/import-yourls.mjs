@@ -206,10 +206,14 @@ function normalizeDestination(value) {
   }
 }
 
-function hashPrivacyValue(value) {
+function hashPrivacyValue(value, secret) {
   if (!value) return null;
-  const secret = process.env.AUTH_SECRET || "yourls-import-privacy-hash-only";
   return crypto.createHmac("sha256", secret).update(value).digest("hex");
+}
+
+function isInsecurePrivacySecret(secret) {
+  const value = secret?.trim() ?? "";
+  return value.length < 32 || /replace|change|example|placeholder|secret/i.test(value) || new Set(value).size < 10;
 }
 
 function userAgentSummary(userAgent) {
@@ -269,7 +273,7 @@ function mapUrlRows(rows, dateOffset) {
   return { errors, links };
 }
 
-function mapLogRows(rows, dateOffset) {
+function mapLogRows(rows, dateOffset, privacySecret) {
   const errors = [];
   const clicksByCode = new Map();
 
@@ -300,8 +304,8 @@ function mapLogRows(rows, dateOffset) {
       country: normalizeCountry(firstValue(row, ["country_code", "countrycode", "country"])),
       region: null,
       rawIpAddress: ipAddress,
-      ipHash: hashPrivacyValue(ipAddress),
-      visitorHash: hashPrivacyValue(visitorSource)
+      ipHash: privacySecret ? hashPrivacyValue(ipAddress, privacySecret) : null,
+      visitorHash: privacySecret ? hashPrivacyValue(visitorSource, privacySecret) : null
     };
 
     const list = clicksByCode.get(code) ?? [];
@@ -332,7 +336,11 @@ async function main() {
   const urlRows = readCsvObjects(options.urlsPath);
   const { links, errors: urlErrors } = mapUrlRows(urlRows, options.dateOffset);
   const logRows = options.logsPath ? readCsvObjects(options.logsPath) : [];
-  const { clicksByCode, errors: logErrors } = mapLogRows(logRows, options.dateOffset);
+  const privacySecret = options.dryRun || logRows.length === 0 ? null : process.env.AUTH_SECRET;
+  if (!options.dryRun && logRows.length && isInsecurePrivacySecret(privacySecret)) {
+    throw new Error("AUTH_SECRET must be a high-entropy random value of at least 32 characters to import click logs.");
+  }
+  const { clicksByCode, errors: logErrors } = mapLogRows(logRows, options.dateOffset, privacySecret);
   const linkCodes = new Set(links.map((link) => link.code));
   const orphanLogCodes = Array.from(clicksByCode.keys()).filter((code) => !linkCodes.has(code));
 

@@ -75,6 +75,14 @@ describe("provider MFA evidence through the real OIDC code exchange", () => {
     expect(url.searchParams.get("code_challenge_method")).toBe("S256");
   });
 
+  it("requests and reads fresh authentication time for profile verification", async () => {
+    const now = Math.floor(Date.now() / 1000);
+    mockOidc({ auth_time: now });
+    const url = await externalAuthorizationUrl("oidc", pending.state, pending.verifier, pending.nonce, credentials, true);
+    expect(url.searchParams.get("max_age")).toBe("0");
+    expect((await externalProfile("oidc", callback, pending, credentials)).authenticatedAt).toBe(now);
+  });
+
   it("does not trust MFA in UserInfo or callback parameters", async () => {
     mockOidc({ email_verified: false }, { userInfo: {
       amr: ["mfa"], mfa_enabled: true, email: "verified@example.com", email_verified: true

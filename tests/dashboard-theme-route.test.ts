@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { NextRequest } from "next/server";
 
 const audit = vi.hoisted(() => ({ auditLog: vi.fn() }));
 const auth = vi.hoisted(() => ({ requireSiteAdmin: vi.fn() }));
@@ -18,8 +19,11 @@ vi.mock("@/lib/csrf", () => csrf);
 vi.mock("@/lib/dashboard-theme", () => dashboardTheme);
 vi.mock("@/lib/settings", () => settings);
 
-function requestWithFormData(formData: FormData) {
-  return { formData: vi.fn().mockResolvedValue(formData) } as unknown as Request;
+function requestWithFormData(formData: FormData, origin: string | null = "http://localhost:3000") {
+  return {
+    formData: vi.fn().mockResolvedValue(formData),
+    headers: new Headers(origin === null ? {} : { origin })
+  } as unknown as NextRequest;
 }
 
 describe("POST /api/admin/dashboard-theme", () => {
@@ -61,5 +65,15 @@ describe("POST /api/admin/dashboard-theme", () => {
       light: { accent: "#abcdef" }
     });
     expect(audit.auditLog).toHaveBeenCalledWith(expect.objectContaining({ userId: "admin_1" }));
+  });
+
+  it.each([null, "https://other.example.test"])("rejects an invalid request origin before parsing: %s", async (origin) => {
+    const request = requestWithFormData(new FormData(), origin);
+    const { POST } = await import("@/app/api/admin/dashboard-theme/route");
+
+    expect((await POST(request)).status).toBe(403);
+    expect(request.formData).not.toHaveBeenCalled();
+    expect(csrf.validateCsrf).not.toHaveBeenCalled();
+    expect(settings.setSetting).not.toHaveBeenCalled();
   });
 });

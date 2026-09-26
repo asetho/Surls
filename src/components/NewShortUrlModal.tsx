@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, X } from "lucide-react";
-import { useId, useRef, useState } from "react";
+import { useActionState, useId, useRef, useState } from "react";
 import { createLinkAction } from "@/app/admin/links/actions";
 import { AliasAvailabilityInput } from "./AliasAvailabilityInput";
 import { DestinationWarnings } from "./DestinationWarnings";
@@ -10,6 +10,7 @@ import { TitleAutoFill } from "./TitleAutoFill";
 export function NewShortUrlModal({ csrf }: { csrf: string }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const [state, action, pending] = useActionState(createLinkAction, null);
   const [destinationUrl, setDestinationUrl] = useState("");
 
   function openDialog() {
@@ -60,8 +61,9 @@ export function NewShortUrlModal({ csrf }: { csrf: string }) {
               <X size={16} aria-hidden />
             </button>
           </div>
-          <form className="form-stack" action={createLinkAction} data-title-autofill="true">
+          <form className="form-stack" action={action} data-title-autofill="true">
             <input type="hidden" name="csrf" value={csrf} />
+            {state?.error ? <p className="alert" role="alert">{state.error}</p> : null}
             <div className="form-grid">
               <label>
                 Destination URL
@@ -105,7 +107,7 @@ export function NewShortUrlModal({ csrf }: { csrf: string }) {
               <textarea name="notes" />
             </label>
             <div className="row-actions">
-              <button type="submit">Create Link</button>
+              <button type="submit" disabled={pending}>{pending ? "Creating..." : "Create Link"}</button>
               <button type="button" className="secondary" onClick={closeDialog}>
                 Cancel
               </button>

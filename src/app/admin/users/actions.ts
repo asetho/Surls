@@ -55,6 +55,7 @@ export async function createUserAction(_state: CreateUserState | null, formData:
   if (parsedProfile.error) return { error: parsedProfile.error };
   if (!parsedProfile.data) return { error: "Enter a valid email address." };
   if (password && password.length < 12) return { error: "Temporary passwords must be at least 12 characters." };
+  if (password.length > 4096) return { error: "Temporary passwords must be 4,096 characters or fewer." };
 
   const { email, name } = parsedProfile.data;
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -95,7 +96,7 @@ export async function updateUserIdentityAction(
   const profile = parsed.data;
 
   const [target, existing] = await Promise.all([
-    prisma.user.findUnique({ where: { id }, select: { id: true, role: true } }),
+    prisma.user.findUnique({ where: { id }, select: { id: true, email: true, role: true } }),
     prisma.user.findFirst({
       where: {
         email: profile.email,
@@ -111,6 +112,9 @@ export async function updateUserIdentityAction(
   const role = submittedRole === null ? null : cleanRole(submittedRole);
   if (role && id === admin.id && role !== target.role) {
     return { error: "You cannot change your own role." };
+  }
+  if (id === admin.id && profile.email !== target.email.trim().toLowerCase()) {
+    return { error: "Change your own email from Profile so you can verify your identity." };
   }
   if (role === UserRole.USER && target.role === UserRole.ADMIN && (await isLastAdmin(id))) {
     return { error: "At least one admin user is required." };

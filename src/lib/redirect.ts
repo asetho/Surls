@@ -25,14 +25,15 @@ export const REDIRECT_DESTINATION_DNS_CHECK = {
 
 const redirectDestinationChecks = new Map<string, Promise<void>>();
 
-async function assertSafeRedirectDestination(destinationUrl: string) {
+async function assertSafeRedirectDestination(destinationUrl: string, ownerId: string | null) {
   const hostname = new URL(destinationUrl).hostname.toLowerCase();
   const existing = redirectDestinationChecks.get(hostname);
   if (existing) return existing;
 
   const check = assertNoPrivateResolutionWithTimeout(
     destinationUrl,
-    REDIRECT_DESTINATION_DNS_CHECK.timeoutMs
+    REDIRECT_DESTINATION_DNS_CHECK.timeoutMs,
+    { purpose: "redirect", ownerId }
   ).then(() => undefined);
   redirectDestinationChecks.set(hostname, check);
   try {
@@ -247,7 +248,9 @@ export async function handleShortRedirect(request: NextRequest, code: string, is
       ? appendForwardedQuery(link.destinationUrl, request.nextUrl.searchParams.toString())
       : link.destinationUrl;
     if (!uploadedFilenameFromDestination(forwardedDestination)) {
-      await assertSafeRedirectDestination(forwardedDestination);
+      // Legacy and orphaned links have no owner; give each its own DNS admission key.
+      const admissionKey = link.createdById ? `user:${link.createdById}` : `link:${link.id}`;
+      await assertSafeRedirectDestination(forwardedDestination, admissionKey);
     }
   } catch {
     return unavailableResponse("This short URL destination could not be safely resolved.", isHead, 502);

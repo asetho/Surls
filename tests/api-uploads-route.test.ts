@@ -271,24 +271,60 @@ describe("POST /api/uploads", () => {
     expect(uploadAndShorten.uploadAndShortenFile).not.toHaveBeenCalled();
   });
 
-  it("limits concurrent multipart parsing per process", async () => {
+  it("limits concurrent uploads per user while leaving capacity for another user", async () => {
     let releaseUpload!: (value: { code: string; filename: string; shortUrl: string }) => void;
     const blocked = new Promise<{ code: string; filename: string; shortUrl: string }>((resolve) => {
       releaseUpload = resolve;
     });
     uploadAndShorten.uploadAndShortenFile.mockReturnValue(blocked);
-    const { POST, UPLOAD_MAX_CONCURRENT_REQUESTS } = await import("@/app/api/uploads/route");
-    const active = Array.from({ length: UPLOAD_MAX_CONCURRENT_REQUESTS }, () => POST(uploadRequest()));
+    apiTokens.authenticateApiToken.mockImplementation(async (authorization: string) => {
+      const userId = authorization === "Bearer other" ? "user_other" : authorization === "Bearer third" ? "user_third" : "user_123";
+      return { name: "Mac Share", tokenPrefix: "surls_abc123", userId, user: { id: userId } };
+    });
+    const { POST } = await import("@/app/api/uploads/route");
+    const { UPLOAD_MAX_CONCURRENT_PER_USER, UPLOAD_MAX_CONCURRENT_REQUESTS } = await import("@/lib/upload-request-limits");
+    const active = Array.from({ length: UPLOAD_MAX_CONCURRENT_PER_USER }, () => POST(uploadRequest()));
     await vi.waitFor(() => {
-      expect(uploadAndShorten.uploadAndShortenFile).toHaveBeenCalledTimes(UPLOAD_MAX_CONCURRENT_REQUESTS);
+      expect(uploadAndShorten.uploadAndShortenFile).toHaveBeenCalledTimes(UPLOAD_MAX_CONCURRENT_PER_USER);
     });
 
     const rejected = await POST(uploadRequest());
     expect(rejected.status).toBe(503);
     expect(rejected.headers.get("retry-after")).toBe("5");
 
+    active.push(...Array.from({ length: UPLOAD_MAX_CONCURRENT_REQUESTS - UPLOAD_MAX_CONCURRENT_PER_USER }, () => POST(uploadRequest("Bearer other"))));
+    await vi.waitFor(() => {
+      expect(uploadAndShorten.uploadAndShortenFile).toHaveBeenCalledTimes(UPLOAD_MAX_CONCURRENT_REQUESTS);
+    });
+    expect((await POST(uploadRequest("Bearer third"))).status).toBe(503);
+
     releaseUpload({ code: "abc123", filename: "hello.txt", shortUrl: "https://example.test/abc123" });
     await Promise.all(active);
+  });
+
+  it("aborts a stalled multipart body and releases its slot", async () => {
+    const { POST, UPLOAD_BODY_TIMEOUT_MS } = await import("@/app/api/uploads/route");
+    const cancel = vi.fn();
+    const body = new ReadableStream<Uint8Array>({ cancel });
+    type StreamRequestInit = NonNullable<ConstructorParameters<typeof NextRequest>[1]> & { duplex: "half" };
+    const request = new NextRequest("http://localhost:3000/api/uploads", {
+      body,
+      headers: { authorization: "Bearer surls_valid", "content-type": "multipart/form-data; boundary=slow" },
+      method: "POST",
+      duplex: "half"
+    } as StreamRequestInit);
+
+    vi.useFakeTimers();
+    try {
+      const pending = POST(request);
+      await vi.advanceTimersByTimeAsync(UPLOAD_BODY_TIMEOUT_MS);
+      const response = await pending;
+      expect(response.status).toBe(408);
+      expect(cancel).toHaveBeenCalled();
+      expect((await POST(uploadRequest())).status).toBe(201);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("returns rate-limit failures before reading the upload", async () => {

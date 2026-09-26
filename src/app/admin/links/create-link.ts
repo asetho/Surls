@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { auditLog } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
+import { checkLinkCreationRateLimit, LINK_CREATE_RATE_LIMIT_MESSAGE } from "@/lib/link-create-limits";
 import { createShortLink, normalizeOptionalDate, normalizeOptionalPositiveInt } from "@/lib/links";
 
 function optionalDate(value: FormDataEntryValue | null) {
@@ -24,6 +25,9 @@ export async function createLinkFromFormData(formData: FormData) {
   validateCsrf(formData);
   const admin = await requireAdmin();
   if (!admin) return null;
+
+  const rate = await checkLinkCreationRateLimit(admin.id);
+  if (!rate.allowed) throw new Error(LINK_CREATE_RATE_LIMIT_MESSAGE);
 
   const link = await createShortLink({
     destinationUrl: String(formData.get("destinationUrl") ?? ""),

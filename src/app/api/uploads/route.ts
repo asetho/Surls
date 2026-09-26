@@ -5,25 +5,14 @@ import { validateCsrfValue } from "@/lib/csrf";
 import { appBaseUrl } from "@/lib/env";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getEffectiveUploadMaxBytes } from "@/lib/upload-limits";
+import { acquireUploadRequest, checkUploadRateLimit } from "@/lib/upload-request-limits";
 import { normalizeUploadFilenameMode, uploadMaxBytesLabel } from "@/lib/uploads";
 import { checkUploadShortCodeAvailability, uploadAndShortenFile } from "@/lib/upload-and-shorten";
 
 export const UPLOAD_MULTIPART_OVERHEAD_BYTES = 64 * 1024;
+export const UPLOAD_BODY_TIMEOUT_MS = 120_000;
 export const UPLOAD_MAX_BYTES_HEADER = "X-Surls-Upload-Max-Bytes";
-export const UPLOAD_MAX_CONCURRENT_REQUESTS = 4;
-
-let activeUploadRequests = 0;
-
-function acquireUploadRequest() {
-  if (activeUploadRequests >= UPLOAD_MAX_CONCURRENT_REQUESTS) return null;
-  activeUploadRequests += 1;
-  let released = false;
-  return () => {
-    if (released) return;
-    released = true;
-    activeUploadRequests = Math.max(0, activeUploadRequests - 1);
-  };
-}
+export { UPLOAD_MAX_CONCURRENT_REQUESTS } from "@/lib/upload-request-limits";
 
 function uploadLimitHeaders(maxBytes: number | null) {
   return { [UPLOAD_MAX_BYTES_HEADER]: maxBytes === null ? "unlimited" : String(maxBytes) };
@@ -32,38 +21,46 @@ function uploadLimitHeaders(maxBytes: number | null) {
 async function readUploadFormData(request: NextRequest, uploadMaxBytes: number | null) {
   const contentType = request.headers.get("content-type") ?? "";
   if (!contentType.toLowerCase().startsWith("multipart/form-data;")) {
-    return { formData: null, invalidContentType: true, tooLarge: false };
+    return { formData: null, invalidContentType: true, tooLarge: false, timedOut: false };
   }
   const maxRequestBytes = uploadMaxBytes === null ? null : uploadMaxBytes + UPLOAD_MULTIPART_OVERHEAD_BYTES;
   const contentLength = Number(request.headers.get("content-length"));
   if (maxRequestBytes !== null && Number.isFinite(contentLength) && contentLength > maxRequestBytes) {
-    return { formData: null, invalidContentType: false, tooLarge: true };
+    return { formData: null, invalidContentType: false, tooLarge: true, timedOut: false };
   }
 
-  if (!request.body) return { formData: null, invalidContentType: false, tooLarge: false };
+  if (!request.body) return { formData: null, invalidContentType: false, tooLarge: false, timedOut: false };
 
   let bytesRead = 0;
   let tooLarge = false;
-  const body = maxRequestBytes === null
-    ? request.body
-    : request.body.pipeThrough(new TransformStream<Uint8Array, Uint8Array>({
-        transform(chunk, controller) {
-          bytesRead += chunk.byteLength;
-          if (bytesRead > maxRequestBytes) {
-            tooLarge = true;
-            throw new Error("Upload request is too large.");
-          }
-          controller.enqueue(chunk);
+  let timedOut = false;
+  const abortController = new AbortController();
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    abortController.abort();
+  }, UPLOAD_BODY_TIMEOUT_MS);
+  const body = request.body.pipeThrough(new TransformStream<Uint8Array, Uint8Array>({
+    transform(chunk, controller) {
+      if (maxRequestBytes !== null) {
+        bytesRead += chunk.byteLength;
+        if (bytesRead > maxRequestBytes) {
+          tooLarge = true;
+          throw new Error("Upload request is too large.");
         }
-      }));
+      }
+      controller.enqueue(chunk);
+    }
+  }), { signal: abortController.signal });
 
   try {
     const formData = await new Response(body, {
       headers: { "content-type": contentType }
     }).formData();
-    return { formData, invalidContentType: false, tooLarge: false };
+    return { formData, invalidContentType: false, tooLarge: false, timedOut: false };
   } catch {
-    return { formData: null, invalidContentType: false, tooLarge };
+    return { formData: null, invalidContentType: false, tooLarge, timedOut };
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -125,11 +122,11 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const rate = await checkRateLimit(`api:upload:${auth.user.id}`, 30, 60 * 1000);
+  const rate = await checkUploadRateLimit(auth.user.id);
   if (!rate.allowed) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
 
   const uploadMaxBytes = await getEffectiveUploadMaxBytes(auth.user);
-  const releaseUploadRequest = acquireUploadRequest();
+  const releaseUploadRequest = acquireUploadRequest(auth.user.id);
   if (!releaseUploadRequest) {
     return NextResponse.json(
       { error: "Too many uploads are already in progress." },
@@ -139,6 +136,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const parsed = await readUploadFormData(request, uploadMaxBytes);
+    if (parsed.timedOut) {
+      return NextResponse.json({ error: "Upload request timed out. Please try again." }, { status: 408 });
+    }
     if (parsed.invalidContentType) {
       return NextResponse.json({ error: "Content-Type must be multipart/form-data" }, { status: 415 });
     }

@@ -13,6 +13,7 @@ import {
   uint8ArrayToBase64Url
 } from "@/lib/passkeys";
 import { prisma } from "@/lib/prisma";
+import { requestOriginMatchesApp } from "@/lib/request";
 import { getSetting } from "@/lib/settings";
 
 type RegistrationPayload = {
@@ -31,6 +32,7 @@ export async function POST(request: NextRequest) {
   if (!(await getSetting("localLoginEnabled"))) return registrationError("Passkey registration is disabled.", 403);
   const admin = await requireAdmin();
   if (!admin) return registrationError("Unauthorized", 401);
+  if (!requestOriginMatchesApp(request)) return registrationError("Invalid request origin.", 403);
 
   const body = (await request.json().catch(() => null)) as RegistrationPayload | null;
   try {

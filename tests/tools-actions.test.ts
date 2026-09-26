@@ -21,6 +21,10 @@ const csrf = vi.hoisted(() => ({
   validateCsrf: vi.fn()
 }));
 
+const rateLimit = vi.hoisted(() => ({
+  checkRateLimit: vi.fn()
+}));
+
 const settings = vi.hoisted(() => ({
   getSiteName: vi.fn()
 }));
@@ -84,6 +88,7 @@ vi.mock("@/lib/auth", () => auth);
 vi.mock("@/lib/api-tokens", () => apiTokens);
 vi.mock("@/lib/audit", () => audit);
 vi.mock("@/lib/csrf", () => csrf);
+vi.mock("@/lib/rate-limit", () => rateLimit);
 vi.mock("@/lib/settings", () => settings);
 vi.mock("@/lib/upload-limits", () => uploadLimits);
 vi.mock("@/lib/prisma", () => ({ prisma }));
@@ -127,6 +132,7 @@ describe("tools actions hardening", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     auth.requireAdmin.mockResolvedValue({ id: "user_123", role: "ADMIN" });
+    rateLimit.checkRateLimit.mockResolvedValue({ allowed: true });
     settings.getSiteName.mockResolvedValue("Surls");
     uploadLimits.getEffectiveUploadMaxBytes.mockResolvedValue(16 * 1024 * 1024);
     apiTokens.createApiToken.mockResolvedValue({
@@ -350,6 +356,7 @@ describe("tools actions hardening", () => {
       message: "Reachable: HTTP 204"
     });
     expect(urlSafety.resolveSafeHttpAddress).toHaveBeenCalledWith("https://example.com/status");
+    expect(rateLimit.checkRateLimit).toHaveBeenCalledWith("tools:destination-check:user_123", 30, 60_000);
     expect(pageTitle.fetchWithPinnedAddress).toHaveBeenCalledWith(
       "https://example.com/status",
       expect.objectContaining({
@@ -359,6 +366,20 @@ describe("tools actions hardening", () => {
         signal: expect.any(AbortSignal)
       })
     );
+  });
+
+  it("rejects excess destination checks before DNS or HTTP", async () => {
+    const { checkDestinationAction } = await import("@/app/admin/tools/actions");
+    rateLimit.checkRateLimit.mockResolvedValue({ allowed: false });
+    const formData = new FormData();
+    formData.set("url", "https://example.com/status");
+
+    await expect(checkDestinationAction(null, formData)).resolves.toEqual({
+      ok: false,
+      message: "Too many destination checks. Please wait and try again."
+    });
+    expect(urlSafety.resolveSafeHttpAddress).not.toHaveBeenCalled();
+    expect(pageTitle.fetchWithPinnedAddress).not.toHaveBeenCalled();
   });
 
   it("rejects private or internal destinations during CSV import preview", async () => {
@@ -371,6 +392,19 @@ describe("tools actions hardening", () => {
     expect(result.errors).toEqual(["Row 1: Destination resolves to a private or internal address."]);
     expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(links.createShortLink).not.toHaveBeenCalled();
+  });
+
+  it("rejects excess CSV imports before destination resolution", async () => {
+    const { importCsvAction } = await import("@/app/admin/tools/actions");
+    rateLimit.checkRateLimit.mockResolvedValue({ allowed: false });
+
+    await expect(importCsvAction(null, importForm("https://example.com"))).resolves.toEqual({
+      imported: 0,
+      errors: ["Too many CSV imports. Please wait and try again."]
+    });
+    expect(rateLimit.checkRateLimit).toHaveBeenCalledWith("tools:csv-import:user_123", 10, 60_000);
+    expect(urlSafety.assertNoPrivateResolution).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it("stops oversized CSV imports before validation or database work", async () => {
@@ -431,6 +465,43 @@ describe("tools actions hardening", () => {
     expect(links.createShortLink).not.toHaveBeenCalled();
   });
 
+  it("ends a large slow DNS preflight without creating partial links", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-11T12:00:00.000Z"));
+    const { importCsvAction } = await import("@/app/admin/tools/actions");
+    let active = 0;
+    let peakActive = 0;
+    urlSafety.assertNoPrivateResolution.mockImplementation(() => new Promise((resolve) => {
+      active += 1;
+      peakActive = Math.max(peakActive, active);
+      setTimeout(() => {
+        active -= 1;
+        resolve(true);
+      }, 2_000);
+    }));
+    const rows = Array.from({ length: 200 }, (_, index) => `https://example${index}.com`).join("\n");
+
+    const resultPromise = importCsvAction(null, importForm(rows, true));
+    await vi.advanceTimersByTimeAsync(17_000);
+    const result = await resultPromise;
+    vi.useRealTimers();
+
+    expect(result.imported).toBe(0);
+    expect(result.errors).toContain("Destination checks timed out. Try a smaller import.");
+    expect(peakActive).toBeLessThanOrEqual(4);
+    expect(urlSafety.assertNoPrivateResolution.mock.calls.length).toBeLessThan(200);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("retains the 200-row confirmed CSV import when destination checks finish", async () => {
+    const { importCsvAction } = await import("@/app/admin/tools/actions");
+    const rows = Array.from({ length: 200 }, (_, index) => `https://example.com/${index}`).join("\n");
+
+    await expect(importCsvAction(null, importForm(rows, true))).resolves.toEqual({ imported: 200, errors: [] });
+    expect(urlSafety.assertNoPrivateResolution).toHaveBeenCalledTimes(200);
+    expect(links.createShortLink).toHaveBeenCalledTimes(200);
+  });
+
   it("uploads a file and creates a short link to the uploaded file URL", async () => {
     const { uploadAndShortenAction } = await import("@/app/admin/tools/actions");
     links.createShortLink.mockResolvedValue({ code: "doc-xyz", id: "link_456" });
@@ -467,6 +538,38 @@ describe("tools actions hardening", () => {
       filename: "hello_world.txt",
       shortUrl: "http://localhost:3000/doc-xyz"
     });
+    expect(rateLimit.checkRateLimit).toHaveBeenCalledWith("api:upload:user_123", 30, 60_000);
+  });
+
+  it("rejects a rate-limited upload before storing the file", async () => {
+    rateLimit.checkRateLimit.mockResolvedValue({ allowed: false });
+    const { uploadAndShortenAction } = await import("@/app/admin/tools/actions");
+
+    await expect(uploadAndShortenAction(null, uploadForm())).resolves.toEqual({ error: "Rate limit exceeded" });
+    expect(uploads.storeUploadedFile).not.toHaveBeenCalled();
+  });
+
+  it("limits concurrent action uploads and releases slots afterward", async () => {
+    let releaseUpload!: () => void;
+    const blocked = new Promise<void>((resolve) => {
+      releaseUpload = resolve;
+    });
+    uploads.promoteUploadedFile.mockReturnValue(blocked);
+    const { uploadAndShortenAction } = await import("@/app/admin/tools/actions");
+    const { UPLOAD_MAX_CONCURRENT_PER_USER } = await import("@/lib/upload-request-limits");
+    const active = Array.from({ length: UPLOAD_MAX_CONCURRENT_PER_USER }, () => uploadAndShortenAction(null, uploadForm()));
+    await vi.waitFor(() => {
+      expect(uploads.promoteUploadedFile).toHaveBeenCalledTimes(UPLOAD_MAX_CONCURRENT_PER_USER);
+    });
+
+    await expect(uploadAndShortenAction(null, uploadForm())).resolves.toEqual({
+      error: "Too many uploads are already in progress."
+    });
+    expect(uploads.promoteUploadedFile).toHaveBeenCalledTimes(UPLOAD_MAX_CONCURRENT_PER_USER);
+
+    releaseUpload();
+    await Promise.all(active);
+    await expect(uploadAndShortenAction(null, uploadForm())).resolves.toMatchObject({ filename: "hello_world.txt" });
   });
 
   it("does not store an upload when the requested short alias already exists", async () => {

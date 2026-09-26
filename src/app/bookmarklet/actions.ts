@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { auditLog } from "@/lib/audit";
 import { requireAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
+import { checkLinkCreationRateLimit, LINK_CREATE_RATE_LIMIT_MESSAGE } from "@/lib/link-create-limits";
 import { createShortLink } from "@/lib/links";
 import { safeRedirectPath } from "@/lib/redirect-path";
 
@@ -41,6 +42,9 @@ export async function createBookmarkletLinkAction(formData: FormData) {
 
   const admin = await requireAdmin();
   if (!admin) redirect(returnTo);
+
+  const rate = await checkLinkCreationRateLimit(admin.id);
+  if (!rate.allowed) redirectWithCreateError(returnTo, LINK_CREATE_RATE_LIMIT_MESSAGE);
 
   let link: Awaited<ReturnType<typeof createShortLink>>;
   try {

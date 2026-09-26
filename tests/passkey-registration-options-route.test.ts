@@ -20,16 +20,19 @@ vi.mock("@/lib/csrf", () => ({ validateCsrfValue: vi.fn() }));
 vi.mock("@/lib/env", () => ({ env: { APP_NAME: "Surls", WEBAUTHN_RP_ID: "surls.example" } }));
 vi.mock("@/lib/password", () => password);
 vi.mock("@/lib/rate-limit", () => rateLimit);
-vi.mock("@/lib/request", () => ({ requestIp: () => "127.0.0.1" }));
+vi.mock("@/lib/request", () => ({
+  requestIp: () => "127.0.0.1",
+  requestOriginMatchesApp: (request: NextRequest) => request.headers.get("origin") === "http://localhost:3000"
+}));
 vi.mock("@/lib/prisma", () => ({ prisma }));
 vi.mock("@/lib/settings", () => settings);
 vi.mock("@/lib/passkeys", () => passkeys);
 vi.mock("@simplewebauthn/server", () => webauthn);
 
-function request(body: Record<string, unknown>) {
+function request(body: Record<string, unknown>, origin: string | null = "http://localhost:3000") {
   return new NextRequest("http://localhost:3000/api/auth/passkey/register/options", {
     body: JSON.stringify(body),
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...(origin === null ? {} : { origin }) },
     method: "POST"
   });
 }
@@ -63,6 +66,16 @@ describe("POST /api/auth/passkey/register/options", () => {
     await expect(response.json()).resolves.toEqual({ error: "Re-enter your password to add a passkey." });
     expect(webauthn.generateRegistrationOptions).not.toHaveBeenCalled();
     expect(prisma.passkey.findMany).not.toHaveBeenCalled();
+  });
+
+  it.each([null, "https://other.example.test"])("rejects an invalid request origin before checking the password: %s", async (origin) => {
+    const { POST } = await import("@/app/api/auth/passkey/register/options/route");
+
+    const response = await POST(request({ csrf: "csrf", name: "Attacker device", password: "correct" }, origin));
+
+    expect(response.status).toBe(403);
+    expect(password.verifyPassword).not.toHaveBeenCalled();
+    expect(webauthn.generateRegistrationOptions).not.toHaveBeenCalled();
   });
 
   it("binds a fresh registration challenge to a verified account password", async () => {

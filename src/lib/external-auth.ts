@@ -12,13 +12,17 @@ export type { ExternalProvider } from "./external-provider-settings";
 
 export const EXTERNAL_AUTH_COOKIE = "surls_external_auth";
 const MAX_AGE_SECONDS = 10 * 60;
-type PendingExternalAuth = {
+export type PendingExternalAuth = {
   provider: string;
   state: string;
   verifier: string;
   nonce: string;
   nextPath: string;
   userId: string | null;
+  purpose?: "connect" | "reauth" | "verify-connect" | "verify-totp-setup";
+  sessionId?: string;
+  pendingEmail?: string;
+  targetProvider?: string;
   issuedAt: number;
 };
 
@@ -42,9 +46,15 @@ export function decodeExternalAuth(value: string | undefined): PendingExternalAu
     const parsed = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as PendingExternalAuth;
     if (!externalProviderType(parsed.provider) || typeof parsed.state !== "string" || parsed.state.length < 30 ||
         typeof parsed.verifier !== "string" || parsed.verifier.length < 30 || typeof parsed.nonce !== "string" ||
-        parsed.nonce.length < 30 || (parsed.userId !== null && typeof parsed.userId !== "string") ||
+        parsed.nonce.length < 30 || (parsed.userId !== null && (typeof parsed.userId !== "string" || !parsed.userId)) ||
         !Number.isSafeInteger(parsed.issuedAt) || parsed.issuedAt > Date.now() + 30_000 ||
-        Date.now() - parsed.issuedAt > MAX_AGE_SECONDS * 1000) return null;
+        Date.now() - parsed.issuedAt > MAX_AGE_SECONDS * 1000 ||
+        (parsed.userId === null && (parsed.purpose !== undefined || parsed.sessionId !== undefined || parsed.pendingEmail !== undefined || parsed.targetProvider !== undefined)) ||
+        (parsed.userId !== null && (!["connect", "reauth", "verify-connect", "verify-totp-setup"].includes(parsed.purpose ?? "") ||
+          typeof parsed.sessionId !== "string" || !parsed.sessionId)) ||
+        (parsed.pendingEmail !== undefined && (parsed.purpose !== "reauth" || typeof parsed.pendingEmail !== "string" || parsed.pendingEmail.length > 320)) ||
+        (parsed.targetProvider !== undefined && (parsed.purpose !== "verify-connect" || !externalProviderType(parsed.targetProvider))) ||
+        (parsed.purpose === "verify-connect" && !parsed.targetProvider)) return null;
     return { ...parsed, nextPath: safeRedirectPath(parsed.nextPath) };
   } catch {
     return null;
@@ -67,7 +77,8 @@ async function oidcConfiguration(provider: "oidc" | "google" | "microsoft", cred
 }
 
 export type ExternalIdentityProfile = {
-  subject: string; email: string | null; emailVerified: boolean; name: string | null; mfaVerified: boolean
+  subject: string; email: string | null; emailVerified: boolean; name: string | null; mfaVerified: boolean;
+  authenticatedAt?: number | null;
 };
 
 function confirmsMfa(amr: unknown): boolean {
@@ -77,14 +88,15 @@ function confirmsMfa(amr: unknown): boolean {
   return amr.includes("mfa") || (amr.includes("pwd") && amr.includes("otp"));
 }
 
-export async function externalAuthorizationUrl(provider: ExternalProvider, state: string, verifier: string, nonce: string, credentials: ExternalProviderConfig) {
+export async function externalAuthorizationUrl(provider: ExternalProvider, state: string, verifier: string, nonce: string, credentials: ExternalProviderConfig, reauthenticate = false) {
   const challenge = await oidc.calculatePKCECodeChallenge(verifier);
   const callback = externalCallbackUrl(credentials.key);
   if (provider === "oidc" || provider === "google" || provider === "microsoft") {
     const configuration = await oidcConfiguration(provider, credentials);
     return oidc.buildAuthorizationUrl(configuration, {
       response_type: "code", client_id: credentials.id, redirect_uri: callback,
-      scope: "openid email profile", state, nonce, code_challenge: challenge, code_challenge_method: "S256"
+      scope: "openid email profile", state, nonce, code_challenge: challenge, code_challenge_method: "S256",
+      ...(reauthenticate ? { max_age: "0" } : {})
     });
   }
   if (provider === "facebook") {
@@ -134,6 +146,7 @@ export async function externalProfile(provider: ExternalProvider, callback: URL,
       // Only use the ID token validated by the nonce-bound HTTPS code exchange.
       // UserInfo, account enrollment, and callback parameters are not MFA proof.
       mfaVerified: confirmsMfa(claims.amr),
+      authenticatedAt: typeof claims.auth_time === "number" ? claims.auth_time : null,
       name: typeof claims.name === "string" ? claims.name : typeof userInfo?.name === "string" ? userInfo.name : null
     };
   }
