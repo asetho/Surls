@@ -106,10 +106,10 @@ export default async function SettingsPage() {
   const hostedFaviconCount = faviconActiveCount(settings.favicons, webrootFaviconFiles);
   return (
     <main className="admin-content">
-      <div className="content-header content-header-topbar">
+      <div className="content-header content-header-topbar settings-header">
         <div>
           <h1>Settings</h1>
-          <p className="muted">Control privacy, redirect behavior, branding, and UI defaults.</p>
+          <p className="muted">Control privacy, redirect behavior, branding, email, and UI defaults.</p>
         </div>
         <div className="content-header-actions">
           <Link id="theme-editor-button" className="button secondary" href="/admin/settings?themeEditor=open">
@@ -120,6 +120,9 @@ export default async function SettingsPage() {
           </Link>
           <Link id="favicon-editor-button" className="button secondary" href="/admin/settings/favicons/editor">
             Favicon Editor
+          </Link>
+          <Link className="button secondary" href="/admin/settings/email">
+            Email settings
           </Link>
         </div>
       </div>

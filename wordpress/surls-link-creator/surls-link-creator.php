@@ -64,9 +64,10 @@ final class Surls_Link_Creator {
 
         $base_url = isset($input['base_url']) ? esc_url_raw(trim((string) $input['base_url'])) : '';
         if ($base_url !== '') {
-            if (!$this->is_valid_absolute_url($base_url)) {
-                add_settings_error(self::OPTION_NAME, 'invalid_base_url', 'Enter a valid Surls base URL.');
-                $base_url = $current['base_url'] ?? '';
+            if (!$this->is_valid_api_base_url($base_url)) {
+                add_settings_error(self::OPTION_NAME, 'invalid_base_url', 'Enter a valid HTTPS Surls base URL.');
+                $current_base_url = (string) ($current['base_url'] ?? '');
+                $base_url = $this->is_valid_api_base_url($current_base_url) ? $current_base_url : '';
             } else {
                 $base_url = untrailingslashit($base_url);
             }
@@ -113,7 +114,7 @@ final class Surls_Link_Creator {
                         <th scope="row"><label for="surls-base-url">Surls base URL</label></th>
                         <td>
                             <input id="surls-base-url" class="regular-text" type="url" name="<?php echo esc_attr(self::OPTION_NAME); ?>[base_url]" value="<?php echo esc_attr($options['base_url']); ?>" placeholder="https://links.example.com" required>
-                            <p class="description">The public root URL of your Surls install.</p>
+                            <p class="description">The HTTPS root URL of your Surls install.</p>
                         </td>
                     </tr>
                     <tr>
@@ -344,19 +345,21 @@ final class Surls_Link_Creator {
     }
 
     private function create_link(array $payload) {
-        if (!$this->is_configured()) {
-            return new WP_Error('surls_not_configured', 'Add your Surls base URL and API token first.');
+        $options = $this->options();
+        if (!$this->is_valid_api_base_url((string) $options['base_url']) || $options['api_token'] === '') {
+            return new WP_Error('surls_not_configured', 'Add an HTTPS Surls base URL and API token first.');
         }
 
         if (empty($payload['destinationUrl']) || !$this->is_valid_absolute_url((string) $payload['destinationUrl'])) {
             return new WP_Error('surls_invalid_destination', 'Enter a valid destination URL.');
         }
 
-        $options = $this->options();
         $response = wp_remote_post(
             $options['base_url'] . '/api/links',
             array(
                 'timeout' => 15,
+                'redirection' => 0,
+                'sslverify' => true,
                 'headers' => array(
                     'Accept' => 'application/json',
                     'Authorization' => 'Bearer ' . $options['api_token'],
@@ -403,7 +406,7 @@ final class Surls_Link_Creator {
 
     private function is_configured(): bool {
         $options = $this->options();
-        return $options['base_url'] !== '' && $options['api_token'] !== '';
+        return $this->is_valid_api_base_url((string) $options['base_url']) && $options['api_token'] !== '';
     }
 
     private function supported_post_types(): array {
@@ -440,6 +443,13 @@ final class Surls_Link_Creator {
         return is_array($parts)
             && !empty($parts['scheme'])
             && in_array($parts['scheme'], array('http', 'https'), true)
+            && !empty($parts['host']);
+    }
+
+    private function is_valid_api_base_url(string $url): bool {
+        $parts = wp_parse_url($url);
+        return is_array($parts)
+            && strtolower((string) ($parts['scheme'] ?? '')) === 'https'
             && !empty($parts['host']);
     }
 

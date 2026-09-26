@@ -5,7 +5,7 @@ import { auditLog } from "@/lib/audit";
 import { API_TOKEN_SCOPE_LINKS_CREATE, authenticateApiToken } from "@/lib/api-tokens";
 import { requireAdmin } from "@/lib/auth";
 import { validateCsrfValue } from "@/lib/csrf";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkLinkCreationRateLimit } from "@/lib/link-create-limits";
 import { readJsonBodyWithLimit } from "@/lib/request";
 import { createShortLink, shortUrl } from "@/lib/links";
 import { appBaseUrl } from "@/lib/env";
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const rate = await checkRateLimit(`api:create:${admin.id}`, 60, 60 * 1000);
+  const rate = await checkLinkCreationRateLimit(admin.id);
   if (!rate.allowed) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
 
   const body = await readJsonBodyWithLimit(request, LINK_CREATE_MAX_REQUEST_BYTES);

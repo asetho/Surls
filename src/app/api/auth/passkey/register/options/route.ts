@@ -13,13 +13,16 @@ import {
 } from "@/lib/passkeys";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { requestIp } from "@/lib/request";
+import { requestIp, requestOriginMatchesApp } from "@/lib/request";
 import { getSetting } from "@/lib/settings";
 
 export async function POST(request: NextRequest) {
   if (!(await getSetting("localLoginEnabled"))) return NextResponse.json({ error: "Passkey registration is disabled." }, { status: 403 });
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!requestOriginMatchesApp(request)) {
+    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  }
 
   const body = (await request.json().catch(() => null)) as { csrf?: string; name?: string; password?: string } | null;
   try {

@@ -13,13 +13,18 @@ import { prisma } from "@/lib/prisma";
 import { getSiteName } from "@/lib/settings";
 import { assertNoPrivateResolution, parseSafeHttpUrl, resolveSafeHttpAddress } from "@/lib/url-safety";
 import { createShortLink } from "@/lib/links";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { validateAlias } from "@/lib/alias";
 import { env } from "@/lib/env";
 import { normalizeUploadFilenameMode } from "@/lib/uploads";
 import { uploadAndShortenFile } from "@/lib/upload-and-shorten";
 import { getEffectiveUploadMaxBytes } from "@/lib/upload-limits";
+import { acquireUploadRequest, checkUploadRateLimit } from "@/lib/upload-request-limits";
 
 const MAX_IMPORT_ROWS = 200;
+const CSV_DNS_MAX_CONCURRENT = 8;
+const CSV_DNS_DEADLINE_MS = 15_000;
+const TOOL_CHECK_WINDOW_MS = 60_000;
 const API_TOKEN_EXPIRATION_CHOICES = new Set([30, 90, 180, 365]);
 
 export type UploadShortenState = {
@@ -187,6 +192,8 @@ export async function checkDestinationAction(
   if (!admin) return { ok: false, message: "Unauthorized" };
   const safe = parseSafeHttpUrl(String(formData.get("url") ?? ""));
   if (!safe.ok) return { ok: false, message: safe.error };
+  const rate = await checkRateLimit(`tools:destination-check:${admin.id}`, 30, TOOL_CHECK_WINDOW_MS);
+  if (!rate.allowed) return { ok: false, message: "Too many destination checks. Please wait and try again." };
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
   try {
@@ -210,6 +217,8 @@ export async function importCsvAction(_state: { imported?: number; errors?: stri
   validateCsrf(formData);
   const admin = await requireAdmin();
   if (!admin) return { errors: ["Unauthorized"] };
+  const rate = await checkRateLimit(`tools:csv-import:${admin.id}`, 10, TOOL_CHECK_WINDOW_MS);
+  if (!rate.allowed) return { imported: 0, errors: ["Too many CSV imports. Please wait and try again."] };
   const text = String(formData.get("csv") ?? "");
   const maxCsvBytes = 512 * 1024;
   const maxCsvFieldCharacters = 16 * 1024;
@@ -282,13 +291,27 @@ export async function importCsvAction(_state: { imported?: number; errors?: stri
   }
 
   if (errors.length === 0 && valid.length) {
-    for (const row of valid) {
-      try {
-        await assertNoPrivateResolution(row.destinationUrl);
-      } catch (error) {
-        errors.push(`Row ${row.rowNumber}: ${error instanceof Error ? error.message : "Destination check failed."}`);
+    const deadlineAt = Date.now() + CSV_DNS_DEADLINE_MS;
+    const resolutionErrors: Array<string | null> = Array(valid.length).fill(null);
+    let nextIndex = 0;
+    let timedOut = false;
+    await Promise.all(Array.from({ length: Math.min(CSV_DNS_MAX_CONCURRENT, valid.length) }, async () => {
+      while (nextIndex < valid.length) {
+        if (Date.now() >= deadlineAt) {
+          timedOut = true;
+          return;
+        }
+        const index = nextIndex++;
+        const row = valid[index];
+        try {
+          await assertNoPrivateResolution(row.destinationUrl);
+        } catch (error) {
+          resolutionErrors[index] = `Row ${row.rowNumber}: ${error instanceof Error ? error.message : "Destination check failed."}`;
+        }
       }
-    }
+    }));
+    errors.push(...resolutionErrors.filter((error): error is string => error !== null));
+    if (timedOut) errors.push("Destination checks timed out. Try a smaller import.");
   }
 
   if (!confirm) {
@@ -342,10 +365,14 @@ export async function uploadAndShortenAction(
   const admin = await requireAdmin();
   if (!admin) return { error: "Unauthorized" };
 
-  const file = uploadedFormFile(formData.get("file"));
-  if (!file) return { error: "Choose a file to upload." };
+  const rate = await checkUploadRateLimit(admin.id);
+  if (!rate.allowed) return { error: "Rate limit exceeded" };
+  const releaseUploadRequest = acquireUploadRequest();
+  if (!releaseUploadRequest) return { error: "Too many uploads are already in progress." };
 
   try {
+    const file = uploadedFormFile(formData.get("file"));
+    if (!file) return { error: "Choose a file to upload." };
     const uploadMaxBytes = await getEffectiveUploadMaxBytes(admin);
     const result = await uploadAndShortenFile({
       code: String(formData.get("code") ?? "").trim() || null,
@@ -363,5 +390,7 @@ export async function uploadAndShortenAction(
     return result;
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not upload and shorten the file." };
+  } finally {
+    releaseUploadRequest();
   }
 }

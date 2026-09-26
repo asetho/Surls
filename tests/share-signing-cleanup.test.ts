@@ -18,7 +18,13 @@ describe("release signing cleanup", () => {
       expect(result.status).toBe(failKeychain ? 1 : 0);
       for (const name of names) expect(existsSync(path.join(root, name))).toBe(false);
       expect(existsSync(path.join(root, "unrelated"))).toBe(true);
-      execFileSync("bash", ["scripts/cleanup-share-signing.sh"], { env: { ...process.env, RUNNER_TEMP: root } });
+      execFileSync("bash", ["scripts/cleanup-share-signing.sh"], { env: {
+        ...process.env,
+        RUNNER_TEMP: root,
+        SURLS_SHARE_APP_PROFILE_PATH: "",
+        SURLS_SHARE_EXTENSION_PROFILE_PATH: "",
+        SURLS_SHARE_NOTARY_KEY_PATH: ""
+      } });
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

@@ -158,41 +158,48 @@ export function BackupCodesForm({
 
   return (
     <div className="form-stack">
-      <form action={action}>
-        <input type="hidden" name="csrf" value={csrf} />
-        {hasBackupCodes ? (
-          <ConfirmButton type="submit" disabled={pending} message={REGENERATE_BACKUP_CODES_CONFIRMATION}>
-            <KeyRound size={16} aria-hidden />
-            {buttonLabel}
-          </ConfirmButton>
-        ) : (
-          <button type="submit" disabled={pending}>
-            <KeyRound size={16} aria-hidden />
-            {buttonLabel}
-          </button>
-        )}
-      </form>
-      <p className="backup-codes-meta muted small">Last generated: {generatedAtLabel}</p>
-      {canDeleteBackupCodes && hasBackupCodes ? (
-        <form
-          action={deleteBackupCodesAction}
-          onSubmit={() => {
-            if (!codesText) return;
-            setAcknowledgedCodesText(codesText);
-            setDismissedCodesText(codesText);
-          }}
-        >
+      <div className="backup-codes-actions">
+        <form className="form-stack" action={action}>
           <input type="hidden" name="csrf" value={csrf} />
-          <ConfirmButton
-            className="danger-outline"
-            type="submit"
-            message="Delete all backup codes for your account? You will not be able to use them for recovery."
-          >
-            <Trash2 size={16} aria-hidden />
-            Delete backup codes
-          </ConfirmButton>
+          <label>
+            Current authenticator code
+            <input name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" required />
+          </label>
+          {hasBackupCodes ? (
+            <ConfirmButton type="submit" disabled={pending} message={REGENERATE_BACKUP_CODES_CONFIRMATION}>
+              <KeyRound size={16} aria-hidden />
+              {buttonLabel}
+            </ConfirmButton>
+          ) : (
+            <button type="submit" disabled={pending}>
+              <KeyRound size={16} aria-hidden />
+              {buttonLabel}
+            </button>
+          )}
+          {state?.error ? <p className="alert" role="alert">{state.error}</p> : null}
         </form>
-      ) : null}
+        {canDeleteBackupCodes && hasBackupCodes ? (
+          <form
+            action={deleteBackupCodesAction}
+            onSubmit={() => {
+              if (!codesText) return;
+              setAcknowledgedCodesText(codesText);
+              setDismissedCodesText(codesText);
+            }}
+          >
+            <input type="hidden" name="csrf" value={csrf} />
+            <ConfirmButton
+              className="danger-outline"
+              type="submit"
+              message="Delete all backup codes for your account? You will not be able to use them for recovery."
+            >
+              <Trash2 size={16} aria-hidden />
+              Delete backup codes
+            </ConfirmButton>
+          </form>
+        ) : null}
+      </div>
+      <p className="backup-codes-meta muted small">Last generated: {generatedAtLabel}</p>
       {showGeneratedCodes ? (
         <div className="success backup-codes-result">
           <strong>Store these backup codes now. They are shown only this once.</strong>

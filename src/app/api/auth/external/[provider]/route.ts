@@ -1,44 +1,79 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentSession } from "@/lib/auth";
+import { hashToken } from "@/lib/crypto";
 import { appBaseUrl } from "@/lib/env";
 import { validateCsrf } from "@/lib/csrf";
-import {
-  encodeExternalAuth, EXTERNAL_AUTH_COOKIE, externalAuthCookieOptions, externalAuthorizationUrl,
-  newExternalAuthValues
-} from "@/lib/external-auth";
-import { getExternalProviderConfig } from "@/lib/external-provider-settings";
+import { beginExternalAuth } from "@/lib/external-auth-flow";
+import { createExternalConnectCode, decodeExternalConnectCode, EXTERNAL_CONNECT_CODE_COOKIE, externalConnectCodeCookieOptions, verifyExternalConnectCode } from "@/lib/external-connect-code";
+import { externalProviderKey, getExternalProviderConfig } from "@/lib/external-provider-settings";
+import { verifyPassword } from "@/lib/password";
+import { prisma } from "@/lib/prisma";
+import { profileEmailAvailable, sendProfileEmailCode } from "@/lib/profile-email";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getSetting } from "@/lib/settings";
 import { requestIp, requestOriginMatchesApp } from "@/lib/request";
 import { safeRedirectPath } from "@/lib/redirect-path";
+import { verifyTotpCode } from "@/lib/totp";
 
 type ProviderContext = { params: Promise<{ provider: string }> };
+type Session = NonNullable<Awaited<ReturnType<typeof getCurrentSession>>>;
+type AuthIntent = { purpose: "connect" } | { purpose: "reauth"; pendingEmail?: string } |
+  { purpose: "verify-connect"; targetProvider: string } | { purpose: "verify-totp-setup" };
 
-function escapeHtml(value: string) {
-  return value.replace(/[&<>"']/g, (character) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-  })[character]!);
+function connectError(message: string) {
+  const url = new URL("/admin/profile", appBaseUrl());
+  url.searchParams.set("error", message);
+  return NextResponse.redirect(url, 303);
 }
 
-function linkAuthorizationPage(authorizationUrl: URL) {
-  if (authorizationUrl.protocol !== "https:" && authorizationUrl.protocol !== "http:") {
-    throw new Error("Unsupported authorization URL protocol.");
+async function sendConnectCode(session: Session, targetProvider: string) {
+  if (session.user.totpCredential?.enabled) return NextResponse.json({ error: "Use your authenticator to connect a provider." }, { status: 403 });
+  if (!(await profileEmailAvailable())) return NextResponse.json({ error: "Email verification is not configured." }, { status: 503 });
+  const rate = await checkRateLimit(`external-connect:send-code:${session.userId}`, 3, 15 * 60 * 1000);
+  if (!rate.allowed) return NextResponse.json({ error: "Too many codes requested. Please wait and try again." }, { status: 429 });
+  const generated = createExternalConnectCode(session.userId, session.id, session.user.email, targetProvider);
+  try {
+    await sendProfileEmailCode(session.user.email, generated.code);
+  } catch {
+    return NextResponse.json({ error: "Could not send a verification code. Please try again later." }, { status: 503 });
   }
-  const url = escapeHtml(authorizationUrl.toString());
-  return new NextResponse(
-    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=${url}"><title>Connecting to sign-in provider</title></head><body><p>Connecting to sign-in provider…</p><p><a href="${url}">Continue</a></p></body></html>`,
-    {
-      headers: {
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "no-store",
-        "Referrer-Policy": "no-referrer",
-        "Content-Security-Policy": "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
-      }
-    }
-  );
+  const response = NextResponse.json({ message: `Verification code sent to ${session.user.email}.` });
+  response.headers.set("Cache-Control", "no-store");
+  response.cookies.set(EXTERNAL_CONNECT_CODE_COOKIE, generated.cookie, externalConnectCodeCookieOptions());
+  return response;
 }
 
-async function start(request: NextRequest, context: ProviderContext, userId: string | null, nextValue: unknown) {
+async function verifyConnectProof(request: NextRequest, session: Session, targetProvider: string, formData: FormData) {
+  const method = formData.get("method");
+  const code = String(formData.get("code") ?? "").trim();
+  const credential = session.user.totpCredential;
+  if (credential?.enabled) {
+    const establishedAt = credential.enabledAt ?? credential.createdAt;
+    if (method !== "totp" || !establishedAt || establishedAt > session.createdAt) return false;
+    const rate = await checkRateLimit(`external-connect:verify:${session.userId}`, 5, 15 * 60 * 1000);
+    if (!rate.allowed || !code || !(await verifyTotpCode(credential.secretEncrypted, code))) return false;
+    const used = await checkRateLimit(`profile:totp-code:${session.userId}:${hashToken(code.replace(/\s+/g, ""))}`, 1, 90 * 1000);
+    return used.allowed;
+  }
+
+  if (method === "password") {
+    const password = String(formData.get("password") ?? "");
+    if (!password || password.length > 4096) return false;
+    const rate = await checkRateLimit(`external-connect:verify:${session.userId}`, 5, 15 * 60 * 1000);
+    return rate.allowed && await verifyPassword(session.user.passwordHash, password);
+  }
+  if (method !== "email") return false;
+  const rate = await checkRateLimit(`external-connect:verify:${session.userId}`, 5, 15 * 60 * 1000);
+  if (!rate.allowed) return false;
+  const proof = decodeExternalConnectCode(request.cookies.get(EXTERNAL_CONNECT_CODE_COOKIE)?.value);
+  if (!proof || proof.userId !== session.userId || proof.sessionId !== session.id ||
+      proof.currentEmail !== session.user.email || proof.targetProvider !== targetProvider ||
+      !verifyExternalConnectCode(proof, code)) return false;
+  const used = await checkRateLimit(`external-connect:email-code:${hashToken(proof.nonce)}`, 1, 10 * 60 * 1000);
+  return used.allowed;
+}
+
+async function start(request: NextRequest, context: ProviderContext, session: Session | null, nextValue: unknown, intent?: AuthIntent) {
   if (!(await getSetting("externalLoginEnabled"))) {
     return NextResponse.json({ error: "External sign-in is disabled." }, { status: 403 });
   }
@@ -47,20 +82,33 @@ async function start(request: NextRequest, context: ProviderContext, userId: str
   if (!config) {
     return NextResponse.json({ error: "Sign-in provider unavailable." }, { status: 404 });
   }
+  if (intent?.purpose === "reauth" || intent?.purpose === "verify-connect" || intent?.purpose === "verify-totp-setup") {
+    if (!session?.createdAt || (intent.purpose === "reauth" && !["oidc", "google", "microsoft"].includes(config.provider)) ||
+        (intent.purpose === "verify-connect" && session.user.totpCredential?.enabled && !["oidc", "google", "microsoft"].includes(config.provider)) ||
+        (intent.purpose === "verify-totp-setup" && session.user.totpCredential?.enabled)) {
+      return connectError("This provider cannot verify that change.");
+    }
+    const linked = await prisma.externalIdentity.findFirst({
+      where: { userId: session.userId, provider: externalProviderKey(config), createdAt: { lte: session.createdAt } }, select: { id: true }
+    });
+    if (!linked) return connectError("Connect this provider before using it for verification.");
+    if (intent.purpose === "verify-connect" && !(await getExternalProviderConfig(intent.targetProvider))) {
+      return connectError("The provider you want to connect is unavailable.");
+    }
+  }
   const ip = requestIp(request);
   const rate = await checkRateLimit(`external-auth:start:${ip}`, ip === "unknown" ? 3_000 : 30, 15 * 60 * 1000);
   if (!rate.allowed) return NextResponse.json({ error: "Too many sign-in attempts." }, { status: 429 });
 
+  const userId = session?.userId ?? null;
   const nextPath = safeRedirectPath(nextValue, userId ? "/admin/profile" : "/admin");
-  const values = newExternalAuthValues();
   try {
-    const authorizationUrl = await externalAuthorizationUrl(config.provider, values.state, values.verifier, values.nonce, config);
-    // A POST form cannot follow a cross-origin redirect under the profile page's
-    // form-action 'self' CSP. Return a same-origin document that starts a new navigation.
-    const response = userId ? linkAuthorizationPage(authorizationUrl) : NextResponse.redirect(authorizationUrl, 303);
-    response.headers.set("Cache-Control", "no-store");
-    response.cookies.set(EXTERNAL_AUTH_COOKIE, encodeExternalAuth({ provider: config.key, ...values, nextPath, userId }), externalAuthCookieOptions());
-    return response;
+    if (!session) return await beginExternalAuth(config, { userId: null, nextPath });
+    if (intent?.purpose === "reauth") return await beginExternalAuth(config, { userId: session.userId, sessionId: session.id, purpose: "reauth", pendingEmail: intent.pendingEmail, nextPath });
+    if (intent?.purpose === "verify-connect") return await beginExternalAuth(config, { userId: session.userId, sessionId: session.id, purpose: "verify-connect", targetProvider: intent.targetProvider, nextPath });
+    if (intent?.purpose === "verify-totp-setup") return await beginExternalAuth(config, { userId: session.userId, sessionId: session.id, purpose: "verify-totp-setup", nextPath });
+    if (intent?.purpose === "connect") return await beginExternalAuth(config, { userId: session.userId, sessionId: session.id, purpose: "connect", nextPath });
+    return connectError("Choose how to verify this connection.");
   } catch {
     return NextResponse.redirect(new URL(userId ? "/admin/profile?error=Sign-in%20provider%20unavailable." : "/admin?error=Sign-in%20provider%20unavailable.", appBaseUrl()), 303);
   }
@@ -82,5 +130,30 @@ export async function POST(request: NextRequest, context: ProviderContext) {
   }
   const session = await getCurrentSession();
   if (!session) return NextResponse.redirect(new URL("/admin?next=/admin/profile", appBaseUrl()), 303);
-  return start(request, context, session.userId, "/admin/profile");
+  if (!(await getSetting("externalLoginEnabled"))) return NextResponse.json({ error: "External sign-in is disabled." }, { status: 403 });
+  const purpose = formData.get("purpose");
+  if (purpose === "reauth") {
+    const proposed = String(formData.get("pendingEmail") ?? "").trim().toLowerCase();
+    const pendingEmail = proposed.length <= 320 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(proposed) ? proposed : undefined;
+    return start(request, context, session, "/admin/profile", { purpose: "reauth", pendingEmail });
+  }
+  if (purpose === "verify-connect") {
+    const targetProvider = String(formData.get("targetProvider") ?? "");
+    if (!targetProvider || !(await getExternalProviderConfig(targetProvider))) return connectError("The provider you want to connect is unavailable.");
+    return start(request, context, session, "/admin/profile", { purpose: "verify-connect", targetProvider });
+  }
+  if (purpose === "verify-totp-setup") return start(request, context, session, "/admin/profile", { purpose: "verify-totp-setup" });
+  if (purpose !== "connect" && purpose !== "send-connect-code") return connectError("Choose how to verify this connection.");
+  const { provider } = await context.params;
+  const config = await getExternalProviderConfig(provider);
+  if (!config) return connectError("Sign-in provider unavailable.");
+  if (purpose === "send-connect-code") return sendConnectCode(session, config.key);
+  if (!(await verifyConnectProof(request, session, config.key, formData))) {
+    return connectError("Verify your existing account before connecting this provider.");
+  }
+  const response = await start(request, context, session, "/admin/profile", { purpose: "connect" });
+  if (formData.get("method") === "email") {
+    response.cookies.set(EXTERNAL_CONNECT_CODE_COOKIE, "", { ...externalConnectCodeCookieOptions(), maxAge: 0 });
+  }
+  return response;
 }

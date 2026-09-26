@@ -10,7 +10,10 @@ const providerEnvironment = vi.hoisted(() => ({
   OIDC_PROVIDER_NAME: "Single sign-on",
   OIDC_ISSUER: undefined as string | undefined,
   OIDC_CLIENT_ID: undefined as string | undefined,
-  OIDC_CLIENT_SECRET: undefined as string | undefined
+  OIDC_CLIENT_SECRET: undefined as string | undefined,
+  MICROSOFT_TENANT_ID: undefined as string | undefined,
+  MICROSOFT_CLIENT_ID: undefined as string | undefined,
+  MICROSOFT_CLIENT_SECRET: undefined as string | undefined
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma }));
@@ -36,6 +39,9 @@ describe("external provider settings", () => {
     providerEnvironment.OIDC_ISSUER = undefined;
     providerEnvironment.OIDC_CLIENT_ID = undefined;
     providerEnvironment.OIDC_CLIENT_SECRET = undefined;
+    providerEnvironment.MICROSOFT_TENANT_ID = undefined;
+    providerEnvironment.MICROSOFT_CLIENT_ID = undefined;
+    providerEnvironment.MICROSOFT_CLIENT_SECRET = undefined;
     prisma.externalProviderSetting.findUnique.mockResolvedValue(null);
     prisma.externalProviderSetting.findMany.mockResolvedValue([]);
   });
@@ -54,8 +60,76 @@ describe("external provider settings", () => {
     expect(decryptSecret(first.secretEncrypted)).toBe("saved-secret");
 
     prisma.externalProviderSetting.findUnique.mockResolvedValue(first);
-    await saveExternalProviderSetting("google", { ...googleValues, clientId: "new-client", clientSecret: "" });
-    expect(prisma.externalProviderSetting.upsert.mock.calls[1][0].update).toMatchObject({ clientId: "new-client", secretEncrypted: first.secretEncrypted });
+    await saveExternalProviderSetting("google", { ...googleValues, clientSecret: "" });
+    expect(prisma.externalProviderSetting.upsert.mock.calls[1][0].update).toMatchObject({ clientId: "saved-client", secretEncrypted: first.secretEncrypted });
+  });
+
+  it("requires a new secret when a saved or environment client ID changes", async () => {
+    await expect(saveExternalProviderSetting("google", { ...googleValues, clientId: "new-client", clientSecret: "" }))
+      .rejects.toThrow("new client secret when changing the client ID");
+    expect(prisma.externalProviderSetting.upsert).not.toHaveBeenCalled();
+
+    await saveExternalProviderSetting("google", googleValues);
+    const saved = prisma.externalProviderSetting.upsert.mock.calls[0][0].create;
+    prisma.externalProviderSetting.findUnique.mockResolvedValue(saved);
+    await expect(saveExternalProviderSetting("google", { ...googleValues, clientId: "new-client", clientSecret: "" }))
+      .rejects.toThrow("new client secret when changing the client ID");
+    expect(prisma.externalProviderSetting.upsert).toHaveBeenCalledTimes(1);
+
+    await saveExternalProviderSetting("google", { ...googleValues, clientId: "new-client", clientSecret: "replacement-secret" });
+    const updated = prisma.externalProviderSetting.upsert.mock.calls[1][0].update;
+    expect(updated.clientId).toBe("new-client");
+    expect(decryptSecret(updated.secretEncrypted)).toBe("replacement-secret");
+  });
+
+  it("requires a new secret when a saved OIDC issuer changes", async () => {
+    await saveExternalProviderSetting("oidc", oidcValues);
+    const saved = prisma.externalProviderSetting.upsert.mock.calls[0][0].create;
+    prisma.externalProviderSetting.findUnique.mockResolvedValue(saved);
+
+    const changed = { ...oidcValues, issuer: "https://other.example.com/realms/example", clientSecret: "" };
+    await expect(saveExternalProviderSetting("oidc", changed)).rejects.toThrow("new client secret when changing the issuer URL");
+    expect(prisma.externalProviderSetting.upsert).toHaveBeenCalledTimes(1);
+
+    await saveExternalProviderSetting("oidc", { ...changed, clientSecret: "replacement-secret" });
+    const updated = prisma.externalProviderSetting.upsert.mock.calls[1][0].update;
+    expect(updated.issuer).toBe(changed.issuer);
+    expect(decryptSecret(updated.secretEncrypted)).toBe("replacement-secret");
+  });
+
+  it("requires a new secret when changing an environment OIDC issuer", async () => {
+    providerEnvironment.OIDC_ISSUER = oidcValues.issuer;
+    providerEnvironment.OIDC_CLIENT_ID = "environment-oidc-client";
+    providerEnvironment.OIDC_CLIENT_SECRET = "environment-oidc-secret";
+    const values = { ...oidcValues, clientId: "environment-oidc-client", clientSecret: "" };
+
+    await expect(saveExternalProviderSetting("oidc", { ...values, issuer: "https://other.example.com/realms/example" }))
+      .rejects.toThrow("new client secret when changing the issuer URL");
+    expect(prisma.externalProviderSetting.upsert).not.toHaveBeenCalled();
+
+    await saveExternalProviderSetting("oidc", values);
+    expect(decryptSecret(prisma.externalProviderSetting.upsert.mock.calls[0][0].create.secretEncrypted)).toBe("environment-oidc-secret");
+  });
+
+  it("requires a new secret when a Microsoft tenant changes", async () => {
+    providerEnvironment.MICROSOFT_TENANT_ID = "original.example.com";
+    providerEnvironment.MICROSOFT_CLIENT_ID = "microsoft-client";
+    providerEnvironment.MICROSOFT_CLIENT_SECRET = "environment-microsoft-secret";
+    const values = { ...googleValues, clientId: "microsoft-client", clientSecret: "", tenantId: "original.example.com" };
+    const changed = { ...values, tenantId: "new.example.com" };
+
+    await expect(saveExternalProviderSetting("microsoft", changed)).rejects.toThrow("new client secret when changing the Microsoft tenant");
+    await saveExternalProviderSetting("microsoft", values);
+    const saved = prisma.externalProviderSetting.upsert.mock.calls[0][0].create;
+    expect(decryptSecret(saved.secretEncrypted)).toBe("environment-microsoft-secret");
+    prisma.externalProviderSetting.findUnique.mockResolvedValue(saved);
+
+    await expect(saveExternalProviderSetting("microsoft", changed)).rejects.toThrow("new client secret when changing the Microsoft tenant");
+    expect(prisma.externalProviderSetting.upsert).toHaveBeenCalledTimes(1);
+    await saveExternalProviderSetting("microsoft", { ...changed, clientSecret: "replacement-secret" });
+    const updated = prisma.externalProviderSetting.upsert.mock.calls[1][0].update;
+    expect(updated.tenantId).toBe(changed.tenantId);
+    expect(decryptSecret(updated.secretEncrypted)).toBe("replacement-secret");
   });
 
   it("stores separate profiles of the same type with their own callbacks and default logos", async () => {

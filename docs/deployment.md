@@ -27,6 +27,8 @@ Use a hex database password because Compose inserts it into a connection URL. Ke
 | `POSTGRES_USER`, `POSTGRES_DB` | Defaults are `surls`. |
 | `POSTGRES_PASSWORD` | Generated hex password from above. |
 | `AUTH_SECRET` | Generated random value; production rejects empty or placeholder values. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM` | Optional SMTP server, port (default `587`), and sender address for email-change codes when a user has no TOTP. Use port `465` for implicit TLS; other ports require STARTTLS. |
+| `SMTP_USER`, `SMTP_PASSWORD` | Optional SMTP credentials; set both when the server requires authentication. |
 | `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` | Generated base64 key, passed through the Compose secret at build and runtime. |
 | `BASE_URL` | Exact public origin, for example `https://links.example.com`, with no trailing slash. |
 | `WEBAUTHN_RP_ID` | Hostname only, for example `links.example.com`. |

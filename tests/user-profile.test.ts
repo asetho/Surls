@@ -59,6 +59,9 @@ describe("user profile input normalization", () => {
     expect(normalizeUserProfileInput({ email: "user@example.com", name: "x".repeat(121) })).toEqual({
       error: "Display names must be 120 characters or fewer."
     });
+    expect(normalizeUserProfileInput({ email: `${"x".repeat(310)}@example.com`, name: "User" })).toEqual({
+      error: "Email addresses must be 320 characters or fewer."
+    });
     expect(
       normalizeUserProfileInput({ displayTimeZone: "Not/AZone", email: "user@example.com", name: "User" })
     ).toEqual({

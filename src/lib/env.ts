@@ -34,6 +34,11 @@ const envSchema = z
       z.enum(["true", "false"]).default("false").transform((value) => value === "true")
     ),
     AUTH_SECRET: emptyToUndefined(z.string().min(32).default("development-secret-change-before-production")),
+    SMTP_HOST: emptyToUndefined(z.string().optional()),
+    SMTP_PORT: emptyToUndefined(z.coerce.number().int().min(1).max(65535).default(587)),
+    SMTP_USER: emptyToUndefined(z.string().optional()),
+    SMTP_PASSWORD: emptyToUndefined(z.string().optional()),
+    SMTP_FROM: emptyToUndefined(z.email().optional()),
     OIDC_ISSUER: emptyToUndefined(z.string().url().max(512).optional()),
     OIDC_CLIENT_ID: emptyToUndefined(z.string().optional()),
     OIDC_CLIENT_SECRET: emptyToUndefined(z.string().optional()),
@@ -99,6 +104,9 @@ const envSchema = z
         path: ["TURNSTILE_SITE_KEY"],
         message: "TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY must be configured together."
       });
+    }
+    if (Boolean(value.SMTP_HOST) !== Boolean(value.SMTP_FROM) || Boolean(value.SMTP_USER) !== Boolean(value.SMTP_PASSWORD)) {
+      ctx.addIssue({ code: "custom", path: ["SMTP_HOST"], message: "Configure SMTP_HOST and SMTP_FROM together, and provide both SMTP_USER and SMTP_PASSWORD when using authentication." });
     }
     const oidcValues = [value.OIDC_ISSUER, value.OIDC_CLIENT_ID, value.OIDC_CLIENT_SECRET];
     if (oidcValues.some(Boolean) && !oidcValues.every(Boolean)) {

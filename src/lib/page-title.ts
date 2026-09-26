@@ -1,7 +1,7 @@
 import http from "node:http";
 import https from "node:https";
 import { Readable } from "node:stream";
-import { parseSafeHttpUrl, resolveSafeHttpAddress, type ResolvedHttpAddress } from "./url-safety";
+import { parseSafeHttpUrl, resolveSafeHttpAddress, resolveSafeHttpAddressWithTimeout, type ResolvedHttpAddress } from "./url-safety";
 
 const FETCH_TIMEOUT_MS = 3500;
 const MAX_TITLE_BYTES = 64 * 1024;
@@ -152,8 +152,8 @@ export async function fetchPageTitle(destinationUrl: string, options: FetchPageT
   if (activeTitleFetches >= MAX_CONCURRENT_TITLE_FETCHES) return null;
   activeTitleFetches += 1;
   const fetchImpl = options.fetchImpl ?? fetchWithPinnedAddress;
-  const resolveSafeAddress = options.resolveSafeAddress ?? resolveSafeHttpAddress;
   const timeoutMs = options.timeoutMs ?? FETCH_TIMEOUT_MS;
+  const resolveSafeAddress = options.resolveSafeAddress ?? ((url: string) => resolveSafeHttpAddressWithTimeout(url, timeoutMs));
   const maxBytes = options.maxBytes ?? MAX_TITLE_BYTES;
   const maxRedirects = options.maxRedirects ?? MAX_REDIRECTS;
   let currentUrl = destinationUrl;
@@ -163,16 +163,15 @@ export async function fetchPageTitle(destinationUrl: string, options: FetchPageT
       const safe = parseSafeHttpUrl(currentUrl);
       if (!safe.ok) return null;
 
-      let resolvedAddress: ResolvedHttpAddress;
-      try {
-        resolvedAddress = await resolveSafeAddress(safe.url);
-      } catch {
-        return null;
-      }
-
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), timeoutMs);
       try {
+        const resolvedAddress = await Promise.race([
+          resolveSafeAddress(safe.url),
+          new Promise<never>((_, reject) => {
+            controller.signal.addEventListener("abort", () => reject(new Error("Title lookup timed out.")), { once: true });
+          })
+        ]);
         const response = await fetchImpl(safe.url, {
           headers: {
             accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.1",

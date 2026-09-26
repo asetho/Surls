@@ -310,8 +310,10 @@ button.danger-outline:hover {
 }
 
 .theme-toggle.icon-only button {
-  min-height: 2.05rem;
-  padding: 0.34rem;
+  height: 2.15rem;
+  min-height: 2.15rem;
+  padding: 0;
+  width: 100%;
 }
 
 .hero {
@@ -988,6 +990,25 @@ button.danger-outline:hover {
   text-align: left;
 }
 
+.settings-collapse-summary-status {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+.profile-status-icon {
+  align-items: center;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  display: inline-flex;
+  height: 1.7rem;
+  justify-content: center;
+  width: 1.7rem;
+}
+
 .settings-collapse > summary.settings-card-header .status-pill {
   margin-left: auto;
 }
@@ -1179,7 +1200,8 @@ button.danger-outline:hover {
   padding: 0.18rem 0.48rem;
 }
 
-.status-pill-active {
+.status-pill-active,
+.profile-status-icon.is-enabled {
   background: var(--active-pill-background, color-mix(in srgb, var(--color-teal), #fff 84%));
   border-color: var(--active-pill-border, color-mix(in srgb, var(--color-teal), #fff 55%));
   color: var(--active-pill-text, var(--color-navy));
@@ -1340,7 +1362,6 @@ button.danger-outline:hover {
   font-size: 0.9rem;
 }
 
-.style-reference-button-grid,
 .style-reference-pill-row {
   --style-reference-pill-height: 2.12rem;
   --style-reference-pill-radius: 6px;
@@ -1350,20 +1371,25 @@ button.danger-outline:hover {
   gap: 0.5rem;
 }
 
+.style-reference-button-grid {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+
 .style-reference-button-grid > button,
 .style-reference-button-grid > .button {
   border-radius: 8px;
-  min-height: 2.1rem;
+  min-height: 34px;
   padding-block: 0.36rem;
 }
 
 .style-reference-button-grid > .icon-button {
-  flex: 0 0 2.1rem;
-  height: 2.1rem;
-  min-height: 2.1rem;
-  min-width: 2.1rem;
+  height: 34px;
+  min-height: 34px;
+  min-width: 34px;
   padding: 0;
-  width: 2.1rem;
+  width: 34px;
 }
 
 .style-reference-pill-row > .badge,
@@ -2038,7 +2064,7 @@ button.danger-outline:hover {
   border-radius: var(--radius);
   display: grid;
   gap: 0.25rem;
-  grid-auto-rows: 2rem;
+  grid-auto-rows: 34px;
   grid-column: 1 / -1;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   padding: 0.25rem;
@@ -2050,10 +2076,10 @@ button.danger-outline:hover {
   border: 1px solid transparent;
   box-shadow: none;
   color: var(--muted);
-  height: 2rem;
+  height: 34px;
   line-height: 1;
-  max-height: 2rem;
-  min-height: 2rem;
+  max-height: 34px;
+  min-height: 34px;
   overflow: hidden;
   padding: 0.35rem 0.6rem;
 }
@@ -2655,6 +2681,11 @@ button.danger-outline:hover {
 .theme-editor-drawer-header-actions {
   flex: 0 0 auto;
   gap: 0.35rem;
+}
+
+.theme-editor-drawer-header-actions > .icon-button {
+  min-height: 34px;
+  min-width: 34px;
 }
 
 .theme-editor-drawer-restore {
@@ -3371,6 +3402,11 @@ button.danger-outline:hover {
 
 .profile-mobile-menu-side-field legend {
   font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.profile-card .form-grid select {
+  height: calc(1.5em + 2 * var(--control-padding-y) + 2px);
 }
 
 .profile-mobile-menu-side-options {
@@ -3380,7 +3416,20 @@ button.danger-outline:hover {
   display: grid;
   gap: 0.24rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  padding: 0.28rem;
+  height: calc(1.5em + 2 * var(--control-padding-y) + 2px);
+  padding: 0.15rem;
+  width: min(100%, 18rem);
+}
+
+@media (max-width: 860px) {
+  .profile-card .form-grid select,
+  .profile-mobile-menu-side-options {
+    height: 44px;
+  }
+
+  .profile-save-button {
+    min-height: 44px;
+  }
 }
 
 .profile-mobile-menu-side-option {
@@ -3396,8 +3445,8 @@ button.danger-outline:hover {
   display: flex;
   gap: 0.38rem;
   justify-content: center;
-  min-height: 2.12rem;
-  padding: 0.34rem 0.5rem;
+  height: 100%;
+  padding: 0 0.5rem;
   transition:
     background-color 150ms ease,
     border-color 150ms ease,
@@ -3438,6 +3487,10 @@ button.danger-outline:hover {
   display: grid;
   gap: 0.75rem;
   padding: 0.8rem;
+}
+
+.profile-external-body > p {
+  margin: 0;
 }
 
 .profile-privacy-body {
@@ -3548,6 +3601,13 @@ button.danger-outline:hover {
   margin: 0;
 }
 
+.profile-security-section-heading {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-start;
+}
+
 .profile-security-panel > .muted {
   margin: 0;
 }
@@ -3597,6 +3657,16 @@ button.danger-outline:hover {
   margin: 0;
 }
 
+.totp-saved-confirmation {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.profile-verification-dialog {
+  width: min(34rem, calc(100vw - 2rem));
+}
+
 .profile-status-success,
 .backup-codes-result {
   display: grid;
@@ -3614,6 +3684,13 @@ button.danger-outline:hover {
 .backup-codes-meta {
   justify-self: start;
   margin: 0;
+}
+
+.backup-codes-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .backup-codes-result p {
@@ -4299,6 +4376,7 @@ textarea {
   border-color: var(--sidebar-border);
   color: var(--sidebar-text);
   justify-content: flex-start;
+  min-height: 34px;
   width: 100%;
 }
 
@@ -4367,6 +4445,15 @@ textarea {
   flex-wrap: wrap;
   gap: 0.5rem;
   justify-content: flex-end;
+}
+
+.settings-header {
+  display: grid;
+  justify-content: stretch;
+}
+
+.settings-header .content-header-actions {
+  justify-content: flex-start;
 }
 
 .content-header h1,
@@ -4671,8 +4758,28 @@ th {
   justify-content: flex-end;
 }
 
-.links-table .link-list-short-row + .row-actions.small {
+.link-tags-details {
   margin-top: 0.22rem;
+}
+
+.link-tags-details summary {
+  align-items: center;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.7rem;
+  gap: 0.2rem;
+}
+
+.link-tags-details summary:hover {
+  color: var(--text);
+}
+
+.link-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
 }
 
 .row-actions {
@@ -4997,12 +5104,13 @@ th {
   font-size: 0.88rem;
   gap: 0.4rem;
   line-height: 1.18;
-  min-height: 2.12rem;
+  min-height: 34px;
   padding: 0.38rem 0.62rem;
 }
 
 .link-lifecycle-actions > button,
 .link-lifecycle-actions > form > button {
+  min-height: 34px;
   min-width: 5.8rem;
 }
 
@@ -6027,6 +6135,22 @@ th {
   width: min(920px, calc(100vw - 2rem));
 }
 
+.modal-dialog.profile-security-dialog {
+  max-width: calc(100vw - 2rem);
+  width: min(36rem, calc(100vw - 2rem));
+}
+
+.profile-security-dialog > .modal-panel {
+  box-sizing: border-box;
+  max-width: none;
+  padding: 1.25rem;
+  width: 100%;
+}
+
+.profile-security-dialog .modal-header p {
+  margin: 0.25rem 0 0;
+}
+
 .modal-dialog::backdrop {
   background: color-mix(in srgb, var(--overlay-background), transparent 48%);
 }
@@ -6539,15 +6663,6 @@ th {
     width: auto;
   }
 
-  .links-table td[data-label="Short URL"] > .row-actions.small {
-    align-items: center;
-    flex-direction: row;
-  }
-
-  .links-table td[data-label="Short URL"] > .row-actions.small > .tag-link {
-    width: auto;
-  }
-
   table.responsive-table .user-agent-cell,
   table.responsive-table .ip-cell,
   table.responsive-table a:not(.link-destination-url) {
@@ -6594,6 +6709,39 @@ th {
 
   .theme-editor-drawer-actions {
     grid-template-columns: 1fr;
+  }
+}
+
+.admin-content button,
+.admin-content .button,
+.admin-content .icon-button.icon-only-action,
+.admin-content .button.icon-only-action,
+.admin-content .addtoany-share .addtoany-share-button {
+  min-height: 34px;
+}
+
+.admin-content .icon-button.icon-only-action,
+.admin-content .button.icon-only-action,
+.admin-content .addtoany-share .addtoany-share-button.icon-only-action {
+  min-width: 34px;
+}
+
+@media (max-width: 860px) {
+  .admin-content .icon-button,
+  .admin-content .addtoany-share .addtoany-share-button {
+    min-height: 2.35rem;
+  }
+
+  .admin-content .icon-button.icon-only-action,
+  .admin-content .button.icon-only-action,
+  .admin-content .addtoany-share .addtoany-share-button.icon-only-action {
+    min-width: 2.35rem;
+  }
+
+  .admin-content .profile-card > form > button,
+  .admin-content .profile-security-panel > .form-stack > button,
+  .admin-content .backup-codes-actions button {
+    min-height: 44px;
   }
 }
 

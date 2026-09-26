@@ -36,6 +36,9 @@ export function normalizeUserProfileInput(input: {
   if (!email || !EMAIL_PATTERN.test(email)) {
     return { error: "Enter a valid email address." };
   }
+  if (email.length > 320) {
+    return { error: "Email addresses must be 320 characters or fewer." };
+  }
 
   if (name && name.length > 120) {
     return { error: "Display names must be 120 characters or fewer." };

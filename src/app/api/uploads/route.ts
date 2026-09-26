@@ -5,25 +5,13 @@ import { validateCsrfValue } from "@/lib/csrf";
 import { appBaseUrl } from "@/lib/env";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getEffectiveUploadMaxBytes } from "@/lib/upload-limits";
+import { acquireUploadRequest, checkUploadRateLimit } from "@/lib/upload-request-limits";
 import { normalizeUploadFilenameMode, uploadMaxBytesLabel } from "@/lib/uploads";
 import { checkUploadShortCodeAvailability, uploadAndShortenFile } from "@/lib/upload-and-shorten";
 
 export const UPLOAD_MULTIPART_OVERHEAD_BYTES = 64 * 1024;
 export const UPLOAD_MAX_BYTES_HEADER = "X-Surls-Upload-Max-Bytes";
-export const UPLOAD_MAX_CONCURRENT_REQUESTS = 4;
-
-let activeUploadRequests = 0;
-
-function acquireUploadRequest() {
-  if (activeUploadRequests >= UPLOAD_MAX_CONCURRENT_REQUESTS) return null;
-  activeUploadRequests += 1;
-  let released = false;
-  return () => {
-    if (released) return;
-    released = true;
-    activeUploadRequests = Math.max(0, activeUploadRequests - 1);
-  };
-}
+export { UPLOAD_MAX_CONCURRENT_REQUESTS } from "@/lib/upload-request-limits";
 
 function uploadLimitHeaders(maxBytes: number | null) {
   return { [UPLOAD_MAX_BYTES_HEADER]: maxBytes === null ? "unlimited" : String(maxBytes) };
@@ -125,7 +113,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const rate = await checkRateLimit(`api:upload:${auth.user.id}`, 30, 60 * 1000);
+  const rate = await checkUploadRateLimit(auth.user.id);
   if (!rate.allowed) return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
 
   const uploadMaxBytes = await getEffectiveUploadMaxBytes(auth.user);

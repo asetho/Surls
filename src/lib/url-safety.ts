@@ -4,6 +4,13 @@ import { env } from "./env";
 
 const BLOCKED_PROTOCOLS = new Set(["javascript:", "data:", "file:", "ftp:", "mailto:", "tel:"]);
 const LOCAL_HOSTNAMES = new Set(["localhost", "local", "host.docker.internal"]);
+export const DESTINATION_DNS_TIMEOUT_MS = 2_000;
+const MAX_CONCURRENT_SYSTEM_DNS_LOOKUPS = 8;
+const MAX_CONCURRENT_PUBLIC_DNS_LOOKUPS = 8;
+// Independent route bundles in one server process must share the same DNS cap.
+const dnsStateKey = Symbol.for("surls.destination-dns-limits");
+const dnsGlobal = globalThis as unknown as Record<symbol, { system: number; public: number } | undefined>;
+const dnsState = dnsGlobal[dnsStateKey] ??= { system: 0, public: 0 };
 
 function isPrivateIPv4(ip: string) {
   const parts = ip.split(".").map(Number);
@@ -118,16 +125,35 @@ export async function resolveSafeHttpAddress(
   urlText: string,
   allowPrivate = env.ALLOW_PRIVATE_DESTINATIONS
 ): Promise<ResolvedHttpAddress> {
-  const parsed = new URL(urlText);
-  const records = await dns.lookup(normalizeIpLiteral(parsed.hostname), { all: true, verbatim: true });
-  const resolved = records.map((record): ResolvedHttpAddress => {
-    const family = net.isIP(record.address);
-    if (family !== 4 && family !== 6) {
-      throw new Error("Destination did not resolve to an IP address.");
-    }
-    return { address: record.address, family };
-  });
-  return validatedResolvedAddress(resolved, allowPrivate);
+  return resolveSafeHttpAddressWithTimeout(urlText, DESTINATION_DNS_TIMEOUT_MS, allowPrivate);
+}
+
+async function resolveSystemHttpAddressWithTimeout(hostname: string, timeoutMs: number) {
+  if (dnsState.system >= MAX_CONCURRENT_SYSTEM_DNS_LOOKUPS) {
+    throw new Error("Too many destination DNS lookups are in progress.");
+  }
+  dnsState.system += 1;
+  const lookup = Promise.resolve()
+    .then(() => dns.lookup(hostname, { all: true, verbatim: true }))
+    .then((records) => records.map((record): ResolvedHttpAddress => {
+      const family = net.isIP(record.address);
+      if (family !== 4 && family !== 6) throw new Error("Destination did not resolve to an IP address.");
+      return { address: record.address, family };
+    }))
+    .finally(() => { dnsState.system -= 1; });
+
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      lookup,
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error("Destination DNS lookup timed out.")), Math.max(1, timeoutMs));
+        timeout.unref?.();
+      })
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 }
 
 export async function resolveSafeHttpAddressWithTimeout(
@@ -141,37 +167,47 @@ export async function resolveSafeHttpAddressWithTimeout(
   if (literalFamily === 4 || literalFamily === 6) {
     return validatedResolvedAddress([{ address: hostname, family: literalFamily }], allowPrivate);
   }
+  if (allowPrivate) {
+    return validatedResolvedAddress(await resolveSystemHttpAddressWithTimeout(hostname, timeoutMs), true);
+  }
 
-  const resolver = new Resolver();
-  const query = Promise.all([
-    resolver.resolve4(hostname).catch((error: unknown) => {
-      if (noAddressForFamily(error)) return [];
-      throw error;
-    }),
-    resolver.resolve6(hostname).catch((error: unknown) => {
-      if (noAddressForFamily(error)) return [];
-      throw error;
-    })
-  ]).then(([ipv4, ipv6]) => [
-    ...ipv4.map((address): ResolvedHttpAddress => ({ address, family: 4 })),
-    ...ipv6.map((address): ResolvedHttpAddress => ({ address, family: 6 }))
-  ]);
-
+  if (dnsState.public >= MAX_CONCURRENT_PUBLIC_DNS_LOOKUPS) {
+    throw new Error("Too many destination DNS lookups are in progress.");
+  }
+  dnsState.public += 1;
+  let resolver: Resolver | undefined;
   let timeout: ReturnType<typeof setTimeout> | undefined;
+  let queryCompleted = false;
   try {
+    resolver = new Resolver();
+    const query = Promise.all([
+      resolver.resolve4(hostname).catch((error: unknown) => {
+        if (noAddressForFamily(error)) return [];
+        throw error;
+      }),
+      resolver.resolve6(hostname).catch((error: unknown) => {
+        if (noAddressForFamily(error)) return [];
+        throw error;
+      })
+    ]).then(([ipv4, ipv6]) => [
+      ...ipv4.map((address): ResolvedHttpAddress => ({ address, family: 4 })),
+      ...ipv6.map((address): ResolvedHttpAddress => ({ address, family: 6 }))
+    ]);
     const records = await Promise.race([
       query,
       new Promise<never>((_, reject) => {
-        timeout = setTimeout(() => {
-          resolver.cancel();
-          reject(new Error("Destination DNS lookup timed out."));
-        }, Math.max(1, timeoutMs));
+        timeout = setTimeout(() => reject(new Error("Destination DNS lookup timed out.")), Math.max(1, timeoutMs));
         timeout.unref?.();
       })
     ]);
+    queryCompleted = true;
     return validatedResolvedAddress(records, allowPrivate);
+  } catch (error) {
+    if (!queryCompleted) resolver?.cancel();
+    throw error;
   } finally {
     if (timeout) clearTimeout(timeout);
+    dnsState.public -= 1;
   }
 }
 
