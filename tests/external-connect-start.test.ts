@@ -16,7 +16,7 @@ const settings = vi.hoisted(() => ({ getSetting: vi.fn() }));
 const csrf = vi.hoisted(() => ({ validateCsrf: vi.fn() }));
 const password = vi.hoisted(() => ({ verifyPassword: vi.fn() }));
 const totp = vi.hoisted(() => ({ verifyTotpCode: vi.fn() }));
-const mail = vi.hoisted(() => ({ profileEmailAvailable: vi.fn(), sendProfileEmailCode: vi.fn() }));
+const mail = vi.hoisted(() => ({ profileEmailAvailable: vi.fn(), sendExternalConnectCode: vi.fn() }));
 const connectCode = vi.hoisted(() => ({
   EXTERNAL_CONNECT_CODE_COOKIE: "surls_external_connect_code",
   externalConnectCodeCookieOptions: vi.fn(() => ({ path: "/api/auth/external", httpOnly: true, maxAge: 600 })),
@@ -57,7 +57,7 @@ describe("external account connection start", () => {
     password.verifyPassword.mockResolvedValue(true);
     totp.verifyTotpCode.mockResolvedValue(true);
     mail.profileEmailAvailable.mockResolvedValue(true);
-    mail.sendProfileEmailCode.mockResolvedValue(undefined);
+    mail.sendExternalConnectCode.mockResolvedValue(undefined);
     connectCode.createExternalConnectCode.mockReturnValue({ code: "123456", cookie: "signed-code" });
     connectCode.decodeExternalConnectCode.mockReturnValue(null);
     connectCode.verifyExternalConnectCode.mockReturnValue(false);
@@ -123,7 +123,7 @@ describe("external account connection start", () => {
     const { POST } = await import("@/app/api/auth/external/[provider]/route");
     const sent = await POST(post("csrf=valid&purpose=send-connect-code"), context);
     expect(sent.status).toBe(200);
-    expect(mail.sendProfileEmailCode).toHaveBeenCalledWith("user@example.com", "123456");
+    expect(mail.sendExternalConnectCode).toHaveBeenCalledWith("user@example.com", "123456");
     expect(connectCode.createExternalConnectCode).toHaveBeenCalledWith("user_1", "session_1", "user@example.com", "oidc-asetho-link");
     expect(sent.cookies.get("surls_external_connect_code")?.value).toBe("signed-code");
     connectCode.decodeExternalConnectCode.mockReturnValue({ userId: "user_1", sessionId: "session_1", currentEmail: "user@example.com",

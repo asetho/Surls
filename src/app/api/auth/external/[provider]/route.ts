@@ -8,7 +8,7 @@ import { createExternalConnectCode, decodeExternalConnectCode, EXTERNAL_CONNECT_
 import { externalProviderKey, getExternalProviderConfig } from "@/lib/external-provider-settings";
 import { verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
-import { profileEmailAvailable, sendProfileEmailCode } from "@/lib/profile-email";
+import { profileEmailAvailable, sendExternalConnectCode } from "@/lib/profile-email";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getSetting } from "@/lib/settings";
 import { requestIp, requestOriginMatchesApp } from "@/lib/request";
@@ -33,7 +33,7 @@ async function sendConnectCode(session: Session, targetProvider: string) {
   if (!rate.allowed) return NextResponse.json({ error: "Too many codes requested. Please wait and try again." }, { status: 429 });
   const generated = createExternalConnectCode(session.userId, session.id, session.user.email, targetProvider);
   try {
-    await sendProfileEmailCode(session.user.email, generated.code);
+    await sendExternalConnectCode(session.user.email, generated.code);
   } catch {
     return NextResponse.json({ error: "Could not send a verification code. Please try again later." }, { status: 503 });
   }
