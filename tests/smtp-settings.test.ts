@@ -55,6 +55,18 @@ describe("SMTP settings", () => {
     expect(appSetting.upsert).not.toHaveBeenCalled();
   });
 
+  it("requires a new password when the saved password cannot be decrypted", async () => {
+    const { getSmtpTransportConfig, saveSmtpSettings, SmtpSettingsError } = await import("@/lib/smtp-settings");
+    const values = { host: "mail.example.com", port: "587", from: "sender@example.com", username: "mailer", password: "" };
+    state.row = { key: "smtp", value: { ...values, port: 587, passwordEncrypted: "unreadable" } };
+
+    await expect(saveSmtpSettings(form(values))).rejects.toThrow(SmtpSettingsError);
+    expect(appSetting.upsert).not.toHaveBeenCalled();
+
+    await saveSmtpSettings(form({ ...values, password: "replacement secret" }));
+    expect(await getSmtpTransportConfig()).toMatchObject({ password: "replacement secret" });
+  });
+
   it("requires a new password before moving a saved credential to another host or port", async () => {
     const { getSmtpTransportConfig, saveSmtpSettings, SmtpSettingsError } = await import("@/lib/smtp-settings");
     const original = { host: "mail.example.com", port: "587", from: "sender@example.com", username: "mailer", password: "saved secret" };

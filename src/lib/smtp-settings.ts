@@ -131,6 +131,11 @@ export async function saveSmtpSettings(formData: FormData, client: SmtpClient = 
   if (username) {
     if (newPassword) passwordEncrypted = encryptSecret(newPassword);
     else if (saved?.host === host && saved.port === port && saved.username === username && saved.passwordEncrypted) {
+      try {
+        decryptSecret(saved.passwordEncrypted);
+      } catch {
+        throw new SmtpSettingsError("Enter a new SMTP password; the saved password cannot be read.");
+      }
       passwordEncrypted = saved.passwordEncrypted;
     } else if (fallback?.host === host && fallback.port === port && fallback.username === username && fallback.password) {
       passwordEncrypted = encryptSecret(fallback.password);

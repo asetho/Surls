@@ -7,10 +7,15 @@ const LOCAL_HOSTNAMES = new Set(["localhost", "local", "host.docker.internal"]);
 export const DESTINATION_DNS_TIMEOUT_MS = 2_000;
 const MAX_CONCURRENT_SYSTEM_DNS_LOOKUPS = 8;
 const MAX_CONCURRENT_PUBLIC_DNS_LOOKUPS = 8;
+const MAX_CONCURRENT_NON_REDIRECT_DNS_LOOKUPS = 4;
+type DnsPurpose = "redirect" | "other";
 // Independent route bundles in one server process must share the same DNS cap.
 const dnsStateKey = Symbol.for("surls.destination-dns-limits");
-const dnsGlobal = globalThis as unknown as Record<symbol, { system: number; public: number } | undefined>;
-const dnsState = dnsGlobal[dnsStateKey] ??= { system: 0, public: 0 };
+type DnsState = { system: number; public: number; systemOther: number; publicOther: number };
+const dnsGlobal = globalThis as unknown as Record<symbol, DnsState | undefined>;
+const dnsState = dnsGlobal[dnsStateKey] ??= { system: 0, public: 0, systemOther: 0, publicOther: 0 };
+dnsState.systemOther ??= 0;
+dnsState.publicOther ??= 0;
 
 function isPrivateIPv4(ip: string) {
   const parts = ip.split(".").map(Number);
@@ -128,11 +133,13 @@ export async function resolveSafeHttpAddress(
   return resolveSafeHttpAddressWithTimeout(urlText, DESTINATION_DNS_TIMEOUT_MS, allowPrivate);
 }
 
-async function resolveSystemHttpAddressWithTimeout(hostname: string, timeoutMs: number) {
-  if (dnsState.system >= MAX_CONCURRENT_SYSTEM_DNS_LOOKUPS) {
+async function resolveSystemHttpAddressWithTimeout(hostname: string, timeoutMs: number, purpose: DnsPurpose) {
+  if (dnsState.system >= MAX_CONCURRENT_SYSTEM_DNS_LOOKUPS ||
+      (purpose === "other" && dnsState.systemOther >= MAX_CONCURRENT_NON_REDIRECT_DNS_LOOKUPS)) {
     throw new Error("Too many destination DNS lookups are in progress.");
   }
   dnsState.system += 1;
+  if (purpose === "other") dnsState.systemOther += 1;
   const lookup = Promise.resolve()
     .then(() => dns.lookup(hostname, { all: true, verbatim: true }))
     .then((records) => records.map((record): ResolvedHttpAddress => {
@@ -140,7 +147,10 @@ async function resolveSystemHttpAddressWithTimeout(hostname: string, timeoutMs: 
       if (family !== 4 && family !== 6) throw new Error("Destination did not resolve to an IP address.");
       return { address: record.address, family };
     }))
-    .finally(() => { dnsState.system -= 1; });
+    .finally(() => {
+      dnsState.system -= 1;
+      if (purpose === "other") dnsState.systemOther -= 1;
+    });
 
   let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
@@ -159,7 +169,8 @@ async function resolveSystemHttpAddressWithTimeout(hostname: string, timeoutMs: 
 export async function resolveSafeHttpAddressWithTimeout(
   urlText: string,
   timeoutMs: number,
-  allowPrivate = env.ALLOW_PRIVATE_DESTINATIONS
+  allowPrivate = env.ALLOW_PRIVATE_DESTINATIONS,
+  purpose: DnsPurpose = "other"
 ): Promise<ResolvedHttpAddress> {
   const parsed = new URL(urlText);
   const hostname = normalizeIpLiteral(parsed.hostname);
@@ -168,13 +179,15 @@ export async function resolveSafeHttpAddressWithTimeout(
     return validatedResolvedAddress([{ address: hostname, family: literalFamily }], allowPrivate);
   }
   if (allowPrivate) {
-    return validatedResolvedAddress(await resolveSystemHttpAddressWithTimeout(hostname, timeoutMs), true);
+    return validatedResolvedAddress(await resolveSystemHttpAddressWithTimeout(hostname, timeoutMs, purpose), true);
   }
 
-  if (dnsState.public >= MAX_CONCURRENT_PUBLIC_DNS_LOOKUPS) {
+  if (dnsState.public >= MAX_CONCURRENT_PUBLIC_DNS_LOOKUPS ||
+      (purpose === "other" && dnsState.publicOther >= MAX_CONCURRENT_NON_REDIRECT_DNS_LOOKUPS)) {
     throw new Error("Too many destination DNS lookups are in progress.");
   }
   dnsState.public += 1;
+  if (purpose === "other") dnsState.publicOther += 1;
   let resolver: Resolver | undefined;
   let timeout: ReturnType<typeof setTimeout> | undefined;
   let queryCompleted = false;
@@ -208,6 +221,7 @@ export async function resolveSafeHttpAddressWithTimeout(
   } finally {
     if (timeout) clearTimeout(timeout);
     dnsState.public -= 1;
+    if (purpose === "other") dnsState.publicOther -= 1;
   }
 }
 
@@ -219,9 +233,14 @@ export async function assertNoPrivateResolution(urlText: string, allowPrivate = 
 export async function assertNoPrivateResolutionWithTimeout(
   urlText: string,
   timeoutMs: number,
-  allowPrivate = env.ALLOW_PRIVATE_DESTINATIONS
+  options: { allowPrivate?: boolean; purpose?: DnsPurpose } = {}
 ) {
-  await resolveSafeHttpAddressWithTimeout(urlText, timeoutMs, allowPrivate);
+  await resolveSafeHttpAddressWithTimeout(
+    urlText,
+    timeoutMs,
+    options.allowPrivate ?? env.ALLOW_PRIVATE_DESTINATIONS,
+    options.purpose ?? "other"
+  );
   return true;
 }
 

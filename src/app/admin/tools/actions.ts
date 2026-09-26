@@ -22,7 +22,7 @@ import { getEffectiveUploadMaxBytes } from "@/lib/upload-limits";
 import { acquireUploadRequest, checkUploadRateLimit } from "@/lib/upload-request-limits";
 
 const MAX_IMPORT_ROWS = 200;
-const CSV_DNS_MAX_CONCURRENT = 8;
+const CSV_DNS_MAX_CONCURRENT = 4;
 const CSV_DNS_DEADLINE_MS = 15_000;
 const TOOL_CHECK_WINDOW_MS = 60_000;
 const API_TOKEN_EXPIRATION_CHOICES = new Set([30, 90, 180, 365]);

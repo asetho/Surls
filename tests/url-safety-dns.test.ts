@@ -92,19 +92,24 @@ describe("bounded destination DNS resolution", () => {
     vi.useRealTimers();
   });
 
-  it("caps concurrent public DNS resolutions and releases slots after timeouts", async () => {
+  it("reserves public DNS capacity for redirects and releases slots after timeouts", async () => {
     vi.useFakeTimers();
     dnsMocks.resolve4.mockReturnValue(new Promise(() => undefined));
     dnsMocks.resolve6.mockReturnValue(new Promise(() => undefined));
 
-    const pending = Array.from({ length: 8 }, (_, index) =>
+    const pending = Array.from({ length: 4 }, (_, index) =>
       resolveSafeHttpAddressWithTimeout(`https://slow${index}.example/`, 50)
     );
     await expect(resolveSafeHttpAddressWithTimeout("https://blocked.example/", 50)).rejects.toThrow(
       /too many destination dns lookups/i
     );
+    const redirects = Array.from({ length: 4 }, (_, index) =>
+      resolveSafeHttpAddressWithTimeout(`https://redirect${index}.example/`, 50, false, "redirect")
+    );
+    await expect(resolveSafeHttpAddressWithTimeout("https://redirect-blocked.example/", 50, false, "redirect"))
+      .rejects.toThrow(/too many destination dns lookups/i);
     expect(dnsMocks.resolve4).toHaveBeenCalledTimes(8);
-    const rejections = pending.map((lookup) => expect(lookup).rejects.toThrow(/timed out/i));
+    const rejections = [...pending, ...redirects].map((lookup) => expect(lookup).rejects.toThrow(/timed out/i));
     await vi.advanceTimersByTimeAsync(50);
     await Promise.all(rejections);
     expect(dnsMocks.cancel).toHaveBeenCalledTimes(8);
@@ -129,17 +134,22 @@ describe("bounded destination DNS resolution", () => {
     expect(dnsMocks.resolve4).not.toHaveBeenCalled();
   });
 
-  it("times out private-mode system lookups and caps outstanding work", async () => {
+  it("reserves system DNS capacity for redirects when private destinations are allowed", async () => {
     vi.useFakeTimers();
     const releases: Array<(records: Array<{ address: string; family: number }>) => void> = [];
     dnsMocks.lookup.mockImplementation(() => new Promise((resolve) => { releases.push(resolve); }));
 
-    const pending = Array.from({ length: 8 }, (_, index) =>
+    const pending = Array.from({ length: 4 }, (_, index) =>
       resolveSafeHttpAddressWithTimeout(`http://internal${index}.test/`, 50, true)
     );
-    const blocked = resolveSafeHttpAddressWithTimeout("http://internal9.test/", 50, true);
+    const blocked = resolveSafeHttpAddressWithTimeout("http://internal4.test/", 50, true);
     await expect(blocked).rejects.toThrow(/too many destination dns lookups/i);
-    const rejections = pending.map((lookup) => expect(lookup).rejects.toThrow(/timed out/i));
+    const redirects = Array.from({ length: 4 }, (_, index) =>
+      resolveSafeHttpAddressWithTimeout(`http://redirect${index}.test/`, 50, true, "redirect")
+    );
+    await expect(resolveSafeHttpAddressWithTimeout("http://redirect-blocked.test/", 50, true, "redirect"))
+      .rejects.toThrow(/too many destination dns lookups/i);
+    const rejections = [...pending, ...redirects].map((lookup) => expect(lookup).rejects.toThrow(/timed out/i));
     await vi.advanceTimersByTimeAsync(50);
     await Promise.all(rejections);
     expect(dnsMocks.lookup).toHaveBeenCalledTimes(8);
@@ -158,19 +168,20 @@ describe("bounded destination DNS resolution", () => {
     dnsMocks.resolve4.mockReturnValue(new Promise(() => undefined));
     dnsMocks.resolve6.mockReturnValue(new Promise(() => undefined));
 
-    const first = Array.from({ length: 4 }, (_, index) =>
+    const first = Array.from({ length: 2 }, (_, index) =>
       resolveSafeHttpAddressWithTimeout(`https://first${index}.example/`, 50)
     );
     vi.resetModules();
     const secondBundle = await import("@/lib/url-safety");
-    const second = Array.from({ length: 4 }, (_, index) =>
+    const second = Array.from({ length: 2 }, (_, index) =>
       secondBundle.resolveSafeHttpAddressWithTimeout(`https://second${index}.example/`, 50)
     );
     await expect(secondBundle.resolveSafeHttpAddressWithTimeout("https://blocked.example/", 50)).rejects.toThrow(
       /too many destination dns lookups/i
     );
+    const redirect = secondBundle.resolveSafeHttpAddressWithTimeout("https://redirect.example/", 50, false, "redirect");
 
-    const rejections = [...first, ...second].map((resolution) => expect(resolution).rejects.toThrow(/timed out/i));
+    const rejections = [...first, ...second, redirect].map((resolution) => expect(resolution).rejects.toThrow(/timed out/i));
     await vi.advanceTimersByTimeAsync(50);
     await Promise.all(rejections);
     vi.useRealTimers();

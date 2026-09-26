@@ -488,7 +488,7 @@ describe("tools actions hardening", () => {
 
     expect(result.imported).toBe(0);
     expect(result.errors).toContain("Destination checks timed out. Try a smaller import.");
-    expect(peakActive).toBeLessThanOrEqual(8);
+    expect(peakActive).toBeLessThanOrEqual(4);
     expect(urlSafety.assertNoPrivateResolution.mock.calls.length).toBeLessThan(200);
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });

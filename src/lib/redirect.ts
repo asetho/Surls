@@ -32,7 +32,8 @@ async function assertSafeRedirectDestination(destinationUrl: string) {
 
   const check = assertNoPrivateResolutionWithTimeout(
     destinationUrl,
-    REDIRECT_DESTINATION_DNS_CHECK.timeoutMs
+    REDIRECT_DESTINATION_DNS_CHECK.timeoutMs,
+    { purpose: "redirect" }
   ).then(() => undefined);
   redirectDestinationChecks.set(hostname, check);
   try {
