@@ -83,8 +83,7 @@ async function start(request: NextRequest, context: ProviderContext, session: Se
     return NextResponse.json({ error: "Sign-in provider unavailable." }, { status: 404 });
   }
   if (intent?.purpose === "reauth" || intent?.purpose === "verify-connect" || intent?.purpose === "verify-totp-setup") {
-    if (!session?.createdAt || (intent.purpose === "reauth" && !["oidc", "google", "microsoft"].includes(config.provider)) ||
-        (intent.purpose === "verify-connect" && session.user.totpCredential?.enabled && !["oidc", "google", "microsoft"].includes(config.provider)) ||
+    if (!session?.createdAt || !["oidc", "google", "microsoft"].includes(config.provider) ||
         (intent.purpose === "verify-totp-setup" && session.user.totpCredential?.enabled)) {
       return connectError("This provider cannot verify that change.");
     }

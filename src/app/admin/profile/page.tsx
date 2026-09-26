@@ -106,11 +106,12 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       externalIdentities.some((identity) => identity.provider === externalProviderKey(config) && identity.createdAt <= currentSession.createdAt))
     .map((config) => ({ key: config.key, label: config.label })) : [];
   const connectVerificationProviders = settings.externalLoginEnabled ? externalProviders
-    .filter((config) => (!credential?.enabled || ["oidc", "google", "microsoft"].includes(config.provider)) &&
+    .filter((config) => ["oidc", "google", "microsoft"].includes(config.provider) &&
       externalIdentities.some((identity) => identity.provider === externalProviderKey(config) && identity.createdAt <= currentSession.createdAt))
     .map((config) => ({ key: config.key, label: config.label })) : [];
   const totpVerificationProviders = settings.externalLoginEnabled ? externalProviders
-    .filter((config) => externalIdentities.some((identity) => identity.provider === externalProviderKey(config) && identity.createdAt <= currentSession.createdAt))
+    .filter((config) => ["oidc", "google", "microsoft"].includes(config.provider) &&
+      externalIdentities.some((identity) => identity.provider === externalProviderKey(config) && identity.createdAt <= currentSession.createdAt))
     .map((config) => ({ key: config.key, label: config.label })) : [];
 
   return (

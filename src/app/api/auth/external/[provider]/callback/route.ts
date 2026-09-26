@@ -58,11 +58,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       ]);
       const authenticatedAt = profile.authenticatedAt;
       if (!identity || identity.userId !== pending.userId || !current || identity.createdAt > current.createdAt || !account ||
+          !["oidc", "google", "microsoft"].includes(config.provider) ||
           (pending.purpose === "verify-totp-setup" && account.totpCredential?.enabled) ||
           (account.totpCredential?.enabled && profile.mfaVerified !== true) ||
-          ((pending.purpose === "reauth" || ["oidc", "google", "microsoft"].includes(config.provider)) &&
-            (typeof authenticatedAt !== "number" || !Number.isSafeInteger(authenticatedAt) ||
-              authenticatedAt * 1000 < pending.issuedAt - 30_000 || authenticatedAt * 1000 > Date.now() + 30_000))) {
+          typeof authenticatedAt !== "number" || !Number.isSafeInteger(authenticatedAt) ||
+          authenticatedAt * 1000 < pending.issuedAt - 30_000 || authenticatedAt * 1000 > Date.now() + 30_000) {
         throw new ExternalIdentityError("The provider did not confirm a fresh sign-in to your linked account.");
       }
       if (pending.purpose === "reauth") {

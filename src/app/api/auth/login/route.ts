@@ -19,8 +19,6 @@ const MAX_LOGIN_PASSWORD_LENGTH = 4_096;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_PER_EMAIL_LIMIT = 8;
 const LOGIN_PER_SOURCE_WORK_LIMIT = 48;
-const LOGIN_SHARED_WORK_LIMIT = 16;
-const LOGIN_SHARED_WORK_WINDOW_MS = 10 * 1000;
 const MAX_CONCURRENT_PASSWORD_VERIFICATIONS = 4;
 const CREDENTIAL_FAILURE_MINIMUM_MS = 300;
 let activePasswordVerifications = 0;
@@ -152,10 +150,8 @@ export async function POST(request: NextRequest) {
   }
 
   if (sourceIp === "unknown") {
-    // Without a trusted proxy, every visitor shares this source. Apply the
-    // work budget before account lookup so admission cannot reveal existence.
-    const workRate = await checkRateLimit("login:password-work:shared", LOGIN_SHARED_WORK_LIMIT, LOGIN_SHARED_WORK_WINDOW_MS);
-    if (!workRate.allowed) return invalidCredentials();
+    // A shared budget would let one visitor deny password sign-in to everyone
+    // when the proxy does not provide a trusted client address.
     const rate = await checkRateLimit(`login:${sourceIp}:${email}`, LOGIN_PER_EMAIL_LIMIT, LOGIN_WINDOW_MS);
     if (!rate.allowed) return invalidCredentials();
   }

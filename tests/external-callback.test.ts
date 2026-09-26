@@ -200,7 +200,7 @@ describe("external sign-in callback", () => {
     expect(identity.resolveExternalIdentity).not.toHaveBeenCalled();
   });
 
-  it("uses an older linked GitHub identity to start Connect for an external-only user", async () => {
+  it("rejects a linked GitHub identity without fresh authentication for Connect", async () => {
     external.decodeExternalAuth.mockReturnValue({ provider: "github", state: "valid-state", verifier: "verifier", nonce: "nonce",
       nextPath: "/admin/profile", userId: "user_1", purpose: "verify-connect", sessionId: "session_1", targetProvider: "google", issuedAt: Date.now() });
     providers.getExternalProviderConfig.mockImplementation(async (key: string) => key === "github" ? { key, provider: "github", id: "github-client" } :
@@ -210,10 +210,8 @@ describe("external sign-in callback", () => {
     prisma.user.findUnique.mockResolvedValue({ totpCredential: null });
     const { GET } = await import("@/app/api/auth/external/[provider]/callback/route");
     const response = await GET(callback("valid-state", "github"), { params: Promise.resolve({ provider: "github" }) });
-    expect(response.status).toBe(200);
-    expect(response.cookies.get("surls_external_auth")?.value).toBe("next-signed-state");
-    expect(flow.beginExternalAuth).toHaveBeenCalledWith(expect.objectContaining({ key: "google" }),
-      { userId: "user_1", sessionId: "session_1", purpose: "connect", nextPath: "/admin/profile" });
+    expect(response.headers.get("location")).toContain("/admin/profile?error=");
+    expect(flow.beginExternalAuth).not.toHaveBeenCalled();
     expect(identity.resolveExternalIdentity).not.toHaveBeenCalled();
     expect(auth.createSession).not.toHaveBeenCalled();
   });
@@ -232,7 +230,7 @@ describe("external sign-in callback", () => {
     expect(flow.beginExternalAuth).not.toHaveBeenCalled();
   });
 
-  it("issues a distinct TOTP setup grant after proving a pre-existing linked provider", async () => {
+  it("rejects a linked GitHub session as TOTP setup verification", async () => {
     external.decodeExternalAuth.mockReturnValue({ provider: "github", state: "valid-state", verifier: "verifier", nonce: "nonce",
       nextPath: "/admin/profile", userId: "user_1", purpose: "verify-totp-setup", sessionId: "session_1", issuedAt: Date.now() });
     providers.getExternalProviderConfig.mockResolvedValue({ key: "github", provider: "github", id: "github-client" });
@@ -241,10 +239,23 @@ describe("external sign-in callback", () => {
     prisma.user.findUnique.mockResolvedValue({ totpCredential: null });
     const { GET } = await import("@/app/api/auth/external/[provider]/callback/route");
     const response = await GET(callback("valid-state", "github"), { params: Promise.resolve({ provider: "github" }) });
+    expect(response.headers.get("location")).toContain("/admin/profile?error=");
+    expect(response.cookies.get("surls_totp_setup_proof")).toBeUndefined();
+    expect(totpSetupProof.encodeTotpSetupProof).not.toHaveBeenCalled();
+    expect(identity.resolveExternalIdentity).not.toHaveBeenCalled();
+  });
+
+  it("issues a TOTP setup grant after fresh linked OIDC verification", async () => {
+    external.decodeExternalAuth.mockReturnValue({ provider: "google", state: "valid-state", verifier: "verifier", nonce: "nonce",
+      nextPath: "/admin/profile", userId: "user_1", purpose: "verify-totp-setup", sessionId: "session_1", issuedAt: Date.now() });
+    auth.getCurrentSession.mockResolvedValue({ id: "session_1", userId: "user_1", createdAt: new Date("2026-09-25T12:00:00Z") });
+    external.externalProfile.mockResolvedValue({ subject: "subject", mfaVerified: false, authenticatedAt: Math.floor(Date.now() / 1000) });
+    prisma.user.findUnique.mockResolvedValue({ totpCredential: null });
+    const { GET } = await import("@/app/api/auth/external/[provider]/callback/route");
+    const response = await GET(callback(), { params: Promise.resolve({ provider: "google" }) });
     expect(response.headers.get("location")).toBe("http://localhost:3000/admin/profile?totpVerified=1");
     expect(response.cookies.get("surls_totp_setup_proof")?.value).toBe("signed-totp-setup-proof");
     expect(totpSetupProof.encodeTotpSetupProof).toHaveBeenCalledWith("user_1", "session_1");
-    expect(identity.resolveExternalIdentity).not.toHaveBeenCalled();
   });
 
   it("cannot use provider proof to start TOTP setup when TOTP is already enabled", async () => {

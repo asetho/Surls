@@ -323,15 +323,12 @@ describe("admin login flow", () => {
     expect(password.verifyPassword).not.toHaveBeenCalled();
   });
 
-  it("applies the unknown-source work budget before looking up any account", async () => {
+  it("does not let unrelated unknown-source attempts lock out a valid login", async () => {
     const { POST } = await import("@/app/api/auth/login/route");
     requestSecurity.requestIp.mockReturnValue("unknown");
     prisma.user.findUnique.mockResolvedValue(null);
     password.verifyPassword.mockResolvedValue(false);
-    let sharedAttempts = 0;
-    rateLimit.checkRateLimit.mockImplementation(async (key: string, limit: number) => ({
-      allowed: key === "login:password-work:shared" ? ++sharedAttempts <= limit : true
-    }));
+    rateLimit.checkRateLimit.mockResolvedValue({ allowed: true });
 
     for (let batch = 0; batch < 4; batch += 1) {
       await Promise.all(Array.from({ length: 4 }, (_, offset) => POST(formRequest("/api/auth/login", loginForm({
@@ -339,16 +336,10 @@ describe("admin login flow", () => {
         password: "guess"
       })))));
     }
-    const response = await POST(formRequest("/api/auth/login", loginForm({ email: "missing-16@example.com", password: "guess" })));
-
-    expect(rateLimit.checkRateLimit).toHaveBeenCalledWith("login:password-work:shared", 16, 10 * 1000);
-    expect(sharedAttempts).toBe(17);
     expect(password.verifyPassword).toHaveBeenCalledTimes(16);
     expect(prisma.user.findUnique).toHaveBeenCalledTimes(16);
-    expect(rateLimit.checkRateLimit).not.toHaveBeenCalledWith("login:unknown:missing-16@example.com", 8, 15 * 60 * 1000);
-    expect(response.headers.get("location")).toContain("Invalid+email+or+password");
+    expect(rateLimit.checkRateLimit).not.toHaveBeenCalledWith("login:password-work:shared", 16, 10 * 1000);
 
-    // Exhausting the shared budget must not reveal that this account exists.
     prisma.user.findUnique.mockResolvedValue({
       email: "admin@example.com", id: "user_123", passwordHash: "hash", totpCredential: null
     });
@@ -356,11 +347,9 @@ describe("admin login flow", () => {
     const recovered = await POST(formRequest("/api/auth/login", loginForm({
       email: "admin@example.com", password: "correct password"
     })));
-    expect(recovered.headers.get("location")).toContain("Invalid+email+or+password");
-    expect(recovered.headers.get("set-cookie")).toBeNull();
-    expect(sharedAttempts).toBe(18);
-    expect(password.verifyPassword).toHaveBeenCalledTimes(16);
-    expect(prisma.user.findUnique).toHaveBeenCalledTimes(16);
+    expect(recovered.headers.get("set-cookie")).toContain("surls_session");
+    expect(password.verifyPassword).toHaveBeenCalledTimes(17);
+    expect(prisma.user.findUnique).toHaveBeenCalledTimes(17);
   });
 
   it("uses one public credential error for exhausted known and missing accounts at an unknown source IP", async () => {
@@ -385,7 +374,7 @@ describe("admin login flow", () => {
     expect(password.verifyPassword).not.toHaveBeenCalled();
   });
 
-  it("pads fast unknown-source budget denials to the credential failure minimum", async () => {
+  it("pads fast unknown-source per-email denials to the credential failure minimum", async () => {
     const { POST } = await import("@/app/api/auth/login/route");
     vi.useFakeTimers();
     try {
@@ -394,8 +383,8 @@ describe("admin login flow", () => {
       let reachedBudget!: () => void;
       const budgetChecked = new Promise<void>((resolve) => { reachedBudget = resolve; });
       rateLimit.checkRateLimit.mockImplementation(async (key: string) => {
-        if (key === "login:password-work:shared") reachedBudget();
-        return { allowed: key !== "login:password-work:shared" };
+        if (key === "login:unknown:missing@example.com") reachedBudget();
+        return { allowed: key !== "login:unknown:missing@example.com" };
       });
       let settled = false;
       const pending = POST(formRequest("/api/auth/login", loginForm({ email: "missing@example.com", password: "guess" })))

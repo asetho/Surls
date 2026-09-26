@@ -170,37 +170,36 @@ describe("external account connection start", () => {
     expect(rejected.headers.get("location")).toContain("/admin/profile?error=");
   });
 
-  it("lets an external-only user verify through an older linked non-OIDC account", async () => {
+  it("rejects a linked non-OIDC account as proof of fresh verification", async () => {
     password.verifyPassword.mockResolvedValue(false);
     providers.getExternalProviderConfig.mockImplementation(async (key: string) => key === "github" ? { key, provider: "github", id: "github-client" } :
       { key: "oidc-asetho-link", provider: "oidc", id: "asetho-link" });
     const { POST } = await import("@/app/api/auth/external/[provider]/route");
     const response = await POST(post("csrf=valid&purpose=verify-connect&targetProvider=oidc-asetho-link", "github"),
       { params: Promise.resolve({ provider: "github" }) });
-    expect(response.status).toBe(200);
-    expect(external.encodeExternalAuth).toHaveBeenCalledWith(expect.objectContaining({ purpose: "verify-connect", provider: "github",
-      targetProvider: "oidc-asetho-link", userId: "user_1", sessionId: "session_1" }));
-    const session = await auth.getCurrentSession();
-    session.user.totpCredential = { enabled: true };
-    expect((await POST(post("csrf=valid&purpose=verify-connect&targetProvider=oidc-asetho-link", "github"),
-      { params: Promise.resolve({ provider: "github" }) })).status).toBe(303);
+    expect(response.status).toBe(303);
+    expect(external.encodeExternalAuth).not.toHaveBeenCalled();
   });
 
-  it("starts distinct TOTP setup proof only from a provider linked before the session", async () => {
-    providers.getExternalProviderConfig.mockResolvedValue({ key: "github", provider: "github", id: "github-client" });
-    const github = { params: Promise.resolve({ provider: "github" }) };
+  it("starts distinct TOTP setup proof only from a fresh-capable provider linked before the session", async () => {
+    providers.getExternalProviderConfig.mockImplementation(async (key: string) => key === "github"
+      ? { key, provider: "github", id: "github-client" }
+      : { key: "oidc-asetho-link", provider: "oidc", id: "asetho-link" });
     const { POST } = await import("@/app/api/auth/external/[provider]/route");
-    const response = await POST(post("csrf=valid&purpose=verify-totp-setup", "github"), github);
+    const response = await POST(post("csrf=valid&purpose=verify-totp-setup"), context);
     expect(response.status).toBe(200);
     expect(prisma.externalIdentity.findFirst).toHaveBeenCalledWith({ where: { userId: "user_1", provider: "linked-provider-key",
       createdAt: { lte: new Date("2026-09-25T12:00:00Z") } }, select: { id: true } });
-    expect(external.encodeExternalAuth).toHaveBeenCalledWith(expect.objectContaining({ provider: "github", purpose: "verify-totp-setup", userId: "user_1", sessionId: "session_1" }));
+    expect(external.encodeExternalAuth).toHaveBeenCalledWith(expect.objectContaining({ provider: "oidc-asetho-link", purpose: "verify-totp-setup", userId: "user_1", sessionId: "session_1" }));
     prisma.externalIdentity.findFirst.mockResolvedValue(null);
-    expect((await POST(post("csrf=valid&purpose=verify-totp-setup", "github"), github)).status).toBe(303);
+    expect((await POST(post("csrf=valid&purpose=verify-totp-setup"), context)).status).toBe(303);
     prisma.externalIdentity.findFirst.mockResolvedValue({ id: "identity_1" });
     const session = await auth.getCurrentSession();
     session.user.totpCredential = { enabled: true };
-    expect((await POST(post("csrf=valid&purpose=verify-totp-setup", "github"), github)).status).toBe(303);
+    expect((await POST(post("csrf=valid&purpose=verify-totp-setup"), context)).status).toBe(303);
+    session.user.totpCredential = null;
+    expect((await POST(post("csrf=valid&purpose=verify-totp-setup", "github"),
+      { params: Promise.resolve({ provider: "github" }) })).status).toBe(303);
   });
 
   it("rejects unsafe authorization URL schemes in the continuation page", async () => {

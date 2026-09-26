@@ -8,14 +8,51 @@ export const DESTINATION_DNS_TIMEOUT_MS = 2_000;
 const MAX_CONCURRENT_SYSTEM_DNS_LOOKUPS = 8;
 const MAX_CONCURRENT_PUBLIC_DNS_LOOKUPS = 8;
 const MAX_CONCURRENT_NON_REDIRECT_DNS_LOOKUPS = 4;
+const MAX_CONCURRENT_REDIRECT_DNS_LOOKUPS_PER_OWNER = 2;
 type DnsPurpose = "redirect" | "other";
 // Independent route bundles in one server process must share the same DNS cap.
 const dnsStateKey = Symbol.for("surls.destination-dns-limits");
-type DnsState = { system: number; public: number; systemOther: number; publicOther: number };
+type DnsState = {
+  system: number;
+  public: number;
+  systemOther: number;
+  publicOther: number;
+  systemRedirectsByOwner: Map<string, number>;
+  publicRedirectsByOwner: Map<string, number>;
+};
 const dnsGlobal = globalThis as unknown as Record<symbol, DnsState | undefined>;
-const dnsState = dnsGlobal[dnsStateKey] ??= { system: 0, public: 0, systemOther: 0, publicOther: 0 };
+const dnsState = dnsGlobal[dnsStateKey] ??= {
+  system: 0, public: 0, systemOther: 0, publicOther: 0,
+  systemRedirectsByOwner: new Map(), publicRedirectsByOwner: new Map()
+};
 dnsState.systemOther ??= 0;
 dnsState.publicOther ??= 0;
+dnsState.systemRedirectsByOwner ??= new Map();
+dnsState.publicRedirectsByOwner ??= new Map();
+
+function acquireDnsLookup(pool: "system" | "public", purpose: DnsPurpose, ownerId?: string | null) {
+  const otherKey = pool === "system" ? "systemOther" : "publicOther";
+  const byOwner = pool === "system" ? dnsState.systemRedirectsByOwner : dnsState.publicRedirectsByOwner;
+  const ownerKey = ownerId ?? "";
+  const max = pool === "system" ? MAX_CONCURRENT_SYSTEM_DNS_LOOKUPS : MAX_CONCURRENT_PUBLIC_DNS_LOOKUPS;
+  if (dnsState[pool] >= max ||
+      (purpose === "other" && dnsState[otherKey] >= MAX_CONCURRENT_NON_REDIRECT_DNS_LOOKUPS) ||
+      (purpose === "redirect" && (byOwner.get(ownerKey) ?? 0) >= MAX_CONCURRENT_REDIRECT_DNS_LOOKUPS_PER_OWNER)) {
+    throw new Error("Too many destination DNS lookups are in progress.");
+  }
+  dnsState[pool] += 1;
+  if (purpose === "other") dnsState[otherKey] += 1;
+  else byOwner.set(ownerKey, (byOwner.get(ownerKey) ?? 0) + 1);
+  return () => {
+    dnsState[pool] -= 1;
+    if (purpose === "other") dnsState[otherKey] -= 1;
+    else {
+      const remaining = (byOwner.get(ownerKey) ?? 1) - 1;
+      if (remaining) byOwner.set(ownerKey, remaining);
+      else byOwner.delete(ownerKey);
+    }
+  };
+}
 
 function isPrivateIPv4(ip: string) {
   const parts = ip.split(".").map(Number);
@@ -133,13 +170,8 @@ export async function resolveSafeHttpAddress(
   return resolveSafeHttpAddressWithTimeout(urlText, DESTINATION_DNS_TIMEOUT_MS, allowPrivate);
 }
 
-async function resolveSystemHttpAddressWithTimeout(hostname: string, timeoutMs: number, purpose: DnsPurpose) {
-  if (dnsState.system >= MAX_CONCURRENT_SYSTEM_DNS_LOOKUPS ||
-      (purpose === "other" && dnsState.systemOther >= MAX_CONCURRENT_NON_REDIRECT_DNS_LOOKUPS)) {
-    throw new Error("Too many destination DNS lookups are in progress.");
-  }
-  dnsState.system += 1;
-  if (purpose === "other") dnsState.systemOther += 1;
+async function resolveSystemHttpAddressWithTimeout(hostname: string, timeoutMs: number, purpose: DnsPurpose, ownerId?: string | null) {
+  const release = acquireDnsLookup("system", purpose, ownerId);
   const lookup = Promise.resolve()
     .then(() => dns.lookup(hostname, { all: true, verbatim: true }))
     .then((records) => records.map((record): ResolvedHttpAddress => {
@@ -147,10 +179,7 @@ async function resolveSystemHttpAddressWithTimeout(hostname: string, timeoutMs: 
       if (family !== 4 && family !== 6) throw new Error("Destination did not resolve to an IP address.");
       return { address: record.address, family };
     }))
-    .finally(() => {
-      dnsState.system -= 1;
-      if (purpose === "other") dnsState.systemOther -= 1;
-    });
+    .finally(release);
 
   let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
@@ -170,7 +199,8 @@ export async function resolveSafeHttpAddressWithTimeout(
   urlText: string,
   timeoutMs: number,
   allowPrivate = env.ALLOW_PRIVATE_DESTINATIONS,
-  purpose: DnsPurpose = "other"
+  purpose: DnsPurpose = "other",
+  ownerId?: string | null
 ): Promise<ResolvedHttpAddress> {
   const parsed = new URL(urlText);
   const hostname = normalizeIpLiteral(parsed.hostname);
@@ -179,15 +209,10 @@ export async function resolveSafeHttpAddressWithTimeout(
     return validatedResolvedAddress([{ address: hostname, family: literalFamily }], allowPrivate);
   }
   if (allowPrivate) {
-    return validatedResolvedAddress(await resolveSystemHttpAddressWithTimeout(hostname, timeoutMs, purpose), true);
+    return validatedResolvedAddress(await resolveSystemHttpAddressWithTimeout(hostname, timeoutMs, purpose, ownerId), true);
   }
 
-  if (dnsState.public >= MAX_CONCURRENT_PUBLIC_DNS_LOOKUPS ||
-      (purpose === "other" && dnsState.publicOther >= MAX_CONCURRENT_NON_REDIRECT_DNS_LOOKUPS)) {
-    throw new Error("Too many destination DNS lookups are in progress.");
-  }
-  dnsState.public += 1;
-  if (purpose === "other") dnsState.publicOther += 1;
+  const release = acquireDnsLookup("public", purpose, ownerId);
   let resolver: Resolver | undefined;
   let timeout: ReturnType<typeof setTimeout> | undefined;
   let queryCompleted = false;
@@ -220,8 +245,7 @@ export async function resolveSafeHttpAddressWithTimeout(
     throw error;
   } finally {
     if (timeout) clearTimeout(timeout);
-    dnsState.public -= 1;
-    if (purpose === "other") dnsState.publicOther -= 1;
+    release();
   }
 }
 
@@ -233,13 +257,14 @@ export async function assertNoPrivateResolution(urlText: string, allowPrivate = 
 export async function assertNoPrivateResolutionWithTimeout(
   urlText: string,
   timeoutMs: number,
-  options: { allowPrivate?: boolean; purpose?: DnsPurpose } = {}
+  options: { allowPrivate?: boolean; purpose?: DnsPurpose; ownerId?: string | null } = {}
 ) {
   await resolveSafeHttpAddressWithTimeout(
     urlText,
     timeoutMs,
     options.allowPrivate ?? env.ALLOW_PRIVATE_DESTINATIONS,
-    options.purpose ?? "other"
+    options.purpose ?? "other",
+    options.ownerId
   );
   return true;
 }

@@ -104,9 +104,9 @@ describe("bounded destination DNS resolution", () => {
       /too many destination dns lookups/i
     );
     const redirects = Array.from({ length: 4 }, (_, index) =>
-      resolveSafeHttpAddressWithTimeout(`https://redirect${index}.example/`, 50, false, "redirect")
+      resolveSafeHttpAddressWithTimeout(`https://redirect${index}.example/`, 50, false, "redirect", index < 2 ? "owner-a" : "owner-b")
     );
-    await expect(resolveSafeHttpAddressWithTimeout("https://redirect-blocked.example/", 50, false, "redirect"))
+    await expect(resolveSafeHttpAddressWithTimeout("https://redirect-blocked.example/", 50, false, "redirect", "owner-c"))
       .rejects.toThrow(/too many destination dns lookups/i);
     expect(dnsMocks.resolve4).toHaveBeenCalledTimes(8);
     const rejections = [...pending, ...redirects].map((lookup) => expect(lookup).rejects.toThrow(/timed out/i));
@@ -120,6 +120,25 @@ describe("bounded destination DNS resolution", () => {
       address: "93.184.216.34",
       family: 4
     });
+    vi.useRealTimers();
+  });
+
+  it("keeps a slow link owner from consuming another owner's redirect slots", async () => {
+    vi.useFakeTimers();
+    dnsMocks.resolve4.mockReturnValue(new Promise(() => undefined));
+    dnsMocks.resolve6.mockReturnValue(new Promise(() => undefined));
+
+    const ownerA = [0, 1].map((index) =>
+      resolveSafeHttpAddressWithTimeout(`https://owner-a-${index}.example/`, 50, false, "redirect", "owner-a")
+    );
+    await expect(resolveSafeHttpAddressWithTimeout("https://owner-a-blocked.example/", 50, false, "redirect", "owner-a"))
+      .rejects.toThrow(/too many destination dns lookups/i);
+    const ownerB = resolveSafeHttpAddressWithTimeout("https://owner-b.example/", 50, false, "redirect", "owner-b");
+    expect(dnsMocks.resolve4).toHaveBeenCalledTimes(3);
+
+    const rejections = [...ownerA, ownerB].map((lookup) => expect(lookup).rejects.toThrow(/timed out/i));
+    await vi.advanceTimersByTimeAsync(50);
+    await Promise.all(rejections);
     vi.useRealTimers();
   });
 
@@ -145,9 +164,9 @@ describe("bounded destination DNS resolution", () => {
     const blocked = resolveSafeHttpAddressWithTimeout("http://internal4.test/", 50, true);
     await expect(blocked).rejects.toThrow(/too many destination dns lookups/i);
     const redirects = Array.from({ length: 4 }, (_, index) =>
-      resolveSafeHttpAddressWithTimeout(`http://redirect${index}.test/`, 50, true, "redirect")
+      resolveSafeHttpAddressWithTimeout(`http://redirect${index}.test/`, 50, true, "redirect", index < 2 ? "owner-a" : "owner-b")
     );
-    await expect(resolveSafeHttpAddressWithTimeout("http://redirect-blocked.test/", 50, true, "redirect"))
+    await expect(resolveSafeHttpAddressWithTimeout("http://redirect-blocked.test/", 50, true, "redirect", "owner-c"))
       .rejects.toThrow(/too many destination dns lookups/i);
     const rejections = [...pending, ...redirects].map((lookup) => expect(lookup).rejects.toThrow(/timed out/i));
     await vi.advanceTimersByTimeAsync(50);

@@ -256,6 +256,7 @@ describe("redirect behavior", () => {
       id: "link_1",
       code: "abc",
       destinationUrl: "https://example.com",
+      createdById: "owner-1",
       enabled: true,
       archivedAt: null,
       expiresAt: null,
@@ -272,7 +273,7 @@ describe("redirect behavior", () => {
     expect(redirectMocks.assertNoPrivateResolutionWithTimeout).toHaveBeenCalledWith(
       "https://example.com",
       REDIRECT_DESTINATION_DNS_CHECK.timeoutMs,
-      { purpose: "redirect" }
+      { purpose: "redirect", ownerId: "owner-1" }
     );
     expect(redirectMocks.checkRateLimit).toHaveBeenCalledTimes(2);
     expect(redirectMocks.recordClick).toHaveBeenCalledOnce();
@@ -323,7 +324,7 @@ describe("redirect behavior", () => {
     expect(redirectMocks.assertNoPrivateResolutionWithTimeout).toHaveBeenCalledWith(
       "https://example.com/path?source=stored&campaign=fall",
       REDIRECT_DESTINATION_DNS_CHECK.timeoutMs,
-      { purpose: "redirect" }
+      { purpose: "redirect", ownerId: null }
     );
     expect(response.headers.get("location")).toBe("https://example.com/path?source=stored&campaign=fall");
   });
@@ -355,7 +356,7 @@ describe("redirect behavior", () => {
     expect(redirectMocks.assertNoPrivateResolutionWithTimeout).toHaveBeenCalledWith(
       "https://rebind.example/path",
       REDIRECT_DESTINATION_DNS_CHECK.timeoutMs,
-      { purpose: "redirect" }
+      { purpose: "redirect", ownerId: null }
     );
     expect(redirectMocks.checkRateLimit).toHaveBeenCalledOnce();
     expect(redirectMocks.recordClick).not.toHaveBeenCalled();
@@ -383,7 +384,7 @@ describe("redirect behavior", () => {
     expect(redirectMocks.assertNoPrivateResolutionWithTimeout).toHaveBeenCalledWith(
       "https://files.example/uploads/report.pdf",
       REDIRECT_DESTINATION_DNS_CHECK.timeoutMs,
-      { purpose: "redirect" }
+      { purpose: "redirect", ownerId: null }
     );
   });
 
@@ -436,7 +437,7 @@ describe("redirect behavior", () => {
     expect(redirectMocks.assertNoPrivateResolutionWithTimeout).toHaveBeenCalledWith(
       "https://slow.example",
       REDIRECT_DESTINATION_DNS_CHECK.timeoutMs,
-      { purpose: "redirect" }
+      { purpose: "redirect", ownerId: null }
     );
   });
 
@@ -501,7 +502,7 @@ describe("redirect behavior", () => {
     expect(redirectMocks.assertNoPrivateResolutionWithTimeout).toHaveBeenCalledWith(
       "http://10.0.0.5/admin",
       REDIRECT_DESTINATION_DNS_CHECK.timeoutMs,
-      { purpose: "redirect" }
+      { purpose: "redirect", ownerId: null }
     );
   });
 
