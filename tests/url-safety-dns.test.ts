@@ -142,6 +142,25 @@ describe("bounded destination DNS resolution", () => {
     vi.useRealTimers();
   });
 
+  it("admits unrelated ownerless links while reserving DNS capacity for owned links", async () => {
+    vi.useFakeTimers();
+    dnsMocks.resolve4.mockReturnValue(new Promise(() => undefined));
+    dnsMocks.resolve6.mockReturnValue(new Promise(() => undefined));
+
+    const ownerless = Array.from({ length: 4 }, (_, index) =>
+      resolveSafeHttpAddressWithTimeout(`https://orphan-${index}.example/`, 50, false, "redirect", `link:${index}`)
+    );
+    await expect(resolveSafeHttpAddressWithTimeout("https://orphan-blocked.example/", 50, false, "redirect", "link:other"))
+      .rejects.toThrow(/too many destination dns lookups/i);
+    const owned = resolveSafeHttpAddressWithTimeout("https://owned.example/", 50, false, "redirect", "user:owner-a");
+    expect(dnsMocks.resolve4).toHaveBeenCalledTimes(5);
+
+    const rejections = [...ownerless, owned].map((lookup) => expect(lookup).rejects.toThrow(/timed out/i));
+    await vi.advanceTimersByTimeAsync(50);
+    await Promise.all(rejections);
+    vi.useRealTimers();
+  });
+
   it("preserves system lookup for explicitly allowed private destinations", async () => {
     dnsMocks.lookup.mockResolvedValue([{ address: "127.0.0.1", family: 4 }]);
 

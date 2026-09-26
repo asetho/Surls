@@ -9,6 +9,7 @@ const MAX_CONCURRENT_SYSTEM_DNS_LOOKUPS = 8;
 const MAX_CONCURRENT_PUBLIC_DNS_LOOKUPS = 8;
 const MAX_CONCURRENT_NON_REDIRECT_DNS_LOOKUPS = 4;
 const MAX_CONCURRENT_REDIRECT_DNS_LOOKUPS_PER_OWNER = 2;
+const MAX_CONCURRENT_UNOWNED_REDIRECT_DNS_LOOKUPS = 4;
 type DnsPurpose = "redirect" | "other";
 // Independent route bundles in one server process must share the same DNS cap.
 const dnsStateKey = Symbol.for("surls.destination-dns-limits");
@@ -34,9 +35,13 @@ function acquireDnsLookup(pool: "system" | "public", purpose: DnsPurpose, ownerI
   const otherKey = pool === "system" ? "systemOther" : "publicOther";
   const byOwner = pool === "system" ? dnsState.systemRedirectsByOwner : dnsState.publicRedirectsByOwner;
   const ownerKey = ownerId ?? "";
+  const unowned = purpose === "redirect" && ownerKey.startsWith("link:");
+  const unownedCount = unowned ? [...byOwner].reduce((total, [key, count]) =>
+    total + (key.startsWith("link:") ? count : 0), 0) : 0;
   const max = pool === "system" ? MAX_CONCURRENT_SYSTEM_DNS_LOOKUPS : MAX_CONCURRENT_PUBLIC_DNS_LOOKUPS;
   if (dnsState[pool] >= max ||
       (purpose === "other" && dnsState[otherKey] >= MAX_CONCURRENT_NON_REDIRECT_DNS_LOOKUPS) ||
+      (unowned && unownedCount >= MAX_CONCURRENT_UNOWNED_REDIRECT_DNS_LOOKUPS) ||
       (purpose === "redirect" && (byOwner.get(ownerKey) ?? 0) >= MAX_CONCURRENT_REDIRECT_DNS_LOOKUPS_PER_OWNER)) {
     throw new Error("Too many destination DNS lookups are in progress.");
   }

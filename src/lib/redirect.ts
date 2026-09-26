@@ -248,7 +248,9 @@ export async function handleShortRedirect(request: NextRequest, code: string, is
       ? appendForwardedQuery(link.destinationUrl, request.nextUrl.searchParams.toString())
       : link.destinationUrl;
     if (!uploadedFilenameFromDestination(forwardedDestination)) {
-      await assertSafeRedirectDestination(forwardedDestination, link.createdById ?? null);
+      // Legacy and orphaned links have no owner; give each its own DNS admission key.
+      const admissionKey = link.createdById ? `user:${link.createdById}` : `link:${link.id}`;
+      await assertSafeRedirectDestination(forwardedDestination, admissionKey);
     }
   } catch {
     return unavailableResponse("This short URL destination could not be safely resolved.", isHead, 502);

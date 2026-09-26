@@ -273,10 +273,37 @@ describe("redirect behavior", () => {
     expect(redirectMocks.assertNoPrivateResolutionWithTimeout).toHaveBeenCalledWith(
       "https://example.com",
       REDIRECT_DESTINATION_DNS_CHECK.timeoutMs,
-      { purpose: "redirect", ownerId: "owner-1" }
+      { purpose: "redirect", ownerId: "user:owner-1" }
     );
     expect(redirectMocks.checkRateLimit).toHaveBeenCalledTimes(2);
     expect(redirectMocks.recordClick).toHaveBeenCalledOnce();
+  });
+
+  it("uses distinct DNS admission keys for unrelated ownerless links", async () => {
+    redirectMocks.findUnique.mockImplementation(({ where }: { where: { code: string } }) => Promise.resolve({
+      id: `link_${where.code}`,
+      code: where.code,
+      destinationUrl: `https://${where.code}.example/`,
+      createdById: null,
+      enabled: true,
+      archivedAt: null,
+      expiresAt: null,
+      maxClicks: null,
+      clickCount: 0
+    }));
+
+    const responses = await Promise.all(["alpha", "beta"].map((code) =>
+      handleShortRedirect(requestFor(`/${code}`), code)
+    ));
+
+    expect(responses.map((response) => response.status)).toEqual([302, 302]);
+    for (const code of ["alpha", "beta"]) {
+      expect(redirectMocks.assertNoPrivateResolutionWithTimeout).toHaveBeenCalledWith(
+        `https://${code}.example/`,
+        REDIRECT_DESTINATION_DNS_CHECK.timeoutMs,
+        { purpose: "redirect", ownerId: `link:link_${code}` }
+      );
+    }
   });
 
   it("adds a short-lived exact-link grant to local upload redirects", async () => {
@@ -324,7 +351,7 @@ describe("redirect behavior", () => {
     expect(redirectMocks.assertNoPrivateResolutionWithTimeout).toHaveBeenCalledWith(
       "https://example.com/path?source=stored&campaign=fall",
       REDIRECT_DESTINATION_DNS_CHECK.timeoutMs,
-      { purpose: "redirect", ownerId: null }
+      { purpose: "redirect", ownerId: "link:link_1" }
     );
     expect(response.headers.get("location")).toBe("https://example.com/path?source=stored&campaign=fall");
   });
@@ -356,7 +383,7 @@ describe("redirect behavior", () => {
     expect(redirectMocks.assertNoPrivateResolutionWithTimeout).toHaveBeenCalledWith(
       "https://rebind.example/path",
       REDIRECT_DESTINATION_DNS_CHECK.timeoutMs,
-      { purpose: "redirect", ownerId: null }
+      { purpose: "redirect", ownerId: "link:link_1" }
     );
     expect(redirectMocks.checkRateLimit).toHaveBeenCalledOnce();
     expect(redirectMocks.recordClick).not.toHaveBeenCalled();
@@ -384,7 +411,7 @@ describe("redirect behavior", () => {
     expect(redirectMocks.assertNoPrivateResolutionWithTimeout).toHaveBeenCalledWith(
       "https://files.example/uploads/report.pdf",
       REDIRECT_DESTINATION_DNS_CHECK.timeoutMs,
-      { purpose: "redirect", ownerId: null }
+      { purpose: "redirect", ownerId: "link:link_1" }
     );
   });
 
@@ -437,7 +464,7 @@ describe("redirect behavior", () => {
     expect(redirectMocks.assertNoPrivateResolutionWithTimeout).toHaveBeenCalledWith(
       "https://slow.example",
       REDIRECT_DESTINATION_DNS_CHECK.timeoutMs,
-      { purpose: "redirect", ownerId: null }
+      { purpose: "redirect", ownerId: "link:link_1" }
     );
   });
 
@@ -502,7 +529,7 @@ describe("redirect behavior", () => {
     expect(redirectMocks.assertNoPrivateResolutionWithTimeout).toHaveBeenCalledWith(
       "http://10.0.0.5/admin",
       REDIRECT_DESTINATION_DNS_CHECK.timeoutMs,
-      { purpose: "redirect", ownerId: null }
+      { purpose: "redirect", ownerId: "link:link_1" }
     );
   });
 

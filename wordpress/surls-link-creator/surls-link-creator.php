@@ -450,7 +450,9 @@ final class Surls_Link_Creator {
         $parts = wp_parse_url($url);
         return is_array($parts)
             && strtolower((string) ($parts['scheme'] ?? '')) === 'https'
-            && !empty($parts['host']);
+            && !empty($parts['host'])
+            && !array_key_exists('query', $parts)
+            && !array_key_exists('fragment', $parts);
     }
 
     private function set_notice(string $message, string $type = 'success'): void {
