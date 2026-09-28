@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.2.0 - 2026-09-28
+
+### Added
+
+* Configure SMTP delivery and send a test message from Settings → Email. Verification codes can be sent to the current email address when an account does not use TOTP.
+* Generate backup codes during TOTP enrollment and require confirmation that they were saved before enabling the authenticator.
+
+### Security
+
+* Require fresh, session-bound verification for sensitive profile changes, TOTP and passkey management, and external account connections.
+* Check request origins and apply shared limits to sign-in, link creation, and uploads; bound DNS checks and harden redirect validation.
+* Protect external integration credentials, prevent bearer-token delivery over HTTP from the WordPress client, and remove the public fallback privacy key from YOURLS imports.
+
+### Upgrade Notes
+
+No database migration or mandatory configuration change is required. To enable email verification for accounts without TOTP, configure SMTP in Settings → Email or set the optional `SMTP_*` environment variables. Existing environment settings remain available until overridden in the dashboard.
+
 ## 2.1.1 - 2026-09-25
 
 ### Fixed
