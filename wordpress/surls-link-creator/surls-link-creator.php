@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Surls Link Creator
  * Description: Create Surls short links from inside WordPress.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Author: Surls
  * License: MIT
  * Requires at least: 6.0
@@ -28,6 +28,7 @@ final class Surls_Link_Creator {
         add_action('add_meta_boxes', array($this, 'add_meta_boxes'));
         add_action('admin_post_surls_create_custom_link', array($this, 'handle_custom_link'));
         add_action('admin_post_surls_create_post_link', array($this, 'handle_post_link'));
+        add_action('admin_post_surls_test_connection', array($this, 'handle_test_connection'));
         add_filter('pre_get_shortlink', array($this, 'filter_wordpress_shortlink'), 10, 4);
     }
 
@@ -148,6 +149,13 @@ final class Surls_Link_Creator {
                 <?php submit_button('Save Surls settings'); ?>
             </form>
 
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                <?php wp_nonce_field('surls_test_connection'); ?>
+                <input type="hidden" name="action" value="surls_test_connection">
+                <?php submit_button('Test saved connection', 'secondary', 'submit', false); ?>
+                <p class="description">Checks the saved HTTPS URL and API token without creating a link. Save any changes above first.</p>
+            </form>
+
             <hr>
 
             <h2>Create a Surls link</h2>
@@ -266,6 +274,51 @@ final class Surls_Link_Creator {
         }
 
         $this->create_link_and_redirect($payload, admin_url('options-general.php?page=surls-link-creator'));
+    }
+
+    public function handle_test_connection(): void {
+        if (!current_user_can('manage_options')) {
+            wp_die(esc_html__('Sorry, you are not allowed to test the Surls connection.', 'surls-link-creator'));
+        }
+
+        check_admin_referer('surls_test_connection');
+
+        $options = $this->options();
+        if (!$this->is_valid_api_base_url((string) $options['base_url']) || $options['api_token'] === '') {
+            $this->set_notice('Save a valid HTTPS Surls base URL and API token first.', 'error');
+        } else {
+            $response = wp_safe_remote_get(
+                $options['base_url'] . '/api/tokens/verify',
+                array(
+                    'timeout' => 15,
+                    'redirection' => 0,
+                    'sslverify' => true,
+                    'headers' => array(
+                        'Accept' => 'application/json',
+                        'Authorization' => 'Bearer ' . $options['api_token'],
+                    ),
+                )
+            );
+
+            if (is_wp_error($response)) {
+                $this->set_notice('Could not reach Surls over HTTPS. Check the URL, TLS certificate, and network access.', 'error');
+            } else {
+                $status = (int) wp_remote_retrieve_response_code($response);
+                $body = json_decode((string) wp_remote_retrieve_body($response), true);
+                if ($status === 200 && is_array($body) && ($body['ok'] ?? false) === true) {
+                    $this->set_notice('Connection successful. Surls accepted the saved token for link creation.');
+                } elseif ($status === 401) {
+                    $this->set_notice('Surls rejected the API token. Check that it is active and permits link creation.', 'error');
+                } elseif ($status === 404) {
+                    $this->set_notice('This Surls site does not support connection testing. Upgrade it to Surls 3.0.0.', 'error');
+                } else {
+                    $this->set_notice('Connection test failed. Surls returned HTTP ' . $status . '.', 'error');
+                }
+            }
+        }
+
+        wp_safe_redirect(admin_url('options-general.php?page=surls-link-creator'));
+        exit;
     }
 
     public function handle_post_link(): void {
