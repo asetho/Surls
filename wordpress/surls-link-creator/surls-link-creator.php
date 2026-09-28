@@ -287,7 +287,7 @@ final class Surls_Link_Creator {
         if (!$this->is_valid_api_base_url((string) $options['base_url']) || $options['api_token'] === '') {
             $this->set_notice('Save a valid HTTPS Surls base URL and API token first.', 'error');
         } else {
-            $response = wp_safe_remote_get(
+            $response = wp_remote_get(
                 $options['base_url'] . '/api/tokens/verify',
                 array(
                     'timeout' => 15,
