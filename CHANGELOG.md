@@ -1,5 +1,23 @@
 # Changelog
 
+## 3.0.0 - 2026-09-28
+
+### Added
+
+* Configure SMTP delivery and send a test message from Settings → Email. Verification codes can be sent to the current email address when an account does not use TOTP.
+* Generate backup codes during TOTP enrollment and require confirmation that they were saved before enabling the authenticator.
+* Test the saved Surls URL and API token from the WordPress plugin settings without creating a link.
+
+### Security
+
+* Require fresh, session-bound verification for sensitive profile changes, TOTP and passkey management, and external account connections.
+* Check request origins and apply shared limits to sign-in, link creation, and uploads; bound DNS checks and harden redirect validation.
+* Protect external integration credentials, prevent bearer-token delivery over HTTP from the WordPress client, and remove the public fallback privacy key from YOURLS imports.
+
+### Upgrade Notes
+
+Before upgrading the WordPress plugin, replace any `http://` Surls base URL in **Settings → Surls** with a working `https://` URL and confirm that the site has valid TLS. The plugin now rejects HTTP API URLs to protect its bearer token; link creation with an old HTTP URL will stop working. No database migration is required. To enable email verification for accounts without TOTP, configure SMTP in Settings → Email or set the optional `SMTP_*` environment variables. Existing environment settings remain available until overridden in the dashboard.
+
 ## 2.1.1 - 2026-09-25
 
 ### Fixed

@@ -7,6 +7,7 @@ Requires WordPress 6.0 or later, PHP 7.4 or later, and a reachable Surls site. T
 ## Features
 
 - Settings page under `Settings -> Surls` for the Surls base URL and API token.
+- **Test saved connection** checks HTTPS reachability and a token's link-creation permission without creating a link. Save settings before testing; the test requires Surls 3.0.0 or later.
 - Quick link form for any destination URL.
 - Editor meta box for public post types so editors can create a Surls link for the current WordPress permalink.
 - Stores created post links in post meta and returns them through WordPress' shortlink filter.
@@ -18,7 +19,7 @@ Requires WordPress 6.0 or later, PHP 7.4 or later, and a reachable Surls site. T
 3. In Surls, create a dedicated API token from **Tools → Tokens** and copy it when first shown.
 4. In WordPress, open `Settings -> Surls` and save your Surls base URL and API token.
 
-The base URL should be the public Surls origin, for example `https://links.example.com`.
+The base URL must be the public Surls HTTPS origin, for example `https://links.example.com`. Before upgrading to Surls 3.0.0, replace any existing `http://` base URL in **Settings → Surls** with a working `https://` URL and confirm that TLS is valid. The plugin rejects HTTP API URLs, so link creation will stop working until this setting is updated.
 
 The token must permit link creation. If it expires, is revoked, or is rolled in Surls, save a replacement in WordPress. Use HTTPS and restrict access to the plugin's settings and WordPress database backups, which contain its configured token.
 
