@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.1.1 - 2026-09-29
+
+### Security
+
+* Update `fast-uri` to 3.1.8 to address inconsistent host case normalization.
+
+### Fixed
+
+* Update transitive `brace-expansion` packages, including the versions used by the development toolchain.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 3.1.0 - 2026-09-29
 
 ### Added
