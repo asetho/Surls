@@ -1,11 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import type { CSSProperties } from "react";
 import Link from "next/link";
+import Script from "next/script";
 import { cookies } from "next/headers";
 import "./globals.css";
 import "./admin-data.css";
 import "./admin-theme-editor.css";
-import { ThemeScript } from "@/components/ThemeScript";
 import { CurrentPageManifest } from "@/components/CurrentPageManifest";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { DEFAULT_DASHBOARD_THEME, dashboardThemeCssVariables } from "@/lib/dashboard-theme";
@@ -64,9 +64,11 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <link rel="preconnect" href="https://p.typekit.net" />
         <link rel="stylesheet" href="https://use.typekit.net/ynp6ech.css" />
         <CurrentPageManifest />
-        <ThemeScript />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Script id="surls-theme-script" src="/surls-theme.js" strategy="afterInteractive" />
+      </body>
     </html>
   );
 }

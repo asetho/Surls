@@ -132,7 +132,7 @@ button,
     transform 150ms ease;
 }
 
-button:not(.secondary):not(.danger):not(.danger-outline):not(.dashboard-theme-mode-tab):not(.theme-editor-drawer-restore):not(.qr-inline-trigger):not(.tab-button):not(.segmented-control-option):not(.system-toast-dismiss),
+button:not(.secondary):not(.danger):not(.danger-outline):not(.dashboard-theme-mode-tab):not(.theme-editor-drawer-restore):not(.qr-inline-trigger):not(.tab-button):not(.segmented-control-option):not(.theme-toggle-option):not(.system-toast-dismiss):not(.admin-sidebar-logout),
 .button:not(.secondary):not(.danger):not(.danger-outline) {
   color: var(--button-text);
 }
@@ -188,18 +188,23 @@ button.danger:hover {
   background: color-mix(in srgb, var(--danger-background, var(--color-red)), black 16%);
 }
 
+:root[data-theme="dark"] .button.danger:hover,
+:root[data-theme="dark"] button.danger:hover {
+  background: color-mix(in srgb, var(--danger-background, var(--color-red)), var(--surface) 8%);
+}
+
 .button.danger-outline,
 button.danger-outline {
   background: var(--surface);
   border-color: var(--danger-border, var(--color-red));
-  color: var(--danger-background, var(--color-red));
+  color: var(--danger-border, var(--color-red));
 }
 
 .button.danger-outline:hover,
 button.danger-outline:hover {
   background: color-mix(in srgb, var(--danger-background, var(--color-red)), var(--surface) 88%);
   border-color: var(--danger-border, var(--color-red));
-  color: var(--danger-background, var(--color-red));
+  color: var(--danger-border, var(--color-red));
 }
 
 .container {
@@ -2064,24 +2069,26 @@ button.danger-outline:hover {
   border-radius: var(--radius);
   display: grid;
   gap: 0.25rem;
-  grid-auto-rows: 34px;
+  grid-auto-rows: 40px;
   grid-column: 1 / -1;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   padding: 0.25rem;
 }
 
 .dashboard-theme-mode-tabs .dashboard-theme-mode-tab {
-  align-self: center;
+  align-self: stretch;
   background: transparent;
   border: 1px solid transparent;
   box-shadow: none;
   color: var(--muted);
-  height: 34px;
+  height: 40px;
+  justify-self: stretch;
   line-height: 1;
-  max-height: 34px;
-  min-height: 34px;
+  max-height: 40px;
+  min-height: 40px;
   overflow: hidden;
   padding: 0.35rem 0.6rem;
+  width: 100%;
 }
 
 .dashboard-theme-mode-tabs .dashboard-theme-mode-tab:hover,
@@ -2337,7 +2344,7 @@ button.danger-outline:hover {
 
 .dashboard-theme-preview-sidebar {
   background: var(--color-navy);
-  color: var(--button-text);
+  color: var(--sidebar-text);
   display: grid;
   gap: 0.55rem;
   padding: 0.8rem;
@@ -4005,7 +4012,7 @@ textarea {
       var(--admin-sidebar-width)
       minmax(0, calc(100vw - var(--admin-sidebar-width) - var(--theme-editor-preview-drawer-width)));
     min-height: 100dvh;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   .admin-shell.theme-editor-preview-active .admin-main {
@@ -4339,8 +4346,9 @@ textarea {
 }
 
 .admin-sidebar .theme-toggle button[aria-pressed="true"] {
-  background: var(--teal);
-  color: var(--button-text);
+  background: var(--color-deep-teal);
+  box-shadow: inset 0 0 0 1px var(--sidebar-border);
+  color: var(--sidebar-text);
 }
 
 .admin-sidebar-account {
@@ -5150,7 +5158,7 @@ th {
 .badge.warning {
   background: color-mix(in srgb, var(--danger-background, var(--color-red)), transparent 86%);
   border-color: color-mix(in srgb, var(--danger-border, var(--color-red)), transparent 45%);
-  color: var(--danger-background, var(--color-red));
+  color: var(--danger-border, var(--color-red));
 }
 
 .api-source-badge {
@@ -6415,7 +6423,7 @@ th {
     position: fixed;
     top: 0;
     transition: transform 180ms ease;
-    width: min(17rem, 76vw);
+    width: min(14rem, 68vw);
     z-index: 91;
   }
 
@@ -6455,8 +6463,13 @@ th {
     cursor: pointer;
     display: inline-flex;
     justify-content: center;
-    min-height: 2rem;
-    width: 2rem;
+    min-height: 44px;
+    width: 44px;
+  }
+
+  .qr-inline-trigger {
+    min-height: 44px;
+    min-width: 44px;
   }
 
   .admin-sidebar nav {
@@ -6549,6 +6562,16 @@ th {
     max-height: calc(100dvh - 2rem);
     overflow: auto;
     width: min(100%, 42rem);
+  }
+
+  .new-short-url-actions {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    bottom: -0.8rem;
+    margin: 0 -0.8rem -0.8rem;
+    padding: 0.65rem 0.8rem max(0.8rem, env(safe-area-inset-bottom));
+    position: sticky;
+    z-index: 1;
   }
 
   .modal-dialog {
@@ -6685,11 +6708,11 @@ th {
 
   .icon-button.icon-only-action,
   .button.icon-only-action {
-    flex-basis: 2.35rem;
-    height: 2.35rem;
-    min-height: 2.35rem;
-    min-width: 2.35rem;
-    width: 2.35rem;
+    flex-basis: 44px;
+    height: 44px;
+    min-height: 44px;
+    min-width: 44px;
+    width: 44px;
   }
 
   .dashboard-theme-preview {
@@ -6729,13 +6752,13 @@ th {
 @media (max-width: 860px) {
   .admin-content .icon-button,
   .admin-content .addtoany-share .addtoany-share-button {
-    min-height: 2.35rem;
+    min-height: 44px;
   }
 
   .admin-content .icon-button.icon-only-action,
   .admin-content .button.icon-only-action,
   .admin-content .addtoany-share .addtoany-share-button.icon-only-action {
-    min-width: 2.35rem;
+    min-width: 44px;
   }
 
   .admin-content .profile-card > form > button,

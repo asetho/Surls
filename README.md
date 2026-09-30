@@ -8,6 +8,8 @@ It is inspired by the product shape of URL shorteners such as YOURLS and Tiny.cc
 
 The included Surls UI uses the default branding and palettes. These dashboard examples use synthetic data; a fresh installation starts with an empty dashboard.
 
+The included dashboard uses the [Surls SVG app icon](assets/branding/surls-app-icon.svg); an [SVG wordmark](assets/branding/surls-logo-horizontal.svg) is also available.
+
 ![Default Surls dashboard in light mode](docs/screenshots/default-dashboard-light.jpg)
 
 The public webroot can provide a completely custom site. Here is [asetho.link](https://asetho.link/) as an owner-customized example:

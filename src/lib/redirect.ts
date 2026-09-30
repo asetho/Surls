@@ -110,17 +110,29 @@ function unavailableFallbackThemeCss() {
   };
 }
 
-function unavailableFallbackHtml(siteName: string, reason: string) {
+type UnavailableThemeChoice = "light" | "dark" | "auto";
+
+function unavailableThemeChoice(request: NextRequest): UnavailableThemeChoice {
+  const cookies = request.headers.get("cookie") ?? "";
+  const publicChoice = cookies.match(/(?:^|;\s*)surls-home-theme=([^;]+)/)?.[1];
+  const adminChoice = cookies.match(/(?:^|;\s*)surls-theme=([^;]+)/)?.[1];
+  const choice = publicChoice ?? adminChoice;
+  return choice === "light" || choice === "dark" ? choice : "auto";
+}
+
+function unavailableFallbackHtml(siteName: string, reason: string, themeChoice: UnavailableThemeChoice) {
   const escapedSiteName = escapeHtml(siteName);
   const theme = unavailableFallbackThemeCss();
   return `<!doctype html>
-<html lang="en">
+<html lang="en" data-theme-choice="${themeChoice}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="${theme.light.background}">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="${theme.dark.background}">
+  ${themeChoice === "auto"
+    ? `<meta name="theme-color" media="(prefers-color-scheme: light)" content="${theme.light.background}">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="${theme.dark.background}">`
+    : `<meta name="theme-color" content="${themeChoice === "dark" ? theme.dark.background : theme.light.background}">`}
   <title>Short URL unavailable | ${escapedSiteName}</title>
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -136,8 +148,17 @@ function unavailableFallbackHtml(siteName: string, reason: string) {
       --accent: ${theme.light.accent};
       --shadow: ${theme.lightShadow};
     }
+    :root[data-theme-choice="dark"] {
+      --background: ${theme.dark.background};
+      --surface: ${theme.dark.surface};
+      --text: ${theme.dark.text};
+      --muted: ${theme.dark.muted};
+      --border: ${theme.dark.border};
+      --accent: ${theme.dark.accent};
+      --shadow: ${theme.darkShadow};
+    }
     @media (prefers-color-scheme: dark) {
-      :root {
+      :root[data-theme-choice="auto"] {
         --background: ${theme.dark.background};
         --surface: ${theme.dark.surface};
         --text: ${theme.dark.text};
@@ -195,7 +216,7 @@ function unavailableFallbackHtml(siteName: string, reason: string) {
 </html>`;
 }
 
-async function unavailableResponse(reason: string, isHead = false, status = 410) {
+async function unavailableResponse(request: NextRequest, reason: string, isHead = false, status = 410) {
   const customUnavailablePage = await publicWebrootResponse(["unavailable.html"], {
     cacheControl: "private, no-store, max-age=0",
     method: isHead ? "HEAD" : "GET",
@@ -205,7 +226,7 @@ async function unavailableResponse(reason: string, isHead = false, status = 410)
 
   const siteName = await getSiteName();
   return new NextResponse(
-    isHead ? null : unavailableFallbackHtml(siteName, reason),
+    isHead ? null : unavailableFallbackHtml(siteName, reason, unavailableThemeChoice(request)),
     {
       status,
       headers: {
@@ -234,7 +255,7 @@ export async function handleShortRedirect(request: NextRequest, code: string, is
 
   const reason = linkUnavailableReason(link);
   if (reason) {
-    return unavailableResponse(reason, isHead);
+    return unavailableResponse(request, reason, isHead);
   }
 
   const [session, trackAdminClicks, preserveRedirectQuery] = await Promise.all([
@@ -253,7 +274,7 @@ export async function handleShortRedirect(request: NextRequest, code: string, is
       await assertSafeRedirectDestination(forwardedDestination, admissionKey);
     }
   } catch {
-    return unavailableResponse("This short URL destination could not be safely resolved.", isHead, 502);
+    return unavailableResponse(request, "This short URL destination could not be safely resolved.", isHead, 502);
   }
   const isAdminClick = isAdminUser(session?.user);
   const adminReferrer = isAdminReferrer(request.headers.get("referer"));
@@ -302,7 +323,7 @@ export async function handleShortRedirect(request: NextRequest, code: string, is
       storeEvent: shouldStoreEvent
     });
     if (!recorded) {
-      return unavailableResponse("This short URL has reached its click limit.", isHead);
+      return unavailableResponse(request, "This short URL has reached its click limit.", isHead);
     }
   }
 

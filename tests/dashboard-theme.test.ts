@@ -34,6 +34,22 @@ function expectedFocusRing(palette: typeof DEFAULT_DASHBOARD_THEME.light) {
 }
 
 describe("dashboard theme settings", () => {
+  it("updates only the saved built-in dark danger colors", () => {
+    const legacyDark = {
+      ...DEFAULT_DASHBOARD_THEME.dark,
+      dangerBackground: DEFAULT_DASHBOARD_THEME.dark.chartDanger,
+      dangerText: DEFAULT_DASHBOARD_THEME.light.dangerText
+    };
+
+    expect(normalizeDashboardTheme({ light: DEFAULT_DASHBOARD_THEME.light, dark: legacyDark }).dark).toEqual(
+      DEFAULT_DASHBOARD_THEME.dark
+    );
+    expect(normalizeDashboardTheme({
+      light: DEFAULT_DASHBOARD_THEME.light,
+      dark: { ...legacyDark, accent: DEFAULT_DASHBOARD_THEME.dark.link }
+    }).dark).toMatchObject({ ...legacyDark, accent: DEFAULT_DASHBOARD_THEME.dark.link });
+  });
+
   it("normalizes stored theme colors and fills missing values from defaults", () => {
     expect(
       normalizeDashboardTheme({

@@ -80,9 +80,10 @@ function countryFlag(code: string) {
 
 function polarToCartesian(cx: number, cy: number, radius: number, angle: number) {
   const radians = (angle - 90) * (Math.PI / 180);
+  // Avoid server/browser hydration differences from tiny trigonometry rounding.
   return {
-    x: cx + radius * Math.cos(radians),
-    y: cy + radius * Math.sin(radians)
+    x: Number((cx + radius * Math.cos(radians)).toFixed(6)),
+    y: Number((cy + radius * Math.sin(radians)).toFixed(6))
   };
 }
 
@@ -348,7 +349,7 @@ function WorldTrafficMap({ rows }: { rows: CountryCount[] }) {
     <div className="world-map-wrap" onMouseLeave={() => setTooltip(null)}>
       <svg className="world-map" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Overall country traffic map">
         <rect width={width} height={height} />
-        {countryFeatures.features.map((country) => {
+        {countryFeatures.features.map((country, index) => {
           const countryId = String((country as CountryFeature).id ?? "").padStart(3, "0");
           const count = countsByNumericCode.get(countryId) ?? 0;
           const d = path(country);
@@ -359,6 +360,7 @@ function WorldTrafficMap({ rows }: { rows: CountryCount[] }) {
           const percentage = percentageLabel(count, total);
           const label = trafficTooltip(displayName, count, total);
           const mapTooltip = { count, label };
+          // The bundled atlas has multiple features with numeric ID 000.
           return (
             <path
               aria-label={label}
@@ -368,7 +370,7 @@ function WorldTrafficMap({ rows }: { rows: CountryCount[] }) {
               data-map-count={count}
               data-map-percentage={percentage}
               d={d}
-              key={countryId}
+              key={`${countryId}-${index}`}
               onMouseEnter={(event) => setMapTooltipFromPointer(event, mapTooltip, setTooltip)}
               onMouseLeave={() => setTooltip(null)}
               onMouseMove={(event) => setMapTooltipFromPointer(event, mapTooltip, setTooltip)}

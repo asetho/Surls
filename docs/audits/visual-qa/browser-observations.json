@@ -1,0 +1,2230 @@
+[
+  {
+    "name": "home",
+    "path": "/",
+    "actual": "http://127.0.0.1:3000/",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Short links that stay under your control.",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "home__390x844__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- link \"Skip to content\":\n  - /url: \"#main\"\n- banner:\n  - link \"Surls home\":\n    - /url: /\n    - generic: Surls\n  - navigation \"Primary navigation\":\n    - group \"Color theme\":\n      - button \"Use light theme\":\n      - button \"Use system theme\":\n     "
+  },
+  {
+    "name": "bookmarklet",
+    "path": "/bookmarklet",
+    "actual": "http://127.0.0.1:3000/bookmarklet",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Create short URL",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "bookmarklet__390x844__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- main:\n  - region \"Surls bookmarklet\":\n    - generic: S\n    - strong: Surls\n    - generic: Bookmarklet\n    - heading \"Create short URL\" [level=1]\n    - paragraph: Signed in as Surls Admin\n    - text: Destination URL\n    - textbox \"Destination URL\" ["
+  },
+  {
+    "name": "dashboard",
+    "path": "/admin",
+    "actual": "http://127.0.0.1:3000/admin",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Dashboard",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "dashboard__390x844__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "links",
+    "path": "/admin/links",
+    "actual": "http://127.0.0.1:3000/admin/links",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Link management",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "links__390x844__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "link-detail",
+    "path": "/admin/links/cmunb3tsi0005ygwyyqrypvhd",
+    "actual": "http://127.0.0.1:3000/admin/links/cmunb3tsi0005ygwyyqrypvhd",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "/surls",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [
+        {
+          "name": "Open /surls in a new tab",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "A"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "link-detail__390x844__dark__default.jpg",
+    "network": [],
+    "logs": [
+      {
+        "level": "error",
+        "message": "Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicat"
+      },
+      {
+        "level": "error",
+        "message": "Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicat"
+      },
+      {
+        "level": "error",
+        "message": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- "
+      },
+      {
+        "level": "error",
+        "message": "Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicat"
+      },
+      {
+        "level": "error",
+        "message": "Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicat"
+      },
+      {
+        "level": "error",
+        "message": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- "
+      }
+    ],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "tools",
+    "path": "/admin/tools",
+    "actual": "http://127.0.0.1:3000/admin/tools",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Surls tools",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        },
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "tools__390x844__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "users",
+    "path": "/admin/users",
+    "actual": "http://127.0.0.1:3000/admin/users",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Admin users",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "users__390x844__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "settings",
+    "path": "/admin/settings",
+    "actual": "http://127.0.0.1:3000/admin/settings",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Settings",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "settings__390x844__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "settings-email",
+    "path": "/admin/settings/email",
+    "actual": "http://127.0.0.1:3000/admin/settings/email",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Email settings",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "settings-email__390x844__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "favicon-editor",
+    "path": "/admin/settings/favicons/editor",
+    "actual": "http://127.0.0.1:3000/admin/settings/favicons/editor",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Favicon Editor",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "favicon-editor__390x844__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "style-reference",
+    "path": "/admin/style-reference",
+    "actual": "http://127.0.0.1:3000/admin/style-reference",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Style Reference",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "style-reference__390x844__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "profile",
+    "path": "/admin/profile",
+    "actual": "http://127.0.0.1:3000/admin/profile",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Profile",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [],
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "profile__390x844__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "home",
+    "path": "/",
+    "actual": "http://127.0.0.1:3000/",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Short links that stay under your control.",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "home__1440x900__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- link \"Skip to content\":\n  - /url: \"#main\"\n- banner:\n  - link \"Surls home\":\n    - /url: /\n    - generic: Surls\n  - navigation \"Primary navigation\":\n    - link \"Features\":\n      - /url: \"#features\"\n    - link \"Preview\":\n      - /url: \"#preview\"\n    -"
+  },
+  {
+    "name": "bookmarklet",
+    "path": "/bookmarklet",
+    "actual": "http://127.0.0.1:3000/bookmarklet",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Create short URL",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "bookmarklet__1440x900__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- main:\n  - region \"Surls bookmarklet\":\n    - generic: S\n    - strong: Surls\n    - generic: Bookmarklet\n    - heading \"Create short URL\" [level=1]\n    - paragraph: Signed in as Surls Admin\n    - text: Destination URL\n    - textbox \"Destination URL\" ["
+  },
+  {
+    "name": "dashboard",
+    "path": "/admin",
+    "actual": "http://127.0.0.1:3000/admin",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Dashboard",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "dashboard__1440x900__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "links",
+    "path": "/admin/links",
+    "actual": "http://127.0.0.1:3000/admin/links",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Link management",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "links__1440x900__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "link-detail",
+    "path": "/admin/links/cmunb3tsi0005ygwyyqrypvhd",
+    "actual": "http://127.0.0.1:3000/admin/links/cmunb3tsi0005ygwyyqrypvhd",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "/surls",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [
+        {
+          "name": "Open /surls in a new tab",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "A"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "link-detail__1440x900__dark__default.jpg",
+    "network": [],
+    "logs": [
+      {
+        "level": "error",
+        "message": "Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicat"
+      },
+      {
+        "level": "error",
+        "message": "Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicat"
+      },
+      {
+        "level": "error",
+        "message": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- "
+      },
+      {
+        "level": "error",
+        "message": "Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicat"
+      },
+      {
+        "level": "error",
+        "message": "Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicat"
+      },
+      {
+        "level": "error",
+        "message": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- "
+      }
+    ],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "tools",
+    "path": "/admin/tools",
+    "actual": "http://127.0.0.1:3000/admin/tools",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Surls tools",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        },
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        },
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        },
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "tools__1440x900__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "users",
+    "path": "/admin/users",
+    "actual": "http://127.0.0.1:3000/admin/users",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Admin users",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "users__1440x900__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "settings",
+    "path": "/admin/settings",
+    "actual": "http://127.0.0.1:3000/admin/settings",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Settings",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        },
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        },
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "settings__1440x900__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "settings-email",
+    "path": "/admin/settings/email",
+    "actual": "http://127.0.0.1:3000/admin/settings/email",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Email settings",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "settings-email__1440x900__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "favicon-editor",
+    "path": "/admin/settings/favicons/editor",
+    "actual": "http://127.0.0.1:3000/admin/settings/favicons/editor",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Favicon Editor",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "favicon-editor__1440x900__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "style-reference",
+    "path": "/admin/style-reference",
+    "actual": "http://127.0.0.1:3000/admin/style-reference",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Style Reference",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [
+        {
+          "name": "",
+          "size": [
+            18,
+            18
+          ],
+          "tag": "INPUT"
+        }
+      ],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "style-reference__1440x900__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "profile",
+    "path": "/admin/profile",
+    "actual": "http://127.0.0.1:3000/admin/profile",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Profile",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [],
+      "theme": "dark",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "profile__1440x900__dark__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "bookmarklet",
+    "path": "/bookmarklet",
+    "actual": "http://127.0.0.1:3000/bookmarklet",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Create short URL",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "bookmarklet__1440x900__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- main:\n  - region \"Surls bookmarklet\":\n    - generic: S\n    - strong: Surls\n    - generic: Bookmarklet\n    - heading \"Create short URL\" [level=1]\n    - paragraph: Signed in as Surls Admin\n    - text: Destination URL\n    - textbox \"Destination URL\" ["
+  },
+  {
+    "name": "dashboard",
+    "path": "/admin",
+    "actual": "http://127.0.0.1:3000/admin",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Dashboard",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "dashboard__1440x900__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "links",
+    "path": "/admin/links",
+    "actual": "http://127.0.0.1:3000/admin/links",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Link management",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "links__1440x900__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "link-detail",
+    "path": "/admin/links/cmunb3tsi0005ygwyyqrypvhd",
+    "actual": "http://127.0.0.1:3000/admin/links/cmunb3tsi0005ygwyyqrypvhd",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "/surls",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [
+        {
+          "name": "Open /surls in a new tab",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "A"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "link-detail__1440x900__light__default.jpg",
+    "network": [],
+    "logs": [
+      {
+        "level": "error",
+        "message": "Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicat"
+      },
+      {
+        "level": "error",
+        "message": "Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicat"
+      },
+      {
+        "level": "error",
+        "message": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- "
+      }
+    ],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "tools",
+    "path": "/admin/tools",
+    "actual": "http://127.0.0.1:3000/admin/tools",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Surls tools",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        },
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        },
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        },
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "tools__1440x900__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "users",
+    "path": "/admin/users",
+    "actual": "http://127.0.0.1:3000/admin/users",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Admin users",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "users__1440x900__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "settings",
+    "path": "/admin/settings",
+    "actual": "http://127.0.0.1:3000/admin/settings",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Settings",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        },
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        },
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "settings__1440x900__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "settings-email",
+    "path": "/admin/settings/email",
+    "actual": "http://127.0.0.1:3000/admin/settings/email",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Email settings",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "settings-email__1440x900__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "favicon-editor",
+    "path": "/admin/settings/favicons/editor",
+    "actual": "http://127.0.0.1:3000/admin/settings/favicons/editor",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Favicon Editor",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "favicon-editor__1440x900__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "style-reference",
+    "path": "/admin/style-reference",
+    "actual": "http://127.0.0.1:3000/admin/style-reference",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Style Reference",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [
+        {
+          "name": "",
+          "size": [
+            18,
+            18
+          ],
+          "tag": "INPUT"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "style-reference__1440x900__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "profile",
+    "path": "/admin/profile",
+    "actual": "http://127.0.0.1:3000/admin/profile",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Profile",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "profile__1440x900__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "bookmarklet",
+    "path": "/bookmarklet",
+    "actual": "http://127.0.0.1:3000/bookmarklet",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Create short URL",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "bookmarklet__390x844__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- main:\n  - region \"Surls bookmarklet\":\n    - generic: S\n    - strong: Surls\n    - generic: Bookmarklet\n    - heading \"Create short URL\" [level=1]\n    - paragraph: Signed in as Surls Admin\n    - text: Destination URL\n    - textbox \"Destination URL\" ["
+  },
+  {
+    "name": "dashboard",
+    "path": "/admin",
+    "actual": "http://127.0.0.1:3000/admin",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Dashboard",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "dashboard__390x844__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "links",
+    "path": "/admin/links",
+    "actual": "http://127.0.0.1:3000/admin/links",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Link management",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "links__390x844__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "link-detail",
+    "path": "/admin/links/cmunb3tsi0005ygwyyqrypvhd",
+    "actual": "http://127.0.0.1:3000/admin/links/cmunb3tsi0005ygwyyqrypvhd",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "/surls",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [
+        {
+          "name": "Open /surls in a new tab",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "A"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "link-detail__390x844__light__default.jpg",
+    "network": [],
+    "logs": [
+      {
+        "level": "error",
+        "message": "Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicat"
+      },
+      {
+        "level": "error",
+        "message": "Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicat"
+      },
+      {
+        "level": "error",
+        "message": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- "
+      },
+      {
+        "level": "error",
+        "message": "Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicat"
+      },
+      {
+        "level": "error",
+        "message": "Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicat"
+      },
+      {
+        "level": "error",
+        "message": "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- "
+      }
+    ],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "tools",
+    "path": "/admin/tools",
+    "actual": "http://127.0.0.1:3000/admin/tools",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Surls tools",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        },
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "tools__390x844__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "users",
+    "path": "/admin/users",
+    "actual": "http://127.0.0.1:3000/admin/users",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Admin users",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "users__390x844__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "settings",
+    "path": "/admin/settings",
+    "actual": "http://127.0.0.1:3000/admin/settings",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Settings",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "settings__390x844__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "settings-email",
+    "path": "/admin/settings/email",
+    "actual": "http://127.0.0.1:3000/admin/settings/email",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Email settings",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "settings-email__390x844__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "favicon-editor",
+    "path": "/admin/settings/favicons/editor",
+    "actual": "http://127.0.0.1:3000/admin/settings/favicons/editor",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Favicon Editor",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "favicon-editor__390x844__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "style-reference",
+    "path": "/admin/style-reference",
+    "actual": "http://127.0.0.1:3000/admin/style-reference",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Style Reference",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "style-reference__390x844__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "profile",
+    "path": "/admin/profile",
+    "actual": "http://127.0.0.1:3000/admin/profile",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Profile",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "profile__390x844__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "home",
+    "path": "/",
+    "actual": "http://127.0.0.1:3000/",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Short links that stay under your control.",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "home__390x844__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- link \"Skip to content\":\n  - /url: \"#main\"\n- banner:\n  - link \"Surls home\":\n    - /url: /\n    - generic: Surls\n  - navigation \"Primary navigation\":\n    - group \"Color theme\":\n      - button \"Use light theme\" [pressed]:\n      - button \"Use system the"
+  },
+  {
+    "name": "home",
+    "path": "/",
+    "actual": "http://127.0.0.1:3000/",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Short links that stay under your control.",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "home__1440x900__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- link \"Skip to content\":\n  - /url: \"#main\"\n- banner:\n  - link \"Surls home\":\n    - /url: /\n    - generic: Surls\n  - navigation \"Primary navigation\":\n    - link \"Features\":\n      - /url: \"#features\"\n    - link \"Preview\":\n      - /url: \"#preview\"\n    -"
+  },
+  {
+    "name": "home",
+    "path": "/",
+    "actual": "http://127.0.0.1:3000/",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Short links that stay under your control.",
+      "mainLoaded": true,
+      "scrollWidth": 375,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        375,
+        812
+      ]
+    },
+    "screenshot": "home__375x812__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- link \"Skip to content\":\n  - /url: \"#main\"\n- banner:\n  - link \"Surls home\":\n    - /url: /\n    - generic: Surls\n  - navigation \"Primary navigation\":\n    - group \"Color theme\":\n      - button \"Use light theme\" [pressed]:\n      - button \"Use system the"
+  },
+  {
+    "name": "dashboard",
+    "path": "/admin",
+    "actual": "http://127.0.0.1:3000/admin",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Dashboard",
+      "mainLoaded": true,
+      "scrollWidth": 375,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        375,
+        812
+      ]
+    },
+    "screenshot": "dashboard__375x812__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "links",
+    "path": "/admin/links",
+    "actual": "http://127.0.0.1:3000/admin/links",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Link management",
+      "mainLoaded": true,
+      "scrollWidth": 375,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        375,
+        812
+      ]
+    },
+    "screenshot": "links__375x812__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "settings",
+    "path": "/admin/settings",
+    "actual": "http://127.0.0.1:3000/admin/settings",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Settings",
+      "mainLoaded": true,
+      "scrollWidth": 375,
+      "smallTargets": [
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        375,
+        812
+      ]
+    },
+    "screenshot": "settings__375x812__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "style-reference",
+    "path": "/admin/style-reference",
+    "actual": "http://127.0.0.1:3000/admin/style-reference",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Style Reference",
+      "mainLoaded": true,
+      "scrollWidth": 375,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        375,
+        812
+      ]
+    },
+    "screenshot": "style-reference__375x812__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "home",
+    "path": "/",
+    "actual": "http://127.0.0.1:3000/",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Short links that stay under your control.",
+      "mainLoaded": true,
+      "scrollWidth": 430,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        430,
+        932
+      ]
+    },
+    "screenshot": "home__430x932__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- link \"Skip to content\":\n  - /url: \"#main\"\n- banner:\n  - link \"Surls home\":\n    - /url: /\n    - generic: Surls\n  - navigation \"Primary navigation\":\n    - group \"Color theme\":\n      - button \"Use light theme\" [pressed]:\n      - button \"Use system the"
+  },
+  {
+    "name": "dashboard",
+    "path": "/admin",
+    "actual": "http://127.0.0.1:3000/admin",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Dashboard",
+      "mainLoaded": true,
+      "scrollWidth": 430,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        430,
+        932
+      ]
+    },
+    "screenshot": "dashboard__430x932__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "links",
+    "path": "/admin/links",
+    "actual": "http://127.0.0.1:3000/admin/links",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Link management",
+      "mainLoaded": true,
+      "scrollWidth": 430,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        430,
+        932
+      ]
+    },
+    "screenshot": "links__430x932__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "settings",
+    "path": "/admin/settings",
+    "actual": "http://127.0.0.1:3000/admin/settings",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Settings",
+      "mainLoaded": true,
+      "scrollWidth": 430,
+      "smallTargets": [
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        },
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        430,
+        932
+      ]
+    },
+    "screenshot": "settings__430x932__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "style-reference",
+    "path": "/admin/style-reference",
+    "actual": "http://127.0.0.1:3000/admin/style-reference",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Style Reference",
+      "mainLoaded": true,
+      "scrollWidth": 430,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        430,
+        932
+      ]
+    },
+    "screenshot": "style-reference__430x932__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "home",
+    "path": "/",
+    "actual": "http://127.0.0.1:3000/",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Short links that stay under your control.",
+      "mainLoaded": true,
+      "scrollWidth": 768,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        768,
+        1024
+      ]
+    },
+    "screenshot": "home__768x1024__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- link \"Skip to content\":\n  - /url: \"#main\"\n- banner:\n  - link \"Surls home\":\n    - /url: /\n    - generic: Surls\n  - navigation \"Primary navigation\":\n    - link \"Features\":\n      - /url: \"#features\"\n    - link \"Preview\":\n      - /url: \"#preview\"\n    -"
+  },
+  {
+    "name": "dashboard",
+    "path": "/admin",
+    "actual": "http://127.0.0.1:3000/admin",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Dashboard",
+      "mainLoaded": true,
+      "scrollWidth": 768,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        768,
+        1024
+      ]
+    },
+    "screenshot": "dashboard__768x1024__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "links",
+    "path": "/admin/links",
+    "actual": "http://127.0.0.1:3000/admin/links",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Link management",
+      "mainLoaded": true,
+      "scrollWidth": 768,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        768,
+        1024
+      ]
+    },
+    "screenshot": "links__768x1024__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "settings",
+    "path": "/admin/settings",
+    "actual": "http://127.0.0.1:3000/admin/settings",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Settings",
+      "mainLoaded": true,
+      "scrollWidth": 768,
+      "smallTargets": [
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        },
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        768,
+        1024
+      ]
+    },
+    "screenshot": "settings__768x1024__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "style-reference",
+    "path": "/admin/style-reference",
+    "actual": "http://127.0.0.1:3000/admin/style-reference",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Style Reference",
+      "mainLoaded": true,
+      "scrollWidth": 768,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        768,
+        1024
+      ]
+    },
+    "screenshot": "style-reference__768x1024__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - checkbox \"Toggle admin navigation\"\n  - generic: Surls\n  - text: Menu\n  - generic \"Close admin navigation\"\n  - generic: Menu\n  - generic \"Close admin navigation\":\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navig"
+  },
+  {
+    "name": "home",
+    "path": "/",
+    "actual": "http://127.0.0.1:3000/",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Short links that stay under your control.",
+      "mainLoaded": true,
+      "scrollWidth": 1024,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        1024,
+        768
+      ]
+    },
+    "screenshot": "home__1024x768__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- link \"Skip to content\":\n  - /url: \"#main\"\n- banner:\n  - link \"Surls home\":\n    - /url: /\n    - generic: Surls\n  - navigation \"Primary navigation\":\n    - link \"Features\":\n      - /url: \"#features\"\n    - link \"Preview\":\n      - /url: \"#preview\"\n    -"
+  },
+  {
+    "name": "dashboard",
+    "path": "/admin",
+    "actual": "http://127.0.0.1:3000/admin",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Dashboard",
+      "mainLoaded": true,
+      "scrollWidth": 1024,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        1024,
+        768
+      ]
+    },
+    "screenshot": "dashboard__1024x768__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "links",
+    "path": "/admin/links",
+    "actual": "http://127.0.0.1:3000/admin/links",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Link management",
+      "mainLoaded": true,
+      "scrollWidth": 1024,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        1024,
+        768
+      ]
+    },
+    "screenshot": "links__1024x768__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "settings",
+    "path": "/admin/settings",
+    "actual": "http://127.0.0.1:3000/admin/settings",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Settings",
+      "mainLoaded": true,
+      "scrollWidth": 1024,
+      "smallTargets": [
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        },
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        1024,
+        768
+      ]
+    },
+    "screenshot": "settings__1024x768__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "style-reference",
+    "path": "/admin/style-reference",
+    "actual": "http://127.0.0.1:3000/admin/style-reference",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Style Reference",
+      "mainLoaded": true,
+      "scrollWidth": 1024,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        1024,
+        768
+      ]
+    },
+    "screenshot": "style-reference__1024x768__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "home",
+    "path": "/",
+    "actual": "http://127.0.0.1:3000/",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Short links that stay under your control.",
+      "mainLoaded": true,
+      "scrollWidth": 1920,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        1920,
+        1080
+      ]
+    },
+    "screenshot": "home__1920x1080__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- link \"Skip to content\":\n  - /url: \"#main\"\n- banner:\n  - link \"Surls home\":\n    - /url: /\n    - generic: Surls\n  - navigation \"Primary navigation\":\n    - link \"Features\":\n      - /url: \"#features\"\n    - link \"Preview\":\n      - /url: \"#preview\"\n    -"
+  },
+  {
+    "name": "dashboard",
+    "path": "/admin",
+    "actual": "http://127.0.0.1:3000/admin",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Dashboard",
+      "mainLoaded": true,
+      "scrollWidth": 1920,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        1920,
+        1080
+      ]
+    },
+    "screenshot": "dashboard__1920x1080__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "links",
+    "path": "/admin/links",
+    "actual": "http://127.0.0.1:3000/admin/links",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Link management",
+      "mainLoaded": true,
+      "scrollWidth": 1920,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        1920,
+        1080
+      ]
+    },
+    "screenshot": "links__1920x1080__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "settings",
+    "path": "/admin/settings",
+    "actual": "http://127.0.0.1:3000/admin/settings",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Settings",
+      "mainLoaded": true,
+      "scrollWidth": 1920,
+      "smallTargets": [
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        },
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        },
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        },
+        {
+          "name": "",
+          "size": [
+            13,
+            13
+          ],
+          "tag": "INPUT"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        1920,
+        1080
+      ]
+    },
+    "screenshot": "settings__1920x1080__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "style-reference",
+    "path": "/admin/style-reference",
+    "actual": "http://127.0.0.1:3000/admin/style-reference",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Style Reference",
+      "mainLoaded": true,
+      "scrollWidth": 1920,
+      "smallTargets": [
+        {
+          "name": "",
+          "size": [
+            18,
+            18
+          ],
+          "tag": "INPUT"
+        }
+      ],
+      "theme": "light",
+      "viewport": [
+        1920,
+        1080
+      ]
+    },
+    "screenshot": "style-reference__1920x1080__light__default.jpg",
+    "network": [],
+    "logs": [],
+    "dom": "- complementary:\n  - link \"Surls\":\n    - /url: /admin\n    - generic: Surls\n  - navigation \"Admin\":\n    - link \"Dashboard\":\n      - /url: /admin\n      - text: Dashboard\n    - link \"Links\":\n      - /url: /admin/links\n      - text: Links\n    - link \"Too"
+  },
+  {
+    "name": "not-found",
+    "path": "/__visual-qa-missing__",
+    "error": "Error: Browser Use cannot open http://127.0.0.1:3000/__visual-qa-missing__ in tab 12. Browser reported: net::ERR_BLOCKED_BY_CLIENT"
+  },
+  {
+    "name": "unavailable-disabled",
+    "path": "/disabled-demo",
+    "actual": "http://127.0.0.1:3000/disabled-demo",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Short URL unavailable",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [],
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "unavailable-disabled__390x844__fixed-dark__default.jpg",
+    "network": [
+      {
+        "url": "http://127.0.0.1:3000/disabled-demo",
+        "status": 410
+      },
+      {
+        "url": "http://127.0.0.1:3000/disabled-demo",
+        "status": 410
+      }
+    ],
+    "logs": [],
+    "dom": "- main:\n  - heading \"Short URL unavailable\" [level=1]\n  - paragraph: This short URL is disabled.\n  - paragraph:\n    - link \"Go home\":\n      - /url: /"
+  },
+  {
+    "name": "unavailable-expired",
+    "path": "/expired-demo",
+    "actual": "http://127.0.0.1:3000/expired-demo",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Short URL unavailable",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [],
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "unavailable-expired__390x844__fixed-dark__default.jpg",
+    "network": [
+      {
+        "url": "http://127.0.0.1:3000/expired-demo",
+        "status": 410
+      },
+      {
+        "url": "http://127.0.0.1:3000/expired-demo",
+        "status": 410
+      }
+    ],
+    "logs": [],
+    "dom": "- main:\n  - heading \"Short URL unavailable\" [level=1]\n  - paragraph: This short URL has expired.\n  - paragraph:\n    - link \"Go home\":\n      - /url: /"
+  },
+  {
+    "name": "not-found",
+    "path": "/__visual-qa-missing__",
+    "error": "Error: Browser Use cannot open http://127.0.0.1:3000/__visual-qa-missing__ in tab 12. Browser reported: net::ERR_BLOCKED_BY_CLIENT"
+  },
+  {
+    "name": "unavailable-disabled",
+    "path": "/disabled-demo",
+    "actual": "http://127.0.0.1:3000/disabled-demo",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Short URL unavailable",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [],
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "unavailable-disabled__1440x900__fixed-dark__default.jpg",
+    "network": [
+      {
+        "url": "http://127.0.0.1:3000/disabled-demo",
+        "status": 410
+      },
+      {
+        "url": "http://127.0.0.1:3000/disabled-demo",
+        "status": 410
+      }
+    ],
+    "logs": [],
+    "dom": "- main:\n  - heading \"Short URL unavailable\" [level=1]\n  - paragraph: This short URL is disabled.\n  - paragraph:\n    - link \"Go home\":\n      - /url: /"
+  },
+  {
+    "name": "unavailable-expired",
+    "path": "/expired-demo",
+    "actual": "http://127.0.0.1:3000/expired-demo",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Short URL unavailable",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [],
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "unavailable-expired__1440x900__fixed-dark__default.jpg",
+    "network": [
+      {
+        "url": "http://127.0.0.1:3000/expired-demo",
+        "status": 410
+      },
+      {
+        "url": "http://127.0.0.1:3000/expired-demo",
+        "status": 410
+      }
+    ],
+    "logs": [],
+    "dom": "- main:\n  - heading \"Short URL unavailable\" [level=1]\n  - paragraph: This short URL has expired.\n  - paragraph:\n    - link \"Go home\":\n      - /url: /"
+  },
+  {
+    "name": "not-found",
+    "path": "/admin/links/visual-qa-missing",
+    "actual": "http://127.0.0.1:3000/admin/links/visual-qa-missing",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Not found",
+      "mainLoaded": true,
+      "scrollWidth": 390,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "screenshot": "not-found__390x844__light__default.jpg",
+    "network": [
+      {
+        "url": "http://127.0.0.1:3000/admin/links/visual-qa-missing",
+        "status": 404
+      },
+      {
+        "url": "http://127.0.0.1:3000/admin/links/visual-qa-missing",
+        "status": 404
+      }
+    ],
+    "logs": [
+      {
+        "level": "error",
+        "message": "Encountered a script tag while rendering React component. Scripts inside React components are never executed when rendering on the client. Consider using template tag instead (http"
+      },
+      {
+        "level": "error",
+        "message": "Encountered a script tag while rendering React component. Scripts inside React components are never executed when rendering on the client. Consider using template tag instead (http"
+      }
+    ],
+    "dom": "- button \"Open issues overlay\":\n  - generic: \"0\"\n  - generic: \"1\"\n  - generic: Issue\n- button \"Collapse issues badge\":\n- main:\n  - heading \"Not found\" [level=1]\n  - paragraph: That app route does not exist.\n- alert"
+  },
+  {
+    "name": "not-found",
+    "path": "/admin/links/visual-qa-missing",
+    "actual": "http://127.0.0.1:3000/admin/links/visual-qa-missing",
+    "metric": {
+      "brokenImages": [],
+      "drawerOpen": false,
+      "heading": "Not found",
+      "mainLoaded": true,
+      "scrollWidth": 1440,
+      "smallTargets": [],
+      "theme": "light",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "screenshot": "not-found__1440x900__light__default.jpg",
+    "network": [
+      {
+        "url": "http://127.0.0.1:3000/admin/links/visual-qa-missing",
+        "status": 404
+      },
+      {
+        "url": "http://127.0.0.1:3000/admin/links/visual-qa-missing",
+        "status": 404
+      }
+    ],
+    "logs": [
+      {
+        "level": "error",
+        "message": "Encountered a script tag while rendering React component. Scripts inside React components are never executed when rendering on the client. Consider using template tag instead (http"
+      },
+      {
+        "level": "error",
+        "message": "Encountered a script tag while rendering React component. Scripts inside React components are never executed when rendering on the client. Consider using template tag instead (http"
+      }
+    ],
+    "dom": "- button \"Open issues overlay\":\n  - generic: \"0\"\n  - generic: \"1\"\n  - generic: Issue\n- button \"Collapse issues badge\":\n- main:\n  - heading \"Not found\" [level=1]\n  - paragraph: That app route does not exist.\n- alert"
+  }
+]

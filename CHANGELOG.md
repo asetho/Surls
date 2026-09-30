@@ -1,5 +1,22 @@
 # Changelog
 
+## 3.1.0 - 2026-09-29
+
+### Added
+
+* Refresh the default public homepage and Surls branding, including a single control that cycles through light, system, and dark appearance.
+* Provide a visual QA report and screenshots for the default public and admin pages.
+
+### Fixed
+
+* Keep dashboard actions and link destinations readable at tablet and laptop widths, improve dark danger-button contrast, and make mobile icon actions and the new-link dialog easier to use.
+* Restore navigation from the not-found page, follow the selected appearance on built-in unavailable pages, and eliminate chart rendering warnings.
+* Update `@simplewebauthn/server`, `lucide-react`, `tsx`, `vitest`, and `@vitest/coverage-v8` together.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 3.0.0 - 2026-09-28
 
 ### Added

@@ -206,6 +206,25 @@ describe("redirect behavior", () => {
     expect(redirectMocks.recordClick).not.toHaveBeenCalled();
   });
 
+  it("uses the public theme preference for built-in unavailable pages", async () => {
+    redirectMocks.findUnique.mockResolvedValue({
+      id: "link_1",
+      code: "abc",
+      destinationUrl: "https://example.com",
+      enabled: false,
+      archivedAt: null,
+      expiresAt: null,
+      maxClicks: null,
+      clickCount: 0
+    });
+
+    const light = await handleShortRedirect(requestFor("/abc", { cookie: "surls-home-theme=light; surls-theme=dark" }), "abc");
+    const dark = await handleShortRedirect(requestFor("/abc", { cookie: "surls-home-theme=dark; surls-theme=light" }), "abc");
+
+    expect(await light.text()).toContain('<html lang="en" data-theme-choice="light">');
+    expect(await dark.text()).toContain('<html lang="en" data-theme-choice="dark">');
+  });
+
   it("serves a custom unavailable page from the public webroot when present", async () => {
     redirectMocks.findUnique.mockResolvedValue({
       id: "link_1",

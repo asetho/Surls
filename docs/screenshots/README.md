@@ -1,8 +1,8 @@
 # Surls screenshot gallery
 
-Captured September 24, 2026. The included UI below is from Surls **v1.15.0**, commit `b80b4f0`, using the repository's current components, HTML, and CSS with the default settings and branding. Admin screenshots use a local server-rendered fixture with synthetic accounts, links, and statistics; the empty dashboard shows the fresh-install state. The fixture's actions are inactive. These are visual examples, not evidence of a deployed upgrade or an end-to-end authentication test.
+The included dashboard screenshots were refreshed September 25, 2026 from a local development tree based on Surls **v2.1.1**. They render the dashboard and sidebar components with the included Surls SVG mark, default palettes, and synthetic accounts, links, and statistics; the empty dashboard shows the fresh-install state. The fixture's actions are inactive. The included homepage and login captures are from September 24, 2026, Surls **v1.15.0** (`b80b4f0`). These are visual examples, not evidence of a deployed upgrade or an end-to-end authentication test.
 
-The custom public example is the live homepage of [asetho.link](https://asetho.link/), captured separately. The custom admin examples use the light and dark palette values read from asetho.link's admin UI on the capture date, applied to the current local dashboard components with synthetic data. Its branding, public content, and custom palettes are owner-provided and are not bundled as the default Surls theme. No private admin data, credentials, or API tokens are included.
+The custom public example is the live homepage of [asetho.link](https://asetho.link/), captured separately. The custom admin examples use the light and dark palette values read from asetho.link's admin UI on the capture date, applied to the then-current local dashboard components with synthetic data. Its branding, public content, and custom palettes are owner-provided and are not bundled as the default Surls theme. No private admin data, credentials, or API tokens are included.
 
 ## Included public homepage
 
@@ -25,6 +25,8 @@ The initial dashboard after creating the first admin, before adding any links. T
 ## Default dashboard palettes
 
 Sample links and click history make the same included UI easier to inspect. Light and dark modes are built in; no custom palette is applied. Each capture shows the first desktop viewport; recent activity continues below it.
+
+The [SVG wordmark](../../assets/branding/surls-logo-horizontal.svg) and [SVG app icon](../../assets/branding/surls-app-icon.svg) are vector traces of the checked-in Surls artwork.
 
 ### Light
 

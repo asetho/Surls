@@ -31,7 +31,11 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
   const adminThemeStyle = dashboardThemeCssVariables(settings.dashboardTheme) as React.CSSProperties;
   const mobileMenuSide = normalizeMobileMenuSide(user.mobileMenuSide);
   const brandInitial = siteName.slice(0, 1).toUpperCase() || "S";
-  const hasFaviconBrandMark = Boolean(settings.favicons?.assets.faviconSvg);
+  const brandMarkSrc = settings.favicons?.assets.faviconSvg
+    ? "/favicon.svg"
+    : siteName === "Surls"
+      ? "/brand/surls-app-icon.svg"
+      : null;
   const displayName = user.name || user.email;
 
   const nav = [
@@ -49,8 +53,8 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
         <input className="admin-sidebar-toggle sr-only" type="checkbox" id="admin-sidebar-toggle" aria-label="Toggle admin navigation" />
         <label className="admin-sidebar-drawer-trigger" htmlFor="admin-sidebar-toggle">
           <span className="brand admin-sidebar-drawer-brand">
-            <span className={hasFaviconBrandMark ? "brand-mark brand-mark-favicon" : "brand-mark brand-mark-fallback"}>
-              {hasFaviconBrandMark ? <Image src="/favicon.svg" alt="" aria-hidden="true" width={34} height={34} unoptimized /> : brandInitial}
+            <span className={brandMarkSrc ? "brand-mark brand-mark-favicon" : "brand-mark brand-mark-fallback"}>
+              {brandMarkSrc ? <Image src={brandMarkSrc} alt="" aria-hidden="true" width={34} height={34} unoptimized /> : brandInitial}
             </span>
             <span>{siteName}</span>
           </span>
@@ -69,8 +73,8 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
             </label>
           </div>
           <Link className="brand admin-sidebar-brand" href="/admin">
-            <span className={hasFaviconBrandMark ? "brand-mark brand-mark-favicon" : "brand-mark brand-mark-fallback"}>
-              {hasFaviconBrandMark ? <Image src="/favicon.svg" alt="" aria-hidden="true" width={34} height={34} unoptimized /> : brandInitial}
+            <span className={brandMarkSrc ? "brand-mark brand-mark-favicon" : "brand-mark brand-mark-fallback"}>
+              {brandMarkSrc ? <Image src={brandMarkSrc} alt="" aria-hidden="true" width={34} height={34} unoptimized /> : brandInitial}
             </span>
             <span>{siteName}</span>
           </Link>
