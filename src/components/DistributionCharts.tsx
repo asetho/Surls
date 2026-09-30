@@ -51,9 +51,10 @@ function compactRows(rows: CountRow[], maxSlices = 6) {
 
 function polarToCartesian(cx: number, cy: number, radius: number, angle: number) {
   const radians = (angle - 90) * (Math.PI / 180);
+  // Avoid server/browser hydration differences from tiny trigonometry rounding.
   return {
-    x: cx + radius * Math.cos(radians),
-    y: cy + radius * Math.sin(radians)
+    x: Number((cx + radius * Math.cos(radians)).toFixed(6)),
+    y: Number((cy + radius * Math.sin(radians)).toFixed(6))
   };
 }
 

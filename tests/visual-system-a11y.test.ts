@@ -120,7 +120,7 @@ describe("visual system accessibility guards", () => {
     expect(globals).not.toContain(deprecatedActiveShadowColorToken);
     expect(globals).not.toMatch(/\.admin-shell\[data-mobile-menu-side="right"\]\s+\.admin-sidebar-drawer-content\s*{[^}]*box-shadow:/);
     expect(globals).not.toMatch(/\.admin-shell\[data-mobile-menu-side="left"\]\s+\.admin-sidebar-drawer-content\s*{[^}]*box-shadow:/);
-    expect(globals).toMatch(/\.admin-sidebar-drawer-content\s*{[\s\S]*width:\s*min\(17rem,\s*76vw\);/);
+    expect(globals).toMatch(/\.admin-sidebar-drawer-content\s*{[\s\S]*width:\s*min\(14rem,\s*68vw\);/);
     expect(globals).toMatch(/\.admin-shell\s+\.admin-sidebar-toggle:checked\s*~\s*\.admin-sidebar-drawer-content\s*{[\s\S]*transform:\s*translateX\(0\);/);
     expect(globals).toMatch(/\.profile-mobile-menu-side-options\s*{[\s\S]*background:\s*var\(--color-navy\);[\s\S]*border:\s*1px solid var\(--sidebar-border\);/);
     expect(globals).toMatch(/\.profile-mobile-menu-side-option input:checked\s*\+\s*\.profile-mobile-menu-side-option-label\s*{[\s\S]*background:\s*var\(--color-teal\);/);

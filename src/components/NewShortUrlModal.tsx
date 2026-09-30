@@ -106,7 +106,7 @@ export function NewShortUrlModal({ csrf }: { csrf: string }) {
               Internal notes
               <textarea name="notes" />
             </label>
-            <div className="row-actions">
+            <div className="row-actions new-short-url-actions">
               <button type="submit" disabled={pending}>{pending ? "Creating..." : "Create Link"}</button>
               <button type="button" className="secondary" onClick={closeDialog}>
                 Cancel

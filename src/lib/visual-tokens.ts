@@ -117,24 +117,25 @@ export const STRUCTURAL_VISUAL_TOKEN_REGISTRY: readonly VisualSystemToken[] = [
   {
     category: "Controls",
     cssCustomProperty: "--control-height",
-    description: "Standard touch target height for form controls.",
+    description: "Compact form control height used by the admin interface.",
     exampleUsage: "Inputs, selects, and primary action buttons.",
     id: "control.height",
     label: "Control height",
     scope: "global",
     status: "derived",
-    value: "2.58rem",
+    value: "2.12rem",
     valueType: "size"
   },
   {
     category: "Controls",
-    description: "Compact icon-only action target for dense tables.",
+    cssCustomProperty: "--data-table-action-size",
+    description: "Dense table icon action target; expands to 44px on mobile.",
     exampleUsage: "Copy, share, edit, QR, and delete controls in table rows.",
     id: "control.icon-action",
     label: "Icon action size",
     scope: "admin-shell",
     status: "read-only",
-    value: "1.86rem",
+    value: "34px",
     valueType: "size"
   },
   {

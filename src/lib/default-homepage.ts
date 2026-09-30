@@ -78,7 +78,7 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta id="theme-color" name="theme-color" content="#f4fbfd" />
+    <meta id="theme-color" name="theme-color" content="#f2f5f7" />
     <link rel="icon" href="/brand/surls-app-icon-80.png" type="image/png" sizes="80x80" />
     <link rel="apple-touch-icon" href="/brand/surls-app-icon-180.png" sizes="180x180" />
     <meta
@@ -91,6 +91,8 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
         const storageKey = "surls-home-theme";
         const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
         const validThemes = new Set(["auto", "light", "dark"]);
+        const themeOrder = ["light", "auto", "dark"];
+        const themeLabels = { light: "Light", auto: "System", dark: "Dark" };
 
         const readTheme = () => {
           try {
@@ -110,7 +112,7 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
 
           const themeColor = document.querySelector("#theme-color");
           if (themeColor) {
-            themeColor.setAttribute("content", theme === "dark" ? "#001f2e" : "#f4fbfd");
+            themeColor.setAttribute("content", theme === "dark" ? "#061d2b" : "#f2f5f7");
           }
 
           if (persist) {
@@ -124,22 +126,27 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
               // The selected theme still applies when storage is unavailable.
             }
           }
+          document.cookie = storageKey + "=" + preference + "; path=/; max-age=31536000; samesite=lax";
 
-          document.querySelectorAll("[data-theme-option]").forEach((button) => {
-            button.setAttribute("aria-pressed", String(button.dataset.themeOption === preference));
-          });
+          const button = document.querySelector("[data-theme-cycle]");
+          if (button) {
+            const next = themeOrder[(themeOrder.indexOf(preference) + 1) % themeOrder.length];
+            const label = "Color theme: " + themeLabels[preference] + ". Switch to " + themeLabels[next] + ".";
+            button.setAttribute("aria-label", label);
+            button.title = label;
+            button.querySelectorAll("[data-theme-icon]").forEach((icon) => {
+              icon.hidden = icon.dataset.themeIcon !== preference;
+            });
+          }
         };
 
         applyTheme(readTheme());
 
         document.addEventListener("DOMContentLoaded", () => {
-          document.querySelectorAll("[data-theme-option]").forEach((button) => {
-            button.addEventListener("click", () => {
-              const preference = button.dataset.themeOption;
-              if (preference && validThemes.has(preference)) {
-                applyTheme(preference, true);
-              }
-            });
+          document.querySelector("[data-theme-cycle]")?.addEventListener("click", () => {
+            const current = document.documentElement.dataset.themeChoice || "auto";
+            const next = themeOrder[(themeOrder.indexOf(current) + 1) % themeOrder.length];
+            applyTheme(next, true);
           });
           applyTheme(document.documentElement.dataset.themeChoice || "auto");
         }, { once: true });
@@ -154,62 +161,62 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
     <style>
       :root {
         color-scheme: light;
-        --logo-navy: #005b83;
-        --logo-blue: #006b8f;
-        --logo-teal: #0090a8;
-        --logo-ice: #b4d8ee;
+        --logo-navy: #015a85;
+        --logo-blue: #055c83;
+        --logo-teal: #0488a5;
+        --logo-sky: #79bdd7;
+        --logo-ice: #acd7ee;
         --deep-teal: var(--logo-navy);
-        --teal: #007f99;
-        --accent: #006f8d;
-        --pacific-blue: #69afc2;
-        --sky-blue: var(--logo-ice);
+        --teal: var(--logo-teal);
+        --accent: var(--logo-navy);
+        --pacific-blue: var(--logo-sky);
         --ink: #082b3d;
-        --muted: #4c6f7f;
-        --background: #f4fbfd;
+        --muted: #476778;
+        --background: #f2f5f7;
         --surface: #ffffff;
-        --surface-soft: #dff2f7;
-        --border: #a7cfdb;
+        --surface-soft: #e6f2f8;
+        --border: #b9d5e4;
         --button-background: var(--logo-blue);
-        --button-background-hover: var(--logo-navy);
+        --button-background-hover: #014667;
         --button-text: #ffffff;
-        --hero-wash: linear-gradient(125deg, rgb(180 216 238 / 0.72), rgb(0 144 168 / 0.15) 52%, rgb(0 91 131 / 0.07));
-        --section-wash: linear-gradient(135deg, rgb(180 216 238 / 0.4), rgb(255 255 255 / 0.68));
-        --panel-gradient: linear-gradient(135deg, var(--logo-blue), #004b70 58%, #003b56);
-        --hero-glow: rgb(180 216 238 / 0.62);
-        --accent-glow: rgb(0 144 168 / 0.16);
-        --shadow: 0 24px 70px rgb(0 91 131 / 0.14);
+        --hero-wash: linear-gradient(125deg, rgb(172 215 238 / 0.78), rgb(121 189 215 / 0.35) 52%, rgb(1 90 133 / 0.08));
+        --section-wash: linear-gradient(135deg, rgb(172 215 238 / 0.48), rgb(242 245 247 / 0.8));
+        --panel-gradient: linear-gradient(135deg, color-mix(in srgb, var(--logo-teal) 35%, var(--logo-navy)), var(--logo-navy) 52%, #014463);
+        --hero-glow: rgb(172 215 238 / 0.66);
+        --accent-glow: rgb(121 189 215 / 0.2);
+        --shadow: 0 24px 70px rgb(1 90 133 / 0.14);
       }
 
       :root[data-theme="dark"] {
         color-scheme: dark;
-        --accent: #76c6d7;
-        --ink: #f3fbfd;
-        --muted: #b3d6df;
-        --background: #001f2e;
-        --surface: #06445b;
-        --surface-soft: #07566e;
-        --border: #2a8195;
-        --hero-wash: linear-gradient(125deg, rgb(0 91 131 / 0.72), rgb(0 144 168 / 0.26) 55%, rgb(0 31 46 / 0.08));
-        --section-wash: linear-gradient(135deg, rgb(0 91 131 / 0.42), rgb(0 31 46 / 0.32));
-        --hero-glow: rgb(0 144 168 / 0.34);
-        --accent-glow: rgb(180 216 238 / 0.1);
+        --accent: var(--logo-ice);
+        --ink: #f5f9fb;
+        --muted: #b6d0dc;
+        --background: #061d2b;
+        --surface: #0c354b;
+        --surface-soft: #10485f;
+        --border: #3d7e9b;
+        --hero-wash: linear-gradient(125deg, rgb(1 90 133 / 0.64), rgb(4 136 165 / 0.23) 55%, rgb(6 29 43 / 0.08));
+        --section-wash: linear-gradient(135deg, rgb(1 90 133 / 0.36), rgb(6 29 43 / 0.3));
+        --hero-glow: rgb(4 136 165 / 0.24);
+        --accent-glow: rgb(121 189 215 / 0.12);
         --shadow: 0 28px 80px rgb(0 0 0 / 0.34);
       }
 
       @media (prefers-color-scheme: dark) {
         :root:not([data-theme]) {
           color-scheme: dark;
-          --accent: #76c6d7;
-          --ink: #f3fbfd;
-          --muted: #b3d6df;
-          --background: #001f2e;
-          --surface: #06445b;
-          --surface-soft: #07566e;
-          --border: #2a8195;
-          --hero-wash: linear-gradient(125deg, rgb(0 91 131 / 0.72), rgb(0 144 168 / 0.26) 55%, rgb(0 31 46 / 0.08));
-          --section-wash: linear-gradient(135deg, rgb(0 91 131 / 0.42), rgb(0 31 46 / 0.32));
-          --hero-glow: rgb(0 144 168 / 0.34);
-          --accent-glow: rgb(180 216 238 / 0.1);
+          --accent: var(--logo-ice);
+          --ink: #f5f9fb;
+          --muted: #b6d0dc;
+          --background: #061d2b;
+          --surface: #0c354b;
+          --surface-soft: #10485f;
+          --border: #3d7e9b;
+          --hero-wash: linear-gradient(125deg, rgb(1 90 133 / 0.64), rgb(4 136 165 / 0.23) 55%, rgb(6 29 43 / 0.08));
+          --section-wash: linear-gradient(135deg, rgb(1 90 133 / 0.36), rgb(6 29 43 / 0.3));
+          --hero-glow: rgb(4 136 165 / 0.24);
+          --accent-glow: rgb(121 189 215 / 0.12);
           --shadow: 0 28px 80px rgb(0 0 0 / 0.34);
         }
       }
@@ -267,7 +274,7 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
       }
 
       .site-header::before {
-        background: linear-gradient(90deg, var(--logo-teal), var(--logo-ice), var(--logo-navy));
+        background: linear-gradient(90deg, var(--logo-teal), var(--logo-sky), var(--logo-navy));
         content: "";
         height: 3px;
         inset: 0 0 auto;
@@ -316,40 +323,26 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
 
       .theme-switcher {
         align-items: center;
+        appearance: none;
         background: var(--surface-soft);
         border: 1px solid var(--border);
         border-radius: 0.75rem;
-        display: inline-flex;
-        gap: 0.15rem;
-        padding: 0.2rem;
-      }
-
-      .theme-option {
-        align-items: center;
-        appearance: none;
-        background: transparent;
-        border: 0;
-        border-radius: 0.55rem;
         color: var(--muted);
         cursor: pointer;
         display: inline-flex;
-        height: 2rem;
+        height: 2.75rem;
         justify-content: center;
         padding: 0;
-        width: 2rem;
+        width: 2.75rem;
       }
 
-      .theme-option:hover {
-        color: var(--ink);
-      }
-
-      .theme-option[aria-pressed="true"] {
+      .theme-switcher:hover {
         background: var(--surface);
-        box-shadow: 0 2px 8px rgb(0 91 131 / 0.14);
+        box-shadow: 0 2px 8px rgb(1 90 133 / 0.14);
         color: var(--accent);
       }
 
-      .theme-option svg {
+      .theme-switcher svg {
         height: 1rem;
         width: 1rem;
       }
@@ -359,7 +352,7 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
         background: var(--button-background);
         border: 1px solid transparent;
         border-radius: 0.7rem;
-        box-shadow: 0 8px 24px rgb(0 91 131 / 0.2);
+        box-shadow: 0 8px 24px rgb(1 90 133 / 0.2);
         color: var(--button-text);
         display: inline-flex;
         font-size: 0.93rem;
@@ -509,9 +502,9 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
       }
 
       .status-dot {
-        background: #2cb67d;
+        background: var(--logo-teal);
         border-radius: 50%;
-        box-shadow: 0 0 0 4px rgb(44 182 125 / 0.14);
+        box-shadow: 0 0 0 4px rgb(4 136 165 / 0.14);
         height: 0.55rem;
         width: 0.55rem;
       }
@@ -668,6 +661,67 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
         margin-bottom: 0;
       }
 
+      .preview-section {
+        border-bottom: 1px solid var(--border);
+      }
+
+      .preview-grid {
+        align-items: start;
+        display: grid;
+        gap: 1.5rem;
+        grid-template-columns: minmax(0, 1fr) minmax(170px, 230px);
+      }
+
+      .preview-frame {
+        margin: 0;
+        min-width: 0;
+      }
+
+      .preview-visual {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        padding: 0.45rem;
+      }
+
+      .preview-visual img {
+        border-radius: 0.55rem;
+        display: block;
+        height: auto;
+        width: 100%;
+      }
+
+      .preview-visual .preview-dark,
+      :root[data-theme="dark"] .preview-visual .preview-light {
+        display: none;
+      }
+
+      :root[data-theme="dark"] .preview-visual .preview-dark {
+        display: block;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme]) .preview-visual .preview-light {
+          display: none;
+        }
+
+        :root:not([data-theme]) .preview-visual .preview-dark {
+          display: block;
+        }
+      }
+
+      .preview-frame figcaption {
+        color: var(--muted);
+        font-size: 0.86rem;
+        margin-top: 0.75rem;
+      }
+
+      .preview-mobile {
+        max-width: 230px;
+      }
+
       .steps {
         counter-reset: step;
         display: grid;
@@ -701,6 +755,30 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
         font-size: 0.92rem;
       }
 
+      .faq-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .faq-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        padding: 1.35rem;
+      }
+
+      .faq-card h3 {
+        font-size: 1.12rem;
+        margin-bottom: 0.55rem;
+      }
+
+      .faq-card p {
+        color: var(--muted);
+        font-size: 0.92rem;
+        margin-bottom: 0;
+      }
+
       .control-panel {
         align-items: center;
         background: var(--panel-gradient);
@@ -720,9 +798,15 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
       }
 
       .control-panel p {
-        color: #c9e6ec;
+        color: #d9edf5;
         margin-bottom: 0;
         max-width: 42rem;
+      }
+
+      .control-panel-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
       }
 
       .control-panel .button {
@@ -735,6 +819,16 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
         background: var(--logo-ice);
       }
 
+      .control-panel .button.guide {
+        background: transparent;
+        border-color: var(--logo-ice);
+        color: #ffffff;
+      }
+
+      .control-panel .button.guide:hover {
+        background: rgb(255 255 255 / 0.12);
+      }
+
       footer {
         color: var(--muted);
         font-size: 0.82rem;
@@ -744,7 +838,24 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
       .footer-inner {
         align-items: center;
         display: flex;
+        gap: 1rem;
         justify-content: space-between;
+      }
+
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem 1.2rem;
+      }
+
+      .footer-links a {
+        color: var(--accent);
+        font-weight: 750;
+        text-decoration: none;
+      }
+
+      .footer-links a:hover {
+        text-decoration: underline;
       }
 
       @media (max-width: 900px) {
@@ -764,6 +875,10 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
 
         .feature-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .faq-grid {
+          grid-template-columns: 1fr;
         }
       }
 
@@ -798,8 +913,13 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
         }
 
         .feature-grid,
-        .steps {
+        .steps,
+        .preview-grid {
           grid-template-columns: 1fr;
+        }
+
+        .preview-mobile {
+          margin-inline: auto;
         }
 
         .feature-card {
@@ -842,18 +962,13 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
         </a>
         <nav class="nav" aria-label="Primary navigation">
           <a class="nav-link" href="#features">Features</a>
+          <a class="nav-link" href="#preview">Preview</a>
           <a class="nav-link" href="#workflow">How it works</a>
-          <div class="theme-switcher" role="group" aria-label="Color theme">
-            <button class="theme-option" type="button" data-theme-option="light" aria-label="Use light theme" aria-pressed="false" title="Light theme">
-              ${ICONS.sun}
-            </button>
-            <button class="theme-option" type="button" data-theme-option="auto" aria-label="Use system theme" aria-pressed="true" title="System theme">
-              ${ICONS.monitor}
-            </button>
-            <button class="theme-option" type="button" data-theme-option="dark" aria-label="Use dark theme" aria-pressed="false" title="Dark theme">
-              ${ICONS.moon}
-            </button>
-          </div>
+          <button class="theme-switcher" type="button" data-theme-cycle aria-label="Color theme: System. Switch to Dark." title="Color theme: System. Switch to Dark.">
+            <span data-theme-icon="light" hidden>${ICONS.sun}</span>
+            <span data-theme-icon="auto">${ICONS.monitor}</span>
+            <span data-theme-icon="dark" hidden>${ICONS.moon}</span>
+          </button>
           <a class="button" href="/admin">${ICONS.login}<span>Admin login</span></a>
         </nav>
       </div>
@@ -944,6 +1059,34 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
         </div>
       </section>
 
+      <section class="section preview-section" id="preview">
+        <div class="shell">
+          <div class="section-heading">
+            <p class="eyebrow">A look inside</p>
+            <h2>See Surls at work.</h2>
+            <p>Manage aliases, review clicks, and spot links that need attention. These previews use fictional data.</p>
+          </div>
+          <div class="preview-grid">
+            <figure class="preview-frame">
+              <div class="preview-visual">
+                <img class="preview-light" src="/brand/surls-dashboard-light.jpg" width="1280" height="720"
+                  alt="Surls dashboard in light mode with example links and click statistics" loading="lazy" decoding="async" />
+                <img class="preview-dark" src="/brand/surls-dashboard-dark.jpg" width="1280" height="720"
+                  alt="Surls dashboard in dark mode with example links and click statistics" loading="lazy" decoding="async" />
+              </div>
+              <figcaption>Dashboard preview. A new installation starts with an empty dashboard.</figcaption>
+            </figure>
+            <figure class="preview-frame preview-mobile">
+              <div class="preview-visual">
+                <img src="/brand/surls-dashboard-mobile.jpg" width="390" height="844"
+                  alt="Surls dashboard on a mobile screen with example links and click statistics" loading="lazy" decoding="async" />
+              </div>
+              <figcaption>Mobile dashboard in light mode.</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
       <section class="section" id="workflow">
         <div class="shell">
           <div class="section-heading">
@@ -967,6 +1110,29 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
         </div>
       </section>
 
+      <section class="section section-tint" id="faq">
+        <div class="shell">
+          <div class="section-heading">
+            <p class="eyebrow">Good to know</p>
+            <h2>Common questions.</h2>
+          </div>
+          <div class="faq-grid">
+            <article class="faq-card">
+              <h3>Where does Surls run?</h3>
+              <p>On your own server with PostgreSQL. The setup guide walks through a Docker Compose installation.</p>
+            </article>
+            <article class="faq-card">
+              <h3>Can I replace this homepage?</h3>
+              <p>Yes. Add an index.html to your public webroot to serve your own site on the same domain.</p>
+            </article>
+            <article class="faq-card">
+              <h3>Can I control links and analytics?</h3>
+              <p>Set expiration or click limits on links, and choose privacy and retention settings for click data.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
       <section class="section">
         <div class="shell">
           <div class="control-panel">
@@ -978,7 +1144,10 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
                 and replace this page with an owner-provided public site whenever you want.
               </p>
             </div>
-            <a class="button" href="/admin">${ICONS.login}<span>Admin login</span></a>
+            <div class="control-panel-actions">
+              <a class="button" href="/admin">${ICONS.login}<span>Admin login</span></a>
+              <a class="button guide" href="https://github.com/asetho/Surls/blob/main/docs/deployment.md">Read setup guide</a>
+            </div>
           </div>
         </div>
       </section>
@@ -987,7 +1156,11 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
     <footer>
       <div class="shell footer-inner">
         <span><strong>Surls</strong> — private short links, simplified.</span>
-        <span>Owner-controlled and self-hosted.</span>
+        <nav class="footer-links" aria-label="Footer">
+          <a href="#faq">FAQ</a>
+          <a href="https://github.com/asetho/Surls/blob/main/docs/deployment.md">Setup guide</a>
+          <a href="https://github.com/asetho/Surls">Source code</a>
+        </nav>
       </div>
     </footer>
   </body>

@@ -87,6 +87,7 @@ export function ThemeToggle({
       {options.map((option) => (
         <button
           key={option.value}
+          className="theme-toggle-option"
           type="button"
           aria-label={`${option.label} theme`}
           aria-pressed={choice === option.value}

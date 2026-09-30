@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ExternalLink, RotateCcw } from "lucide-react";
+import { ExternalLink, RotateCcw, Tags } from "lucide-react";
 import { AutoSubmitSelect } from "@/components/AutoSubmitSelect";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { CopyShortUrlButton, ShareButton } from "@/components/CopyShareButtons";
@@ -260,18 +260,26 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
                             <QrCodeModal baseUrl={baseUrl} code={link.code} compact shortUrl={url} />
                           ) : null}
                         </div>
-                        <div className="row-actions small">
-                          {link.tags.map(({ tag }) => (
-                            <Link
-                              className="badge tag-link"
-                              href={listHref({ page: 1, tag: tag.slug })}
-                              key={tag.id}
-                              title={`Show links tagged ${tag.name}`}
-                            >
-                              {tag.name}
-                            </Link>
-                          ))}
-                        </div>
+                        {link.tags.length > 0 ? (
+                          <details className="link-tags-details">
+                            <summary aria-label={`Show ${link.tags.length} tags for ${link.code}`}>
+                              <Tags size={13} aria-hidden />
+                              {link.tags.length} {link.tags.length === 1 ? "tag" : "tags"}
+                            </summary>
+                            <div className="link-tags-list">
+                              {link.tags.map(({ tag }) => (
+                                <Link
+                                  className="badge tag-link"
+                                  href={listHref({ page: 1, tag: tag.slug })}
+                                  key={tag.id}
+                                  title={`Show links tagged ${tag.name}`}
+                                >
+                                  {tag.name}
+                                </Link>
+                              ))}
+                            </div>
+                          </details>
+                        ) : null}
                       </td>
                       <td className="small link-destination-cell" data-label="Destination">
                         <div className="muted small link-destination-title" title={link.title || "Untitled"}>{link.title || "Untitled"}</div>

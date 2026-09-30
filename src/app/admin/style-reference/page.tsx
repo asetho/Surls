@@ -18,6 +18,7 @@ import {
   Trash2
 } from "lucide-react";
 import { adminLoginPath } from "@/lib/admin-login-path";
+import { APP_BUILD_LABEL, APP_VERSION } from "@/lib/app-version";
 import { requireSiteAdmin } from "@/lib/auth";
 import { DASHBOARD_THEME_TOKEN_REGISTRY, type DashboardThemeKey } from "@/lib/dashboard-theme";
 import { STRUCTURAL_VISUAL_TOKEN_CATEGORIES } from "@/lib/visual-tokens";
@@ -31,7 +32,7 @@ const typeSamples = [
   ["Display", "Short link analytics", "text"],
   ["Heading", "Dashboard theme controls", "text"],
   ["Body", "Create, search, copy, share, edit, disable, archive, and inspect links.", "text"],
-  ["Mono", "Surls v1.11.0 git abc1234", "muted"]
+  ["Mono", `Surls v${APP_VERSION}${APP_BUILD_LABEL ? ` ${APP_BUILD_LABEL}` : ""}`, "muted"]
 ] as const;
 
 function tokenStyle(token: string) {
