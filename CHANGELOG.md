@@ -9,7 +9,7 @@
 
 ### Fixed
 
-* Keep dashboard actions and link destinations readable at tablet and laptop widths, improve dark danger-button contrast, and make mobile icon actions and the new-link dialog easier to use.
+* Keep dashboard actions and link destinations readable at tablet and laptop widths, improve dark danger-button contrast for saved 3.0 palettes, and make mobile icon actions and the new-link dialog easier to use.
 * Restore navigation from the not-found page, follow the selected appearance on built-in unavailable pages, and eliminate chart rendering warnings.
 * Update `@simplewebauthn/server`, `lucide-react`, `tsx`, `vitest`, and `@vitest/coverage-v8` together.
 

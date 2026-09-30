@@ -548,15 +548,13 @@ function isFlatDashboardTheme(value: unknown) {
 
 function updateLegacyDefaultDarkDanger(palette: DashboardThemePalette): DashboardThemePalette {
   const defaults = DEFAULT_DASHBOARD_THEME.dark;
-  const legacyDanger =
+  // The 3.0 Save/Reset actions persisted the whole old palette, including this low-contrast danger trio.
+  const previousDefaultDanger =
     palette.dangerBackground === defaults.chartDanger &&
     palette.dangerBorder === defaults.dangerBorder &&
     palette.dangerText === DEFAULT_DASHBOARD_THEME.light.dangerText;
-  const otherwiseBuiltIn = DASHBOARD_THEME_FIELDS.every((field) =>
-    field.key === "dangerBackground" || field.key === "dangerText" || palette[field.key] === defaults[field.key]
-  );
 
-  return legacyDanger && otherwiseBuiltIn
+  return previousDefaultDanger
     ? { ...palette, dangerBackground: defaults.dangerBackground, dangerText: defaults.dangerText }
     : palette;
 }
