@@ -1,0 +1,44 @@
+name: Build and deploy Surls site
+
+on:
+  pull_request:
+    paths:
+      - "apps/site/**"
+      - ".github/workflows/site.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/site/**"
+      - ".github/workflows/site.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: surls-site-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  site:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+      - name: Build static site
+        run: npm --prefix apps/site run build
+      - name: Deploy to Cloudflare Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.SURLS_CLOUDFLARE_ACCOUNT_ID }}
+        run: >-
+          npx --yes wrangler@4.135.0 pages deploy apps/site/static-dist
+          --project-name surls-site
+          --branch main
+          --commit-hash "${GITHUB_SHA}"
