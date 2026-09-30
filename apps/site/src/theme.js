@@ -20,7 +20,13 @@ function apply() {
 apply();
 document.querySelector("[data-theme-toggle]")?.addEventListener("click", () => {
   choice = choice === "light" ? "auto" : choice === "auto" ? "dark" : "light";
-  try { choice === "auto" ? localStorage.removeItem(key) : localStorage.setItem(key, choice); } catch {}
+  try {
+    if (choice === "auto") {
+      localStorage.removeItem(key);
+    } else {
+      localStorage.setItem(key, choice);
+    }
+  } catch {}
   apply();
 });
 media.addEventListener("change", () => { if (choice === "auto") apply(); });
