@@ -11,6 +11,7 @@ const DEFAULT_SETTINGS = {
   displayTimeZone: "America/New_York",
   trackAdminClicks: false,
   preserveRedirectQuery: false,
+  emailPasswordResetsEnabled: false,
   enablePasswordProtectedLinks: true,
   enableQrCodes: true,
   themeDefault: "auto",
@@ -89,6 +90,7 @@ async function createInitialAdmin() {
       email: credentials.email,
       name: credentials.name,
       passwordHash: await hash(credentials.password),
+      passwordResetEligible: true,
       role: UserRole.ADMIN
     }
   });

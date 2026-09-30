@@ -172,6 +172,10 @@ export async function POST(request: NextRequest) {
     return invalidCredentials();
   }
 
+  if (user.passwordResetEligible === false) {
+    await prisma.user.update({ where: { id: user.id }, data: { passwordResetEligible: true } });
+  }
+
   if (user.totpCredential?.enabled) {
     const response = NextResponse.redirect(new URL("/admin/2fa", appBaseUrl()), 303);
     response.cookies.set(

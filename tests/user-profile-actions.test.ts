@@ -21,10 +21,12 @@ const navigation = vi.hoisted(() => ({
 }));
 
 const rateLimit = vi.hoisted(() => ({ checkRateLimit: vi.fn() }));
+const cookieJar = vi.hoisted(() => ({ get: vi.fn(), set: vi.fn() }));
 const audit = vi.hoisted(() => ({ auditLog: vi.fn() }));
 const backupTx = vi.hoisted(() => ({
   $queryRaw: vi.fn(),
-  backupCode: { deleteMany: vi.fn(), createMany: vi.fn() },
+  backupCode: { deleteMany: vi.fn(), createMany: vi.fn(), updateMany: vi.fn() },
+  passkey: { deleteMany: vi.fn() },
   session: { deleteMany: vi.fn() },
   totpCredential: { findUnique: vi.fn(), deleteMany: vi.fn() }
 }));
@@ -36,6 +38,7 @@ const prisma = vi.hoisted(() => ({
     create: vi.fn(),
     deleteMany: vi.fn()
   },
+  passkey: { findFirst: vi.fn(), deleteMany: vi.fn() },
   session: {
     deleteMany: vi.fn()
   },
@@ -49,6 +52,7 @@ const prisma = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/auth", () => auth);
+vi.mock("next/headers", () => ({ cookies: async () => cookieJar }));
 vi.mock("@/lib/csrf", () => csrf);
 vi.mock("@/lib/prisma", () => ({ prisma }));
 vi.mock("@/lib/rate-limit", () => rateLimit);
@@ -59,12 +63,15 @@ const backupCodes = vi.hoisted(() => ({
   generateBackupCodes: vi.fn<() => string[]>(() => []),
   hashBackupCode: vi.fn<(code: string) => Promise<string>>()
 }));
+const backupProof = vi.hoisted(() => ({ matchingBackupCodeId: vi.fn(), consumeBackupCode: vi.fn() }));
 
 vi.mock("@/lib/backup-codes", () => backupCodes);
-vi.mock("@/lib/settings", () => ({ getSiteName: vi.fn() }));
+vi.mock("@/lib/backup-code-proof", () => backupProof);
+vi.mock("@/lib/settings", () => ({ getSiteName: vi.fn(), getSetting: vi.fn(async () => true) }));
 const totp = vi.hoisted(() => ({ createTotpSecret: vi.fn(), verifyTotpCode: vi.fn() }));
 vi.mock("@/lib/totp", () => totp);
-vi.mock("@/lib/password", () => ({ hashPassword: vi.fn() }));
+const password = vi.hoisted(() => ({ hashPassword: vi.fn(), verifyPassword: vi.fn() }));
+vi.mock("@/lib/password", () => password);
 
 function profileForm(
   fields: {
@@ -95,6 +102,8 @@ describe("profile identity actions", () => {
     auth.requireSiteAdmin.mockResolvedValue({ id: "admin_1", role: "ADMIN" });
     backupCodes.generateBackupCodes.mockReturnValue([]);
     backupCodes.hashBackupCode.mockResolvedValue("hashed-backup-code");
+    backupProof.matchingBackupCodeId.mockResolvedValue(null);
+    backupProof.consumeBackupCode.mockResolvedValue(true);
     rateLimit.checkRateLimit.mockResolvedValue({ allowed: true });
     prisma.$transaction.mockImplementation(async (callback: (tx: typeof backupTx) => Promise<unknown>) => callback(backupTx));
     backupTx.$queryRaw.mockImplementation(async (parts: TemplateStringsArray) =>
@@ -103,11 +112,14 @@ describe("profile identity actions", () => {
         : [{ id: "user_1" }]);
     backupTx.backupCode.deleteMany.mockResolvedValue({ count: 0 });
     backupTx.backupCode.createMany.mockResolvedValue({ count: 2 });
+    backupTx.passkey.deleteMany.mockResolvedValue({ count: 1 });
     backupTx.session.deleteMany.mockResolvedValue({ count: 0 });
     backupTx.totpCredential.findUnique.mockResolvedValue({ id: "totp_1", enabled: true, secretEncrypted: "encrypted", enabledAt: new Date("2026-09-25T12:00:00Z") });
     backupTx.totpCredential.deleteMany.mockResolvedValue({ count: 1 });
     prisma.backupCode.create.mockResolvedValue({});
     prisma.backupCode.deleteMany.mockResolvedValue({ count: 0 });
+    prisma.passkey.findFirst.mockResolvedValue({ id: "passkey_1" });
+    prisma.passkey.deleteMany.mockResolvedValue({ count: 1 });
     prisma.session.deleteMany.mockResolvedValue({ count: 0 });
     prisma.user.findFirst.mockResolvedValue(null);
     prisma.user.findUnique.mockResolvedValue({ id: "user_1", role: "USER" });
@@ -115,7 +127,8 @@ describe("profile identity actions", () => {
     prisma.user.update.mockResolvedValue({});
     prisma.user.updateMany.mockResolvedValue({ count: 1 });
     prisma.totpCredential.findUnique.mockResolvedValue({ id: "totp_1", enabled: true, secretEncrypted: "encrypted", enabledAt: new Date("2026-09-25T12:00:00Z") });
-    totp.verifyTotpCode.mockResolvedValue(true);
+    totp.verifyTotpCode.mockReset().mockResolvedValue(true);
+    password.verifyPassword.mockResolvedValue(true);
   });
 
   it("lets signed-in users update their own profile when email is unchanged", async () => {
@@ -359,6 +372,22 @@ describe("profile identity actions", () => {
     expect(nextCache.revalidatePath).toHaveBeenCalledWith("/admin/profile");
   });
 
+  it("uses one existing backup code to regenerate a fresh set", async () => {
+    const { regenerateBackupCodesAction } = await import("@/app/admin/profile/actions");
+    backupProof.matchingBackupCodeId.mockResolvedValue("backup_old");
+    backupCodes.generateBackupCodes.mockReturnValue(["FRESH-CODES"]);
+    backupCodes.hashBackupCode.mockResolvedValue("hash:fresh");
+    const form = new FormData();
+    form.set("csrf", "csrf-token");
+    form.set("code", "ABCDE-FGHJK");
+    expect((await regenerateBackupCodesAction(null, form)).codes).toEqual(["FRESH-CODES"]);
+    expect(backupProof.consumeBackupCode).toHaveBeenCalledWith(backupTx, "user_1", "backup_old");
+    expect(backupTx.backupCode.deleteMany).toHaveBeenCalledTimes(1);
+    backupProof.consumeBackupCode.mockResolvedValueOnce(false);
+    expect(await regenerateBackupCodesAction(null, form)).toMatchObject({ error: expect.stringContaining("session or authenticator changed") });
+    expect(backupTx.backupCode.deleteMany).toHaveBeenCalledTimes(1);
+  });
+
   it("serializes concurrent regenerations so only the last completed set remains usable", async () => {
     const { regenerateBackupCodesAction } = await import("@/app/admin/profile/actions");
     const activeHashes = new Set(["hash:OLD"]);
@@ -387,8 +416,10 @@ describe("profile identity actions", () => {
             if (data[0]?.codeHash === "hash:FIRST-CODES") await new Promise((resolve) => setTimeout(resolve, 20));
             for (const row of data) activeHashes.add(row.codeHash);
             return { count: data.length };
-          })
+          }),
+          updateMany: vi.fn()
         },
+        passkey: { deleteMany: vi.fn() },
         session: { deleteMany: vi.fn() },
         totpCredential: {
           findUnique: vi.fn(async () => ({ id: "totp_1", enabled: true, secretEncrypted: "encrypted", enabledAt: new Date("2026-09-25T12:00:00Z") })),
@@ -485,7 +516,7 @@ describe("profile identity actions", () => {
 
   it("deletes backup codes under the same user lock and audits the locked row count", async () => {
     const { deleteBackupCodesAction } = await import("@/app/admin/profile/actions");
-    auth.getCurrentSession.mockResolvedValue({ id: "session_admin", userId: "admin_1" });
+    auth.getCurrentSession.mockResolvedValue({ id: "session_admin", userId: "admin_1", createdAt: new Date("2026-09-26T12:00:00Z") });
     backupTx.$queryRaw.mockImplementation(async (parts: TemplateStringsArray) =>
       String(parts[0]).includes('"Session"')
         ? [{ userId: "admin_1", createdAt: new Date("2026-09-26T12:00:00Z"), expiresAt: new Date(Date.now() + 60_000) }]
@@ -493,8 +524,9 @@ describe("profile identity actions", () => {
     backupTx.backupCode.deleteMany.mockResolvedValue({ count: 2 });
     const formData = new FormData();
     formData.set("csrf", "csrf-token");
+    formData.set("code", "123456");
 
-    await deleteBackupCodesAction(formData);
+    await deleteBackupCodesAction(null, formData);
 
     expect(backupTx.$queryRaw).toHaveBeenCalledTimes(2);
     expect(String(backupTx.$queryRaw.mock.calls[1]?.[0]?.join(""))).toContain('FROM "Session"');
@@ -506,19 +538,117 @@ describe("profile identity actions", () => {
     }));
   });
 
+  it("does not delete backup codes without a valid current authenticator code", async () => {
+    const { deleteBackupCodesAction } = await import("@/app/admin/profile/actions");
+    auth.getCurrentSession.mockResolvedValue({ id: "session_admin", userId: "admin_1", createdAt: new Date("2026-09-26T12:00:00Z") });
+    totp.verifyTotpCode.mockResolvedValue(false);
+    const data = new FormData();
+    data.set("csrf", "csrf-token");
+    data.set("code", "000000");
+    expect(await deleteBackupCodesAction(null, data)).toMatchObject({ error: expect.stringContaining("authenticator") });
+    expect(backupTx.backupCode.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("does not delete backup codes if the authenticator changes before the locked mutation", async () => {
+    const { deleteBackupCodesAction } = await import("@/app/admin/profile/actions");
+    auth.getCurrentSession.mockResolvedValue({ id: "session_admin", userId: "admin_1", createdAt: new Date("2026-09-26T12:00:00Z") });
+    backupTx.$queryRaw.mockImplementation(async (parts: TemplateStringsArray) =>
+      String(parts[0]).includes('"Session"')
+        ? [{ userId: "admin_1", createdAt: new Date("2026-09-26T12:00:00Z"), expiresAt: new Date(Date.now() + 60_000) }]
+        : [{ id: "admin_1" }]);
+    backupTx.totpCredential.findUnique.mockResolvedValueOnce({
+      id: "totp_new", enabled: true, secretEncrypted: "new-secret", enabledAt: new Date("2026-09-26T13:00:00Z")
+    });
+    const data = new FormData();
+    data.set("csrf", "csrf-token");
+    data.set("code", "123456");
+
+    expect(await deleteBackupCodesAction(null, data)).toMatchObject({ error: expect.stringContaining("authenticator changed") });
+    expect(backupTx.backupCode.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("requires the enrolled authenticator before removing a passkey", async () => {
+    const { removePasskeyAction } = await import("@/app/admin/profile/actions");
+    const data = new FormData();
+    data.set("csrf", "csrf-token");
+    data.set("id", "passkey_1");
+    data.set("method", "password");
+    expect(await removePasskeyAction(null, data)).toMatchObject({ error: expect.stringContaining("authenticator") });
+    expect(backupTx.passkey.deleteMany).not.toHaveBeenCalled();
+    data.set("method", "totp");
+    data.set("code", "123456");
+    expect(await removePasskeyAction(null, data)).toEqual({ removed: true });
+    expect(backupTx.passkey.deleteMany).toHaveBeenCalledWith({ where: { id: "passkey_1", userId: "user_1" } });
+  });
+
   it("does not delete backup codes after the requesting admin session is revoked", async () => {
     const { deleteBackupCodesAction } = await import("@/app/admin/profile/actions");
-    auth.getCurrentSession.mockResolvedValue({ id: "session_admin", userId: "admin_1" });
+    auth.getCurrentSession.mockResolvedValue({ id: "session_admin", userId: "admin_1", createdAt: new Date("2026-09-26T12:00:00Z") });
     backupTx.$queryRaw.mockImplementation(async (parts: TemplateStringsArray) =>
       String(parts[0]).includes('"Session"') ? [] : [{ id: "admin_1" }]);
     const formData = new FormData();
     formData.set("csrf", "csrf-token");
+    formData.set("code", "123456");
 
-    await deleteBackupCodesAction(formData);
+    await deleteBackupCodesAction(null, formData);
 
     expect(backupTx.$queryRaw).toHaveBeenCalledTimes(2);
     expect(backupTx.backupCode.deleteMany).not.toHaveBeenCalled();
     expect(audit.auditLog).not.toHaveBeenCalled();
+  });
+
+  it("requires a fresh authenticator code before removing a passkey", async () => {
+    const { removePasskeyAction } = await import("@/app/admin/profile/actions");
+    const formData = new FormData();
+    formData.set("csrf", "csrf-token");
+    formData.set("id", "passkey_1");
+    formData.set("method", "totp");
+
+    expect(await removePasskeyAction(null, formData)).toMatchObject({ error: expect.stringContaining("authenticator code") });
+    expect(backupTx.passkey.deleteMany).not.toHaveBeenCalled();
+
+    formData.set("code", "123456");
+    totp.verifyTotpCode.mockResolvedValueOnce(false);
+    expect(await removePasskeyAction(null, formData)).toMatchObject({ error: expect.stringContaining("authenticator code") });
+    expect(backupTx.passkey.deleteMany).not.toHaveBeenCalled();
+
+    expect(await removePasskeyAction(null, formData)).toEqual({ removed: true });
+    expect(backupTx.passkey.deleteMany).toHaveBeenCalledWith({ where: { id: "passkey_1", userId: "user_1" } });
+    expect(audit.auditLog).toHaveBeenCalledWith(expect.objectContaining({ userId: "user_1", entityId: "passkey_1" }));
+  });
+
+  it("requires the current password to remove a passkey when TOTP is disabled", async () => {
+    const { removePasskeyAction } = await import("@/app/admin/profile/actions");
+    auth.requireAdmin.mockResolvedValue({ id: "user_1", passwordHash: "hash" });
+    prisma.totpCredential.findUnique.mockResolvedValue(null);
+    backupTx.totpCredential.findUnique.mockResolvedValue(null);
+    const formData = new FormData();
+    formData.set("csrf", "csrf-token");
+    formData.set("id", "passkey_1");
+    formData.set("method", "password");
+    formData.set("password", "incorrect");
+    password.verifyPassword.mockResolvedValueOnce(false);
+
+    expect(await removePasskeyAction(null, formData)).toMatchObject({ error: expect.stringContaining("Incorrect current password") });
+    expect(backupTx.passkey.deleteMany).not.toHaveBeenCalled();
+
+    formData.set("password", "correct");
+    expect(await removePasskeyAction(null, formData)).toEqual({ removed: true });
+    expect(password.verifyPassword).toHaveBeenCalledWith("hash", "correct");
+  });
+
+  it("does not remove a passkey after the session is revoked", async () => {
+    const { removePasskeyAction } = await import("@/app/admin/profile/actions");
+    backupTx.$queryRaw.mockImplementation(async (parts: TemplateStringsArray) =>
+      String(parts[0]).includes('"Session"') ? [] : [{ id: "user_1" }]);
+    const formData = new FormData();
+    formData.set("csrf", "csrf-token");
+    formData.set("id", "passkey_1");
+    formData.set("method", "totp");
+    formData.set("code", "123456");
+
+    expect(await removePasskeyAction(null, formData)).toMatchObject({ error: expect.stringContaining("session or authenticator changed") });
+    expect(backupTx.passkey.deleteMany).not.toHaveBeenCalled();
   });
 
   it("does not regenerate backup codes from a session created before TOTP enrollment", async () => {
@@ -538,10 +668,10 @@ describe("profile identity actions", () => {
     formData.set("csrf", "csrf-token");
     prisma.totpCredential.findUnique.mockResolvedValueOnce(null);
     expect(await regenerateBackupCodesAction(null, formData)).toMatchObject({ error: expect.stringContaining("Enable TOTP") });
-    expect(await regenerateBackupCodesAction(null, formData)).toMatchObject({ error: expect.stringContaining("current authenticator") });
+    expect(await regenerateBackupCodesAction(null, formData)).toMatchObject({ error: expect.stringContaining("authenticator code or backup code") });
     formData.set("code", "123456");
     totp.verifyTotpCode.mockResolvedValueOnce(false);
-    expect(await regenerateBackupCodesAction(null, formData)).toMatchObject({ error: expect.stringContaining("current authenticator") });
+    expect(await regenerateBackupCodesAction(null, formData)).toMatchObject({ error: expect.stringContaining("authenticator code or backup code") });
     rateLimit.checkRateLimit.mockResolvedValueOnce({ allowed: true }).mockResolvedValueOnce({ allowed: false });
     expect(await regenerateBackupCodesAction(null, formData)).toMatchObject({ error: expect.stringContaining("already used") });
     expect(prisma.backupCode.deleteMany).not.toHaveBeenCalled();

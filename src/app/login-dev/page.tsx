@@ -42,6 +42,7 @@ export default async function LoginDevPage({ searchParams }: { searchParams: Sea
         <strong>Login preview</strong>
         <LoginPreviewLink href="/login-dev?custom=yes" current={useCustom}>Custom</LoginPreviewLink>
         <LoginPreviewLink href="/login-dev?custom=no" current={!useCustom}>Default</LoginPreviewLink>
+        <LoginPreviewLink href="/admin/dev/login">Test flow</LoginPreviewLink>
         <LoginPreviewLink href="/admin/settings">Settings</LoginPreviewLink>
         {useCustom && !customPage ? <span>No custom login page is active</span> : null}
       </nav>

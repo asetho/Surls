@@ -1,7 +1,9 @@
 import { PasskeyLoginButton } from "@/components/PasskeyLoginButton";
 import { ExternalLoginButtons } from "@/components/ExternalLoginButtons";
 import { TurnstileGate } from "@/components/TurnstileGate";
+import { TurnstilePreviewGate } from "@/components/TurnstilePreviewGate";
 import { turnstileSiteKey } from "@/lib/turnstile";
+import Link from "next/link";
 
 export function PasswordLoginForm({
   csrf,
@@ -11,6 +13,7 @@ export function PasswordLoginForm({
   nextPath,
   siteName,
   localLoginEnabled,
+  passwordResetEnabled = false,
   preview = false
 }: {
   csrf: string;
@@ -20,12 +23,28 @@ export function PasswordLoginForm({
   nextPath: string;
   siteName: string;
   localLoginEnabled: boolean;
+  passwordResetEnabled?: boolean;
   preview?: boolean;
 }) {
   const title = `${siteName} login`;
   const tagline = "Sign in to manage private links, redirects, and click statistics.";
   const siteKey = preview ? undefined : turnstileSiteKey();
   const Form = preview ? "div" : "form";
+  const localLoginControls = (
+    <>
+      <label data-surls-auth-field>
+        Email
+        <input name={preview ? undefined : "email"} type="email" autoComplete={preview ? "off" : "username webauthn"} readOnly={preview} required defaultValue={email ?? ""} data-surls-auth-input />
+      </label>
+      <label data-surls-auth-field>
+        Password
+        <input name={preview ? undefined : "password"} type="password" autoComplete={preview ? "off" : "current-password"} readOnly={preview} required minLength={12} data-surls-auth-input />
+      </label>
+      <button type={preview ? "button" : "submit"} aria-disabled={preview || undefined} data-surls-auth-submit>Log in</button>
+      <div className="login-divider" data-surls-auth-divider><span>or</span></div>
+      <PasskeyLoginButton nextPath={nextPath} preview={preview} />
+    </>
+  );
 
   return (
     <Form
@@ -45,19 +64,8 @@ export function PasswordLoginForm({
         <>
           {!preview ? <input type="hidden" name="csrf" value={csrf} /> : null}
           {!preview ? <input type="hidden" name="next" value={nextPath} /> : null}
-          <TurnstileGate siteKey={siteKey}>
-            <label data-surls-auth-field>
-              Email
-              <input name={preview ? undefined : "email"} type="email" autoComplete={preview ? "off" : "username webauthn"} readOnly={preview} required defaultValue={email ?? ""} data-surls-auth-input />
-            </label>
-            <label data-surls-auth-field>
-              Password
-              <input name={preview ? undefined : "password"} type="password" autoComplete={preview ? "off" : "current-password"} readOnly={preview} required minLength={12} data-surls-auth-input />
-            </label>
-            <button type={preview ? "button" : "submit"} aria-disabled={preview || undefined} data-surls-auth-submit>Log in</button>
-            <div className="login-divider" data-surls-auth-divider><span>or</span></div>
-            <PasskeyLoginButton nextPath={nextPath} preview={preview} />
-          </TurnstileGate>
+          {preview ? <TurnstilePreviewGate>{localLoginControls}</TurnstilePreviewGate> : <TurnstileGate siteKey={siteKey}>{localLoginControls}</TurnstileGate>}
+          {passwordResetEnabled && !preview ? <Link href="/forgot-password">Forgot password?</Link> : null}
         </>
       ) : null}
       <ExternalLoginButtons nextPath={nextPath} required={!localLoginEnabled} preview={preview} />

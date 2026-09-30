@@ -47,7 +47,7 @@ describe("external sign-in state", () => {
 
   it("binds reauthentication to a signed session", () => {
     const cookie = encodeExternalAuth({ provider: "oidc-asetho-link", ...newExternalAuthValues(), nextPath: "/admin/profile",
-      userId: "user_1", purpose: "reauth", sessionId: "session_1" });
+      userId: "user_1", purpose: "reauth", sessionId: "session_1", verificationAction: "email-change", pendingEmail: "new@example.com" });
     expect(decodeExternalAuth(cookie)).toMatchObject({ purpose: "reauth", userId: "user_1", sessionId: "session_1" });
   });
 

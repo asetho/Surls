@@ -9,9 +9,11 @@ import { requireSiteAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
 import { sendSmtpTestEmail } from "@/lib/profile-email";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getSetting, setSetting } from "@/lib/settings";
 import {
   restoreEnvironmentSmtpSettings,
   saveSmtpSettings,
+  getSmtpTransportConfig,
   SmtpSettingsError
 } from "@/lib/smtp-settings";
 
@@ -34,7 +36,27 @@ async function authorizedAdmin(formData: FormData) {
 
 function revalidateEmailSettings() {
   revalidatePath(EMAIL_SETTINGS_PATH);
+  revalidatePath("/admin");
   revalidatePath("/admin/profile");
+}
+
+export async function savePasswordResetSettingAction(formData: FormData) {
+  const admin = await authorizedAdmin(formData);
+  const enabled = formData.get("emailPasswordResetsEnabled") === "on";
+  if (enabled && !(await getSmtpTransportConfig())) {
+    emailSettingsToast("error", "Configure SMTP delivery before enabling password resets.");
+  }
+  if (enabled && !(await getSetting("localLoginEnabled"))) {
+    emailSettingsToast("error", "Enable password sign-in before enabling email password resets.");
+  }
+  const previous = await getSetting("emailPasswordResetsEnabled");
+  if (previous !== enabled) {
+    await setSetting("emailPasswordResetsEnabled", enabled);
+    await auditLog({ userId: admin.id, action: AuditAction.SETTINGS_CHANGED,
+      entityType: "AppSetting", entityId: "emailPasswordResetsEnabled", details: { enabled } });
+  }
+  revalidateEmailSettings();
+  emailSettingsToast("success", enabled ? "Email password resets enabled." : "Email password resets disabled.");
 }
 
 export async function saveSmtpSettingsAction(formData: FormData) {

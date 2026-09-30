@@ -6,6 +6,7 @@ import {
   externalCallbackUrl, externalProviderType, type ExternalProvider, type ExternalProviderConfig
 } from "./external-provider-settings";
 import { safeRedirectPath } from "./redirect-path";
+import type { ProfileVerificationAction } from "./profile-verification";
 
 export { externalCallbackUrl, isExternalProvider } from "./external-provider-settings";
 export type { ExternalProvider } from "./external-provider-settings";
@@ -22,6 +23,8 @@ export type PendingExternalAuth = {
   purpose?: "connect" | "reauth" | "verify-connect" | "verify-totp-setup";
   sessionId?: string;
   pendingEmail?: string;
+  verificationAction?: ProfileVerificationAction;
+  resourceId?: string;
   targetProvider?: string;
   issuedAt: number;
 };
@@ -49,10 +52,14 @@ export function decodeExternalAuth(value: string | undefined): PendingExternalAu
         parsed.nonce.length < 30 || (parsed.userId !== null && (typeof parsed.userId !== "string" || !parsed.userId)) ||
         !Number.isSafeInteger(parsed.issuedAt) || parsed.issuedAt > Date.now() + 30_000 ||
         Date.now() - parsed.issuedAt > MAX_AGE_SECONDS * 1000 ||
-        (parsed.userId === null && (parsed.purpose !== undefined || parsed.sessionId !== undefined || parsed.pendingEmail !== undefined || parsed.targetProvider !== undefined)) ||
+        (parsed.userId === null && (parsed.purpose !== undefined || parsed.sessionId !== undefined || parsed.pendingEmail !== undefined || parsed.verificationAction !== undefined || parsed.resourceId !== undefined || parsed.targetProvider !== undefined)) ||
         (parsed.userId !== null && (!["connect", "reauth", "verify-connect", "verify-totp-setup"].includes(parsed.purpose ?? "") ||
           typeof parsed.sessionId !== "string" || !parsed.sessionId)) ||
         (parsed.pendingEmail !== undefined && (parsed.purpose !== "reauth" || typeof parsed.pendingEmail !== "string" || parsed.pendingEmail.length > 320)) ||
+        (parsed.verificationAction !== undefined && (parsed.purpose !== "reauth" || !["email-change", "passkey-add", "passkey-remove"].includes(parsed.verificationAction))) ||
+        (parsed.resourceId !== undefined && (parsed.purpose !== "reauth" || parsed.verificationAction !== "passkey-remove" || typeof parsed.resourceId !== "string" || !parsed.resourceId || parsed.resourceId.length > 128)) ||
+        (parsed.purpose === "reauth" && ((parsed.verificationAction === "passkey-remove") !== Boolean(parsed.resourceId) ||
+          ((parsed.verificationAction ?? "email-change") === "email-change") !== Boolean(parsed.pendingEmail))) ||
         (parsed.targetProvider !== undefined && (parsed.purpose !== "verify-connect" || !externalProviderType(parsed.targetProvider))) ||
         (parsed.purpose === "verify-connect" && !parsed.targetProvider)) return null;
     return { ...parsed, nextPath: safeRedirectPath(parsed.nextPath) };

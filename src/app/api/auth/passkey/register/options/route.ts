@@ -1,9 +1,10 @@
 import { generateRegistrationOptions } from "@simplewebauthn/server";
 import { NextResponse, type NextRequest } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { getCurrentSession } from "@/lib/auth";
 import { validateCsrfValue } from "@/lib/csrf";
 import { env } from "@/lib/env";
-import { verifyPassword } from "@/lib/password";
+import { verifyProfileStepUp } from "@/lib/profile-step-up";
+import { PROFILE_VERIFICATION_COOKIE, profileVerificationCookieOptions } from "@/lib/profile-verification";
 import {
   cleanPasskeyName,
   encodePasskeyChallenge,
@@ -18,13 +19,14 @@ import { getSetting } from "@/lib/settings";
 
 export async function POST(request: NextRequest) {
   if (!(await getSetting("localLoginEnabled"))) return NextResponse.json({ error: "Passkey registration is disabled." }, { status: 403 });
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getCurrentSession();
+  const admin = session?.user;
+  if (!session || !admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!requestOriginMatchesApp(request)) {
     return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   }
 
-  const body = (await request.json().catch(() => null)) as { csrf?: string; name?: string; password?: string } | null;
+  const body = (await request.json().catch(() => null)) as { csrf?: string; name?: string; method?: string; code?: string; password?: string } | null;
   try {
     validateCsrfValue(String(body?.csrf ?? ""));
   } catch {
@@ -32,12 +34,12 @@ export async function POST(request: NextRequest) {
   }
 
   const rate = await checkRateLimit(`passkey:registration:${requestIp(request)}:${admin.id}`, 8, 15 * 60 * 1000);
-  if (!rate.allowed) return NextResponse.json({ error: "Too many password attempts. Please try again later." }, { status: 429 });
+  if (!rate.allowed) return NextResponse.json({ error: "Too many verification attempts. Please try again later." }, { status: 429 });
 
-  const password = String(body?.password ?? "");
-  if (!(await verifyPassword(admin.passwordHash, password))) {
-    return NextResponse.json({ error: "Re-enter your password to add a passkey." }, { status: 401 });
-  }
+  const proof = await verifyProfileStepUp({ userId: admin.id, sessionId: session.id, sessionCreatedAt: session.createdAt,
+    passwordHash: admin.passwordHash, action: "passkey-add", method: String(body?.method ?? "password"),
+    code: body?.code, password: body?.password, proofCookie: request.cookies.get(PROFILE_VERIFICATION_COOKIE)?.value });
+  if (proof.error) return NextResponse.json({ error: proof.error }, { status: 401 });
 
   const name = cleanPasskeyName(body?.name);
   const existingPasskeys = await prisma.passkey.findMany({
@@ -64,8 +66,9 @@ export async function POST(request: NextRequest) {
   const response = NextResponse.json(options);
   response.cookies.set(
     PASSKEY_REGISTRATION_COOKIE,
-    encodePasskeyChallenge({ challenge: options.challenge, name, purpose: "registration", userId: admin.id }),
+    encodePasskeyChallenge({ challenge: options.challenge, name, purpose: "registration", sessionId: session.id, userId: admin.id }),
     passkeyCookieOptions()
   );
+  if (proof.usedProvider) response.cookies.set(PROFILE_VERIFICATION_COOKIE, "", { ...profileVerificationCookieOptions(), maxAge: 0 });
   return response;
 }

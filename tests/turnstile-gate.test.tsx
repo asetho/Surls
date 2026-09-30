@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { TurnstileGate } from "@/components/TurnstileGate";
+import { TurnstilePreviewGate } from "@/components/TurnstilePreviewGate";
 
 describe("TurnstileGate", () => {
   it("renders protected content immediately when Turnstile is not configured", () => {
@@ -31,6 +32,21 @@ describe("TurnstileGate", () => {
     expect(html).not.toContain("data-surls-auth-input");
     expect(html).not.toContain("data-surls-auth-submit");
     expect(html).not.toContain("cf-turnstile-response");
+  });
+
+  it("shows a simulated check without a live challenge or sign-in controls", () => {
+    const html = renderToStaticMarkup(
+      <TurnstilePreviewGate>
+        <input data-surls-auth-input name="email" />
+      </TurnstilePreviewGate>
+    );
+
+    expect(html).toContain("Simulated Turnstile");
+    expect(html).toContain("Preview only. No verification is performed.");
+    expect(html).toContain('data-surls-preview-check="true"');
+    expect(html).not.toContain("data-surls-auth-input");
+    expect(html).not.toContain("cf-turnstile-response");
+    expect(html).not.toContain("challenges.cloudflare.com");
   });
 
   it("forces a verified gate to stay hidden even when component styles set display", () => {

@@ -4,15 +4,19 @@ import { redirect } from "next/navigation";
 import { adminLoginPath } from "@/lib/admin-login-path";
 import { requireSiteAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
-import { getSmtpSettingsSummary } from "@/lib/smtp-settings";
-import { restoreEnvironmentSmtpAction, saveSmtpSettingsAction, sendSmtpTestAction } from "./actions";
+import { getSmtpSettingsSummary, getSmtpTransportConfig } from "@/lib/smtp-settings";
+import { getSetting } from "@/lib/settings";
+import { restoreEnvironmentSmtpAction, savePasswordResetSettingAction, saveSmtpSettingsAction, sendSmtpTestAction } from "./actions";
 
 export const metadata: Metadata = { title: "Email settings" };
 
 export default async function EmailSettingsPage() {
   const admin = await requireSiteAdmin();
   if (!admin) redirect(adminLoginPath("/admin/settings/email"));
-  const [settings, csrf] = await Promise.all([getSmtpSettingsSummary(), getCsrfToken()]);
+  const [settings, csrf, passwordResetsEnabled, localLoginEnabled, smtp] = await Promise.all([
+    getSmtpSettingsSummary(), getCsrfToken(), getSetting("emailPasswordResetsEnabled"),
+    getSetting("localLoginEnabled"), getSmtpTransportConfig()
+  ]);
   const configured = Boolean(settings.host && settings.from);
 
   return (
@@ -54,6 +58,19 @@ export default async function EmailSettingsPage() {
           </div>
           <p className="muted small">Port 465 uses implicit TLS. Other ports require STARTTLS. A username requires a password. Leave a saved password blank only when the host, port, and username are unchanged. Saved passwords are encrypted and never shown again.</p>
           <button className="settings-save-button" type="submit">Save email settings</button>
+        </form>
+      </section>
+
+      <section className="surface surface-panel">
+        <h2>Password recovery</h2>
+        <p className="muted">Allow people with an existing local password to request a single-use reset link by email. Links expire after 15 minutes. Resetting a password signs out all existing sessions and keeps TOTP enabled.</p>
+        <p className="muted small">Existing accounts become eligible after a successful password sign-in. Accounts created only through an external provider cannot use email password reset.</p>
+        <form className="form-stack" action={savePasswordResetSettingAction}>
+          <input type="hidden" name="csrf" value={csrf} />
+          <label><span><input className="inline-control" name="emailPasswordResetsEnabled" type="checkbox" defaultChecked={passwordResetsEnabled} disabled={!smtp || !localLoginEnabled} />{" "}Enable email password resets</span></label>
+          {!smtp ? <p className="muted small">Configure SMTP delivery to enable this option.</p> : null}
+          {!localLoginEnabled ? <p className="muted small">Enable password sign-in under Sign-in methods to use password recovery.</p> : null}
+          <button type="submit">Save password recovery setting</button>
         </form>
       </section>
 

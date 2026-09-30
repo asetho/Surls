@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const auth = vi.hoisted(() => ({ requireAdmin: vi.fn() }));
-const password = vi.hoisted(() => ({ verifyPassword: vi.fn() }));
+const auth = vi.hoisted(() => ({ getCurrentSession: vi.fn() }));
+const stepUp = vi.hoisted(() => ({ verifyProfileStepUp: vi.fn() }));
 const rateLimit = vi.hoisted(() => ({ checkRateLimit: vi.fn() }));
 const webauthn = vi.hoisted(() => ({ generateRegistrationOptions: vi.fn() }));
 const passkeys = vi.hoisted(() => ({
@@ -16,9 +16,10 @@ const prisma = vi.hoisted(() => ({ passkey: { findMany: vi.fn() } }));
 const settings = vi.hoisted(() => ({ getSetting: vi.fn() }));
 
 vi.mock("@/lib/auth", () => auth);
+vi.mock("@/lib/profile-step-up", () => stepUp);
+vi.mock("@/lib/profile-verification", () => ({ PROFILE_VERIFICATION_COOKIE: "surls_profile_verification_v2", profileVerificationCookieOptions: () => ({ path: "/" }) }));
 vi.mock("@/lib/csrf", () => ({ validateCsrfValue: vi.fn() }));
 vi.mock("@/lib/env", () => ({ env: { APP_NAME: "Surls", WEBAUTHN_RP_ID: "surls.example" } }));
-vi.mock("@/lib/password", () => password);
 vi.mock("@/lib/rate-limit", () => rateLimit);
 vi.mock("@/lib/request", () => ({
   requestIp: () => "127.0.0.1",
@@ -40,8 +41,8 @@ function request(body: Record<string, unknown>, origin: string | null = "http://
 describe("POST /api/auth/passkey/register/options", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    auth.requireAdmin.mockResolvedValue({ email: "admin@example.com", id: "user_123", name: null, passwordHash: "hash" });
-    password.verifyPassword.mockResolvedValue(true);
+    auth.getCurrentSession.mockResolvedValue({ id: "session_1", userId: "user_123", createdAt: new Date(), user: { email: "admin@example.com", id: "user_123", name: null, passwordHash: "hash" } });
+    stepUp.verifyProfileStepUp.mockResolvedValue({});
     rateLimit.checkRateLimit.mockResolvedValue({ allowed: true });
     prisma.passkey.findMany.mockResolvedValue([]);
     webauthn.generateRegistrationOptions.mockResolvedValue({ challenge: "registration-challenge" });
@@ -57,13 +58,13 @@ describe("POST /api/auth/passkey/register/options", () => {
   });
 
   it("rejects a stolen session that cannot prove the current password", async () => {
-    password.verifyPassword.mockResolvedValue(false);
+    stepUp.verifyProfileStepUp.mockResolvedValue({ error: "Incorrect current password." });
     const { POST } = await import("@/app/api/auth/passkey/register/options/route");
 
     const response = await POST(request({ csrf: "csrf", name: "Attacker device", password: "wrong" }));
 
     expect(response.status).toBe(401);
-    await expect(response.json()).resolves.toEqual({ error: "Re-enter your password to add a passkey." });
+    await expect(response.json()).resolves.toEqual({ error: "Incorrect current password." });
     expect(webauthn.generateRegistrationOptions).not.toHaveBeenCalled();
     expect(prisma.passkey.findMany).not.toHaveBeenCalled();
   });
@@ -74,7 +75,7 @@ describe("POST /api/auth/passkey/register/options", () => {
     const response = await POST(request({ csrf: "csrf", name: "Attacker device", password: "correct" }, origin));
 
     expect(response.status).toBe(403);
-    expect(password.verifyPassword).not.toHaveBeenCalled();
+    expect(stepUp.verifyProfileStepUp).not.toHaveBeenCalled();
     expect(webauthn.generateRegistrationOptions).not.toHaveBeenCalled();
   });
 
@@ -84,12 +85,15 @@ describe("POST /api/auth/passkey/register/options", () => {
     const response = await POST(request({ csrf: "csrf", name: "Laptop", password: "correct" }));
 
     expect(response.status).toBe(200);
-    expect(password.verifyPassword).toHaveBeenCalledWith("hash", "correct");
+    expect(stepUp.verifyProfileStepUp).toHaveBeenCalledWith(expect.objectContaining({
+      action: "passkey-add", method: "password", password: "correct", sessionId: "session_1", userId: "user_123"
+    }));
     expect(rateLimit.checkRateLimit).toHaveBeenCalledWith("passkey:registration:127.0.0.1:user_123", 8, 15 * 60 * 1000);
     expect(passkeys.encodePasskeyChallenge).toHaveBeenCalledWith({
       challenge: "registration-challenge",
       name: "Laptop",
       purpose: "registration",
+      sessionId: "session_1",
       userId: "user_123"
     });
     expect(response.headers.get("set-cookie")).toContain("surls_passkey_registration=signed-challenge");

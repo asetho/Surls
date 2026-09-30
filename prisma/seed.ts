@@ -33,6 +33,7 @@ async function main() {
         email: email.toLowerCase(),
         name: "Surls Admin",
         passwordHash: await hashPassword(password),
+        passwordResetEligible: true,
         role: UserRole.ADMIN
       }
     });

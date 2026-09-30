@@ -57,11 +57,11 @@ export function TotpSetupStartForm({ csrf, currentEmail, emailCodeAvailable, loc
             </label>
             <button type="submit" disabled={starting}>Verify password and continue</button>
           </form> : null}
-          {localLoginEnabled && !emailCodeAvailable && !verificationProviders.length && !providerProofReady ?
-            <p className="muted small">If this account has no Surls password, ask a site administrator to enable email verification or a linked sign-in provider.</p> : null}
+          {localLoginEnabled && !verificationProviders.length && !providerProofReady ?
+            <p className="muted small">If this account has no Surls password, ask a site administrator to restore an account verification method.</p> : null}
 
-          {emailCodeAvailable ? <div className="form-stack">
-            <p className="muted small">Or use a code sent to your current email, {currentEmail}.</p>
+          {emailCodeAvailable && localLoginEnabled ? <div className="form-stack">
+            <p className="muted small">You can also confirm your password and a code sent to {currentEmail}.</p>
             <form action={sendEmailAction}>
               <input type="hidden" name="csrf" value={csrf} />
               <button className="secondary" type="submit" disabled={sending}>{sending ? "Sending..." : emailState?.sent ? "Send a new code" : "Send email code"}</button>
@@ -74,7 +74,10 @@ export function TotpSetupStartForm({ csrf, currentEmail, emailCodeAvailable, loc
               <label>Email verification code
                 <input name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" required />
               </label>
-              <button type="submit" disabled={starting}>Verify email code and continue</button>
+              <label>Current Surls password
+                <input name="password" type="password" autoComplete="current-password" required />
+              </label>
+              <button type="submit" disabled={starting}>Verify and continue</button>
             </form> : null}
           </div> : null}
 
@@ -94,8 +97,8 @@ export function TotpSetupStartForm({ csrf, currentEmail, emailCodeAvailable, loc
             <input type="hidden" name="method" value="provider" />
             <button type="submit" disabled={starting}>Continue after provider verification</button>
           </form> : null}
-          {!localLoginEnabled && !emailCodeAvailable && !verificationProviders.length && !providerProofReady ?
-            <p className="alert" role="alert">Account verification is unavailable. Ask a site administrator to enable email verification or link a sign-in provider.</p> : null}
+          {!localLoginEnabled && !verificationProviders.length && !providerProofReady ?
+            <p className="alert" role="alert">Account verification is unavailable. Ask a site administrator to enable password sign-in or link a sign-in provider.</p> : null}
           {startState?.error ? <p className="alert" role="alert">{startState.error}</p> : null}
         </div>
       </dialog>

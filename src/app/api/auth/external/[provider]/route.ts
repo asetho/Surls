@@ -1,5 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { AuditAction } from "@prisma/client";
+import { auditLog } from "@/lib/audit";
 import { getCurrentSession } from "@/lib/auth";
+import { consumeBackupCode, matchingBackupCodeId } from "@/lib/backup-code-proof";
 import { hashToken } from "@/lib/crypto";
 import { appBaseUrl } from "@/lib/env";
 import { validateCsrf } from "@/lib/csrf";
@@ -14,10 +17,11 @@ import { getSetting } from "@/lib/settings";
 import { requestIp, requestOriginMatchesApp } from "@/lib/request";
 import { safeRedirectPath } from "@/lib/redirect-path";
 import { verifyTotpCode } from "@/lib/totp";
+import type { ProfileVerificationAction } from "@/lib/profile-verification";
 
 type ProviderContext = { params: Promise<{ provider: string }> };
 type Session = NonNullable<Awaited<ReturnType<typeof getCurrentSession>>>;
-type AuthIntent = { purpose: "connect" } | { purpose: "reauth"; pendingEmail?: string } |
+type AuthIntent = { purpose: "connect" } | { purpose: "reauth"; pendingEmail?: string; verificationAction: ProfileVerificationAction; resourceId?: string } |
   { purpose: "verify-connect"; targetProvider: string } | { purpose: "verify-totp-setup" };
 
 function connectError(message: string) {
@@ -28,6 +32,7 @@ function connectError(message: string) {
 
 async function sendConnectCode(session: Session, targetProvider: string) {
   if (session.user.totpCredential?.enabled) return NextResponse.json({ error: "Use your authenticator to connect a provider." }, { status: 403 });
+  if (!(await getSetting("localLoginEnabled"))) return NextResponse.json({ error: "Use a linked provider to verify your account." }, { status: 403 });
   if (!(await profileEmailAvailable())) return NextResponse.json({ error: "Email verification is not configured." }, { status: 503 });
   const rate = await checkRateLimit(`external-connect:send-code:${session.userId}`, 3, 15 * 60 * 1000);
   if (!rate.allowed) return NextResponse.json({ error: "Too many codes requested. Please wait and try again." }, { status: 429 });
@@ -49,22 +54,45 @@ async function verifyConnectProof(request: NextRequest, session: Session, target
   const credential = session.user.totpCredential;
   if (credential?.enabled) {
     const establishedAt = credential.enabledAt ?? credential.createdAt;
-    if (method !== "totp" || !establishedAt || establishedAt > session.createdAt) return false;
+    if (!establishedAt || establishedAt > session.createdAt || (method !== "totp" && method !== "backup")) return false;
     const rate = await checkRateLimit(`external-connect:verify:${session.userId}`, 5, 15 * 60 * 1000);
-    if (!rate.allowed || !code || !(await verifyTotpCode(credential.secretEncrypted, code))) return false;
+    if (!rate.allowed || !code) return false;
+    if (method === "backup") {
+      const codeId = await matchingBackupCodeId(session.userId, code);
+      if (!codeId) return false;
+      const consumed = await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${session.userId} FOR UPDATE`;
+        const sessions = await tx.$queryRaw<Array<{ createdAt: Date; expiresAt: Date }>>`
+          SELECT "createdAt", "expiresAt" FROM "Session" WHERE id = ${session.id} AND "userId" = ${session.userId} FOR UPDATE
+        `;
+        const liveSession = sessions[0];
+        if (!liveSession || liveSession.expiresAt <= new Date() || liveSession.createdAt < establishedAt) return false;
+        const liveCredential = await tx.totpCredential.findUnique({ where: { userId: session.userId } });
+        if (!liveCredential?.enabled || liveCredential.id !== credential.id ||
+            liveCredential.secretEncrypted !== credential.secretEncrypted) return false;
+        return consumeBackupCode(tx, session.userId, codeId);
+      });
+      if (consumed) await auditLog({ userId: session.userId, action: AuditAction.BACKUP_CODE_USED });
+      return consumed;
+    }
+    if (!(await verifyTotpCode(credential.secretEncrypted, code))) return false;
     const used = await checkRateLimit(`profile:totp-code:${session.userId}:${hashToken(code.replace(/\s+/g, ""))}`, 1, 90 * 1000);
     return used.allowed;
   }
 
   if (method === "password") {
+    if (!(await getSetting("localLoginEnabled"))) return false;
     const password = String(formData.get("password") ?? "");
     if (!password || password.length > 4096) return false;
     const rate = await checkRateLimit(`external-connect:verify:${session.userId}`, 5, 15 * 60 * 1000);
     return rate.allowed && await verifyPassword(session.user.passwordHash, password);
   }
   if (method !== "email") return false;
+  if (!(await getSetting("localLoginEnabled"))) return false;
   const rate = await checkRateLimit(`external-connect:verify:${session.userId}`, 5, 15 * 60 * 1000);
   if (!rate.allowed) return false;
+  const password = String(formData.get("password") ?? "");
+  if (!password || password.length > 4096 || !(await verifyPassword(session.user.passwordHash, password))) return false;
   const proof = decodeExternalConnectCode(request.cookies.get(EXTERNAL_CONNECT_CODE_COOKIE)?.value);
   if (!proof || proof.userId !== session.userId || proof.sessionId !== session.id ||
       proof.currentEmail !== session.user.email || proof.targetProvider !== targetProvider ||
@@ -94,6 +122,10 @@ async function start(request: NextRequest, context: ProviderContext, session: Se
     if (intent.purpose === "verify-connect" && !(await getExternalProviderConfig(intent.targetProvider))) {
       return connectError("The provider you want to connect is unavailable.");
     }
+    if (intent.purpose === "reauth" && intent.verificationAction === "passkey-remove" &&
+        !(await prisma.passkey.findFirst({ where: { id: intent.resourceId, userId: session.userId }, select: { id: true } }))) {
+      return connectError("That passkey is no longer registered.");
+    }
   }
   const ip = requestIp(request);
   const rate = await checkRateLimit(`external-auth:start:${ip}`, ip === "unknown" ? 3_000 : 30, 15 * 60 * 1000);
@@ -103,7 +135,7 @@ async function start(request: NextRequest, context: ProviderContext, session: Se
   const nextPath = safeRedirectPath(nextValue, userId ? "/admin/profile" : "/admin");
   try {
     if (!session) return await beginExternalAuth(config, { userId: null, nextPath });
-    if (intent?.purpose === "reauth") return await beginExternalAuth(config, { userId: session.userId, sessionId: session.id, purpose: "reauth", pendingEmail: intent.pendingEmail, nextPath });
+    if (intent?.purpose === "reauth") return await beginExternalAuth(config, { userId: session.userId, sessionId: session.id, purpose: "reauth", pendingEmail: intent.pendingEmail, verificationAction: intent.verificationAction, resourceId: intent.resourceId, nextPath });
     if (intent?.purpose === "verify-connect") return await beginExternalAuth(config, { userId: session.userId, sessionId: session.id, purpose: "verify-connect", targetProvider: intent.targetProvider, nextPath });
     if (intent?.purpose === "verify-totp-setup") return await beginExternalAuth(config, { userId: session.userId, sessionId: session.id, purpose: "verify-totp-setup", nextPath });
     if (intent?.purpose === "connect") return await beginExternalAuth(config, { userId: session.userId, sessionId: session.id, purpose: "connect", nextPath });
@@ -132,9 +164,20 @@ export async function POST(request: NextRequest, context: ProviderContext) {
   if (!(await getSetting("externalLoginEnabled"))) return NextResponse.json({ error: "External sign-in is disabled." }, { status: 403 });
   const purpose = formData.get("purpose");
   if (purpose === "reauth") {
+    const rawAction = String(formData.get("verificationAction") ?? "email-change");
+    if (!["email-change", "passkey-add", "passkey-remove"].includes(rawAction)) return connectError("Choose a valid action to verify.");
+    const verificationAction = rawAction as ProfileVerificationAction;
     const proposed = String(formData.get("pendingEmail") ?? "").trim().toLowerCase();
-    const pendingEmail = proposed.length <= 320 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(proposed) ? proposed : undefined;
-    return start(request, context, session, "/admin/profile", { purpose: "reauth", pendingEmail });
+    const resourceId = String(formData.get("resourceId") ?? "");
+    if (verificationAction === "email-change" && !(proposed.length <= 320 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(proposed))) {
+      return connectError("Enter a valid new email before verifying.");
+    }
+    if (verificationAction === "passkey-remove" && (!resourceId || resourceId.length > 128)) return connectError("Choose a passkey to remove.");
+    if (verificationAction !== "email-change" && proposed) return connectError("Choose a valid action to verify.");
+    if (verificationAction !== "passkey-remove" && resourceId) return connectError("Choose a valid action to verify.");
+    return start(request, context, session, "/admin/profile", { purpose: "reauth",
+      verificationAction, pendingEmail: verificationAction === "email-change" ? proposed : undefined,
+      resourceId: verificationAction === "passkey-remove" ? resourceId : undefined });
   }
   if (purpose === "verify-connect") {
     const targetProvider = String(formData.get("targetProvider") ?? "");

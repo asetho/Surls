@@ -4,6 +4,7 @@
  * Description: Create Surls short links from inside WordPress.
  * Version: 0.2.0
  * Author: Surls
+ * Author URI: https://surls.dev
  * License: MIT
  * Requires at least: 6.0
  * Requires PHP: 7.4

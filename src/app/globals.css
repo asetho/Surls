@@ -667,6 +667,10 @@ button.danger-outline:hover {
   padding: 0.6rem;
 }
 
+.config-provider-row > svg {
+  color: var(--text);
+}
+
 .config-provider-row:hover,
 .config-provider-option:hover {
   background: var(--surface-strong);
@@ -3683,6 +3687,12 @@ button.danger-outline:hover {
   width: fit-content;
 }
 
+.profile-backup-warning {
+  justify-self: start;
+  max-width: min(100%, 50rem);
+  width: fit-content;
+}
+
 .profile-status-success {
   margin: 0;
   overflow-wrap: anywhere;
@@ -3808,6 +3818,238 @@ textarea {
 .login-dev-toolbar span {
   color: var(--muted);
   font-size: 0.78rem;
+}
+
+.login-flow-preview {
+  min-height: 100dvh;
+}
+
+.login-flow-preview[data-surls-turnstile-pending] .custom-login-page p:empty {
+  display: none;
+}
+
+.login-flow-controls {
+  display: grid;
+  gap: 0.65rem;
+  margin: 4.5rem auto 0;
+  max-width: 860px;
+  padding: 0.85rem 1rem;
+  width: calc(100% - 1.5rem);
+}
+
+.login-flow-controls-heading {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  justify-content: space-between;
+}
+
+.login-flow-controls-heading h2 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.login-flow-controls-heading p,
+.login-flow-note {
+  margin: 0.2rem 0 0;
+}
+
+.login-flow-switches {
+  display: grid;
+  gap: 0.4rem 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+.login-flow-switches label {
+  align-items: center;
+  display: flex;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.login-flow-switches input {
+  accent-color: var(--color-teal);
+  flex: none;
+  height: 1rem;
+  margin: 0;
+  min-height: 0;
+  padding: 0;
+  width: 1rem;
+}
+
+.login-flow-preview .login-shell {
+  min-height: calc(100dvh - 13rem);
+}
+
+.login-flow-success {
+  color: var(--color-teal);
+  font-weight: 700;
+  margin: 0;
+}
+
+.dev-preview-index {
+  align-items: center;
+  background: var(--background);
+  display: grid;
+  min-height: 100dvh;
+  padding: 1rem;
+}
+
+.dev-preview-index > .surface {
+  margin: 0 auto;
+  max-width: 36rem;
+  width: 100%;
+}
+
+.dev-preview-index h1 {
+  margin-top: 0;
+}
+
+.dev-preview-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.dev-preview-page {
+  background: var(--background);
+  color: var(--text);
+  min-height: 100dvh;
+}
+
+.dev-preview-main.admin-content {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0 auto;
+  max-width: 1100px;
+  padding: 4.5rem 1rem 2rem;
+}
+
+.dev-preview-main .content-header {
+  display: block;
+  margin: 0;
+}
+
+.dev-preview-main .content-header h1 {
+  margin: 0;
+}
+
+.dev-preview-main .content-header p {
+  margin: 0.2rem 0 0;
+}
+
+.profile-dev-controls {
+  margin: 0;
+  max-width: none;
+  width: 100%;
+}
+
+.profile-dev-security {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.profile-dev-security > h2 {
+  margin: 0;
+}
+
+.profile-dev-passkey-name {
+  max-width: 32rem;
+}
+
+.profile-dev-passkey-row {
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  padding: 0.5rem;
+}
+
+.profile-dev-sample-codes {
+  align-items: start;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  padding: 0.75rem;
+}
+
+.profile-dev-sample-code-list {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.profile-dev-sample-code-actions {
+  display: flex;
+  flex: none;
+  gap: 0.3rem;
+}
+
+.profile-dev-sample-code-actions .icon-button.icon-only-action {
+  flex: 0 0 34px;
+  height: 34px;
+  min-height: 34px;
+  min-width: 34px;
+  padding: 0;
+  width: 34px;
+}
+
+.profile-dev-export-feedback {
+  margin: 0;
+}
+
+@media (max-width: 860px) {
+  .profile-dev-sample-code-actions .icon-button.icon-only-action {
+    flex-basis: 44px;
+    height: 44px;
+    min-height: 44px;
+    min-width: 44px;
+    width: 44px;
+  }
+}
+
+.profile-dev-confirm {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.profile-dev-confirm input {
+  flex: none;
+  height: 1rem;
+  margin: 0;
+  min-height: 0;
+  padding: 0;
+  width: 1rem;
+}
+
+@media (max-width: 600px) {
+  .login-flow-controls {
+    margin-top: 6.5rem;
+  }
+
+  .login-flow-switches {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .login-flow-preview .login-shell {
+    min-height: 0;
+    padding-block: 2rem;
+  }
+
+  .dev-preview-main.admin-content {
+    padding-top: 6.5rem;
+  }
+
+  .profile-dev-controls {
+    margin-top: 0;
+  }
 }
 
 .login-card {
@@ -3974,9 +4216,59 @@ textarea {
   max-width: 100%;
 }
 
+.turnstile-preview-challenge {
+  background: var(--surface);
+  border-color: var(--border);
+  font-weight: 400;
+  justify-content: flex-start;
+  max-width: 300px;
+  min-height: 65px;
+  padding: 0.65rem;
+  text-align: left;
+  width: min(300px, 100%);
+}
+
+.turnstile-preview-checkbox {
+  border: 2px solid var(--muted);
+  border-radius: 0.2rem;
+  flex: none;
+  height: 1.25rem;
+  width: 1.25rem;
+}
+
+.turnstile-preview-text {
+  color: var(--text);
+}
+
+.turnstile-preview-label {
+  color: var(--muted);
+  font-size: 0.7rem;
+  margin-left: auto;
+  text-align: right;
+}
+
 .surls-auth-form-embedded .turnstile-gate {
   background: var(--surls-login-secondary-background, transparent);
   border-color: var(--surls-login-secondary-border, var(--border));
+}
+
+.surls-auth-form-embedded button.turnstile-preview-challenge {
+  background: var(--surls-login-secondary-background, var(--surface));
+  border-color: var(--surls-login-secondary-border, var(--border));
+}
+
+.surls-auth-form-embedded .turnstile-preview-text {
+  color: var(--surls-login-secondary-color, var(--text));
+}
+
+.surls-auth-form-embedded .turnstile-preview-checkbox {
+  border-color: var(--surls-login-secondary-border, var(--muted));
+}
+
+.surls-auth-form-embedded [data-surls-turnstile-preview] .turnstile-gate .muted,
+.surls-auth-form-embedded .turnstile-preview-label {
+  color: var(--surls-login-secondary-color, inherit);
+  opacity: 0.8;
 }
 
 .totp-code-field {
@@ -4170,6 +4462,15 @@ textarea {
   grid-template-columns: var(--admin-sidebar-width) minmax(0, 1fr);
   min-height: 100vh;
   min-height: 100dvh;
+}
+
+.admin-shell:has(.admin-dev-preview) {
+  display: block;
+}
+
+.admin-shell:has(.admin-dev-preview) > .admin-sidebar,
+.admin-shell:has(.admin-dev-preview) .admin-main > .admin-topbar {
+  display: none;
 }
 
 :root[data-theme="dark"] .admin-shell {

@@ -12,6 +12,7 @@ import { getCsrfToken } from "@/lib/csrf";
 import { pageFromFilesystem } from "@/lib/custom-pages";
 import { clickEventOwnershipWhere, shortLinkOwnershipWhere } from "@/lib/ownership";
 import { getSettings } from "@/lib/settings";
+import { getSmtpTransportConfig } from "@/lib/smtp-settings";
 
 type SearchParams = Promise<{
   email?: string;
@@ -23,6 +24,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: S
   const [params, currentUser, requestHeaders] = await Promise.all([searchParams, requireAdmin(), headers()]);
   if (!currentUser) {
     const [settings, filesystemLoginPage] = await Promise.all([getSettings(), pageFromFilesystem("login")]);
+    const passwordResetEnabled = settings.localLoginEnabled && settings.emailPasswordResetsEnabled && Boolean(await getSmtpTransportConfig());
     const customLoginPage = filesystemLoginPage ?? settings.customLoginPage;
     const nextPath = safeRedirectPath(params.next);
     const title = `${settings.siteName} login`;
@@ -42,6 +44,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: S
           nextPath={nextPath}
           siteName={settings.siteName}
           localLoginEnabled={settings.localLoginEnabled}
+          passwordResetEnabled={passwordResetEnabled}
         />
       </LoginPageShell>
     );

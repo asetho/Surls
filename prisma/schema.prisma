@@ -29,6 +29,7 @@ enum AuditAction {
   API_TOKEN_CREATED
   API_TOKEN_REVOKED
   SETTINGS_CHANGED
+  PASSWORD_RESET_COMPLETED
 }
 
 model User {
@@ -36,6 +37,7 @@ model User {
   email         String           @unique
   name          String?
   passwordHash  String
+  passwordResetEligible Boolean @default(false)
   role          UserRole         @default(USER)
   displayTimeZone String?
   mobileMenuSide String          @default("right")
@@ -55,6 +57,18 @@ model User {
   uploadedFiles UploadedFile[]
   apiTokens     ApiToken[]
   auditLogs     AuditLog[]
+  passwordResetToken PasswordResetToken?
+}
+
+model PasswordResetToken {
+  userId    String   @id
+  tokenHash String   @unique
+  emailHash String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
 }
 
 model ExternalIdentity {

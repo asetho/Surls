@@ -36,7 +36,7 @@ export async function resolveExternalIdentity(config: ExternalProviderConfig, pr
     if (!user && randomPasswordHash) {
       user = await tx.user.create({ data: {
         email, name: profile.name?.trim().slice(0, 120) || null,
-        passwordHash: randomPasswordHash, role: UserRole.USER
+        passwordHash: randomPasswordHash, passwordResetEligible: false, role: UserRole.USER
       }, select: { id: true } });
     }
     if (!user) throw new ExternalIdentityError("No Surls user has this verified email address. Ask an admin to create one.");

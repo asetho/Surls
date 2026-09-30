@@ -3,13 +3,14 @@ import { renderToReadableStream } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PasswordLoginForm } from "@/components/PasswordLoginForm";
 import LoginDevPage from "@/app/login-dev/page";
+import LoginFlowPreviewPage from "@/app/admin/dev/login/page";
 
 const settings = vi.hoisted(() => ({ getSettings: vi.fn(), getSetting: vi.fn() }));
 const turnstile = vi.hoisted(() => ({ turnstileSiteKey: vi.fn() }));
 vi.mock("@/lib/settings", () => settings);
 vi.mock("@/lib/turnstile", () => turnstile);
 vi.mock("@/lib/auth", () => ({ requireSiteAdmin: vi.fn(async () => ({ id: "admin" })) }));
-vi.mock("@/lib/env", () => ({ env: { SURLS_LOGIN_DEV_ENABLED: true } }));
+vi.mock("@/lib/env", () => ({ env: { SURLS_LOGIN_DEV_ENABLED: true, BASE_URL: "https://link.hm.aarn.cc" } }));
 vi.mock("@/lib/custom-pages", () => ({ pageFromFilesystem: vi.fn(async () => null) }));
 vi.mock("next/headers", () => ({ headers: vi.fn(async () => new Headers()) }));
 vi.mock("@/lib/external-provider-settings", () => ({
@@ -38,7 +39,9 @@ describe("server-rendered login preview", () => {
   it.each(["yes", "no"])("has no authentication actions before hydration (custom=%s)", async (custom) => {
     const html = await markup(await LoginDevPage({ searchParams: Promise.resolve({ custom }) }));
     expect(html).toContain("data-surls-auth-form");
-    expect(html).toContain("Sign in with passkey");
+    expect(html).toContain("data-surls-turnstile-preview");
+    expect(html).toContain("Simulated Turnstile");
+    expect(html).toContain("data-surls-preview-check");
     expect(html).toContain("Continue with Google");
     expect(html).toContain("Continue with Custom Auth");
     expect(html).not.toContain("<form");
@@ -46,7 +49,8 @@ describe("server-rendered login preview", () => {
     expect(html).not.toContain('type="submit"');
     expect(html).not.toContain('name="csrf"');
     expect(html).not.toContain('name="password"');
-    expect(html).toContain('readOnly=""');
+    expect(html).not.toContain("data-surls-auth-input");
+    expect(html).not.toContain("cf-turnstile-response");
     expect(html).toContain('aria-disabled="true"');
     expect(html).not.toContain("challenges.cloudflare.com");
     expect(html).toContain('href="/login-dev?custom=no"');
@@ -60,6 +64,30 @@ describe("server-rendered login preview", () => {
     expect(html).toContain("Continue with Google");
     expect(html).not.toContain("/api/auth/");
     expect(html).not.toContain("<input");
+  });
+
+  it.each(["yes", "no"])("renders a safe interactive flow preview (custom=%s)", async (custom) => {
+    const html = await markup(await LoginFlowPreviewPage({ searchParams: Promise.resolve({ custom }) }));
+    expect(html).toContain("Test a login scenario");
+    expect(html).toContain("Simulated Turnstile");
+    expect(html).toContain("Password sign-in");
+    expect(html).toContain("Provider confirms MFA");
+    expect(html).not.toContain("Sign in to manage private links, redirects, and click statistics.");
+    expect(html).not.toContain("Continue with Google");
+    expect(html).toContain("data-surls-login-flow");
+    expect(html).not.toContain("<form");
+    expect(html).not.toContain("/api/auth/");
+    expect(html).not.toContain('type="submit"');
+    expect(html).not.toContain('name="password"');
+    expect(html).not.toContain("challenges.cloudflare.com");
+    expect(turnstile.turnstileSiteKey).not.toHaveBeenCalled();
+  });
+
+  it("gates the external provider when it is the only simulated sign-in method", async () => {
+    settings.getSettings.mockResolvedValue({ siteName: "Preview site", localLoginEnabled: false, customLoginPage: null });
+    const html = await markup(await LoginFlowPreviewPage({ searchParams: Promise.resolve({ custom: "no" }) }));
+    expect(html).toContain("Simulated Turnstile");
+    expect(html).not.toContain("Continue with Google");
   });
 
   it("preserves real login submission and provider navigation outside preview", async () => {
