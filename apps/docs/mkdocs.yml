@@ -1,0 +1,70 @@
+site_name: Surls Documentation
+site_description: Install and use the self-hosted Surls short-link system.
+site_url: https://docs.surls.dev/
+repo_url: https://github.com/asetho/Surls
+repo_name: asetho/Surls
+edit_uri: edit/main/apps/docs/docs/
+theme:
+  name: material
+  language: en
+  logo: assets/images/icon.svg
+  favicon: assets/images/icon.svg
+  font: false
+  features:
+    - content.code.copy
+    - navigation.footer
+    - navigation.sections
+    - navigation.tabs
+    - navigation.top
+    - search.highlight
+    - search.suggest
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Use dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Use light mode
+nav:
+  - Overview: index.md
+  - Get started:
+      - Requirements: getting-started/requirements.md
+      - Install with Docker Compose: getting-started/install.md
+      - First sign-in: getting-started/first-sign-in.md
+  - Guides:
+      - Links and analytics: guides/links-and-analytics.md
+      - Authentication: guides/authentication.md
+      - Integrations: guides/integrations.md
+      - Surls Share for macOS: guides/macos-share.md
+      - Public pages: guides/public-pages.md
+  - Reference:
+      - Configuration: reference/configuration.md
+      - Operations and backups: reference/operations.md
+      - Troubleshooting: reference/troubleshooting.md
+plugins:
+  - search
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+extra_css:
+  - assets/stylesheets/extra.css
+extra:
+  generator: false
+  homepage: https://surls.dev/
