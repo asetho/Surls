@@ -3,6 +3,8 @@ node_modules/
 apps/site/static-dist/
 apps/docs/site/
 /assets/branding/
+/design-qa.md
+/output/
 coverage/
 dist/
 custom-pages/
