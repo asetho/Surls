@@ -79,7 +79,10 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta id="theme-color" name="theme-color" content="#f2f5f7" />
-    <link rel="icon" href="/brand/surls-app-icon-80.png" type="image/png" sizes="80x80" />
+    <link rel="preload" href="/fonts/plus-jakarta-sans/regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/fonts/fonts.css" />
+    <link rel="stylesheet" href="/brand/brand.css" />
+    <link rel="icon" href="/favicon.svg?v=20260930" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/brand/surls-app-icon-180.png" sizes="180x180" />
     <meta
       name="description"
@@ -88,7 +91,7 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
     <title>Surls — Short links under your control</title>
     <script>
       (() => {
-        const storageKey = "surls-home-theme";
+        const storageKey = "surls-theme";
         const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
         const validThemes = new Set(["auto", "light", "dark"]);
         const themeOrder = ["light", "auto", "dark"];
@@ -97,7 +100,13 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
         const readTheme = () => {
           try {
             const storedTheme = localStorage.getItem(storageKey);
-            return storedTheme && validThemes.has(storedTheme) ? storedTheme : "auto";
+            if (validThemes.has(storedTheme)) return storedTheme;
+          } catch {}
+          const cookie = document.cookie.match(/(?:^|;\s*)surls-theme=([^;]+)/)?.[1];
+          if (validThemes.has(cookie)) return cookie;
+          try {
+            const legacy = localStorage.getItem("surls-home-theme");
+            return validThemes.has(legacy) ? legacy : "auto";
           } catch {
             return "auto";
           }
@@ -117,11 +126,7 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
 
           if (persist) {
             try {
-              if (preference === "auto") {
-                localStorage.removeItem(storageKey);
-              } else {
-                localStorage.setItem(storageKey, preference);
-              }
+              localStorage.setItem(storageKey, preference);
             } catch {
               // The selected theme still applies when storage is unavailable.
             }
@@ -140,7 +145,7 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
           }
         };
 
-        applyTheme(readTheme());
+        applyTheme(readTheme(), true);
 
         document.addEventListener("DOMContentLoaded", () => {
           document.querySelector("[data-theme-cycle]")?.addEventListener("click", () => {
@@ -236,7 +241,7 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
           radial-gradient(circle at 92% 18%, var(--accent-glow), transparent 30rem),
           var(--background);
         color: var(--ink);
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         line-height: 1.55;
       }
 
@@ -285,7 +290,7 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
         align-items: center;
         display: flex;
         justify-content: space-between;
-        min-height: 4.7rem;
+        min-height: 4rem;
       }
 
       .brand {
@@ -298,10 +303,10 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
         text-decoration: none;
       }
 
-      .brand img {
-        border-radius: 0.7rem;
-        height: 2.45rem;
-        width: 2.45rem;
+      .brand .surls-logo img {
+        border-radius: 0;
+        height: auto;
+        width: 100%;
       }
 
       .nav {
@@ -343,8 +348,9 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
       }
 
       .theme-switcher svg {
-        height: 1rem;
-        width: 1rem;
+        display: block;
+        height: 1.4rem;
+        width: 1.4rem;
       }
 
       .button {
@@ -396,13 +402,13 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
       .hero {
         background: var(--hero-wash);
         border-bottom: 1px solid color-mix(in srgb, var(--logo-teal), var(--border) 58%);
-        padding-block: clamp(4rem, 9vw, 7.5rem) clamp(4rem, 8vw, 6.5rem);
+        padding-block: clamp(2.4rem, 5.5vw, 4rem) clamp(2.2rem, 5vw, 3.5rem);
       }
 
       .hero-grid {
         align-items: center;
         display: grid;
-        gap: clamp(2.6rem, 7vw, 6rem);
+        gap: clamp(1.6rem, 4vw, 3.5rem);
         grid-template-columns: minmax(0, 1.04fr) minmax(320px, 0.96fr);
       }
 
@@ -423,16 +429,16 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
       }
 
       h1 {
-        font-size: clamp(2.8rem, 7vw, 5.7rem);
+        font-size: clamp(2.35rem, 5vw, 4.15rem);
         letter-spacing: -0.065em;
-        line-height: 0.95;
-        margin-bottom: 1.35rem;
-        max-width: 11ch;
+        line-height: 1.04;
+        margin-bottom: 1rem;
+        max-width: 13ch;
       }
 
       .hero-copy {
         color: var(--muted);
-        font-size: clamp(1.05rem, 2vw, 1.22rem);
+        font-size: clamp(1rem, 1.4vw, 1.1rem);
         max-width: 38rem;
       }
 
@@ -440,14 +446,14 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
         display: flex;
         flex-wrap: wrap;
         gap: 0.75rem;
-        margin-top: 1.7rem;
+        margin-top: 1.2rem;
       }
 
       .trust-row {
         display: flex;
         flex-wrap: wrap;
         gap: 0.55rem;
-        margin-top: 1.6rem;
+        margin-top: 1.1rem;
       }
 
       .trust-pill {
@@ -465,7 +471,7 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
         border: 1px solid color-mix(in srgb, var(--logo-teal), var(--border) 46%);
         border-radius: 1.35rem;
         box-shadow: var(--shadow);
-        padding: clamp(1.15rem, 3vw, 1.7rem);
+        padding: clamp(1rem, 2vw, 1.3rem);
         position: relative;
       }
 
@@ -484,21 +490,8 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
         border-bottom: 1px solid var(--border);
         display: flex;
         justify-content: space-between;
-        margin-bottom: 1.2rem;
+        margin-bottom: 0.85rem;
         padding-bottom: 1rem;
-      }
-
-      .demo-brand {
-        align-items: center;
-        display: inline-flex;
-        font-weight: 850;
-        gap: 0.55rem;
-      }
-
-      .demo-brand img {
-        border-radius: 0.55rem;
-        height: 2rem;
-        width: 2rem;
       }
 
       .status-dot {
@@ -590,7 +583,7 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
       }
 
       .section {
-        padding-block: clamp(3.8rem, 8vw, 6.5rem);
+        padding-block: clamp(2rem, 4.5vw, 3.5rem);
       }
 
       .section-tint {
@@ -599,12 +592,12 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
       }
 
       .section-heading {
-        margin-bottom: 2.2rem;
+        margin-bottom: 1.4rem;
         max-width: 44rem;
       }
 
       .section-heading h2 {
-        font-size: clamp(2rem, 4.5vw, 3.55rem);
+        font-size: clamp(1.65rem, 3vw, 2.45rem);
         letter-spacing: -0.05em;
         line-height: 1.02;
         margin-bottom: 0.8rem;
@@ -625,8 +618,8 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
         background: linear-gradient(150deg, var(--surface), color-mix(in srgb, var(--logo-blue), var(--surface) 94%));
         border: 1px solid color-mix(in srgb, var(--logo-teal), var(--border) 62%);
         border-radius: 1rem;
-        min-height: 15rem;
-        padding: 1.35rem;
+        min-height: 12rem;
+        padding: 1rem;
       }
 
       .feature-icon {
@@ -640,7 +633,7 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
         font-weight: 950;
         height: 2.55rem;
         justify-content: center;
-        margin-bottom: 1.1rem;
+        margin-bottom: 0.75rem;
         width: 2.55rem;
       }
 
@@ -731,7 +724,7 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
 
       .step {
         border-top: 2px solid var(--border);
-        padding: 1.4rem 1rem 0 0;
+        padding: 1rem 0.75rem 0 0;
       }
 
       .step::before {
@@ -765,7 +758,7 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 1rem;
-        padding: 1.35rem;
+        padding: 1rem;
       }
 
       .faq-card h3 {
@@ -787,11 +780,11 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
         display: grid;
         gap: 2rem;
         grid-template-columns: 1fr auto;
-        padding: clamp(1.6rem, 5vw, 3.2rem);
+        padding: clamp(1.2rem, 3vw, 2rem);
       }
 
       .control-panel h2 {
-        font-size: clamp(1.8rem, 4vw, 3rem);
+        font-size: clamp(1.5rem, 3vw, 2.25rem);
         letter-spacing: -0.045em;
         line-height: 1.05;
         margin-bottom: 0.7rem;
@@ -832,7 +825,7 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
       footer {
         color: var(--muted);
         font-size: 0.82rem;
-        padding-block: 2.4rem max(2.4rem, env(safe-area-inset-bottom));
+        padding-block: 1.5rem max(1.5rem, env(safe-area-inset-bottom));
       }
 
       .footer-inner {
@@ -884,7 +877,7 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
 
       @media (max-width: 640px) {
         .header-inner {
-          min-height: 4.2rem;
+          min-height: 4rem;
         }
 
         .nav-link {
@@ -901,11 +894,11 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
         }
 
         .hero {
-          padding-top: 3.5rem;
+          padding-top: 2rem;
         }
 
         h1 {
-          font-size: clamp(2.65rem, 15vw, 4rem);
+          font-size: clamp(2.3rem, 10vw, 2.85rem);
         }
 
         .hero-actions .button {
@@ -954,11 +947,10 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
-    <header class="site-header">
+    <header class="site-header surls-brand-surface">
       <div class="shell header-inner">
         <a class="brand" href="/" aria-label="Surls home">
-          <img src="/brand/surls-app-icon-80.png" width="40" height="40" alt="" />
-          <span>Surls</span>
+          <span class="surls-logo"><img class="surls-logo-day" src="/brand/surls-s-url-links.svg" width="1176" height="433" alt="Surls"><img class="surls-logo-night" src="/brand/surls-s-url-links-dark.svg" width="1176" height="433" alt="Surls"></span>
         </a>
         <nav class="nav" aria-label="Primary navigation">
           <a class="nav-link" href="#features">Features</a>
@@ -997,10 +989,7 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
 
           <div class="link-demo" aria-label="Example of a long destination becoming a short URL">
             <div class="demo-toolbar">
-              <span class="demo-brand">
-                <img src="/brand/surls-app-icon-80.png" width="32" height="32" alt="" />
-                Surls
-              </span>
+              <span class="surls-logo"><img class="surls-logo-day" src="/brand/surls-s-url-links.svg" width="1176" height="433" alt="Surls"><img class="surls-logo-night" src="/brand/surls-s-url-links-dark.svg" width="1176" height="433" alt="Surls"></span>
               <span class="status-dot" title="Available"></span>
             </div>
             <span class="demo-label">Destination</span>
@@ -1069,19 +1058,21 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
           <div class="preview-grid">
             <figure class="preview-frame">
               <div class="preview-visual">
-                <img class="preview-light" src="/brand/surls-dashboard-light.jpg" width="1280" height="720"
+                <img class="preview-light" src="/brand/surls-dashboard-light.jpg?v=08ef52f7433e" width="1280" height="720"
                   alt="Surls dashboard in light mode with example links and click statistics" loading="lazy" decoding="async" />
-                <img class="preview-dark" src="/brand/surls-dashboard-dark.jpg" width="1280" height="720"
+                <img class="preview-dark" src="/brand/surls-dashboard-dark.jpg?v=99635cd9293d" width="1280" height="720"
                   alt="Surls dashboard in dark mode with example links and click statistics" loading="lazy" decoding="async" />
               </div>
               <figcaption>Dashboard preview. A new installation starts with an empty dashboard.</figcaption>
             </figure>
             <figure class="preview-frame preview-mobile">
               <div class="preview-visual">
-                <img src="/brand/surls-dashboard-mobile.jpg" width="390" height="844"
-                  alt="Surls dashboard on a mobile screen with example links and click statistics" loading="lazy" decoding="async" />
+                <img class="preview-light" src="/brand/surls-dashboard-mobile-light.jpg?v=23371e13ffc8" width="390" height="844"
+                  alt="Surls mobile dashboard in light mode with example links and click statistics" loading="lazy" decoding="async" />
+                <img class="preview-dark" src="/brand/surls-dashboard-mobile.jpg?v=cf1a647c3b67" width="390" height="844"
+                  alt="Surls mobile dashboard in dark mode with example links and click statistics" loading="lazy" decoding="async" />
               </div>
-              <figcaption>Mobile dashboard in light mode.</figcaption>
+              <figcaption>Mobile dashboard preview.</figcaption>
             </figure>
           </div>
         </div>
@@ -1153,9 +1144,9 @@ const DEFAULT_HOMEPAGE_HTML = String.raw`<!doctype html>
       </section>
     </main>
 
-    <footer>
+    <footer class="surls-brand-surface">
       <div class="shell footer-inner">
-        <span><strong>Surls</strong> — private short links, simplified.</span>
+        <span class="brand"><span class="surls-logo"><img class="surls-logo-day" src="/brand/surls-s-url-links.svg" width="1176" height="433" alt="Surls"><img class="surls-logo-night" src="/brand/surls-s-url-links-dark.svg" width="1176" height="433" alt="Surls"></span></span>
         <nav class="footer-links" aria-label="Footer">
           <a href="#faq">FAQ</a>
           <a href="https://github.com/asetho/Surls/blob/main/docs/deployment.md">Setup guide</a>

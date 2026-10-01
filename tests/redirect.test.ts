@@ -218,8 +218,8 @@ describe("redirect behavior", () => {
       clickCount: 0
     });
 
-    const light = await handleShortRedirect(requestFor("/abc", { cookie: "surls-home-theme=light; surls-theme=dark" }), "abc");
-    const dark = await handleShortRedirect(requestFor("/abc", { cookie: "surls-home-theme=dark; surls-theme=light" }), "abc");
+    const light = await handleShortRedirect(requestFor("/abc", { cookie: "surls-home-theme=dark; surls-theme=light" }), "abc");
+    const dark = await handleShortRedirect(requestFor("/abc", { cookie: "surls-home-theme=light; surls-theme=dark" }), "abc");
 
     expect(await light.text()).toContain('<html lang="en" data-theme-choice="light">');
     expect(await dark.text()).toContain('<html lang="en" data-theme-choice="dark">');

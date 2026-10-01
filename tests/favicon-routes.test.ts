@@ -87,4 +87,34 @@ describe("favicon routes", () => {
     );
     await expect(unsafeResponse.json()).resolves.toMatchObject({ start_url: "/" });
   });
+
+  it("uses the bundled Surls icon only after uploaded and mounted assets are absent", async () => {
+    const bundled = new Response("surls svg");
+    routeMocks.getSettings.mockResolvedValue({ favicons: null, siteName: "Surls" });
+    routeMocks.publicWebrootResponse.mockResolvedValueOnce(null).mockResolvedValueOnce(bundled);
+
+    await expect(faviconRouteResponse("faviconSvg", { method: "HEAD" })).resolves.toBe(bundled);
+    expect(routeMocks.publicWebrootResponse).toHaveBeenNthCalledWith(1, ["favicon.svg"], { method: "HEAD" });
+    expect(routeMocks.publicWebrootResponse).toHaveBeenNthCalledWith(2, ["surls-app-icon.svg"], {
+      method: "HEAD", rootDir: expect.stringMatching(/public\/brand$/)
+    });
+  });
+
+  it("does not replace a custom site's missing branding with the Surls icon", async () => {
+    routeMocks.getSettings.mockResolvedValue({ favicons: null, siteName: "Private links" });
+    routeMocks.publicWebrootResponse.mockResolvedValue(null);
+    expect((await faviconRouteResponse("faviconSvg")).status).toBe(404);
+    expect(routeMocks.publicWebrootResponse).toHaveBeenCalledTimes(1);
+  });
+
+  it("provides a default Surls manifest with a safe start path", async () => {
+    routeMocks.getSettings.mockResolvedValue({ favicons: null, siteName: "Surls" });
+    routeMocks.publicWebrootResponse.mockResolvedValue(null);
+    const response = await getWebManifest(new NextRequest("https://surls.example/site.webmanifest?start=%2Fadmin"));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ name: "Surls", start_url: "/admin", icons: [
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png" }
+    ] });
+  });
 });

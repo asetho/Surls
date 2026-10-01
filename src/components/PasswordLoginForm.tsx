@@ -1,4 +1,5 @@
 import { PasskeyLoginButton } from "@/components/PasskeyLoginButton";
+import { SurlsLogo } from "@/components/SurlsLogo";
 import { ExternalLoginButtons } from "@/components/ExternalLoginButtons";
 import { TurnstileGate } from "@/components/TurnstileGate";
 import { TurnstilePreviewGate } from "@/components/TurnstilePreviewGate";
@@ -55,6 +56,7 @@ export function PasswordLoginForm({
     >
       {!embedded ? (
         <div data-surls-auth-intro>
+          {siteName === "Surls" ? <Link className="login-brand" href="/" aria-label="Surls home"><SurlsLogo /></Link> : null}
           <h1>{title}</h1>
           <p className="muted">{tagline}</p>
         </div>

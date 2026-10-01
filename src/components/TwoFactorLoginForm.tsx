@@ -1,6 +1,7 @@
 "use client";
 
 import { type ClipboardEvent, type KeyboardEvent, useId, useRef, useState } from "react";
+import { SurlsLogo } from "@/components/SurlsLogo";
 
 const TOTP_CODE_LENGTH = 6;
 
@@ -138,6 +139,7 @@ export function TwoFactorLoginForm({
     >
       {!embedded ? (
         <div data-surls-auth-intro>
+          {siteName === "Surls" ? <span className="login-brand"><SurlsLogo /></span> : null}
           <h1>{title}</h1>
           <p className="muted">
             Finish signing in to {siteName} as

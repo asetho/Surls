@@ -4,6 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, ty
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, Download, Minus, Upload, X } from "lucide-react";
 import { DashboardThemeEditor } from "@/components/DashboardThemeEditor";
+import { SidebarBrandingEditor } from "@/components/SidebarBrandingEditor";
+import { useAdminBranding } from "@/components/AdminSidebarBrand";
+import { DEFAULT_SIDEBAR_BRANDING, normalizeSidebarBranding, sidebarBrandingMatches, type SidebarBranding } from "@/lib/sidebar-branding";
 import { dispatchAdminToast } from "@/lib/admin-toast-event";
 import {
   DASHBOARD_THEME_EDITABLE_FIELDS,
@@ -89,7 +92,7 @@ function applyDocumentThemeMode(mode: DashboardThemeMode) {
   document.documentElement.dataset.theme = mode;
 }
 
-function isThemeResponse(value: unknown): value is { dashboardTheme: DashboardTheme; message?: string } {
+function isThemeResponse(value: unknown): value is { dashboardTheme: DashboardTheme; sidebarBranding?: SidebarBranding; message?: string } {
   return Boolean(value && typeof value === "object" && "dashboardTheme" in value);
 }
 
@@ -124,9 +127,15 @@ function isDashboardThemeEditorFocusDetail(value: unknown): value is DashboardTh
   );
 }
 
-export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: DashboardTheme }) {
+export function DashboardThemeDrawer({ csrf, theme, branding, siteName }: {
+  csrf: string; theme: DashboardTheme; branding: SidebarBranding; siteName: string;
+}) {
   const [savedTheme, setSavedTheme] = useState(theme);
   const [draftTheme, setDraftTheme] = useState(theme);
+  const [savedBranding, setSavedBranding] = useState(branding);
+  const [draftBranding, setDraftBranding] = useState(branding);
+  const [logoBusy, setLogoBusy] = useState(false);
+  const { preview: previewBranding } = useAdminBranding();
   const [activeMode, setActiveMode] = useState<DashboardThemeMode>(() => currentDocumentThemeMode());
   const [submitting, setSubmitting] = useState<"reset" | "save" | null>(null);
   const savedThemeRef = useRef(savedTheme);
@@ -141,8 +150,13 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
   const readonlySearchParams = useSearchParams();
   const searchParams = useMemo(() => new URLSearchParams(readonlySearchParams.toString()), [readonlySearchParams]);
   const requestedOpen = readonlySearchParams.get("themeEditor") === "open";
-  const isDefault = isDefaultDashboardTheme(savedTheme);
-  const hasUnsavedChanges = !dashboardThemesMatch(draftTheme, savedTheme);
+  const isDefault = isDefaultDashboardTheme(savedTheme) && sidebarBrandingMatches(savedBranding, DEFAULT_SIDEBAR_BRANDING);
+  const hasUnsavedChanges = !dashboardThemesMatch(draftTheme, savedTheme) || !sidebarBrandingMatches(draftBranding, savedBranding);
+
+  useEffect(() => {
+    previewBranding(open ? draftBranding : savedBranding);
+    return () => previewBranding(null);
+  }, [draftBranding, open, savedBranding, previewBranding]);
 
   useEffect(() => {
     savedThemeRef.current = savedTheme;
@@ -260,6 +274,7 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
 
     setOpen(false);
     setDraftTheme(savedTheme);
+    setDraftBranding(savedBranding);
     window.sessionStorage.setItem(THEME_EDITOR_STORAGE_KEY, "0");
     if (previewModeActiveRef.current) {
       previewModeActiveRef.current = false;
@@ -267,7 +282,7 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
     }
     applyThemeVariables(savedTheme);
     router.replace(adminPathWithoutEditor(pathname, searchParams), { scroll: false });
-  }, [hasUnsavedChanges, pathname, router, savedTheme, searchParams]);
+  }, [hasUnsavedChanges, pathname, router, savedTheme, savedBranding, searchParams]);
 
   function minimizeDrawer() {
     setMinimized(true);
@@ -304,7 +319,11 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
 
       setSavedTheme(body.dashboardTheme);
       setDraftTheme(body.dashboardTheme);
+      const nextBranding = body.sidebarBranding ?? savedBranding;
+      setSavedBranding(nextBranding);
+      setDraftBranding(nextBranding);
       applyThemeVariables(body.dashboardTheme);
+      router.refresh();
       dispatchAdminToast("success", body.message ?? "Dashboard theme saved.");
     } catch (error) {
       dispatchAdminToast("error", error instanceof Error ? error.message : "Could not save dashboard theme.");
@@ -315,7 +334,9 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
 
   function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    void submitThemeForm(dashboardThemeToFormData(draftTheme), "save");
+    const formData = dashboardThemeToFormData(draftTheme);
+    formData.set("sidebarBranding", JSON.stringify(draftBranding));
+    void submitThemeForm(formData, "save");
   }
 
   function handleReset(event: FormEvent<HTMLFormElement>) {
@@ -327,9 +348,10 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
     const contents = JSON.stringify(
       {
         schema: "surls-dashboard-theme",
-        version: 1,
+        version: 2,
         exportedAt: new Date().toISOString(),
-        dashboardTheme: draftTheme
+        dashboardTheme: draftTheme,
+        sidebarBranding: draftBranding
       },
       null,
       2
@@ -353,11 +375,13 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
     if (!file) return;
 
     try {
+      if (file.size > 2 * 1024 * 1024) throw new Error("Choose a theme file up to 2 MB.");
       const parsed = JSON.parse(await file.text()) as unknown;
       const candidate = themeImportCandidate(parsed);
       if (!hasImportableThemeShape(candidate)) throw new Error("Choose a Surls theme JSON file.");
       const importedTheme = normalizeDashboardTheme(candidate);
       setDraftTheme(importedTheme);
+      if (isRecord(parsed) && "sidebarBranding" in parsed) setDraftBranding(normalizeSidebarBranding(parsed.sidebarBranding));
       applyThemeVariables(importedTheme);
       dispatchAdminToast("info", "Theme imported. Review and save to apply it.");
     } catch (error) {
@@ -398,6 +422,7 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
 
       <form id="dashboard-theme-drawer-form" className="theme-editor-drawer-form" onSubmit={handleSave}>
         <input type="hidden" name="csrf" value={csrf} />
+        <SidebarBrandingEditor value={draftBranding} onChange={setDraftBranding} csrf={csrf} siteName={siteName} onBusyChange={setLogoBusy} />
         <DashboardThemeEditor
           activeMode={activeMode}
           draftTheme={draftTheme}
@@ -421,21 +446,21 @@ export function DashboardThemeDrawer({ csrf, theme }: { csrf: string; theme: Das
 
       <div className="theme-editor-drawer-actions">
         <input ref={importInputRef} type="file" accept="application/json,.json" hidden onChange={importTheme} />
-        <button type="submit" form="dashboard-theme-drawer-form" disabled={submitting !== null}>
+        <button type="submit" form="dashboard-theme-drawer-form" disabled={submitting !== null || logoBusy}>
           {submitting === "save" ? "Saving..." : "Save Theme"}
         </button>
-        <button className="secondary" type="button" disabled={submitting !== null} onClick={() => importInputRef.current?.click()}>
+        <button className="secondary" type="button" disabled={submitting !== null || logoBusy} onClick={() => importInputRef.current?.click()}>
           <Upload size={16} aria-hidden />
           Import
         </button>
-        <button className="secondary" type="button" disabled={submitting !== null} onClick={exportTheme}>
+        <button className="secondary" type="button" disabled={submitting !== null || logoBusy} onClick={exportTheme}>
           <Download size={16} aria-hidden />
           Export
         </button>
         {!isDefault ? (
           <form id="dashboard-theme-drawer-reset-form" onSubmit={handleReset}>
             <input type="hidden" name="csrf" value={csrf} />
-            <button className="secondary" type="submit" disabled={submitting !== null}>
+            <button className="secondary" type="submit" disabled={submitting !== null || logoBusy}>
               {submitting === "reset" ? "Resetting..." : "Reset"}
             </button>
           </form>

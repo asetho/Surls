@@ -52,6 +52,13 @@
       "reason": "Chart color interpolation and positioned tooltip/bar-width styles."
     },
     {
+      "file": "src/components/AdminSidebarBrand.tsx",
+      "colorLiterals": 0,
+      "importantDeclarations": 0,
+      "inlineStyleAttributes": 1,
+      "reason": "CSS custom properties bridge validated sidebar logo height and padding settings into live previews and saved branding."
+    },
+    {
       "file": "src/components/HistoricalClicksPanel.tsx",
       "colorLiterals": 0,
       "importantDeclarations": 0,

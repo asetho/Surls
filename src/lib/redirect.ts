@@ -116,7 +116,7 @@ function unavailableThemeChoice(request: NextRequest): UnavailableThemeChoice {
   const cookies = request.headers.get("cookie") ?? "";
   const publicChoice = cookies.match(/(?:^|;\s*)surls-home-theme=([^;]+)/)?.[1];
   const adminChoice = cookies.match(/(?:^|;\s*)surls-theme=([^;]+)/)?.[1];
-  const choice = publicChoice ?? adminChoice;
+  const choice = adminChoice ?? publicChoice;
   return choice === "light" || choice === "dark" ? choice : "auto";
 }
 
@@ -129,6 +129,7 @@ function unavailableFallbackHtml(siteName: string, reason: string, themeChoice: 
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
+  <link rel="stylesheet" href="/fonts/fonts.css">
   ${themeChoice === "auto"
     ? `<meta name="theme-color" media="(prefers-color-scheme: light)" content="${theme.light.background}">
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="${theme.dark.background}">`
@@ -175,7 +176,7 @@ function unavailableFallbackHtml(siteName: string, reason: string, themeChoice: 
       background: var(--background);
       color: var(--text);
       display: grid;
-      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       line-height: 1.5;
       margin: 0;
       padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));

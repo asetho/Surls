@@ -1,0 +1,63 @@
+.surls-logo {
+  display: inline-block;
+  flex: none;
+  width: 6.14rem;
+  line-height: 0;
+}
+
+.surls-logo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 0;
+}
+
+.surls-logo img.surls-logo-day { display: var(--surls-logo-day-display, block); }
+.surls-logo img.surls-logo-night { display: var(--surls-logo-night-display, none); }
+
+:root[data-theme="dark"] {
+  --surls-logo-day-display: none;
+  --surls-logo-night-display: block;
+}
+
+/* Pale brand surfaces keep the same navy/teal artwork readable in both themes. */
+.surls-brand-surface {
+  --surls-logo-day-display: block;
+  --surls-logo-night-display: none;
+  color-scheme: light;
+  --ink: #082b3d;
+  --text: #082b3d;
+  --muted: #476778;
+  --accent: #055c83;
+  --background: #e6f2f8;
+  --surface: #ffffff;
+  --surface-soft: #d4e9f3;
+  --surface-strong: #d4e9f3;
+  --border: #9dc4d8;
+  background: var(--background);
+  color: var(--ink);
+}
+
+.link-demo.surls-brand-surface .demo-field.result { color: #055c83; }
+
+/* Header and footer artwork follows the selected page theme. */
+:root[data-theme="dark"] :is(.site-header, footer).surls-brand-surface {
+  --surls-logo-day-display: none;
+  --surls-logo-night-display: block;
+  color-scheme: dark;
+  --background: #061d2b;
+  --surface: #0c354b;
+  --surface-soft: #10485f;
+  --surface-strong: #10485f;
+  --border: #3d7e9b;
+  --ink: #f5f9fb;
+  --text: #f5f9fb;
+  --muted: #b6d0dc;
+  --accent: #acd7ee;
+  background: var(--background);
+}
+
+.admin-sidebar {
+  --surls-logo-day-display: none;
+  --surls-logo-night-display: block;
+}
