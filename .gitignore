@@ -2,6 +2,7 @@
 node_modules/
 apps/site/static-dist/
 apps/docs/site/
+/assets/branding/
 coverage/
 dist/
 custom-pages/
