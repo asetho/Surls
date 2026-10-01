@@ -30,7 +30,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const pending = decodeExternalAuth(request.cookies.get(EXTERNAL_AUTH_COOKIE)?.value);
   const link = Boolean(pending?.userId);
   let response: NextResponse;
-  let continuedConnect = false;
+  let continuedAuth = false;
   try {
     if (!(await getSetting("externalLoginEnabled"))) throw new Error("External sign-in is disabled.");
     const config = await getExternalProviderConfig(provider);
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           throw new ExternalIdentityError("Sign in again before connecting this provider.");
         }
         response = await beginExternalAuth(target, { userId: pending.userId!, sessionId: pending.sessionId!, purpose: "connect", nextPath: "/admin/profile" });
-        continuedConnect = true;
+        continuedAuth = true;
       }
     } else {
       if (pending.userId) {
@@ -103,7 +103,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           where: { id: userId }, select: { email: true, totpCredential: { select: { enabled: true } } }
         });
         if (!user) throw new Error("The user no longer exists.");
-        if (user.totpCredential?.enabled && profile.mfaVerified !== true) {
+        const staleOidcSession = config.provider === "oidc" && !pending.freshLoginAttempt &&
+          typeof profile.authenticatedAt === "number" && Number.isSafeInteger(profile.authenticatedAt) &&
+          profile.authenticatedAt * 1000 < pending.issuedAt - 30_000;
+        if (user.totpCredential?.enabled && profile.mfaVerified !== true && staleOidcSession) {
+          response = await beginExternalAuth(config, { userId: null, nextPath: pending.nextPath, freshLoginAttempt: true });
+          continuedAuth = true;
+        } else if (user.totpCredential?.enabled && profile.mfaVerified !== true) {
           response = NextResponse.redirect(new URL("/admin/2fa", appBaseUrl()), 303);
           response.cookies.set(PENDING_LOGIN_COOKIE, encodePendingLogin({
             email: user.email, nextPath: pending.nextPath, purpose: "external_2fa", userId
@@ -122,7 +128,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       userAgent: request.headers.get("user-agent"), details: { provider } }).catch(() => null);
     response = errorResponse(error instanceof ExternalIdentityError ? error.message : "External sign-in failed. Check the provider configuration or try again.", link);
   }
-  if (!continuedConnect) response.cookies.set(EXTERNAL_AUTH_COOKIE, "", expiredExternalAuthCookieOptions());
+  if (!continuedAuth) response.cookies.set(EXTERNAL_AUTH_COOKIE, "", expiredExternalAuthCookieOptions());
   response.headers.set("Cache-Control", "no-store");
   return response;
 }

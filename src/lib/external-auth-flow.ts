@@ -4,7 +4,7 @@ import type { ExternalProviderConfig } from "./external-provider-settings";
 import type { ProfileVerificationAction } from "./profile-verification";
 
 type StartOptions =
-  | { userId: null; nextPath: unknown }
+  | { userId: null; nextPath: unknown; freshLoginAttempt?: boolean }
   | { userId: string; sessionId: string; purpose: "connect"; nextPath: unknown }
   | { userId: string; sessionId: string; purpose: "reauth"; pendingEmail?: string; verificationAction?: ProfileVerificationAction; resourceId?: string; nextPath: unknown }
   | { userId: string; sessionId: string; purpose: "verify-connect"; targetProvider: string; nextPath: unknown }
@@ -36,7 +36,8 @@ function linkAuthorizationPage(authorizationUrl: URL) {
 
 export async function beginExternalAuth(config: ExternalProviderConfig, options: StartOptions) {
   const values = newExternalAuthValues();
-  const reauthenticate = options.userId !== null && (options.purpose === "reauth" || options.purpose === "verify-connect" || options.purpose === "verify-totp-setup");
+  const reauthenticate = options.userId === null ? options.freshLoginAttempt === true :
+    (options.purpose === "reauth" || options.purpose === "verify-connect" || options.purpose === "verify-totp-setup");
   const authorizationUrl = await externalAuthorizationUrl(config.provider, values.state, values.verifier, values.nonce, config, reauthenticate);
   const response = options.userId === null ? NextResponse.redirect(authorizationUrl, 303) : linkAuthorizationPage(authorizationUrl);
   response.headers.set("Cache-Control", "no-store");

@@ -45,6 +45,18 @@ describe("external sign-in state", () => {
     expect(externalCallbackUrl("oidc-asetho-link")).toBe("http://localhost:3000/api/auth/external/oidc-asetho-link/callback");
   });
 
+  it("allows only one signed fresh OIDC login attempt", () => {
+    const values = newExternalAuthValues();
+    const fresh = encodeExternalAuth({ provider: "oidc-asetho-link", ...values, nextPath: "/admin/links", userId: null, freshLoginAttempt: true });
+    expect(decodeExternalAuth(fresh)).toMatchObject({ provider: "oidc-asetho-link", nextPath: "/admin/links", freshLoginAttempt: true });
+    expect(decodeExternalAuth(encodeExternalAuth({ provider: "oidc-asetho-link", ...values, nextPath: "/admin", userId: null,
+      freshLoginAttempt: "true" as unknown as true }))).toBeNull();
+    expect(decodeExternalAuth(encodeExternalAuth({ provider: "google", ...values, nextPath: "/admin", userId: null,
+      freshLoginAttempt: true }))).toBeNull();
+    expect(decodeExternalAuth(encodeExternalAuth({ provider: "oidc-asetho-link", ...values, nextPath: "/admin", userId: "user_1",
+      sessionId: "session_1", purpose: "connect", freshLoginAttempt: true }))).toBeNull();
+  });
+
   it("binds reauthentication to a signed session", () => {
     const cookie = encodeExternalAuth({ provider: "oidc-asetho-link", ...newExternalAuthValues(), nextPath: "/admin/profile",
       userId: "user_1", purpose: "reauth", sessionId: "session_1", verificationAction: "email-change", pendingEmail: "new@example.com" });

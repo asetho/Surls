@@ -180,6 +180,19 @@ describe("external account connection start", () => {
     expect(external.encodeExternalAuth).toHaveBeenCalledWith(expect.objectContaining({ userId: null }));
   });
 
+  it("requests fresh provider authentication for a one-time stale-session retry", async () => {
+    const { beginExternalAuth } = await import("@/lib/external-auth-flow");
+    const config = { key: "oidc-asetho-link", provider: "oidc" as const, id: "asetho-link" };
+    const response = await beginExternalAuth(config as Parameters<typeof beginExternalAuth>[0], {
+      userId: null, nextPath: "/admin/links", freshLoginAttempt: true
+    });
+    expect(response.status).toBe(303);
+    expect(external.externalAuthorizationUrl).toHaveBeenCalledWith("oidc", "state", "verifier", "nonce", config, true);
+    expect(external.encodeExternalAuth).toHaveBeenCalledWith(expect.objectContaining({
+      userId: null, nextPath: "/admin/links", freshLoginAttempt: true
+    }));
+  });
+
   it("starts reauthentication only for a linked provider and binds it to this session", async () => {
     const { POST } = await import("@/app/api/auth/external/[provider]/route");
     const request = () => new NextRequest("http://localhost:3000/api/auth/external/oidc-asetho-link", {

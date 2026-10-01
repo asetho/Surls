@@ -20,6 +20,7 @@ export type PendingExternalAuth = {
   nonce: string;
   nextPath: string;
   userId: string | null;
+  freshLoginAttempt?: boolean;
   purpose?: "connect" | "reauth" | "verify-connect" | "verify-totp-setup";
   sessionId?: string;
   pendingEmail?: string;
@@ -53,6 +54,7 @@ export function decodeExternalAuth(value: string | undefined): PendingExternalAu
         !Number.isSafeInteger(parsed.issuedAt) || parsed.issuedAt > Date.now() + 30_000 ||
         Date.now() - parsed.issuedAt > MAX_AGE_SECONDS * 1000 ||
         (parsed.userId === null && (parsed.purpose !== undefined || parsed.sessionId !== undefined || parsed.pendingEmail !== undefined || parsed.verificationAction !== undefined || parsed.resourceId !== undefined || parsed.targetProvider !== undefined)) ||
+        (parsed.freshLoginAttempt !== undefined && (parsed.freshLoginAttempt !== true || parsed.userId !== null || externalProviderType(parsed.provider) !== "oidc")) ||
         (parsed.userId !== null && (!["connect", "reauth", "verify-connect", "verify-totp-setup"].includes(parsed.purpose ?? "") ||
           typeof parsed.sessionId !== "string" || !parsed.sessionId)) ||
         (parsed.pendingEmail !== undefined && (parsed.purpose !== "reauth" || typeof parsed.pendingEmail !== "string" || parsed.pendingEmail.length > 320)) ||
