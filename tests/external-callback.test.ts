@@ -148,6 +148,54 @@ describe("external sign-in callback", () => {
     expect(response.cookies.get(PENDING_LOGIN_COOKIE)).toBeUndefined();
   });
 
+  it("retries a stale OIDC session without MFA once with fresh authentication", async () => {
+    const issuedAt = Date.now();
+    providers.getExternalProviderConfig.mockResolvedValue({ key: "oidc-asetho-link", provider: "oidc", id: "asetho-link" });
+    external.decodeExternalAuth.mockReturnValue({ provider: "oidc-asetho-link", state: "valid-state", verifier: "verifier", nonce: "nonce",
+      nextPath: "/admin/links", userId: null, issuedAt });
+    external.externalProfile.mockResolvedValue({ subject: "subject", mfaVerified: false,
+      authenticatedAt: Math.floor((issuedAt - 3600_000) / 1000) });
+    prisma.user.findUnique.mockResolvedValue({ email: "user@example.com", totpCredential: { enabled: true } });
+    const { GET } = await import("@/app/api/auth/external/[provider]/callback/route");
+    const response = await GET(callback("valid-state", "oidc-asetho-link"), { params: Promise.resolve({ provider: "oidc-asetho-link" }) });
+    expect(flow.beginExternalAuth).toHaveBeenCalledWith(expect.objectContaining({ provider: "oidc" }), {
+      userId: null, nextPath: "/admin/links", freshLoginAttempt: true
+    });
+    expect(response.cookies.get(external.EXTERNAL_AUTH_COOKIE)?.value).toBe("next-signed-state");
+    expect(response.cookies.get(PENDING_LOGIN_COOKIE)).toBeUndefined();
+    expect(auth.createSession).not.toHaveBeenCalled();
+  });
+
+  it("falls back to Surls TOTP after the fresh OIDC attempt still lacks MFA", async () => {
+    const issuedAt = Date.now();
+    providers.getExternalProviderConfig.mockResolvedValue({ key: "oidc-asetho-link", provider: "oidc", id: "asetho-link" });
+    external.decodeExternalAuth.mockReturnValue({ provider: "oidc-asetho-link", state: "valid-state", verifier: "verifier", nonce: "nonce",
+      nextPath: "/admin/links", userId: null, issuedAt, freshLoginAttempt: true });
+    external.externalProfile.mockResolvedValue({ subject: "subject", mfaVerified: false,
+      authenticatedAt: Math.floor((issuedAt - 3600_000) / 1000) });
+    prisma.user.findUnique.mockResolvedValue({ email: "user@example.com", totpCredential: { enabled: true } });
+    const { GET } = await import("@/app/api/auth/external/[provider]/callback/route");
+    const response = await GET(callback("valid-state", "oidc-asetho-link"), { params: Promise.resolve({ provider: "oidc-asetho-link" }) });
+    expect(flow.beginExternalAuth).not.toHaveBeenCalled();
+    expect(response.headers.get("location")).toBe("http://localhost:3000/admin/2fa");
+    expect(decodePendingLogin(response.cookies.get(PENDING_LOGIN_COOKIE)?.value)).toMatchObject({ userId: "user_1" });
+    expect(auth.createSession).not.toHaveBeenCalled();
+  });
+
+  it("does not retry a recent OIDC password-only sign-in", async () => {
+    const issuedAt = Date.now();
+    providers.getExternalProviderConfig.mockResolvedValue({ key: "oidc-asetho-link", provider: "oidc", id: "asetho-link" });
+    external.decodeExternalAuth.mockReturnValue({ provider: "oidc-asetho-link", state: "valid-state", verifier: "verifier", nonce: "nonce",
+      nextPath: "/admin/links", userId: null, issuedAt });
+    external.externalProfile.mockResolvedValue({ subject: "subject", mfaVerified: false,
+      authenticatedAt: Math.floor(issuedAt / 1000) });
+    prisma.user.findUnique.mockResolvedValue({ email: "user@example.com", totpCredential: { enabled: true } });
+    const { GET } = await import("@/app/api/auth/external/[provider]/callback/route");
+    const response = await GET(callback("valid-state", "oidc-asetho-link"), { params: Promise.resolve({ provider: "oidc-asetho-link" }) });
+    expect(flow.beginExternalAuth).not.toHaveBeenCalled();
+    expect(response.headers.get("location")).toBe("http://localhost:3000/admin/2fa");
+  });
+
   it("connects an identity to the existing session without creating a new session", async () => {
     external.decodeExternalAuth.mockReturnValue({ provider: "google", state: "valid-state", verifier: "verifier", nonce: "nonce", nextPath: "/admin/profile",
       userId: "user_1", sessionId: "session_1", purpose: "connect" });

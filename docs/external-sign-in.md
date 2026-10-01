@@ -66,7 +66,7 @@ Keycloak's default **Username Password Form** accepts both passwords and passkey
 
 See the [Keycloak authentication guide](https://www.keycloak.org/docs/latest/server_admin/#_authentication-flows) and [AMR mapper reference](https://www.keycloak.org/admin-api/protocol-mappers). Verify the ID-token claim for a fresh passkey login, password-plus-OTP login, and password-only login before relying on the exemption. Password-only login must not report `mfa`; if the linked Surls account has TOTP enabled, Surls should still challenge it. Surls does not change Keycloak configuration.
 
-Surls does not request `prompt=login` or `max_age=0`. A new sign-in can reuse a valid Keycloak SSO session whose ID token still reports completed MFA. Keycloak's session and authentication policies control when verification must be repeated; existing Surls sessions are unaffected. If the claim is absent or insufficient, an account with Surls TOTP enabled receives the usual five-minute Surls code challenge before a session is created.
+Surls normally reuses a valid Keycloak SSO session whose ID token still reports completed MFA. If an OIDC session predates the sign-in request and its ID token lacks MFA evidence, Surls requests one fresh sign-in with `max_age=0`. If that attempt still lacks MFA evidence, an account with Surls TOTP enabled receives the usual five-minute Surls code challenge before a session is created. Existing Surls sessions are unaffected.
 
 ## Other provider setup
 

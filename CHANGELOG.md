@@ -1,5 +1,26 @@
 # Changelog
 
+## 3.2.0 - 2026-10-01
+
+### Added
+
+* Customize the admin sidebar logo and text for light and dark themes.
+* Reset a local account password by email when SMTP is configured.
+
+### Changed
+
+* Refresh the Surls logo, typography, and theme styling across the app, site, and documentation.
+* Move backup-code verification and other sensitive profile actions into focused confirmation dialogs.
+
+### Fixed
+
+* Request one fresh OIDC sign-in when an older provider session lacks MFA evidence, while retaining the Surls TOTP challenge when fresh sign-in still lacks it.
+* Keep the static site's hero card styled when a browser has an older cached stylesheet.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 3.1.1 - 2026-09-29
 
 ### Security
