@@ -49,3 +49,13 @@ export async function sendTotpSetupEmailCode(to: string, code: string) {
 export async function sendSmtpTestEmail(to: string) {
   await sendEmail(to, "Surls SMTP test", "Your Surls email settings are working.");
 }
+
+export async function sendPasswordResetEmail(to: string, resetUrl: string) {
+  await sendEmail(to, "Reset your Surls password",
+    `A password reset was requested for your Surls account. Open this link within 15 minutes:\n\n${resetUrl}\n\nIf you did not request this, ignore this email. Your password has not changed.`);
+}
+
+export async function sendPasswordChangedEmail(to: string) {
+  await sendEmail(to, "Your Surls password was changed",
+    "Your Surls password was changed and existing sessions were signed out. If you did not make this change, contact your site administrator immediately.");
+}

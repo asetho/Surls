@@ -1,11 +1,11 @@
 import Link from "next/link";
-import Image from "next/image";
 import { cookies } from "next/headers";
 import { BarChart3, ChevronDown, Link2, LogOut, Menu, Settings, UserRound, Users, Wrench, X } from "lucide-react";
 import { AdminToastHost } from "@/components/AdminToastHost";
 import { DashboardThemeDrawer } from "@/components/DashboardThemeDrawer";
 import { NewShortUrlModal } from "@/components/NewShortUrlModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { AdminBrandingProvider, AdminSidebarBrand } from "@/components/AdminSidebarBrand";
 import { APP_VERSION } from "@/lib/app-version";
 import { isAdminUser, requireAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
@@ -30,12 +30,6 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
   const siteName = settings.siteName;
   const adminThemeStyle = dashboardThemeCssVariables(settings.dashboardTheme) as React.CSSProperties;
   const mobileMenuSide = normalizeMobileMenuSide(user.mobileMenuSide);
-  const brandInitial = siteName.slice(0, 1).toUpperCase() || "S";
-  const brandMarkSrc = settings.favicons?.assets.faviconSvg
-    ? "/favicon.svg"
-    : siteName === "Surls"
-      ? "/brand/surls-app-icon.svg"
-      : null;
   const displayName = user.name || user.email;
 
   const nav = [
@@ -48,15 +42,13 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
   ];
 
   return (
+    <AdminBrandingProvider branding={settings.sidebarBranding}>
     <div className="admin-shell" data-mobile-menu-side={mobileMenuSide} style={adminThemeStyle}>
       <aside className="admin-sidebar">
         <input className="admin-sidebar-toggle sr-only" type="checkbox" id="admin-sidebar-toggle" aria-label="Toggle admin navigation" />
         <label className="admin-sidebar-drawer-trigger" htmlFor="admin-sidebar-toggle">
           <span className="brand admin-sidebar-drawer-brand">
-            <span className={brandMarkSrc ? "brand-mark brand-mark-favicon" : "brand-mark brand-mark-fallback"}>
-              {brandMarkSrc ? <Image src={brandMarkSrc} alt="" aria-hidden="true" width={34} height={34} unoptimized /> : brandInitial}
-            </span>
-            <span>{siteName}</span>
+            <AdminSidebarBrand siteName={siteName} />
           </span>
           <span className="admin-sidebar-drawer-action">
             <Menu size={18} aria-hidden />
@@ -73,10 +65,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
             </label>
           </div>
           <Link className="brand admin-sidebar-brand" href="/admin">
-            <span className={brandMarkSrc ? "brand-mark brand-mark-favicon" : "brand-mark brand-mark-fallback"}>
-              {brandMarkSrc ? <Image src={brandMarkSrc} alt="" aria-hidden="true" width={34} height={34} unoptimized /> : brandInitial}
-            </span>
-            <span>{siteName}</span>
+            <AdminSidebarBrand siteName={siteName} />
           </Link>
           <nav aria-label="Admin">
             {nav.map((item) => {
@@ -118,7 +107,8 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
         <AdminToastHost />
         {children}
       </div>
-      {isAdminUser(user) ? <DashboardThemeDrawer csrf={csrf} theme={settings.dashboardTheme} /> : null}
+      {isAdminUser(user) ? <DashboardThemeDrawer csrf={csrf} theme={settings.dashboardTheme} branding={settings.sidebarBranding} siteName={siteName} /> : null}
     </div>
+    </AdminBrandingProvider>
   );
 }

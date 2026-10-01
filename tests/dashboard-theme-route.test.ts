@@ -10,6 +10,7 @@ const dashboardTheme = vi.hoisted(() => ({
 }));
 const nextCache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 const settings = vi.hoisted(() => ({ setSetting: vi.fn() }));
+const database = vi.hoisted(() => ({ $transaction: vi.fn() }));
 
 vi.mock("@prisma/client", () => ({ AuditAction: { SETTINGS_CHANGED: "SETTINGS_CHANGED" } }));
 vi.mock("next/cache", () => nextCache);
@@ -18,6 +19,8 @@ vi.mock("@/lib/auth", () => auth);
 vi.mock("@/lib/csrf", () => csrf);
 vi.mock("@/lib/dashboard-theme", () => dashboardTheme);
 vi.mock("@/lib/settings", () => settings);
+vi.mock("@/lib/prisma", () => ({ prisma: database }));
+import { DEFAULT_SIDEBAR_BRANDING } from "@/lib/sidebar-branding";
 
 function requestWithFormData(formData: FormData, origin: string | null = "http://localhost:3000") {
   return {
@@ -33,6 +36,7 @@ describe("POST /api/admin/dashboard-theme", () => {
     dashboardTheme.dashboardThemeFromFormData.mockReturnValue({ dark: { accent: "#112233" }, light: { accent: "#abcdef" } });
     settings.setSetting.mockResolvedValue(undefined);
     audit.auditLog.mockResolvedValue(undefined);
+    database.$transaction.mockImplementation((callback) => callback({ appSetting: {} }));
   });
 
   it("rejects anonymous requests before parsing their form body", async () => {
@@ -74,6 +78,57 @@ describe("POST /api/admin/dashboard-theme", () => {
     expect((await POST(request)).status).toBe(403);
     expect(request.formData).not.toHaveBeenCalled();
     expect(csrf.validateCsrf).not.toHaveBeenCalled();
+    expect(settings.setSetting).not.toHaveBeenCalled();
+  });
+
+  it("saves branding with the palette atomically and returns sizing and padding", async () => {
+    const branding = { ...DEFAULT_SIDEBAR_BRANDING, logo: "placeholder", text: "Surls", logoHeight: 44, paddingX: 6, paddingY: 2 };
+    const form = new FormData(); form.set("sidebarBranding", JSON.stringify(branding));
+    const { POST } = await import("@/app/api/admin/dashboard-theme/route");
+    const response = await POST(requestWithFormData(form));
+    expect(response.status).toBe(200);
+    expect(database.$transaction).toHaveBeenCalledOnce();
+    expect(settings.setSetting).toHaveBeenCalledWith("sidebarBranding", branding, expect.any(Object));
+    expect((await response.json()).sidebarBranding).toEqual(branding);
+  });
+
+  it("does not change branding when an older palette-only caller saves", async () => {
+    const { POST } = await import("@/app/api/admin/dashboard-theme/route");
+    await POST(requestWithFormData(new FormData()));
+    expect(settings.setSetting).toHaveBeenCalledTimes(1);
+    expect(database.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("previews a valid image without writing settings or audit records", async () => {
+    const form = new FormData(); form.set("intent", "preview-logo");
+    form.set("logo", new File(['<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><rect width="40" height="20"/></svg>'], "logo.svg"));
+    const { POST } = await import("@/app/api/admin/dashboard-theme/route");
+    const response = await POST(requestWithFormData(form));
+    expect(response.status).toBe(200);
+    expect((await response.json()).image).toMatch(/^data:image\/png;base64,/);
+    expect(settings.setSetting).not.toHaveBeenCalled();
+    expect(audit.auditLog).not.toHaveBeenCalled();
+  });
+
+  it("rejects empty custom branding before saving any colors", async () => {
+    const form = new FormData(); form.set("sidebarBranding", JSON.stringify({ ...DEFAULT_SIDEBAR_BRANDING, logo: "custom" }));
+    const { POST } = await import("@/app/api/admin/dashboard-theme/route");
+    expect((await POST(requestWithFormData(form))).status).toBe(400);
+    expect(settings.setSetting).not.toHaveBeenCalled();
+  });
+
+  it("resets both palette and branding", async () => {
+    const form = new FormData(); form.set("intent", "reset");
+    const { POST } = await import("@/app/api/admin/dashboard-theme/route");
+    expect((await POST(requestWithFormData(form))).status).toBe(200);
+    expect(settings.setSetting).toHaveBeenCalledWith("sidebarBranding", DEFAULT_SIDEBAR_BRANDING, expect.any(Object));
+  });
+
+  it("requires CSRF validation before previewing or saving a logo", async () => {
+    csrf.validateCsrf.mockImplementationOnce(() => { throw new Error("Invalid CSRF"); });
+    const form = new FormData(); form.set("intent", "preview-logo");
+    const { POST } = await import("@/app/api/admin/dashboard-theme/route");
+    expect((await POST(requestWithFormData(form))).status).toBe(400);
     expect(settings.setSetting).not.toHaveBeenCalled();
   });
 });

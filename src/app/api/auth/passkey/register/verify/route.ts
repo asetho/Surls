@@ -2,7 +2,7 @@ import { AuditAction, Prisma } from "@prisma/client";
 import { verifyRegistrationResponse, type RegistrationResponseJSON } from "@simplewebauthn/server";
 import { NextResponse, type NextRequest } from "next/server";
 import { auditLog } from "@/lib/audit";
-import { requireAdmin } from "@/lib/auth";
+import { getCurrentSession } from "@/lib/auth";
 import { validateCsrfValue } from "@/lib/csrf";
 import { env } from "@/lib/env";
 import {
@@ -30,8 +30,9 @@ function registrationError(message: string, status = 400) {
 
 export async function POST(request: NextRequest) {
   if (!(await getSetting("localLoginEnabled"))) return registrationError("Passkey registration is disabled.", 403);
-  const admin = await requireAdmin();
-  if (!admin) return registrationError("Unauthorized", 401);
+  const session = await getCurrentSession();
+  const admin = session?.user;
+  if (!session || !admin) return registrationError("Unauthorized", 401);
   if (!requestOriginMatchesApp(request)) return registrationError("Invalid request origin.", 403);
 
   const body = (await request.json().catch(() => null)) as RegistrationPayload | null;
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
   if (!body?.response) return registrationError("Missing passkey registration response.");
 
   const challenge = decodePasskeyChallenge(request.cookies.get(PASSKEY_REGISTRATION_COOKIE)?.value, "registration");
-  if (!challenge || challenge.userId !== admin.id) {
+  if (!challenge || challenge.userId !== admin.id || challenge.sessionId !== session.id) {
     return registrationError("Passkey setup expired. Please try again.");
   }
 

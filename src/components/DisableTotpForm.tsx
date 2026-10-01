@@ -4,11 +4,12 @@ import { X } from "lucide-react";
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { disableTotpAction } from "@/app/admin/profile/actions";
 
-export function DisableTotpForm({ csrf }: { csrf: string }) {
+export function DisableTotpForm({ csrf, backupCodeAvailable }: { csrf: string; backupCodeAvailable: boolean }) {
   const [state, action, pending] = useActionState(disableTotpAction, null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const [suppressedState, setSuppressedState] = useState(state);
+  const [useBackupCode, setUseBackupCode] = useState(false);
   const titleId = useId();
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export function DisableTotpForm({ csrf }: { csrf: string }) {
       dialog.removeAttribute("open");
     }
     formRef.current?.reset();
+    setUseBackupCode(false);
   }
 
   return (
@@ -49,7 +51,7 @@ export function DisableTotpForm({ csrf }: { csrf: string }) {
         onClick={(event) => {
           if (event.target === event.currentTarget && !pending) closeDialog();
         }}
-        onClose={() => formRef.current?.reset()}
+        onClose={() => { formRef.current?.reset(); setUseBackupCode(false); }}
         onCancel={(event) => {
           if (pending) event.preventDefault();
         }}
@@ -58,7 +60,7 @@ export function DisableTotpForm({ csrf }: { csrf: string }) {
           <div className="modal-header">
             <div>
               <h2 id={titleId}>Disable TOTP</h2>
-              <p className="muted small">Enter a current authenticator code to disable TOTP sign-in.</p>
+              <p className="muted small">Enter a current authenticator code or an unused backup code to disable TOTP sign-in.</p>
             </div>
             <button type="button" className="icon-button secondary" onClick={closeDialog} disabled={pending} aria-label="Close disable TOTP dialog">
               <X size={16} aria-hidden />
@@ -67,9 +69,13 @@ export function DisableTotpForm({ csrf }: { csrf: string }) {
           <form className="form-stack" action={action} ref={formRef}>
             <input type="hidden" name="csrf" value={csrf} />
             <label>
-              Current authenticator code
-              <input name="code" inputMode="numeric" autoComplete="one-time-code" autoFocus required />
+              {useBackupCode ? "Unused backup code" : "Current authenticator code"}
+              <input name="code" inputMode={useBackupCode ? "text" : "numeric"}
+                autoComplete={useBackupCode ? "off" : "one-time-code"} pattern={useBackupCode ? undefined : "[0-9]{6}"} autoFocus required />
             </label>
+            {backupCodeAvailable ? <button type="button" className="secondary" onClick={() => { formRef.current?.reset(); setUseBackupCode(!useBackupCode); }}>
+              {useBackupCode ? "Use an authenticator code" : "Use a backup code instead"}
+            </button> : null}
             {state?.error && state !== suppressedState ? <p className="alert" role="alert">{state.error}</p> : null}
             <div className="row-actions">
               <button className="danger" type="submit" disabled={pending}>

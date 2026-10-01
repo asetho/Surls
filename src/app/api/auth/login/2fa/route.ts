@@ -102,7 +102,10 @@ export async function POST(request: NextRequest) {
   }
 
   if (usedBackupCodeId) {
-    await prisma.backupCode.update({ where: { id: usedBackupCodeId }, data: { usedAt: new Date() } });
+    const consumed = await prisma.backupCode.updateMany({
+      where: { id: usedBackupCodeId, userId: user.id, usedAt: null }, data: { usedAt: new Date() }
+    });
+    if (consumed.count !== 1) return pendingLoginRedirect("That backup code was already used.");
     await auditLog({ userId: user.id, action: AuditAction.BACKUP_CODE_USED });
   }
 

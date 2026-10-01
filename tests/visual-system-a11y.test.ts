@@ -133,8 +133,10 @@ describe("visual system accessibility guards", () => {
     const profilePage = readFileSync("src/app/admin/profile/page.tsx", "utf8");
 
     expect(backupCodesForm).toContain("REGENERATE_BACKUP_CODES_CONFIRMATION");
-    expect(backupCodesForm).toContain("<ConfirmButton type=\"submit\" disabled={pending} message={REGENERATE_BACKUP_CODES_CONFIRMATION}>");
+    expect(backupCodesForm).toContain('className="modal-dialog profile-security-dialog" ref={regenerateDialogRef}');
+    expect(backupCodesForm).toContain('className="modal-dialog profile-security-dialog" ref={deleteDialogRef}');
     expect(backupCodesForm).toContain("Last generated: {generatedAtLabel}");
+    expect(backupCodesForm).toContain("Current authenticator code");
     expect(profilePage).toContain('aria-label={credential?.enabled ? "TOTP enabled" : "TOTP not enabled"}');
     expect(globals).toMatch(/\.backup-codes-result\s*{[\s\S]*max-width:\s*min\(100%,\s*34rem\);[\s\S]*width:\s*fit-content;/);
     expect(globals).toMatch(/\.backup-codes-meta\s*{[\s\S]*justify-self:\s*start;[\s\S]*margin:\s*0;/);

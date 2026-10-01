@@ -48,7 +48,7 @@ vi.mock("@/lib/totp-enrollment", () => proof);
 vi.mock("@/lib/rate-limit", () => rate);
 vi.mock("@/lib/audit", () => audit);
 vi.mock("@/lib/csrf", () => ({ validateCsrf: vi.fn() }));
-vi.mock("@/lib/settings", () => ({ getSiteName: vi.fn() }));
+vi.mock("@/lib/settings", () => ({ getSiteName: vi.fn(), getSetting: vi.fn(async () => true) }));
 vi.mock("@/lib/profile-email", () => profileEmail);
 vi.mock("@/lib/profile-email-code", () => ({}));
 vi.mock("@/lib/profile-verification", () => ({}));
@@ -136,15 +136,17 @@ describe("TOTP enrollment", () => {
     jar.get.mockImplementation((name: string) => name === "surls_totp_setup_email_code" ? { value: "signed-email-code" } : undefined);
     setupEmail.decodeTotpSetupEmailCode.mockReturnValue({ userId: "user_1", sessionId: "other_session", currentEmail: "user@example.com", nonce: "nonce" });
     expect(await startTotpAction(null, form("start", { method: "email", code: "123456" })))
+      .toMatchObject({ error: expect.stringContaining("password") });
+    expect(await startTotpAction(null, form("start", { method: "email", code: "123456", password: "known" })))
       .toMatchObject({ error: expect.stringContaining("Invalid") });
     setupEmail.decodeTotpSetupEmailCode.mockReturnValue({ userId: "user_1", sessionId: "session_1", currentEmail: "previous@example.com", nonce: "nonce" });
-    expect(await startTotpAction(null, form("start", { method: "email", code: "123456" })))
+    expect(await startTotpAction(null, form("start", { method: "email", code: "123456", password: "known" })))
       .toMatchObject({ error: expect.stringContaining("Invalid") });
     setupEmail.decodeTotpSetupEmailCode.mockReturnValue({ userId: "user_1", sessionId: "session_1", currentEmail: "user@example.com", nonce: "nonce" });
-    expect(await startTotpAction(null, form("start", { method: "email", code: "123456" }))).toEqual({ started: true });
+    expect(await startTotpAction(null, form("start", { method: "email", code: "123456", password: "known" }))).toEqual({ started: true });
     expect(rate.checkRateLimit).toHaveBeenCalledWith(expect.stringContaining("profile:totp-setup-email-code:"), 1, 600_000);
     rate.checkRateLimit.mockResolvedValueOnce({ allowed: true }).mockResolvedValueOnce({ allowed: false });
-    expect(await startTotpAction(null, form("start", { method: "email", code: "123456" })))
+    expect(await startTotpAction(null, form("start", { method: "email", code: "123456", password: "known" })))
       .toMatchObject({ error: expect.stringContaining("already used") });
     expect(proof.encodeTotpSetup).toHaveBeenCalledTimes(1);
   });

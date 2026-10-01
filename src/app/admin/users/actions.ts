@@ -66,6 +66,7 @@ export async function createUserAction(_state: CreateUserState | null, formData:
       email,
       name,
       passwordHash: await hashPassword(password || randomToken(48)),
+      passwordResetEligible: Boolean(password),
       role
     }
   });

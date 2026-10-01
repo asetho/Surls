@@ -4,10 +4,13 @@ import Link from "next/link";
 import Script from "next/script";
 import { cookies } from "next/headers";
 import "./globals.css";
+import "../../public/fonts/fonts.css";
+import "../../public/brand/brand.css";
 import "./admin-data.css";
 import "./admin-theme-editor.css";
 import { CurrentPageManifest } from "@/components/CurrentPageManifest";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { SurlsLogo } from "@/components/SurlsLogo";
 import { DEFAULT_DASHBOARD_THEME, dashboardThemeCssVariables } from "@/lib/dashboard-theme";
 import { getSettings, getSiteName } from "@/lib/settings";
 
@@ -32,8 +35,8 @@ export async function generateMetadata(): Promise<Metadata> {
     applicationName: siteName,
     icons: {
       icon: [
-        { url: "/favicon.ico", sizes: "any" },
-        { url: "/favicon.svg", type: "image/svg+xml" }
+        { url: "/favicon.ico?v=20260930", sizes: "any" },
+        { url: "/favicon.svg?v=20260930", type: "image/svg+xml" }
       ],
       apple: [{ url: "/apple-touch-icon.png" }]
     }
@@ -60,9 +63,6 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang="en" data-theme={initialTheme} data-theme-choice={themeChoice} style={dashboardThemeStyle} suppressHydrationWarning>
       <head>
-        <link rel="preconnect" href="https://use.typekit.net" />
-        <link rel="preconnect" href="https://p.typekit.net" />
-        <link rel="stylesheet" href="https://use.typekit.net/ynp6ech.css" />
         <CurrentPageManifest />
       </head>
       <body>
@@ -78,11 +78,10 @@ export async function PublicHeader() {
   const brandInitial = siteName.slice(0, 1).toUpperCase() || "S";
 
   return (
-    <header className="site-header">
+    <header className="site-header surls-brand-surface">
       <div className="container site-header-inner">
         <Link className="brand" href="/">
-          <span className="brand-mark">{brandInitial}</span>
-          <span>{siteName}</span>
+          {siteName === "Surls" ? <SurlsLogo /> : <><span className="brand-mark">{brandInitial}</span><span>{siteName}</span></>}
         </Link>
         <nav className="nav-actions" aria-label="Primary">
           <ThemeToggle initialChoice={themeChoice} />

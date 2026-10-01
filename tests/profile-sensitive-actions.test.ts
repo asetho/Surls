@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const auth = vi.hoisted(() => ({ getCurrentSession: vi.fn(), requireAdmin: vi.fn(), requireSiteAdmin: vi.fn() }));
 const cookieJar = vi.hoisted(() => ({ get: vi.fn(), set: vi.fn(), delete: vi.fn() }));
-const tx = vi.hoisted(() => ({ $queryRaw: vi.fn(), totpCredential: { deleteMany: vi.fn() } }));
+const tx = vi.hoisted(() => ({ $queryRaw: vi.fn(), totpCredential: { deleteMany: vi.fn(), findUnique: vi.fn() }, user: { updateMany: vi.fn() } }));
 const prisma = vi.hoisted(() => ({
   $transaction: vi.fn(),
   user: { findFirst: vi.fn(), update: vi.fn() },
@@ -10,6 +10,7 @@ const prisma = vi.hoisted(() => ({
 }));
 const rate = vi.hoisted(() => ({ checkRateLimit: vi.fn() }));
 const totp = vi.hoisted(() => ({ createTotpSecret: vi.fn(), verifyTotpCode: vi.fn() }));
+const backupProof = vi.hoisted(() => ({ matchingBackupCodeId: vi.fn(), consumeBackupCode: vi.fn() }));
 const email = vi.hoisted(() => ({ profileEmailAvailable: vi.fn(), sendProfileEmailCode: vi.fn() }));
 const emailCode = vi.hoisted(() => ({
   PROFILE_EMAIL_CODE_COOKIE: "surls_profile_email_code",
@@ -18,10 +19,11 @@ const emailCode = vi.hoisted(() => ({
   verifyProfileEmailCode: vi.fn()
 }));
 const settings = vi.hoisted(() => ({ getSetting: vi.fn(), getSiteName: vi.fn() }));
+const password = vi.hoisted(() => ({ verifyPassword: vi.fn() }));
 const profileVerification = vi.hoisted(() => ({
-  PROFILE_VERIFICATION_COOKIE: "surls_profile_verification",
+  PROFILE_VERIFICATION_COOKIE: "surls_profile_verification_v2",
   decodeProfileVerification: vi.fn(),
-  profileVerificationCookieOptions: vi.fn(() => ({ path: "/admin/profile" })),
+  profileVerificationCookieOptions: vi.fn(() => ({ path: "/" })),
   profileVerificationUseKey: vi.fn(() => "profile:verification:proof")
 }));
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
@@ -34,7 +36,9 @@ vi.mock("@/lib/rate-limit", () => rate);
 vi.mock("@/lib/profile-email", () => email);
 vi.mock("@/lib/profile-email-code", () => emailCode);
 vi.mock("@/lib/totp", () => totp);
+vi.mock("@/lib/backup-code-proof", () => backupProof);
 vi.mock("@/lib/settings", () => settings);
+vi.mock("@/lib/password", () => password);
 vi.mock("@/lib/profile-verification", () => profileVerification);
 vi.mock("@/lib/csrf", () => ({ validateCsrf: vi.fn() }));
 vi.mock("@/lib/audit", () => audit);
@@ -75,8 +79,13 @@ describe("sensitive profile changes", () => {
         ? [{ userId: "user_1", createdAt: new Date("2026-09-25T12:00:00Z"), expiresAt: new Date(Date.now() + 60_000) }]
         : [{ id: "user_1" }]);
     tx.totpCredential.deleteMany.mockResolvedValue({ count: 1 });
+    tx.totpCredential.findUnique.mockResolvedValue({ id: "totp_1", enabled: true, secretEncrypted: "encrypted-secret" });
+    tx.user.updateMany.mockResolvedValue({ count: 1 });
+    backupProof.matchingBackupCodeId.mockResolvedValue(null);
+    backupProof.consumeBackupCode.mockResolvedValue(true);
     rate.checkRateLimit.mockResolvedValue({ allowed: true });
     settings.getSetting.mockResolvedValue(true);
+    password.verifyPassword.mockResolvedValue(true);
     email.profileEmailAvailable.mockReturnValue(true);
     email.sendProfileEmailCode.mockResolvedValue(undefined);
     emailCode.createProfileEmailCode.mockReturnValue({ code: "123456", cookie: "signed-email-proof" });
@@ -106,6 +115,8 @@ describe("sensitive profile changes", () => {
     emailCode.verifyProfileEmailCode.mockReturnValue(true);
     expect(await updateProfileAction(null, form)).toMatchObject({ error: "Invalid or expired email verification code." });
     emailCode.decodeProfileEmailCode.mockReturnValue({ userId: "user_1", sessionId: "session_1", currentEmail: "old@example.com", pendingEmail: "new@example.com", nonce: "nonce" });
+    expect(await updateProfileAction(null, form)).toMatchObject({ error: expect.stringContaining("password") });
+    form.set("password", "known-secret");
     expect(await updateProfileAction(null, form)).toEqual({ message: "Profile updated." });
     expect(cookieJar.set).toHaveBeenCalledWith("surls_profile_email_code", "", { path: "/admin/profile", maxAge: 0 });
     expect(prisma.user.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ email: "new@example.com" }) }));
@@ -136,6 +147,24 @@ describe("sensitive profile changes", () => {
     expect(rate.checkRateLimit).toHaveBeenCalledWith(expect.stringContaining("profile:totp-code:user_1:"), 1, 90_000);
   });
 
+  it("accepts and consumes one saved backup code for an email change", async () => {
+    auth.requireAdmin.mockResolvedValue({ id: "user_1", email: "old@example.com", passwordHash: "password-hash",
+      totpCredential: { id: "totp_1", enabled: true, secretEncrypted: "encrypted-secret", enabledAt: new Date("2026-09-24T12:00:00Z") } });
+    backupProof.matchingBackupCodeId.mockResolvedValue("backup_1");
+    const { updateProfileAction } = await import("@/app/admin/profile/actions");
+    const form = profileForm();
+    form.set("verificationCode", "ABCDE-FGHJK");
+    expect(await updateProfileAction(null, form)).toEqual({ message: "Profile updated." });
+    expect(backupProof.consumeBackupCode).toHaveBeenCalledWith(tx, "user_1", "backup_1");
+    expect(tx.user.updateMany).toHaveBeenCalledWith({
+      where: { id: "user_1", email: "old@example.com" }, data: expect.objectContaining({ email: "new@example.com" })
+    });
+    expect(audit.auditLog).toHaveBeenCalledWith(expect.objectContaining({ action: "BACKUP_CODE_USED" }));
+    backupProof.consumeBackupCode.mockResolvedValueOnce(false);
+    expect(await updateProfileAction(null, form)).toMatchObject({ error: expect.stringContaining("no longer valid") });
+    expect(tx.user.updateMany).toHaveBeenCalledTimes(1);
+  });
+
   it("does not trust a TOTP factor enrolled after this session began", async () => {
     auth.requireAdmin.mockResolvedValue({ id: "user_1", email: "old@example.com", passwordHash: "password-hash",
       totpCredential: { enabled: true, secretEncrypted: "encrypted-secret", enabledAt: new Date("2026-09-25T12:01:00Z") } });
@@ -156,16 +185,20 @@ describe("sensitive profile changes", () => {
     profileVerification.decodeProfileVerification.mockReturnValue({ userId: "user_1", sessionId: "session_1", pendingEmail: "other@example.com", nonce: "nonce" });
     expect(await updateProfileAction(null, profileForm())).toMatchObject({ verificationRequired: "email" });
     expect(prisma.user.update).not.toHaveBeenCalled();
-    profileVerification.decodeProfileVerification.mockReturnValue({ userId: "user_1", sessionId: "session_1", pendingEmail: "new@example.com", nonce: "nonce" });
-    expect(await updateProfileAction(null, profileForm())).toEqual({ message: "Profile updated." });
+    profileVerification.decodeProfileVerification.mockReturnValue({ userId: "user_1", sessionId: "session_1", pendingEmail: "new@example.com", action: "email-change", nonce: "nonce" });
+    const form = profileForm();
+    form.set("verificationCode", "123456");
+    emailCode.decodeProfileEmailCode.mockReturnValue({ userId: "user_1", sessionId: "session_1", currentEmail: "old@example.com", pendingEmail: "new@example.com", nonce: "email-nonce" });
+    emailCode.verifyProfileEmailCode.mockReturnValue(true);
+    expect(await updateProfileAction(null, form)).toEqual({ message: "Profile updated." });
     expect(rate.checkRateLimit).toHaveBeenCalledWith("profile:verification:proof", 1, 300_000);
-    expect(cookieJar.set).toHaveBeenCalledWith("surls_profile_verification", "", { path: "/admin/profile", maxAge: 0 });
+    expect(cookieJar.set).toHaveBeenCalledWith("surls_profile_verification_v2", "", { path: "/", maxAge: 0 });
   });
 
   it("requires a current TOTP code before disabling TOTP", async () => {
     const { disableTotpAction } = await import("@/app/admin/profile/actions");
-    expect(await disableTotpAction(null, codeForm())).toEqual({ error: "Enter a valid current authenticator code." });
-    expect(await disableTotpAction(null, codeForm("wrong"))).toEqual({ error: "Enter a valid current authenticator code." });
+    expect(await disableTotpAction(null, codeForm())).toEqual({ error: "Enter a valid current authenticator code or backup code." });
+    expect(await disableTotpAction(null, codeForm("wrong"))).toEqual({ error: "Enter a valid current authenticator code or backup code." });
     expect(tx.totpCredential.deleteMany).not.toHaveBeenCalled();
     totp.verifyTotpCode.mockResolvedValue(true);
     expect(await disableTotpAction(null, codeForm("123456"))).toEqual({ message: "TOTP disabled." });
@@ -179,6 +212,17 @@ describe("sensitive profile changes", () => {
     expect(String(tx.$queryRaw.mock.calls[1]?.[0]?.join(""))).toContain("FOR UPDATE");
     expect(tx.$queryRaw.mock.invocationCallOrder[1]).toBeLessThan(tx.totpCredential.deleteMany.mock.invocationCallOrder[0]);
     expect(rate.checkRateLimit).toHaveBeenCalledWith(expect.stringContaining("profile:totp-code:user_1:"), 1, 90_000);
+  });
+
+  it("accepts a single-use backup code to disable a lost authenticator", async () => {
+    backupProof.matchingBackupCodeId.mockResolvedValue("backup_1");
+    const { disableTotpAction } = await import("@/app/admin/profile/actions");
+    expect(await disableTotpAction(null, codeForm("ABCDE-FGHJK"))).toEqual({ message: "TOTP disabled." });
+    expect(backupProof.consumeBackupCode).toHaveBeenCalledWith(tx, "user_1", "backup_1");
+    expect(tx.totpCredential.deleteMany).toHaveBeenCalledTimes(1);
+    backupProof.consumeBackupCode.mockResolvedValueOnce(false);
+    expect(await disableTotpAction(null, codeForm("ABCDE-FGHJK"))).toEqual({ error: "Sign in again before disabling TOTP." });
+    expect(tx.totpCredential.deleteMany).toHaveBeenCalledTimes(1);
   });
 
   it("does not disable TOTP when the initiating session is revoked during code verification", async () => {

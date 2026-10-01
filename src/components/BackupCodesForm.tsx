@@ -1,10 +1,9 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
-import { Check, Copy, Download, KeyRound, Trash2 } from "lucide-react";
+import { useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
+import { Check, Copy, Download, KeyRound, Trash2, X } from "lucide-react";
 import { deleteBackupCodesAction, regenerateBackupCodesAction } from "@/app/admin/profile/actions";
 import { formatDateTime } from "@/lib/dates";
-import { ConfirmButton } from "./ConfirmButton";
 
 const BACKUP_CODES_CONFIRMATION =
   "These backup codes are shown only once. Confirm you have saved, downloaded, or copied them before leaving this page.";
@@ -25,16 +24,22 @@ export function BackupCodesForm({
   lastGeneratedAt: string | null;
 }) {
   const [state, action, pending] = useActionState(regenerateBackupCodesAction, null);
+  const regenerateDialogRef = useRef<HTMLDialogElement>(null);
+  const regenerateTitleId = useId();
+  const [deleteState, deleteAction, deletePending] = useActionState(deleteBackupCodesAction, null);
+  const deleteDialogRef = useRef<HTMLDialogElement>(null);
+  const deleteTitleId = useId();
   const [acknowledgedCodesText, setAcknowledgedCodesText] = useState<string | null>(null);
   const [dismissedCodesText, setDismissedCodesText] = useState<string | null>(null);
   const [exportState, setExportState] = useState<{ codesText: string; message: string } | null>(null);
+  const [useBackupCode, setUseBackupCode] = useState(false);
   const codes = state?.codes;
   const codesText = useMemo(() => (codes ?? []).join("\n"), [codes]);
-  const codesAcknowledged = !codesText || acknowledgedCodesText === codesText;
-  const showGeneratedCodes = Boolean(codes?.length && dismissedCodesText !== codesText);
+  const codesAcknowledged = !codesText || acknowledgedCodesText === codesText || Boolean(deleteState?.deleted);
+  const showGeneratedCodes = Boolean(codes?.length && dismissedCodesText !== codesText && !deleteState?.deleted);
   const exportMessage = exportState?.codesText === codesText ? exportState.message : null;
-  const hasBackupCodes = backupCount > 0 || Boolean(codes?.length);
-  const buttonLabel = backupCount > 0 || state?.codes?.length ? "Regenerate backup codes" : "Generate backup codes";
+  const hasBackupCodes = !deleteState?.deleted && (backupCount > 0 || Boolean(codes?.length));
+  const buttonLabel = hasBackupCodes ? "Regenerate backup codes" : "Generate backup codes";
   const shouldWarnBeforeLeaving = Boolean(codesText) && !codesAcknowledged;
   const generatedAt = state?.generatedAt ?? lastGeneratedAt;
   const generatedAtLabel = useMemo(() => {
@@ -42,6 +47,17 @@ export function BackupCodesForm({
     const date = new Date(generatedAt);
     return Number.isNaN(date.getTime()) ? "Never generated" : formatDateTime(date, displayTimeZone);
   }, [displayTimeZone, generatedAt]);
+
+  useEffect(() => {
+    if (deleteState?.deleted) {
+      deleteDialogRef.current?.close();
+      window.location.reload();
+    }
+  }, [deleteState]);
+
+  useEffect(() => {
+    if (state?.codes?.length) regenerateDialogRef.current?.close();
+  }, [state]);
 
   useEffect(() => {
     if (!shouldWarnBeforeLeaving) return;
@@ -159,44 +175,55 @@ export function BackupCodesForm({
   return (
     <div className="form-stack">
       <div className="backup-codes-actions">
-        <form className="form-stack" action={action}>
-          <input type="hidden" name="csrf" value={csrf} />
-          <label>
-            Current authenticator code
-            <input name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" required />
-          </label>
-          {hasBackupCodes ? (
-            <ConfirmButton type="submit" disabled={pending} message={REGENERATE_BACKUP_CODES_CONFIRMATION}>
-              <KeyRound size={16} aria-hidden />
-              {buttonLabel}
-            </ConfirmButton>
-          ) : (
-            <button type="submit" disabled={pending}>
-              <KeyRound size={16} aria-hidden />
-              {buttonLabel}
-            </button>
-          )}
-          {state?.error ? <p className="alert" role="alert">{state.error}</p> : null}
-        </form>
+        <button type="button" onClick={() => regenerateDialogRef.current?.showModal()}>
+          <KeyRound size={16} aria-hidden /> {buttonLabel}
+        </button>
+        <dialog className="modal-dialog profile-security-dialog" ref={regenerateDialogRef} aria-labelledby={regenerateTitleId}
+          onClick={(event) => { if (event.target === event.currentTarget && !pending) event.currentTarget.close(); }}>
+          <div className="modal-panel delete-modal-panel">
+            <div className="modal-header"><div><h2 id={regenerateTitleId}>{buttonLabel}</h2>
+              <p className="muted small">{hasBackupCodes ? REGENERATE_BACKUP_CODES_CONFIRMATION : "Verify your identity to create backup codes."}</p></div>
+              <button type="button" className="icon-button secondary" aria-label="Close backup code dialog" onClick={() => regenerateDialogRef.current?.close()} disabled={pending}><X size={16} aria-hidden /></button>
+            </div>
+            <form className="form-stack" action={action}>
+              <input type="hidden" name="csrf" value={csrf} />
+              <label>{useBackupCode ? "Unused backup code" : "Current authenticator code"}
+                <input key={useBackupCode ? "backup" : "totp"} name="code" inputMode={useBackupCode ? "text" : "numeric"}
+                  autoComplete={useBackupCode ? "off" : "one-time-code"} pattern={useBackupCode ? undefined : "[0-9]{6}"} required />
+              </label>
+              {hasBackupCodes ? <button className="secondary" type="button" onClick={() => setUseBackupCode(!useBackupCode)}>
+                {useBackupCode ? "Use an authenticator code" : "Use a backup code instead"}
+              </button> : null}
+              {state?.error ? <p className="alert" role="alert">{state.error}</p> : null}
+              <div className="row-actions"><button type="submit" disabled={pending}>{buttonLabel}</button>
+                <button className="secondary" type="button" onClick={() => regenerateDialogRef.current?.close()} disabled={pending}>Cancel</button></div>
+            </form>
+          </div>
+        </dialog>
         {canDeleteBackupCodes && hasBackupCodes ? (
-          <form
-            action={deleteBackupCodesAction}
-            onSubmit={() => {
-              if (!codesText) return;
-              setAcknowledgedCodesText(codesText);
-              setDismissedCodesText(codesText);
-            }}
-          >
-            <input type="hidden" name="csrf" value={csrf} />
-            <ConfirmButton
-              className="danger-outline"
-              type="submit"
-              message="Delete all backup codes for your account? You will not be able to use them for recovery."
-            >
-              <Trash2 size={16} aria-hidden />
-              Delete backup codes
-            </ConfirmButton>
-          </form>
+          <>
+            <button className="danger-outline" type="button" onClick={() => deleteDialogRef.current?.showModal()}>
+              <Trash2 size={16} aria-hidden /> Delete backup codes
+            </button>
+            <dialog className="modal-dialog profile-security-dialog" ref={deleteDialogRef} aria-labelledby={deleteTitleId}
+              onClick={(event) => { if (event.target === event.currentTarget && !deletePending) event.currentTarget.close(); }}>
+              <div className="modal-panel delete-modal-panel">
+                <div className="modal-header"><div><h2 id={deleteTitleId}>Delete backup codes</h2>
+                  <p className="muted small">These codes will stop working immediately. Verify with your current authenticator to continue.</p></div>
+                  <button type="button" className="icon-button secondary" aria-label="Close delete backup codes dialog" onClick={() => deleteDialogRef.current?.close()}><X size={16} aria-hidden /></button>
+                </div>
+                <form className="form-stack" action={deleteAction}>
+                  <input type="hidden" name="csrf" value={csrf} />
+                  <label>Current authenticator code
+                    <input name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" required />
+                  </label>
+                  {deleteState?.error ? <p className="alert" role="alert">{deleteState.error}</p> : null}
+                  <div className="row-actions"><button className="danger" type="submit" disabled={deletePending}>Delete backup codes</button>
+                    <button className="secondary" type="button" onClick={() => deleteDialogRef.current?.close()}>Cancel</button></div>
+                </form>
+              </div>
+            </dialog>
+          </>
         ) : null}
       </div>
       <p className="backup-codes-meta muted small">Last generated: {generatedAtLabel}</p>

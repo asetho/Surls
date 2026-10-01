@@ -14,6 +14,7 @@ function apply() {
   meta?.setAttribute("content", theme === "dark" ? "#061d2b" : "#f2f5f7");
   const button = document.querySelector("[data-theme-toggle]");
   if (button) {
+    button.querySelectorAll("[data-theme-icon]").forEach((icon) => { icon.hidden = icon.dataset.themeIcon !== choice; });
     button.setAttribute("aria-label", `Color theme: ${choice}. Switch to ${choice === "light" ? "system" : choice === "auto" ? "dark" : "light"}.`);
   }
 }

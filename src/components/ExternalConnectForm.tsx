@@ -6,20 +6,23 @@ import { X } from "lucide-react";
 type Provider = { key: string; label: string };
 
 type ExternalConnectFormProps = {
+  backupCodeAvailable: boolean;
   csrf: string;
   provider: Provider;
   currentEmail: string;
   totpEnabled: boolean;
+  localLoginEnabled: boolean;
   emailCodeAvailable: boolean;
   verificationProviders: Provider[];
 };
 
-export function ExternalConnectForm({ csrf, provider, currentEmail, totpEnabled, emailCodeAvailable, verificationProviders }: ExternalConnectFormProps) {
+export function ExternalConnectForm({ backupCodeAvailable, csrf, provider, currentEmail, totpEnabled, localLoginEnabled, emailCodeAvailable, verificationProviders }: ExternalConnectFormProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [codeSent, setCodeSent] = useState(false);
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState("");
   const [sendError, setSendError] = useState(false);
+  const [useBackupCode, setUseBackupCode] = useState(false);
   const action = `/api/auth/external/${encodeURIComponent(provider.key)}`;
 
   async function sendCode() {
@@ -62,15 +65,20 @@ export function ExternalConnectForm({ csrf, provider, currentEmail, totpEnabled,
             <form className="form-stack" action={action} method="post">
               <input type="hidden" name="csrf" value={csrf} />
               <input type="hidden" name="purpose" value="connect" />
-              <input type="hidden" name="method" value="totp" />
-              <label>Current authenticator code
-                <input name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" required />
+              <input type="hidden" name="method" value={useBackupCode ? "backup" : "totp"} />
+              <label>{useBackupCode ? "Unused backup code" : "Current authenticator code"}
+                <input name="code" inputMode={useBackupCode ? "text" : "numeric"}
+                  autoComplete={useBackupCode ? "off" : "one-time-code"} pattern={useBackupCode ? undefined : "[0-9]{6}"} required />
               </label>
+              {backupCodeAvailable ? <button className="secondary" type="button" onClick={(event) => {
+                event.currentTarget.form?.reset();
+                setUseBackupCode(!useBackupCode);
+              }}>{useBackupCode ? "Use an authenticator code" : "Use a backup code instead"}</button> : null}
               <button type="submit">Verify and connect</button>
             </form>
           ) : (
             <>
-              <form className="form-stack" action={action} method="post">
+              {localLoginEnabled ? <form className="form-stack" action={action} method="post">
                 <input type="hidden" name="csrf" value={csrf} />
                 <input type="hidden" name="purpose" value="connect" />
                 <input type="hidden" name="method" value="password" />
@@ -78,10 +86,10 @@ export function ExternalConnectForm({ csrf, provider, currentEmail, totpEnabled,
                   <input name="password" type="password" autoComplete="current-password" required />
                 </label>
                 <button type="submit">Verify and connect</button>
-              </form>
-              {emailCodeAvailable ? (
+              </form> : null}
+              {emailCodeAvailable && localLoginEnabled ? (
                 <div className="form-stack">
-                  <p className="muted small">Or use a code sent to your current email, {currentEmail}.</p>
+                  <p className="muted small">You can also confirm your password and a code sent to {currentEmail}.</p>
                   <button className="secondary" type="button" onClick={sendCode} disabled={sending}>{sending ? "Sending..." : codeSent ? "Send a new code" : "Send email code"}</button>
                   {message ? <p className={sendError ? "alert" : "success small"} role="status">{message}</p> : null}
                   {codeSent ? (
@@ -91,6 +99,9 @@ export function ExternalConnectForm({ csrf, provider, currentEmail, totpEnabled,
                       <input type="hidden" name="method" value="email" />
                       <label>Email verification code
                         <input name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" required />
+                      </label>
+                      <label>Current Surls password
+                        <input name="password" type="password" autoComplete="current-password" required />
                       </label>
                       <button type="submit">Verify and connect</button>
                     </form>
@@ -114,6 +125,9 @@ export function ExternalConnectForm({ csrf, provider, currentEmail, totpEnabled,
                 ))}
               </div>
             </div>
+          ) : null}
+          {!totpEnabled && !localLoginEnabled && !verificationProviders.length ? (
+            <p className="alert" role="alert">Account verification is unavailable. Ask a site administrator to restore password sign-in or a linked provider.</p>
           ) : null}
         </div>
       </dialog>

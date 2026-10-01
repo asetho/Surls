@@ -8,9 +8,11 @@ import { DEFAULT_MOBILE_MENU_SIDE, normalizeMobileMenuSide } from "@/lib/mobile-
 import { TimeZoneSelect } from "./TimeZoneSelect";
 
 type ProfileIdentityFormProps = {
+  backupCodeAvailable: boolean;
   csrf: string;
   emailCodeAvailable: boolean;
   emailVerificationProviders: { key: string; label: string }[];
+  localLoginEnabled: boolean;
   pendingEmail: string | null;
   providerVerified: boolean;
   siteDefaultTimeZone: string;
@@ -23,10 +25,11 @@ type ProfileIdentityFormProps = {
   };
 };
 
-export function ProfileIdentityForm({ csrf, emailCodeAvailable, emailVerificationProviders, pendingEmail, providerVerified, siteDefaultTimeZone, totpEnabled, user }: ProfileIdentityFormProps) {
+export function ProfileIdentityForm({ backupCodeAvailable, csrf, emailCodeAvailable, emailVerificationProviders, localLoginEnabled, pendingEmail, providerVerified, siteDefaultTimeZone, totpEnabled, user }: ProfileIdentityFormProps) {
   const [state, action, pending] = useActionState(updateProfileAction, null);
   const [email, setEmail] = useState(pendingEmail ?? user.email);
   const [verificationCode, setVerificationCode] = useState("");
+  const [useBackupCode, setUseBackupCode] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const formId = useId();
@@ -34,6 +37,7 @@ export function ProfileIdentityForm({ csrf, emailCodeAvailable, emailVerificatio
   const mobileMenuSide = normalizeMobileMenuSide(user.mobileMenuSide ?? DEFAULT_MOBILE_MENU_SIDE);
   const emailChanged = email.trim().toLowerCase() !== user.email.toLowerCase();
   const hasProviderProof = providerVerified && pendingEmail?.toLowerCase() === email.trim().toLowerCase();
+  const emailChangeUnavailable = !totpEnabled && !localLoginEnabled && !emailVerificationProviders.length && !hasProviderProof;
 
   useEffect(() => {
     if (state?.message) {
@@ -55,6 +59,11 @@ export function ProfileIdentityForm({ csrf, emailCodeAvailable, emailVerificatio
   }, [state]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    if (emailChanged && emailChangeUnavailable) {
+      event.preventDefault();
+      if (!dialogRef.current?.open) { dialogRef.current?.showModal(); setDialogOpen(true); }
+      return;
+    }
     if (!emailChanged || hasProviderProof || !totpEnabled) return;
     const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
     if (submitter?.name === "confirmEmailChange") return;
@@ -115,7 +124,7 @@ export function ProfileIdentityForm({ csrf, emailCodeAvailable, emailVerificatio
           </div>
         </fieldset>
       </div>
-      {emailChanged && hasProviderProof ? <p className="success small">Identity verified. Complete your email change now.</p> : null}
+      {emailChanged && hasProviderProof ? <p className="success small">Linked provider verified. {totpEnabled ? "Complete your email change now." : "A code sent to your current email is also required."}</p> : null}
       <div className="profile-meta-row">
         <span className="muted small">Used for sign-in, passkeys, account activity, and timestamp display.</span>
       </div>
@@ -128,7 +137,7 @@ export function ProfileIdentityForm({ csrf, emailCodeAvailable, emailVerificatio
       className="modal-dialog profile-verification-dialog"
       ref={dialogRef}
       aria-labelledby={titleId}
-      onClose={() => { setDialogOpen(false); setVerificationCode(""); }}
+      onClose={() => { setDialogOpen(false); setVerificationCode(""); setUseBackupCode(false); }}
       onClick={(event) => { if (event.target === event.currentTarget) event.currentTarget.close(); }}
     >
       <div className="modal-panel">
@@ -140,20 +149,31 @@ export function ProfileIdentityForm({ csrf, emailCodeAvailable, emailVerificatio
           <button type="button" className="icon-button secondary" onClick={() => dialogRef.current?.close()} aria-label="Close verification dialog"><X size={16} aria-hidden /></button>
         </div>
         {state?.error ? <p className="alert" role="alert">{state.error}</p> : null}
+        {emailChangeUnavailable ? <p className="alert" role="alert">Changing your email requires a Surls password or a linked sign-in provider. Ask a site administrator to help restore an available verification method.</p> : null}
         {totpEnabled ? (
-          <label className="form-field">Current authenticator code
-            <input form={formId} name="verificationCode" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" value={verificationCode} onChange={(event) => setVerificationCode(event.target.value)} required={dialogOpen} />
-          </label>
+          <div className="form-stack">
+            <label className="form-field">{useBackupCode ? "Unused backup code" : "Current authenticator code"}
+              <input form={formId} name="verificationCode" inputMode={useBackupCode ? "text" : "numeric"}
+                autoComplete={useBackupCode ? "off" : "one-time-code"} pattern={useBackupCode ? undefined : "[0-9]{6}"}
+                value={verificationCode} onChange={(event) => setVerificationCode(event.target.value)} required={dialogOpen} />
+            </label>
+            {backupCodeAvailable ? <button type="button" className="secondary" onClick={() => { setUseBackupCode(!useBackupCode); setVerificationCode(""); }}>
+              {useBackupCode ? "Use an authenticator code" : "Use a backup code instead"}
+            </button> : null}
+          </div>
         ) : emailCodeAvailable ? (
           <>
-            <p className="muted small">Enter the six-digit code sent to your current email, {user.email}. It expires in 10 minutes.</p>
+            <p className="muted small">Enter the six-digit code sent to your current email, {user.email}, and confirm your identity. The code expires in 10 minutes.</p>
             <label className="form-field">Email verification code
               <input form={formId} name="verificationCode" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" value={verificationCode} onChange={(event) => setVerificationCode(event.target.value)} required={dialogOpen} />
             </label>
+            {localLoginEnabled && !hasProviderProof ? <label className="form-field">Current Surls password
+              <input form={formId} name="password" type="password" autoComplete="current-password" required={dialogOpen} />
+            </label> : null}
           </>
         ) : null}
         <div className="row-actions">
-          {(totpEnabled || emailCodeAvailable) ? <button type="submit" form={formId} name="confirmEmailChange" value="yes" disabled={pending}>Confirm email change</button> : null}
+          {(totpEnabled || (emailCodeAvailable && (localLoginEnabled || hasProviderProof))) ? <button type="submit" form={formId} name="confirmEmailChange" value="yes" disabled={pending}>Confirm email change</button> : null}
           {!totpEnabled && emailCodeAvailable ? <button type="submit" form={formId} formNoValidate name="resendCode" value="yes" className="secondary" disabled={pending} onClick={() => setVerificationCode("")}>Send a new code</button> : null}
         </div>
         {emailVerificationProviders.length ? (

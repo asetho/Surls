@@ -10,12 +10,14 @@ const external = vi.hoisted(() => ({
 }));
 const auth = vi.hoisted(() => ({ getCurrentSession: vi.fn() }));
 const providers = vi.hoisted(() => ({ getExternalProviderConfig: vi.fn(), externalProviderKey: vi.fn(() => "linked-provider-key") }));
-const prisma = vi.hoisted(() => ({ externalIdentity: { findFirst: vi.fn() } }));
+const prisma = vi.hoisted(() => ({ externalIdentity: { findFirst: vi.fn() }, $transaction: vi.fn() }));
 const rate = vi.hoisted(() => ({ checkRateLimit: vi.fn() }));
 const settings = vi.hoisted(() => ({ getSetting: vi.fn() }));
 const csrf = vi.hoisted(() => ({ validateCsrf: vi.fn() }));
 const password = vi.hoisted(() => ({ verifyPassword: vi.fn() }));
 const totp = vi.hoisted(() => ({ verifyTotpCode: vi.fn() }));
+const backupProof = vi.hoisted(() => ({ matchingBackupCodeId: vi.fn(), consumeBackupCode: vi.fn() }));
+const audit = vi.hoisted(() => ({ auditLog: vi.fn() }));
 const mail = vi.hoisted(() => ({ profileEmailAvailable: vi.fn(), sendExternalConnectCode: vi.fn() }));
 const connectCode = vi.hoisted(() => ({
   EXTERNAL_CONNECT_CODE_COOKIE: "surls_external_connect_code",
@@ -32,6 +34,8 @@ vi.mock("@/lib/settings", () => settings);
 vi.mock("@/lib/csrf", () => csrf);
 vi.mock("@/lib/password", () => password);
 vi.mock("@/lib/totp", () => totp);
+vi.mock("@/lib/backup-code-proof", () => backupProof);
+vi.mock("@/lib/audit", () => audit);
 vi.mock("@/lib/profile-email", () => mail);
 vi.mock("@/lib/external-connect-code", () => connectCode);
 vi.mock("@/lib/request", () => ({ requestIp: () => "127.0.0.1", requestOriginMatchesApp: () => true }));
@@ -56,6 +60,8 @@ describe("external account connection start", () => {
     prisma.externalIdentity.findFirst.mockResolvedValue({ id: "identity_1" });
     password.verifyPassword.mockResolvedValue(true);
     totp.verifyTotpCode.mockResolvedValue(true);
+    backupProof.matchingBackupCodeId.mockResolvedValue(null);
+    backupProof.consumeBackupCode.mockResolvedValue(true);
     mail.profileEmailAvailable.mockResolvedValue(true);
     mail.sendExternalConnectCode.mockResolvedValue(undefined);
     connectCode.createExternalConnectCode.mockReturnValue({ code: "123456", cookie: "signed-code" });
@@ -119,6 +125,26 @@ describe("external account connection start", () => {
     expect((await POST(post("csrf=valid&purpose=connect&method=totp&code=123456"), context)).status).toBe(303);
   });
 
+  it("consumes a saved backup code once before connecting a provider", async () => {
+    const session = await auth.getCurrentSession();
+    session.user.totpCredential = { id: "totp_1", enabled: true, secretEncrypted: "secret", enabledAt: new Date("2026-09-24T12:00:00Z") };
+    backupProof.matchingBackupCodeId.mockResolvedValue("backup_1");
+    const tx = {
+      $queryRaw: vi.fn(async (parts: TemplateStringsArray) => String(parts[0]).includes('"Session"')
+        ? [{ createdAt: new Date("2026-09-25T12:00:00Z"), expiresAt: new Date(Date.now() + 60_000) }]
+        : [{ id: "user_1" }]),
+      totpCredential: { findUnique: vi.fn(async () => session.user.totpCredential) }
+    };
+    prisma.$transaction.mockImplementation(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx));
+    const { POST } = await import("@/app/api/auth/external/[provider]/route");
+    const request = () => post("csrf=valid&purpose=connect&method=backup&code=ABCDE-FGHJK");
+    expect((await POST(request(), context)).status).toBe(200);
+    expect(backupProof.consumeBackupCode).toHaveBeenCalledWith(tx, "user_1", "backup_1");
+    expect(audit.auditLog).toHaveBeenCalledWith(expect.objectContaining({ action: "BACKUP_CODE_USED" }));
+    backupProof.consumeBackupCode.mockResolvedValueOnce(false);
+    expect((await POST(request(), context)).status).toBe(303);
+  });
+
   it("sends a target-bound current-email code and consumes it once", async () => {
     const { POST } = await import("@/app/api/auth/external/[provider]/route");
     const sent = await POST(post("csrf=valid&purpose=send-connect-code"), context);
@@ -129,7 +155,7 @@ describe("external account connection start", () => {
     connectCode.decodeExternalConnectCode.mockReturnValue({ userId: "user_1", sessionId: "session_1", currentEmail: "user@example.com",
       targetProvider: "wrong-provider", nonce: "nonce" });
     connectCode.verifyExternalConnectCode.mockReturnValue(true);
-    const request = () => post("csrf=valid&purpose=connect&method=email&code=123456", "oidc-asetho-link", "surls_external_connect_code=signed-code");
+    const request = () => post("csrf=valid&purpose=connect&method=email&code=123456&password=known-secret", "oidc-asetho-link", "surls_external_connect_code=signed-code");
     expect((await POST(request(), context)).status).toBe(303);
     expect(external.externalAuthorizationUrl).not.toHaveBeenCalled();
     connectCode.decodeExternalConnectCode.mockReturnValue({ userId: "user_1", sessionId: "other_session", currentEmail: "user@example.com",
@@ -138,6 +164,7 @@ describe("external account connection start", () => {
     expect(external.externalAuthorizationUrl).not.toHaveBeenCalled();
     connectCode.decodeExternalConnectCode.mockReturnValue({ userId: "user_1", sessionId: "session_1", currentEmail: "user@example.com",
       targetProvider: "oidc-asetho-link", nonce: "nonce" });
+    expect((await POST(post("csrf=valid&purpose=connect&method=email&code=123456", "oidc-asetho-link", "surls_external_connect_code=signed-code"), context)).status).toBe(303);
     expect((await POST(request(), context)).status).toBe(200);
     expect(rate.checkRateLimit).toHaveBeenCalledWith(expect.stringContaining("external-connect:email-code:"), 1, 600_000);
     rate.checkRateLimit.mockImplementation(async (key: string) => ({ allowed: !key.startsWith("external-connect:email-code:") }));

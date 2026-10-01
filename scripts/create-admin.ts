@@ -19,12 +19,14 @@ async function promptAdmin() {
     where: { email },
     update: {
       name,
-      passwordHash: await hashPassword(password)
+      passwordHash: await hashPassword(password),
+      passwordResetEligible: true
     },
     create: {
       email,
       name,
       passwordHash: await hashPassword(password),
+      passwordResetEligible: true,
       role: UserRole.ADMIN
     }
   });

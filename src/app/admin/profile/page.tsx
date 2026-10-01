@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   title: "Profile"
 };
 
-export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ error?: string; connected?: string; totpVerified?: string }> }) {
+export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ error?: string; connected?: string; totpVerified?: string; verified?: string }> }) {
   const profileParams = await searchParams;
   const currentSession = await getCurrentSession();
   if (!currentSession) redirect(adminLoginPath("/admin/profile"));
@@ -126,11 +126,13 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       <section className="surface surface-panel profile-card">
         <h2>Account information</h2>
         <ProfileIdentityForm
+          backupCodeAvailable={backupCount > 0}
           csrf={csrf}
           emailCodeAvailable={emailCodeAvailable}
           emailVerificationProviders={emailVerificationProviders}
-          pendingEmail={providerVerified ? verification?.pendingEmail ?? null : null}
-          providerVerified={providerVerified}
+          localLoginEnabled={settings.localLoginEnabled}
+          pendingEmail={providerVerified && verification?.action === "email-change" ? verification.pendingEmail ?? null : null}
+          providerVerified={providerVerified && verification?.action === "email-change"}
           siteDefaultTimeZone={siteDefaultTimeZone}
           totpEnabled={Boolean(credential?.enabled)}
           user={{
@@ -167,10 +169,12 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
                 <div className="row-actions" key={config.key}>
                   <span>{config.label}: {linked ? "Connected" : "Not connected"}</span>
                   {!linked && settings.externalLoginEnabled ? <ExternalConnectForm
+                    backupCodeAvailable={backupCount > 0}
                     csrf={csrf}
                     provider={{ key: config.key, label: config.label }}
                     currentEmail={admin.email}
                     totpEnabled={Boolean(credential?.enabled)}
+                    localLoginEnabled={settings.localLoginEnabled}
                     emailCodeAvailable={emailCodeAvailable}
                     verificationProviders={connectVerificationProviders}
                   /> : null}
@@ -204,7 +208,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
           </div>
           {credential?.enabled ? (
             <div className="form-stack">
-              <DisableTotpForm csrf={csrf} />
+              <DisableTotpForm csrf={csrf} backupCodeAvailable={backupCount > 0} />
             </div>
           ) : (
             <div className="form-stack">
@@ -236,7 +240,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         <section className="profile-security-panel">
           <h3>Backup codes</h3>
           {credential?.enabled && backupCount === 0 ? (
-            <p className="alert" role="alert">You have no backup codes. Generate and save a set now so you can recover access if you lose your authenticator.</p>
+            <p className="alert profile-backup-warning" role="alert">You have no backup codes. Generate and save a set now so you can recover access if you lose your authenticator.</p>
           ) : null}
           <p className="muted">
             You currently have {backupCount} unused backup {backupCount === 1 ? "code" : "codes"}. Codes are stored only
@@ -258,7 +262,10 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
             Register a device passkey for passwordless sign-in. Passkey sign-in still requires local user verification
             such as Face ID, Touch ID, Windows Hello, a PIN, or a security key gesture.
           </p>
-          <PasskeyManager csrf={csrf} passkeys={passkeyItems} />
+          <PasskeyManager csrf={csrf} passkeys={passkeyItems} totpEnabled={Boolean(credential?.enabled)}
+            verificationProviders={emailVerificationProviders}
+            providerProofAction={providerVerified ? verification?.action ?? null : null}
+            providerProofResourceId={providerVerified ? verification?.resourceId ?? null : null} />
         </section> : null}
       </RememberedDetails>
 

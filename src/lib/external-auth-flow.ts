@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { encodeExternalAuth, EXTERNAL_AUTH_COOKIE, externalAuthCookieOptions, externalAuthorizationUrl, newExternalAuthValues } from "./external-auth";
 import type { ExternalProviderConfig } from "./external-provider-settings";
+import type { ProfileVerificationAction } from "./profile-verification";
 
 type StartOptions =
   | { userId: null; nextPath: unknown }
   | { userId: string; sessionId: string; purpose: "connect"; nextPath: unknown }
-  | { userId: string; sessionId: string; purpose: "reauth"; pendingEmail?: string; nextPath: unknown }
+  | { userId: string; sessionId: string; purpose: "reauth"; pendingEmail?: string; verificationAction?: ProfileVerificationAction; resourceId?: string; nextPath: unknown }
   | { userId: string; sessionId: string; purpose: "verify-connect"; targetProvider: string; nextPath: unknown }
   | { userId: string; sessionId: string; purpose: "verify-totp-setup"; nextPath: unknown };
 

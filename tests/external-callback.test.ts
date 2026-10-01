@@ -22,7 +22,7 @@ const rate = vi.hoisted(() => ({ checkRateLimit: vi.fn() }));
 const audit = vi.hoisted(() => ({ auditLog: vi.fn() }));
 const prisma = vi.hoisted(() => ({ user: { findUnique: vi.fn() }, externalIdentity: { findUnique: vi.fn() } }));
 const verification = vi.hoisted(() => ({
-  PROFILE_VERIFICATION_COOKIE: "surls_profile_verification",
+  PROFILE_VERIFICATION_COOKIE: "surls_profile_verification_v2",
   encodeProfileVerification: vi.fn(() => "signed-proof"),
   profileVerificationCookieOptions: vi.fn(() => ({ path: "/admin/profile", httpOnly: true, maxAge: 300 }))
 }));
@@ -278,9 +278,9 @@ describe("external sign-in callback", () => {
     prisma.user.findUnique.mockResolvedValue({ totpCredential: { enabled: true } });
     const { GET } = await import("@/app/api/auth/external/[provider]/callback/route");
     const response = await GET(callback(), { params: Promise.resolve({ provider: "google" }) });
-    expect(response.headers.get("location")).toBe("http://localhost:3000/admin/profile?verified=1");
-    expect(response.cookies.get("surls_profile_verification")?.value).toBe("signed-proof");
-    expect(verification.encodeProfileVerification).toHaveBeenCalledWith("user_1", "session_1", "new@example.com");
+    expect(response.headers.get("location")).toBe("http://localhost:3000/admin/profile?verified=email-change");
+    expect(response.cookies.get("surls_profile_verification_v2")?.value).toBe("signed-proof");
+    expect(verification.encodeProfileVerification).toHaveBeenCalledWith("user_1", "session_1", "new@example.com", "email-change", undefined, true);
     expect(identity.resolveExternalIdentity).not.toHaveBeenCalled();
     expect(auth.createSession).not.toHaveBeenCalled();
   });
@@ -298,7 +298,7 @@ describe("external sign-in callback", () => {
     const { GET } = await import("@/app/api/auth/external/[provider]/callback/route");
     const response = await GET(callback(), { params: Promise.resolve({ provider: "google" }) });
     expect(response.headers.get("location")).toContain("/admin/profile?error=");
-    expect(response.cookies.get("surls_profile_verification")).toBeUndefined();
+    expect(response.cookies.get("surls_profile_verification_v2")).toBeUndefined();
     expect(auth.createSession).not.toHaveBeenCalled();
   });
 });

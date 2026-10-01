@@ -5,10 +5,11 @@ import { encodePendingLogin, PENDING_LOGIN_COOKIE } from "@/lib/pending-login";
 
 const prisma = vi.hoisted(() => ({
   backupCode: {
-    update: vi.fn()
+    updateMany: vi.fn()
   },
   user: {
-    findUnique: vi.fn()
+    findUnique: vi.fn(),
+    update: vi.fn()
   }
 }));
 
@@ -101,6 +102,7 @@ describe("admin login flow", () => {
     requestSecurity.requestIp.mockReturnValue("127.0.0.1");
     requestSecurity.requestOriginMatchesApp.mockReturnValue(true);
     settings.getSetting.mockResolvedValue(true);
+    prisma.backupCode.updateMany.mockResolvedValue({ count: 1 });
   });
 
   it("blocks password and pending 2FA login when local sign-in is disabled", async () => {
@@ -195,6 +197,23 @@ describe("admin login flow", () => {
     expect(response.headers.get("set-cookie")).toContain("surls_session");
   });
 
+  it("makes an existing account eligible for recovery only after a valid local password", async () => {
+    const { POST } = await import("@/app/api/auth/login/route");
+    prisma.user.findUnique.mockResolvedValue({
+      email: "admin@example.com", id: "user_123", passwordHash: "hash",
+      passwordResetEligible: false, totpCredential: null
+    });
+    password.verifyPassword.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+
+    await POST(formRequest("/api/auth/login", loginForm({ email: "admin@example.com", password: "wrong" })));
+    expect(prisma.user.update).not.toHaveBeenCalled();
+
+    await POST(formRequest("/api/auth/login", loginForm({ email: "admin@example.com", password: "correct password" })));
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: "user_123" }, data: { passwordResetEligible: true }
+    });
+  });
+
   it("accepts a pending login and consumes a valid backup code on the second step", async () => {
     const { POST } = await import("@/app/api/auth/login/2fa/route");
     prisma.user.findUnique.mockResolvedValue({
@@ -220,9 +239,9 @@ describe("admin login flow", () => {
 
     expect(response.status).toBe(303);
     expect(response.headers.get("location")).toBe("http://localhost:3000/admin/links");
-    expect(prisma.backupCode.update).toHaveBeenCalledWith({
+    expect(prisma.backupCode.updateMany).toHaveBeenCalledWith({
       data: { usedAt: expect.any(Date) },
-      where: { id: "backup_123" }
+      where: { id: "backup_123", userId: "user_123", usedAt: null }
     });
     expect(auth.createSession).toHaveBeenCalledWith("user_123", expect.any(NextRequest));
     expect(response.headers.get("set-cookie")).toContain("surls_session");

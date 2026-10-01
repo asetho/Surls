@@ -20,7 +20,7 @@ export const STRUCTURAL_VISUAL_TOKEN_REGISTRY: readonly VisualSystemToken[] = [
     label: "Display text",
     scope: "admin-shell",
     status: "read-only",
-    value: "clamp(1.8rem, 3vw, 2.55rem)",
+    value: "clamp(1.45rem, 2.4vw, 1.8rem)",
     valueType: "type"
   },
   {
@@ -58,13 +58,13 @@ export const STRUCTURAL_VISUAL_TOKEN_REGISTRY: readonly VisualSystemToken[] = [
   },
   {
     category: "Spacing",
-    description: "Default spacing inside panels and form stacks.",
-    exampleUsage: "Surface panels, settings cards, and tools panes.",
+    description: "Default spacing between fields in form stacks.",
+    exampleUsage: "Settings cards and tools panes.",
     id: "space.panel-gap",
     label: "Panel gap",
     scope: "admin-shell",
     status: "read-only",
-    value: "0.75rem",
+    value: "0.65rem",
     valueType: "spacing"
   },
   {

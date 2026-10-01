@@ -1,6 +1,6 @@
 # Surls screenshot gallery
 
-The included dashboard screenshots were refreshed September 25, 2026 from a local development tree based on Surls **v2.1.1**. They render the dashboard and sidebar components with the included Surls SVG mark, default palettes, and synthetic accounts, links, and statistics; the empty dashboard shows the fresh-install state. The fixture's actions are inactive. The included homepage and login captures are from September 24, 2026, Surls **v1.15.0** (`b80b4f0`). These are visual examples, not evidence of a deployed upgrade or an end-to-end authentication test.
+The included homepage, login, and dashboard screenshots were refreshed September 30, 2026 from a local checkout based on Surls **v3.1.1**. They show the real pages with the included Surls SVG mark, default palettes, and a disposable local database containing a fictional admin, links, and click history. The empty dashboard was captured before adding demo links. These are visual examples of the local preview, not evidence of a deployed upgrade.
 
 The custom public example is the live homepage of [asetho.link](https://asetho.link/), captured separately. The custom admin examples use the light and dark palette values read from asetho.link's admin UI on the capture date, applied to the then-current local dashboard components with synthetic data. Its branding, public content, and custom palettes are owner-provided and are not bundled as the default Surls theme. No private admin data, credentials, or API tokens are included.
 
@@ -26,7 +26,9 @@ The initial dashboard after creating the first admin, before adding any links. T
 
 Sample links and click history make the same included UI easier to inspect. Light and dark modes are built in; no custom palette is applied. Each capture shows the first desktop viewport; recent activity continues below it.
 
-The [SVG wordmark](../../assets/branding/surls-logo-horizontal.svg) and [SVG app icon](../../assets/branding/surls-app-icon.svg) are vector traces of the checked-in Surls artwork.
+The light, dark, and mobile dashboard captures include the compact layout and configurable sidebar branding. The default sidebar shows a placeholder link icon and the site name. These images are also used by the included homepage and marketing site.
+
+The official [SVG wordmark](../../assets/branding/surls-s-url-links.svg) and [SVG app icon](../../assets/branding/surls-s-links-mark.svg) are used on the public pages, marketing site, and docs.
 
 ### Light
 

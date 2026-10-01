@@ -9,6 +9,7 @@ import {
   type DashboardTheme
 } from "./dashboard-theme";
 import { normalizeFavicons, type StoredFavicons } from "./favicons";
+import { DEFAULT_SIDEBAR_BRANDING, normalizeSidebarBranding, type SidebarBranding } from "./sidebar-branding";
 
 export type CustomHtmlPage = {
   fileName: string;
@@ -23,6 +24,7 @@ export type AppSettings = {
   trackAdminClicks: boolean;
   preserveRedirectQuery: boolean;
   localLoginEnabled: boolean;
+  emailPasswordResetsEnabled: boolean;
   externalLoginEnabled: boolean;
   externalAutoProvisionUsers: boolean;
   uploadMaxBytes: number | null;
@@ -30,6 +32,7 @@ export type AppSettings = {
   enableQrCodes: boolean;
   themeDefault: "auto" | "light" | "dark";
   dashboardTheme: DashboardTheme;
+  sidebarBranding: SidebarBranding;
   customIndexPage: CustomHtmlPage | null;
   customNotFoundPage: CustomHtmlPage | null;
   customLoginPage: CustomHtmlPage | null;
@@ -42,6 +45,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   trackAdminClicks: false,
   preserveRedirectQuery: false,
   localLoginEnabled: true,
+  emailPasswordResetsEnabled: false,
   externalLoginEnabled: true,
   externalAutoProvisionUsers: false,
   uploadMaxBytes: env.UPLOAD_MAX_BYTES,
@@ -49,6 +53,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   enableQrCodes: true,
   themeDefault: "auto",
   dashboardTheme: DEFAULT_DASHBOARD_THEME,
+  sidebarBranding: DEFAULT_SIDEBAR_BRANDING,
   customIndexPage: null,
   customNotFoundPage: null,
   customLoginPage: null,
@@ -108,6 +113,7 @@ export async function getSettings(client: Pick<Prisma.TransactionClient, "appSet
     displayTimeZone: normalizeDisplayTimeZone(settings.displayTimeZone),
     uploadMaxBytes: normalizeSiteUploadMaxBytes(settings.uploadMaxBytes),
     dashboardTheme: normalizeDashboardTheme(settings.dashboardTheme),
+    sidebarBranding: normalizeSidebarBranding(settings.sidebarBranding),
     customIndexPage: normalizeCustomHtmlPage(settings.customIndexPage),
     customNotFoundPage: normalizeCustomHtmlPage(settings.customNotFoundPage),
     customLoginPage: normalizeCustomHtmlPage(settings.customLoginPage),

@@ -66,8 +66,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         throw new ExternalIdentityError("The provider did not confirm a fresh sign-in to your linked account.");
       }
       if (pending.purpose === "reauth") {
-        response = NextResponse.redirect(new URL("/admin/profile?verified=1", appBaseUrl()), 303);
-        response.cookies.set(PROFILE_VERIFICATION_COOKIE, encodeProfileVerification(pending.userId!, pending.sessionId!, pending.pendingEmail), profileVerificationCookieOptions());
+        const action = pending.verificationAction ?? "email-change";
+        response = NextResponse.redirect(new URL(`/admin/profile?verified=${action}`, appBaseUrl()), 303);
+        response.cookies.set(PROFILE_VERIFICATION_COOKIE, encodeProfileVerification(pending.userId!, pending.sessionId!, pending.pendingEmail,
+          action, pending.resourceId, profile.mfaVerified), profileVerificationCookieOptions());
       } else if (pending.purpose === "verify-totp-setup") {
         const liveSession = await getCurrentSession();
         if (liveSession?.id !== pending.sessionId || liveSession?.userId !== pending.userId) {

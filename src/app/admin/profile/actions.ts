@@ -8,6 +8,7 @@ import { auditLog } from "@/lib/audit";
 import { getCurrentSession, requireAdmin, requireSiteAdmin } from "@/lib/auth";
 import { hashToken } from "@/lib/crypto";
 import { generateBackupCodes, hashBackupCode } from "@/lib/backup-codes";
+import { consumeBackupCode, matchingBackupCodeId } from "@/lib/backup-code-proof";
 import { validateCsrf } from "@/lib/csrf";
 import { normalizeMobileMenuSide } from "@/lib/mobile-menu";
 import { verifyPassword } from "@/lib/password";
@@ -15,8 +16,9 @@ import { prisma } from "@/lib/prisma";
 import { profileEmailAvailable, sendProfileEmailCode, sendTotpSetupEmailCode } from "@/lib/profile-email";
 import { createProfileEmailCode, decodeProfileEmailCode, PROFILE_EMAIL_CODE_COOKIE, profileEmailCodeCookieOptions, verifyProfileEmailCode } from "@/lib/profile-email-code";
 import { decodeProfileVerification, PROFILE_VERIFICATION_COOKIE, profileVerificationCookieOptions, profileVerificationUseKey } from "@/lib/profile-verification";
+import { verifyProfileStepUp } from "@/lib/profile-step-up";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { getSiteName } from "@/lib/settings";
+import { getSetting, getSiteName } from "@/lib/settings";
 import { createTotpSecret, verifyTotpCode } from "@/lib/totp";
 import { createTotpEnrollment, decodeTotpEnrollment, decodeTotpSetup, encodeTotpSetup, TOTP_ENROLLMENT_COOKIE, TOTP_SETUP_COOKIE, totpEnrollmentCookieOptions, totpSetupCookieOptions } from "@/lib/totp-enrollment";
 import { createTotpSetupEmailCode, decodeTotpSetupEmailCode, TOTP_SETUP_EMAIL_CODE_COOKIE, totpSetupEmailCodeCookieOptions, verifyTotpSetupEmailCode } from "@/lib/totp-setup-email-code";
@@ -28,6 +30,7 @@ type ProfileActionState = {
   message?: string;
   verificationRequired?: "totp" | "email";
 };
+class ProfileBackupStateChangedError extends Error {}
 
 function isUniqueConstraintError(error: unknown) {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
@@ -66,16 +69,20 @@ export async function updateProfileAction(
 
   let usedProviderVerification = false;
   let usedEmailCode = false;
+  let backupCodeId: string | null = null;
+  let verificationSessionId: string | null = null;
   if (emailChanged) {
     const currentSession = await getCurrentSession();
     if (!currentSession || currentSession.userId !== user.id) return { error: "Sign in again before changing your email." };
+    verificationSessionId = currentSession.id;
     const jar = await cookies();
     const providerVerification = decodeProfileVerification(jar.get(PROFILE_VERIFICATION_COOKIE)?.value);
     const providerVerified = providerVerification?.userId === user.id && providerVerification.sessionId === currentSession.id &&
-      providerVerification.pendingEmail === profile.email;
+      providerVerification.action === "email-change" && providerVerification.pendingEmail === profile.email &&
+      (!user.totpCredential?.enabled || providerVerification.mfaVerified);
     const code = formData.get("resendCode") === "yes" ? "" : String(formData.get("verificationCode") ?? "").trim();
 
-    if (providerVerified) {
+    if (user.totpCredential?.enabled && providerVerified) {
       const use = await checkRateLimit(profileVerificationUseKey(providerVerification.nonce), 1, 5 * 60 * 1000);
       if (!use.allowed) return { error: "That verification was already used. Verify again before changing your email." };
       usedProviderVerification = true;
@@ -87,9 +94,14 @@ export async function updateProfileAction(
       if (!code) return { verificationRequired: "totp" };
       const rate = await checkRateLimit(`profile:email-verification:${user.id}`, 5, 15 * 60 * 1000);
       if (!rate.allowed) return { error: "Too many verification attempts. Please wait and try again.", verificationRequired: "totp" };
-      if (!(await verifyTotpCode(user.totpCredential.secretEncrypted, code))) return { error: "Invalid authenticator code.", verificationRequired: "totp" };
-      const used = await checkRateLimit(`profile:totp-code:${user.id}:${hashToken(code.replace(/\s+/g, ""))}`, 1, 90 * 1000);
-      if (!used.allowed) return { error: "That authenticator code was already used. Wait for the next code.", verificationRequired: "totp" };
+      if (/^[0-9]{6}$/.test(code)) {
+        if (!(await verifyTotpCode(user.totpCredential.secretEncrypted, code))) return { error: "Invalid authenticator code.", verificationRequired: "totp" };
+        const used = await checkRateLimit(`profile:totp-code:${user.id}:${hashToken(code)}`, 1, 90 * 1000);
+        if (!used.allowed) return { error: "That authenticator code was already used. Wait for the next code.", verificationRequired: "totp" };
+      } else {
+        backupCodeId = await matchingBackupCodeId(user.id, code);
+        if (!backupCodeId) return { error: "Invalid backup code.", verificationRequired: "totp" };
+      }
     } else if (code) {
       const rate = await checkRateLimit(`profile:email-verification:${user.id}`, 5, 15 * 60 * 1000);
       if (!rate.allowed) return { error: "Too many verification attempts. Please wait and try again.", verificationRequired: "email" };
@@ -97,6 +109,19 @@ export async function updateProfileAction(
       if (!proof || proof.userId !== user.id || proof.sessionId !== currentSession.id ||
           proof.currentEmail !== user.email || proof.pendingEmail !== profile.email || !verifyProfileEmailCode(proof, code)) {
         return { error: "Invalid or expired email verification code.", verificationRequired: "email" };
+      }
+      if (providerVerified) {
+        const providerUse = await checkRateLimit(profileVerificationUseKey(providerVerification.nonce), 1, 5 * 60 * 1000);
+        if (!providerUse.allowed) return { error: "That provider verification was already used. Verify again.", verificationRequired: "email" };
+        usedProviderVerification = true;
+      } else {
+        if (!(await getSetting("localLoginEnabled"))) return { error: "Verify with a linked provider to change your email.", verificationRequired: "email" };
+        const password = String(formData.get("password") ?? "");
+        const passwordRate = await checkRateLimit(`profile:email-password:${user.id}`, 5, 15 * 60 * 1000);
+        if (!passwordRate.allowed) return { error: "Too many password attempts. Please wait and try again.", verificationRequired: "email" };
+        if (!password || password.length > 4096 || !(await verifyPassword(user.passwordHash, password))) {
+          return { error: "Enter your current Surls password or verify with a linked provider.", verificationRequired: "email" };
+        }
       }
       const used = await checkRateLimit(`profile:email-code:${hashToken(proof.nonce)}`, 1, 10 * 60 * 1000);
       if (!used.allowed) return { error: "That email verification code was already used.", verificationRequired: "email" };
@@ -117,17 +142,32 @@ export async function updateProfileAction(
   }
 
   try {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: profile
-    });
+    if (backupCodeId) {
+      const consumed = await prisma.$transaction(async (tx) => {
+        await lockUserSecurityState(tx, user.id);
+        const liveSession = await lockActiveSessionForUser(tx, verificationSessionId!, user.id);
+        const liveCredential = await tx.totpCredential.findUnique({ where: { userId: user.id } });
+        if (!liveSession || !liveCredential?.enabled || liveCredential.id !== user.totpCredential?.id ||
+            liveCredential.secretEncrypted !== user.totpCredential?.secretEncrypted ||
+            !(await consumeBackupCode(tx, user.id, backupCodeId))) return false;
+        if ((await tx.user.updateMany({ where: { id: user.id, email: user.email }, data: profile })).count !== 1) {
+          throw new ProfileBackupStateChangedError();
+        }
+        return true;
+      });
+      if (!consumed) return { error: "That backup code or session is no longer valid. Sign in again or use another code.", verificationRequired: "totp" };
+    } else {
+      await prisma.user.update({ where: { id: user.id }, data: profile });
+    }
   } catch (error) {
     if (isUniqueConstraintError(error)) return { error: "A user with that email already exists." };
+    if (error instanceof ProfileBackupStateChangedError) return { error: "Your account changed. Sign in again before changing your email.", verificationRequired: "totp" };
     throw error;
   }
 
   if (usedProviderVerification) (await cookies()).set(PROFILE_VERIFICATION_COOKIE, "", { ...profileVerificationCookieOptions(), maxAge: 0 });
   if (usedEmailCode) (await cookies()).set(PROFILE_EMAIL_CODE_COOKIE, "", { ...profileEmailCodeCookieOptions(), maxAge: 0 });
+  if (backupCodeId) await auditLog({ userId: user.id, action: AuditAction.BACKUP_CODE_USED });
 
   revalidatePath("/admin/profile");
   revalidatePath("/admin", "layout");
@@ -150,6 +190,7 @@ export async function sendTotpSetupEmailCodeAction(_state: TotpEmailCodeState | 
   if ((await prisma.totpCredential.findUnique({ where: { userId: admin.id } }))?.enabled) {
     return { error: "TOTP is already enabled." };
   }
+  if (!(await getSetting("localLoginEnabled"))) return { error: "Use a linked provider to verify your account." };
   if (!(await profileEmailAvailable())) return { error: "Email verification is unavailable. Use your password or a linked provider." };
   const rate = await checkRateLimit(`profile:totp-setup-email-send:${admin.id}`, 3, 15 * 60 * 1000);
   if (!rate.allowed) return { error: "Too many codes requested. Please wait and try again." };
@@ -178,13 +219,19 @@ export async function startTotpAction(_state: TotpStartState | null, formData: F
   const jar = await cookies();
   const method = formData.get("method");
   if (method === "password") {
+    if (!(await getSetting("localLoginEnabled"))) return { error: "Use a linked provider to verify your account." };
     const rate = await checkRateLimit(`profile:totp-setup-password:${admin.id}`, 5, 15 * 60 * 1000);
     if (!rate.allowed) return { error: "Too many password attempts. Please wait and try again." };
     const password = String(formData.get("password") ?? "");
-    if (!password || !(await verifyPassword(admin.passwordHash, password))) return { error: "Enter your current Surls password." };
+    if (!password || password.length > 4096 || !(await verifyPassword(admin.passwordHash, password))) return { error: "Enter your current Surls password." };
   } else if (method === "email") {
+    if (!(await getSetting("localLoginEnabled"))) return { error: "Use a linked provider to verify your account." };
     const rate = await checkRateLimit(`profile:totp-setup-email-verify:${admin.id}`, 5, 15 * 60 * 1000);
     if (!rate.allowed) return { error: "Too many verification attempts. Please wait and try again." };
+    const password = String(formData.get("password") ?? "");
+    if (!password || password.length > 4096 || !(await verifyPassword(admin.passwordHash, password))) {
+      return { error: "Enter your current Surls password along with the email code." };
+    }
     const code = String(formData.get("code") ?? "").trim();
     const proof = decodeTotpSetupEmailCode(jar.get(TOTP_SETUP_EMAIL_CODE_COOKIE)?.value);
     if (!proof || proof.userId !== admin.id || proof.sessionId !== session.id || proof.currentEmail !== admin.email ||
@@ -321,24 +368,39 @@ export async function disableTotpAction(_state: ProfileActionState | null, formD
   const credential = await prisma.totpCredential.findUnique({ where: { userId: admin.id } });
   if (!credential?.enabled) return { error: "TOTP is no longer enabled." };
   const code = String(formData.get("code") ?? "").trim();
-  if (!code || !(await verifyTotpCode(credential.secretEncrypted, code))) {
-    return { error: "Enter a valid current authenticator code." };
+  let backupCodeId: string | null = null;
+  if (/^[0-9]{6}$/.test(code)) {
+    if (!(await verifyTotpCode(credential.secretEncrypted, code))) return { error: "Enter a valid current authenticator code or backup code." };
+    const used = await checkRateLimit(`profile:totp-code:${admin.id}:${hashToken(code)}`, 1, 90 * 1000);
+    if (!used.allowed) return { error: "That authenticator code was already used. Wait for the next code." };
+  } else {
+    backupCodeId = await matchingBackupCodeId(admin.id, code);
+    if (!backupCodeId) return { error: "Enter a valid current authenticator code or backup code." };
   }
-  const used = await checkRateLimit(`profile:totp-code:${admin.id}:${hashToken(code.replace(/\s+/g, ""))}`, 1, 90 * 1000);
-  if (!used.allowed) return { error: "That authenticator code was already used. Wait for the next code." };
-  const deleted = await prisma.$transaction(async (tx) => {
-    await lockUserSecurityState(tx, admin.id);
-    const liveSession = await lockActiveSessionForUser(tx, session.id, admin.id);
-    if (!liveSession) return null;
-    return tx.totpCredential.deleteMany({
-      where: {
-        id: credential.id, userId: admin.id, enabled: true,
-        enabledAt: credential.enabledAt, secretEncrypted: credential.secretEncrypted
-      }
+  let deleted: { count: number } | null;
+  try {
+    deleted = await prisma.$transaction(async (tx) => {
+      await lockUserSecurityState(tx, admin.id);
+      const liveSession = await lockActiveSessionForUser(tx, session.id, admin.id);
+      const establishedAt = credential.enabledAt ?? credential.createdAt;
+      if (!liveSession || (backupCodeId && (!establishedAt || liveSession.createdAt < establishedAt))) return null;
+      if (backupCodeId && !(await consumeBackupCode(tx, admin.id, backupCodeId))) return null;
+      const result = await tx.totpCredential.deleteMany({
+        where: {
+          id: credential.id, userId: admin.id, enabled: true,
+          enabledAt: credential.enabledAt, secretEncrypted: credential.secretEncrypted
+        }
+      });
+      if (backupCodeId && result.count !== 1) throw new ProfileBackupStateChangedError();
+      return result;
     });
-  });
+  } catch (error) {
+    if (error instanceof ProfileBackupStateChangedError) return { error: "TOTP changed. Sign in again before disabling it." };
+    throw error;
+  }
   if (!deleted) return { error: "Sign in again before disabling TOTP." };
   if (!deleted.count) return { error: "TOTP is no longer enabled." };
+  if (backupCodeId) await auditLog({ userId: admin.id, action: AuditAction.BACKUP_CODE_USED });
   await auditLog({ userId: admin.id, action: AuditAction.TOTP_DISABLED });
   revalidatePath("/admin/profile");
   return { message: "TOTP disabled." };
@@ -378,11 +440,15 @@ export async function regenerateBackupCodesAction(_state: BackupCodesState | nul
   const rate = await checkRateLimit(`profile:backup-codes:${admin.id}`, 3, 15 * 60 * 1000);
   if (!rate.allowed) return { error: "Too many backup code regeneration attempts. Please wait and try again." };
   const code = String(formData.get("code") ?? "").trim();
-  if (!/^[0-9]{6}$/.test(code) || !(await verifyTotpCode(credential.secretEncrypted, code))) {
-    return { error: "Enter a valid current authenticator code." };
+  let backupCodeId: string | null = null;
+  if (/^[0-9]{6}$/.test(code)) {
+    if (!(await verifyTotpCode(credential.secretEncrypted, code))) return { error: "Enter a valid current authenticator code or backup code." };
+    const used = await checkRateLimit(`profile:totp-code:${admin.id}:${hashToken(code)}`, 1, 90 * 1000);
+    if (!used.allowed) return { error: "That authenticator code was already used. Wait for the next code." };
+  } else {
+    backupCodeId = await matchingBackupCodeId(admin.id, code);
+    if (!backupCodeId) return { error: "Enter a valid current authenticator code or backup code." };
   }
-  const used = await checkRateLimit(`profile:totp-code:${admin.id}:${hashToken(code)}`, 1, 90 * 1000);
-  if (!used.allowed) return { error: "That authenticator code was already used. Wait for the next code." };
   const generatedAt = new Date();
   const codes = generateBackupCodes();
   const hashedCodes = await Promise.all(codes.map(async (code) => ({ code, codeHash: await hashBackupCode(code) })));
@@ -394,6 +460,7 @@ export async function regenerateBackupCodesAction(_state: BackupCodesState | nul
     if (!liveCredential?.enabled || liveCredential.id !== credential.id ||
         (liveCredential.enabledAt?.getTime() ?? null) !== (credential.enabledAt?.getTime() ?? null) ||
         liveCredential.secretEncrypted !== credential.secretEncrypted) return false;
+    if (backupCodeId && !(await consumeBackupCode(tx, admin.id, backupCodeId))) return false;
     await tx.backupCode.deleteMany({ where: { userId: admin.id } });
     await tx.backupCode.createMany({
       data: hashedCodes.map(({ codeHash }) => ({ userId: admin.id, codeHash, createdAt: generatedAt }))
@@ -401,24 +468,34 @@ export async function regenerateBackupCodesAction(_state: BackupCodesState | nul
     return true;
   });
   if (!regenerated) return { error: "Your session or authenticator changed. Sign in again before regenerating backup codes." };
+  if (backupCodeId) await auditLog({ userId: admin.id, action: AuditAction.BACKUP_CODE_USED });
   await auditLog({ userId: admin.id, action: AuditAction.BACKUP_CODES_REGENERATED });
   revalidatePath("/admin/profile");
   return { codes, generatedAt: generatedAt.toISOString() };
 }
 
-export async function deleteBackupCodesAction(formData: FormData) {
-  validateCsrf(formData);
+export async function deleteBackupCodesAction(_state: { error?: string; deleted?: boolean } | null, formData: FormData): Promise<{ error?: string; deleted?: boolean }> {
+  try { validateCsrf(formData); } catch { return { error: "The form expired. Please refresh and try again." }; }
   const admin = await requireSiteAdmin();
   if (!admin) throw new Error("Unauthorized");
   const session = await getCurrentSession();
-  if (!session || session.userId !== admin.id) throw new Error("Unauthorized");
+  if (!session || session.userId !== admin.id) return { error: "Sign in again before deleting backup codes." };
+  const credential = await prisma.totpCredential.findUnique({ where: { userId: admin.id } });
+  if (!credential?.enabled) return { error: "TOTP is no longer enabled." };
+  const proof = await verifyProfileStepUp({ userId: admin.id, sessionId: session.id, sessionCreatedAt: session.createdAt,
+    passwordHash: admin.passwordHash, action: "backup-codes-delete", method: "totp", code: String(formData.get("code") ?? ""), totpOnly: true });
+  if (proof.error) return { error: proof.error };
   const deleted = await prisma.$transaction(async (tx) => {
     await lockUserSecurityState(tx, admin.id);
     const liveSession = await lockActiveSessionForUser(tx, session.id, admin.id);
-    if (!liveSession) return null;
+    if (!liveSession || liveSession.createdAt < session.createdAt) return null;
+    const liveCredential = await tx.totpCredential.findUnique({ where: { userId: admin.id } });
+    if (!liveCredential?.enabled || liveCredential.id !== credential.id ||
+        liveCredential.secretEncrypted !== credential.secretEncrypted ||
+        (liveCredential.enabledAt?.getTime() ?? null) !== (credential.enabledAt?.getTime() ?? null)) return null;
     return tx.backupCode.deleteMany({ where: { userId: admin.id } });
   });
-  if (!deleted) return;
+  if (!deleted) return { error: "Your session or authenticator changed. Sign in again before deleting backup codes." };
   if (deleted.count > 0) {
     await auditLog({
       userId: admin.id,
@@ -428,18 +505,42 @@ export async function deleteBackupCodesAction(formData: FormData) {
     });
   }
   revalidatePath("/admin/profile");
+  return { deleted: true };
 }
 
-export async function removePasskeyAction(formData: FormData) {
-  validateCsrf(formData);
+export async function removePasskeyAction(_state: { error?: string; removed?: boolean } | null, formData: FormData): Promise<{ error?: string; removed?: boolean }> {
+  try { validateCsrf(formData); } catch { return { error: "The form expired. Please refresh and try again." }; }
   const admin = await requireAdmin();
   if (!admin) throw new Error("Unauthorized");
   const id = String(formData.get("id") ?? "");
-  const deleted = await prisma.passkey.deleteMany({ where: { id, userId: admin.id } });
-  if (deleted.count > 0) {
-    await auditLog({ userId: admin.id, action: AuditAction.PASSKEY_REMOVED, entityType: "Passkey", entityId: id });
+  const session = await getCurrentSession();
+  if (!session || session.userId !== admin.id) return { error: "Sign in again before removing a passkey." };
+  if (!id || !(await prisma.passkey.findFirst({ where: { id, userId: admin.id }, select: { id: true } }))) {
+    return { error: "This passkey is no longer registered." };
   }
+  const credential = await prisma.totpCredential.findUnique({ where: { userId: admin.id } });
+  const proof = await verifyProfileStepUp({ userId: admin.id, sessionId: session.id, sessionCreatedAt: session.createdAt,
+    passwordHash: admin.passwordHash, action: "passkey-remove", resourceId: id,
+    method: String(formData.get("method") ?? ""), code: String(formData.get("code") ?? ""),
+    password: String(formData.get("password") ?? ""), proofCookie: (await cookies()).get(PROFILE_VERIFICATION_COOKIE)?.value });
+  if (proof.error) return { error: proof.error };
+  const deleted = await prisma.$transaction(async (tx) => {
+    await lockUserSecurityState(tx, admin.id);
+    const liveSession = await lockActiveSessionForUser(tx, session.id, admin.id);
+    if (!liveSession || liveSession.createdAt < session.createdAt) return null;
+    const liveCredential = await tx.totpCredential.findUnique({ where: { userId: admin.id } });
+    if (Boolean(liveCredential?.enabled) !== Boolean(credential?.enabled) ||
+        (credential?.enabled && (liveCredential?.id !== credential.id ||
+          liveCredential.secretEncrypted !== credential.secretEncrypted ||
+          (liveCredential.enabledAt?.getTime() ?? null) !== (credential.enabledAt?.getTime() ?? null)))) return null;
+    return tx.passkey.deleteMany({ where: { id, userId: admin.id } });
+  });
+  if (!deleted) return { error: "Your session or authenticator changed. Sign in again before removing a passkey." };
+  if (!deleted.count) return { error: "That passkey is no longer registered." };
+  await auditLog({ userId: admin.id, action: AuditAction.PASSKEY_REMOVED, entityType: "Passkey", entityId: id });
+  if (proof.usedProvider) (await cookies()).set(PROFILE_VERIFICATION_COOKIE, "", { ...profileVerificationCookieOptions(), maxAge: 0 });
   revalidatePath("/admin/profile");
+  return { removed: true };
 }
 
 export async function logoutOtherSessionsAction(formData: FormData) {

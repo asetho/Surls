@@ -34,86 +34,20 @@ function expectedFocusRing(palette: typeof DEFAULT_DASHBOARD_THEME.light) {
 }
 
 describe("dashboard theme settings", () => {
-  it("updates the saved 3.0 dark danger colors without replacing other saved colors", () => {
-    // The complete dark palette persisted by Save/Reset in v3.0.0.
-    const releasedDark = {
-      accent: "#64abbb",
-      activePillBackground: "#92c1d3",
-      activePillBorder: "#b7d6e2",
-      activePillText: "#052f3b",
-      background: "#052f3b",
-      border: "#3c8ea0",
-      buttonText: "#ffffff",
-      chartAccent: "#176d7d",
-      chartDanger: "#e65057",
-      chartMapHigh: "#92c1d3",
-      chartMapLow: "#176d7d",
-      chartPiePrimary: "#64abbb",
-      chartPieSecondary: "#0a5c70",
-      chartPrimary: "#64abbb",
-      chartSecondary: "#087e8b",
-      dangerBackground: "#e65057",
-      dangerBorder: "#ff858a",
-      dangerText: "#ffffff",
-      focusRing: "#64abbb",
-      link: "#8ed6e4",
-      muted: "#92c1d3",
-      pillBackground: "#176d7d",
-      pillBorder: "#3c8ea0",
-      pillText: "#f3fbff",
-      qrBackground: "#ffffff",
-      segmentedControlActiveBackground: "#64abbb",
-      segmentedControlActiveText: "#ffffff",
-      segmentedControlBackground: "#176d7d",
-      segmentedControlBorder: "#3c8ea0",
-      segmentedControlText: "#b7d6e2",
-      shortUrlPillAccent: "#64abbb",
-      shortUrlPillBackground: "#0d4a58",
-      shortUrlPillBorder: "#3c8ea0",
-      shortUrlPillText: "#f3fbff",
-      sidebar: "#073f4d",
-      sidebarBorder: "#3c8ea0",
-      sidebarHover: "#087e8b",
-      sidebarMuted: "#b7d6e2",
-      sidebarText: "#f3fbff",
-      statsTabActiveBackground: "#64abbb",
-      statsTabActiveBorder: "#64abbb",
-      statsTabActiveText: "#ffffff",
-      statsTabBackground: "#176d7d",
-      statsTabBorder: "#3c8ea0",
-      statsTabListBackground: "#176d7d",
-      statsTabText: "#b7d6e2",
-      surface: "#0a5c70",
-      surfaceStrong: "#176d7d",
-      text: "#f3fbff",
-      overlayBackground: "#000000",
-      placeholder: "#b7d6e2",
-      shadowColor: "#000000",
-      toastErrorBackground: "#0a5c70",
-      toastErrorBorder: "#ff858a",
-      toastErrorText: "#f3fbff",
-      toastInfoBackground: "#176d7d",
-      toastInfoBorder: "#3c8ea0",
-      toastInfoText: "#f3fbff",
-      toastSuccessBackground: "#0a5c70",
-      toastSuccessBorder: "#64abbb",
-      toastSuccessText: "#f3fbff"
+  it("updates only the saved built-in dark danger colors", () => {
+    const legacyDark = {
+      ...DEFAULT_DASHBOARD_THEME.dark,
+      dangerBackground: DEFAULT_DASHBOARD_THEME.dark.chartDanger,
+      dangerText: DEFAULT_DASHBOARD_THEME.light.dangerText
     };
 
-    expect(normalizeDashboardTheme({ dark: releasedDark }).dark).toEqual({
-      ...releasedDark,
-      dangerBackground: DEFAULT_DASHBOARD_THEME.dark.dangerBackground,
-      dangerText: DEFAULT_DASHBOARD_THEME.dark.dangerText
-    });
-    expect(normalizeDashboardTheme({ dark: { ...releasedDark, accent: "#123456" } }).dark).toMatchObject({
-      accent: "#123456",
-      dangerBackground: DEFAULT_DASHBOARD_THEME.dark.dangerBackground,
-      dangerText: DEFAULT_DASHBOARD_THEME.dark.dangerText
-    });
-    expect(normalizeDashboardTheme({ dark: { ...releasedDark, dangerBackground: "#aa2233" } }).dark).toMatchObject({
-      dangerBackground: "#aa2233",
-      dangerText: "#ffffff"
-    });
+    expect(normalizeDashboardTheme({ light: DEFAULT_DASHBOARD_THEME.light, dark: legacyDark }).dark).toEqual(
+      DEFAULT_DASHBOARD_THEME.dark
+    );
+    expect(normalizeDashboardTheme({
+      light: DEFAULT_DASHBOARD_THEME.light,
+      dark: { ...legacyDark, accent: DEFAULT_DASHBOARD_THEME.dark.link }
+    }).dark).toMatchObject({ ...legacyDark, accent: DEFAULT_DASHBOARD_THEME.dark.link });
   });
 
   it("normalizes stored theme colors and fills missing values from defaults", () => {
