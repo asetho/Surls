@@ -24,17 +24,17 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
-    "@simplewebauthn/browser": "^13.3.0",
+    "@simplewebauthn/browser": "^14.0.0",
     "@simplewebauthn/server": "^14.0.3",
     "argon2": "^0.45.1",
     "d3-geo": "^3.1.1",
     "i18n-iso-countries": "^7.14.0",
     "lucide-react": "^1.48.0",
-    "next": "^16.3.6",
-    "nodemailer": "^10.0.10",
+    "next": "^16.3.8",
+    "nodemailer": "^10.0.13",
     "openid-client": "6.8.8",
     "otplib": "^13.5.0",
-    "pg": "^8.23.0",
+    "pg": "^8.23.1",
     "prisma": "^7.10.0",
     "qrcode": "^1.5.4",
     "react": "^19.2.8",
@@ -52,7 +52,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.3.0",
     "@types/topojson-client": "^3.1.5",
-    "@vitest/coverage-v8": "^5.0.2",
+    "@vitest/coverage-v8": "^5.0.3",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.2",
     "tsx": "^4.23.15",
@@ -64,7 +64,7 @@
     "mysql2": "3.24.3",
     "postcss": "8.5.28",
     "@noble/hashes": "2.4.0",
-    "sharp": "0.35.4"
+    "sharp": "0.35.5"
   },
   "engines": {
     "node": ">=26.0.0"
