@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.2.1 - 2026-10-08
+
+### Changed
+
+* Update passkey, email, database, icon, and build dependencies, including Next.js 16.4.0.
+
+### Security
+
+* Update image processing and source map packages to address reported production dependency vulnerabilities.
+
+### Upgrade Notes
+
+No manual upgrade steps required.
+
 ## 3.2.0 - 2026-10-01
 
 ### Added
