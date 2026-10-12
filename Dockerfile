@@ -1,7 +1,8 @@
 FROM node:26-bookworm-slim AS deps
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
-COPY package.json package-lock.json* ./
+COPY package.json package-lock.json* .npmrc ./
+COPY braces-compat ./braces-compat
 RUN npm ci
 
 FROM node:26-bookworm-slim AS builder
@@ -21,7 +22,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
-COPY --chown=node:node package.json package-lock.json* ./
+COPY --chown=node:node package.json package-lock.json* .npmrc ./
+COPY --chown=node:node braces-compat ./braces-compat
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --chown=node:node --from=builder /app/.next/standalone ./
 COPY --chown=node:node --from=builder /app/.next/static ./.next/static
