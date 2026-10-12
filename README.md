@@ -311,3 +311,7 @@ node --env-file=.env --run setup:admin
 ## Documentation and previews
 
 Repository screenshots are kept in [`docs/screenshots/`](docs/screenshots/README.md). `visual-audit-preview/` is an ignored local workspace for the historical CSS audit, not an application dependency or a shipped preview. The [archived audit](docs/audits/css-visual-audit.md) records its original scope; it is not a current list of product defects.
+
+## License
+
+Surls is licensed under the [MIT License](LICENSE). The bundled Plus Jakarta Sans font files remain under the [SIL Open Font License 1.1](public/fonts/plus-jakarta-sans/OFL.txt).
