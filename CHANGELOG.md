@@ -1,5 +1,24 @@
 # Changelog
 
+## 3.2.2 - 2026-10-14
+
+### Added
+
+* Publish the MIT license and private security reporting instructions.
+
+### Changed
+
+* Update the mail and icon dependencies, Node.js types, and GitHub Actions.
+* Open the documentation's repository link in a new tab.
+
+### Security
+
+* Guard development tooling against deeply nested brace patterns.
+
+### Upgrade Notes
+
+No database migration or configuration changes are required. If SMTP is configured, send a test message from Settings → Email after upgrading.
+
 ## 3.2.1 - 2026-10-08
 
 ### Changed
