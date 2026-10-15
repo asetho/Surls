@@ -20,3 +20,7 @@
 
 # Synthetic AUTH_SECRET fixture in the first security-scan PR commit; the fixture is corrected in the next commit.
 f9cd7feec306ecbd6c6a49b416d92d16a21f789d:tests/smtp-settings.test.ts:generic-api-key:15
+
+# False positive: a dummy AUTH_SECRET in the v3.2.3 deployment test fixture.
+# The fixture now generates its value, but this exact finding remains in Git history.
+024dc2632536df6dcaf8297b881d503610f85c1d:tests/deployment-secrets.test.ts:generic-api-key:44

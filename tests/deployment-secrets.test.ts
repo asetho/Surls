@@ -41,7 +41,7 @@ describe("container deployment secrets", () => {
           ...process.env,
           NODE_ENV: "production",
           DATABASE_URL: "postgresql://surls@localhost/surls",
-          AUTH_SECRET: "pY7fM2qN9sT4vW6xZ8aB3cD5eF1gH0jK",
+          AUTH_SECRET: randomBytes(32).toString("hex"),
           NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: key,
           SURLS_RUN_MIGRATIONS: "false",
           SURLS_RUN_BOOTSTRAP: "false"
