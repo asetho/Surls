@@ -7,7 +7,7 @@ Set values in the repository's `.env` before starting Compose. This is a focused
 | `SURLS_IMAGE` | Pin a published Surls release image for predictable updates. |
 | `POSTGRES_PASSWORD` | Database password used by the Compose PostgreSQL service. Generate a hex value. |
 | `AUTH_SECRET` | Authentication and encrypted-credential key. Keep stable and back it up. |
-| `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` | Stable key shared by build and runtime for Server Actions. |
+| `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` | Private, stable runtime key for Server Actions. Published images use a disposable build key; source builds can use this key at build time. |
 | `BASE_URL` | Exact public Surls application origin, without trailing slash. |
 | `WEBAUTHN_RP_ID`, `WEBAUTHN_ORIGIN` | Passkey hostname and matching origin. |
 | `SURLS_PORT` | Published app port; use `127.0.0.1:3000` for a local reverse proxy. |

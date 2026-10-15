@@ -279,7 +279,7 @@ The proxy must overwrite client IP headers and strip caller-supplied location he
 ## Production Checklist
 
 - Use a strong `AUTH_SECRET`.
-- Set a stable `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` before building production images and pass it as the `next_server_actions_encryption_key` BuildKit secret.
+- Set a private, stable `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` at runtime. For source builds, also pass it as the `next_server_actions_encryption_key` BuildKit secret; published images use a disposable build key.
 - Set `BASE_URL` to the public HTTPS origin.
 - Set `NODE_ENV=production`.
 - Run behind HTTPS and keep HSTS enabled.
