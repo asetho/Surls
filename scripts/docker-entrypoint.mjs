@@ -46,6 +46,10 @@ function validateEnvironment() {
     throw new Error("DATABASE_URL is required.");
   }
 
+  if (process.env.NODE_ENV === "production" && !process.env.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY?.trim()) {
+    throw new Error("NEXT_SERVER_ACTIONS_ENCRYPTION_KEY is required in production.");
+  }
+
   if (isInsecureAuthSecret(process.env.AUTH_SECRET)) {
     throw new Error("AUTH_SECRET must be changed to a high-entropy random value of at least 32 characters.");
   }

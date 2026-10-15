@@ -1,3 +1,5 @@
+import { spawnSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -28,6 +30,38 @@ describe("container deployment secrets", () => {
 
     expect(entrypoint).toContain('const serverActionsKeyPath = "/run/secrets/next_server_actions_encryption_key";');
     expect(entrypoint).toContain("process.env.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY = value;");
+  });
+
+  it("requires a runtime Server Actions key before starting a production container", () => {
+    const runEntrypoint = (key: string) =>
+      spawnSync(process.execPath, ["scripts/docker-entrypoint.mjs", process.execPath, "-e", "process.exit(0)"], {
+        cwd: process.cwd(),
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          NODE_ENV: "production",
+          DATABASE_URL: "postgresql://surls@localhost/surls",
+          AUTH_SECRET: "pY7fM2qN9sT4vW6xZ8aB3cD5eF1gH0jK",
+          NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: key,
+          SURLS_RUN_MIGRATIONS: "false",
+          SURLS_RUN_BOOTSTRAP: "false"
+        }
+      });
+
+    const missing = runEntrypoint("");
+    expect(missing.status).toBe(1);
+    expect(missing.stderr).toContain("NEXT_SERVER_ACTIONS_ENCRYPTION_KEY is required in production.");
+
+    const configured = runEntrypoint(randomBytes(32).toString("base64"));
+    expect(configured.status).toBe(0);
+  });
+
+  it("uses a disposable build key for published images", async () => {
+    const workflow = await readFile(resolve(process.cwd(), ".github/workflows/ci.yml"), "utf8");
+
+    expect(workflow).toContain('printf \'%s\' "$(openssl rand -base64 32)" > "${RUNNER_TEMP}/surls-release-action-key"');
+    expect(workflow).toContain("next_server_actions_encryption_key=${{ runner.temp }}/surls-release-action-key");
+    expect(workflow).not.toContain("secrets.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY");
   });
 
   it.each(composeFiles)("bind-mounts uploaded files from an explicit host path in %s", async (composeFile) => {

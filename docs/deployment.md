@@ -29,7 +29,7 @@ Use a hex database password because Compose inserts it into a connection URL. Ke
 | `AUTH_SECRET` | Generated random value; production rejects empty or placeholder values. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM` | Optional SMTP server, port (default `587`), and sender address for email-change codes when a user has no TOTP. Use port `465` for implicit TLS; other ports require STARTTLS. |
 | `SMTP_USER`, `SMTP_PASSWORD` | Optional SMTP credentials; set both when the server requires authentication. |
-| `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` | Generated base64 key, passed through the Compose secret at build and runtime. |
+| `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` | Generated base64 key required at runtime in production. Compose supplies it as a secret; source builds also use it at build time. |
 | `BASE_URL` | Exact public origin, for example `https://links.example.com`, with no trailing slash. |
 | `WEBAUTHN_RP_ID` | Hostname only, for example `links.example.com`. |
 | `WEBAUTHN_ORIGIN` | Same HTTPS origin as `BASE_URL`. |
@@ -54,6 +54,8 @@ For an existing uploads directory, apply appropriate ownership to its existing c
 ## 2. Start Surls
 
 ### Use a published image
+
+Published images use a disposable build key. Set your own `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` in `.env` before starting the app; the container rejects a missing runtime key in production. Keep the runtime key private and stable for your installation.
 
 If GHCR reports an access error, authenticate to `ghcr.io` with an account that can read the package. Use Docker's password prompt or `--password-stdin`; do not put a token in shell history.
 

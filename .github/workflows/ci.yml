@@ -219,6 +219,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Generate disposable Server Actions build key
+        if: steps.version.outputs.publish == 'true'
+        run: |
+          umask 077
+          printf '%s' "$(openssl rand -base64 32)" > "${RUNNER_TEMP}/surls-release-action-key"
+
       - name: Build and publish release image
         if: steps.version.outputs.publish == 'true'
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
@@ -229,10 +235,14 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             SURLS_GIT_SHA=${{ steps.version.outputs.sha }}
-          secrets: |
-            next_server_actions_encryption_key=${{ secrets.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY }}
+          secret-files: |
+            next_server_actions_encryption_key=${{ runner.temp }}/surls-release-action-key
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Remove disposable Server Actions build key
+        if: always() && steps.version.outputs.publish == 'true'
+        run: rm -f "${RUNNER_TEMP}/surls-release-action-key"
 
       - name: Create GitHub release
         if: steps.version.outputs.publish == 'true'

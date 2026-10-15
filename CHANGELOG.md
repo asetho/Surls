@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.2.3 - 2026-10-14
+
+### Security
+
+* Require a private Server Actions key at runtime in production containers, so a published image cannot fall back to its embedded build key.
+* Use a disposable build key for each release instead of embedding the repository's reusable GitHub Actions secret in release images.
+
+### Upgrade Notes
+
+No database migration is required. Set `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` before starting a production container. Existing Compose installations with this value in `.env` need no configuration change.
+
 ## 3.2.2 - 2026-10-14
 
 ### Added
