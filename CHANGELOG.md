@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.2.4 - 2026-10-21
+
+### Changed
+
+* Update Next.js to 16.4.2, Zod to 4.6.7, and Vitest and its coverage provider to 5.0.5.
+
+### Fixed
+
+* Update React and ReactDOM together to 19.3.1 to keep application rendering and tests compatible.
+
+### Upgrade Notes
+
+No database migration or configuration changes are required when upgrading from 3.2.3.
+
 ## 3.2.3 - 2026-10-14
 
 ### Security
