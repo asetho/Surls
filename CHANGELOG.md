@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.2.5 - 2026-10-23
+
+### Security
+
+* Update Nodemailer to 10.1.7 to address credential exposure across redirect origins.
+
+### Upgrade Notes
+
+No database migration or configuration changes are required. If SMTP is configured, send a test message from Settings → Email after upgrading.
+
 ## 3.2.4 - 2026-10-21
 
 ### Changed
