@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.2.6 - 2026-11-03
+
+### Security
+
+* Update Next.js to 16.4.5 and fast-uri to 3.1.9 to address reported dependency vulnerabilities.
+* Reject short-link destination URLs that exceed the storage limit after URL normalization, including during CSV import preview.
+
+### Changed
+
+* Update Nodemailer to 10.2.1, Prisma packages to 7.10.1, eslint-config-next to 16.4.5, and the Python setup and container registry login actions.
+
+### Upgrade Notes
+
+No database migration or configuration changes are required. If SMTP is configured, send a test message from Settings → Email after upgrading.
+
 ## 3.2.5 - 2026-10-23
 
 ### Security
