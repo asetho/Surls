@@ -115,6 +115,16 @@ describe("link update authorization", () => {
     expect(urlSafety.assertNoPrivateResolution).not.toHaveBeenCalled();
     expect(prisma.shortLink.update).not.toHaveBeenCalled();
   });
+
+  it("rejects destinations that exceed the limit after URL serialization", async () => {
+    const { updateLinkAction } = await import("@/app/admin/links/actions");
+    const formData = updateForm("link_123");
+    formData.set("destinationUrl", `https://example.com/${"é".repeat(680)}`);
+
+    await expect(updateLinkAction(formData)).rejects.toThrow(/4096 characters or fewer/i);
+    expect(urlSafety.assertNoPrivateResolution).not.toHaveBeenCalled();
+    expect(prisma.shortLink.update).not.toHaveBeenCalled();
+  });
 });
 
 describe("link list preferences", () => {

@@ -125,6 +125,7 @@ export async function createShortLink(
   if (!safeUrl.ok) {
     throw new Error(safeUrl.error);
   }
+  normalizeShortLinkDestinationUrl(safeUrl.url);
   await (options.assertSafeResolution ?? ((url) => assertNoPrivateResolution(url, options.allowPrivateDestination)))(safeUrl.url);
 
   const expiresAt = normalizeOptionalDate(input.expiresAt);

@@ -394,6 +394,16 @@ describe("tools actions hardening", () => {
     expect(links.createShortLink).not.toHaveBeenCalled();
   });
 
+  it("rejects CSV destinations that exceed the limit after URL serialization", async () => {
+    const { importCsvAction } = await import("@/app/admin/tools/actions");
+
+    const result = await importCsvAction(null, importForm(`https://example.com/${"é".repeat(680)},safe,Title`));
+
+    expect(result).toEqual({ imported: 0, errors: ["Row 1: Destination URL must be 4096 characters or fewer."] });
+    expect(urlSafety.assertNoPrivateResolution).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
   it("rejects excess CSV imports before destination resolution", async () => {
     const { importCsvAction } = await import("@/app/admin/tools/actions");
     rateLimit.checkRateLimit.mockResolvedValue({ allowed: false });
