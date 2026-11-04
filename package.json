@@ -1,6 +1,6 @@
 {
   "name": "surls",
-  "version": "3.2.5",
+  "version": "3.2.6",
   "private": true,
   "description": "Surls is a personal short URL system for managing private links, redirects, and click statistics.",
   "scripts": {
@@ -22,20 +22,20 @@
     "deploy:hmserv": "node scripts/deploy-hmserv.mjs"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.10.0",
-    "@prisma/client": "^7.10.0",
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
     "@simplewebauthn/browser": "^14.0.0",
     "@simplewebauthn/server": "^14.0.3",
     "argon2": "^0.45.1",
     "d3-geo": "^3.1.1",
     "i18n-iso-countries": "^7.14.0",
     "lucide-react": "^1.55.0",
-    "next": "^16.4.2",
-    "nodemailer": "^10.1.7",
+    "next": "16.4.5",
+    "nodemailer": "^10.2.1",
     "openid-client": "6.8.8",
     "otplib": "^13.5.0",
     "pg": "^8.23.1",
-    "prisma": "^7.10.0",
+    "prisma": "^7.10.1",
     "qrcode": "^1.5.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
@@ -56,7 +56,7 @@
     "@vitest/coverage-v8": "^5.0.5",
     "braces": "file:braces-compat",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^16.4.0",
+    "eslint-config-next": "16.4.5",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "vitest": "^5.0.5"

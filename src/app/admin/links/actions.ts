@@ -99,6 +99,7 @@ export async function updateLinkAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const safe = parseSafeHttpUrl(normalizeShortLinkDestinationUrl(formData.get("destinationUrl")));
   if (!safe.ok) throw new Error(safe.error);
+  normalizeShortLinkDestinationUrl(safe.url);
   await assertNoPrivateResolution(safe.url);
   const tags = normalizeShortLinkTags(tagList(formData.get("tags")));
   const text = normalizeShortLinkTextFields({

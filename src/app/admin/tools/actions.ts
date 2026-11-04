@@ -257,6 +257,10 @@ export async function importCsvAction(_state: { imported?: number; errors?: stri
         errors.push(`Row ${index + 1}: ${safe.error}`);
         return null;
       }
+      if (safe.url.length > 4_096) {
+        errors.push(`Row ${index + 1}: Destination URL must be 4096 characters or fewer.`);
+        return null;
+      }
       const cleanCode = code?.trim() || undefined;
       if (cleanCode) {
         const aliasError = validateAlias(cleanCode);

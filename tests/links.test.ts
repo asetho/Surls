@@ -115,6 +115,18 @@ describe("short link creation", () => {
     })).rejects.toThrow(/4096 characters or fewer/i);
   });
 
+  it("rejects destinations that exceed the limit after URL serialization", async () => {
+    const assertSafeResolution = vi.fn();
+    const destinationUrl = `https://example.com/${"é".repeat(680)}`;
+
+    await expect(createShortLink({
+      destinationUrl,
+      fetchTitle: false
+    }, undefined, { assertSafeResolution })).rejects.toThrow(/4096 characters or fewer/i);
+    expect(assertSafeResolution).not.toHaveBeenCalled();
+    expect(shortLink.create).not.toHaveBeenCalled();
+  });
+
   it("skips automatic title fetching when the user budget is exhausted", async () => {
     rateLimit.checkRateLimit.mockResolvedValue({ allowed: false });
     const assertSafeResolution = vi.fn().mockResolvedValue(true);
