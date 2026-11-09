@@ -82,7 +82,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     needs: build
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 90
     environment: surls-share-release
     permissions:
       contents: write
@@ -201,11 +201,13 @@ jobs:
           {
             echo "SURLS_SHARE_APP_PROFILE_PATH=${app_profile_path}"
             echo "SURLS_SHARE_EXTENSION_PROFILE_PATH=${extension_profile_path}"
+            echo "SURLS_SHARE_APP_PROFILE_UUID=${app_profile_uuid}"
+            echo "SURLS_SHARE_EXTENSION_PROFILE_UUID=${extension_profile_uuid}"
           } >> "${GITHUB_ENV}"
           cp "${app_profile_source}" "${app_profile_path}"
           cp "${extension_profile_source}" "${extension_profile_path}"
 
-      - name: Archive Developer ID build
+      - name: Archive and export Developer ID build
         env:
           APPLE_TEAM_ID: ${{ vars.SURLS_SHARE_APPLE_TEAM_ID }}
         run: |
@@ -217,17 +219,63 @@ jobs:
             -configuration Release \
             -destination "generic/platform=macOS" \
             -archivePath "${archive_path}" \
-            DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" \
-            CODE_SIGN_STYLE=Automatic \
-            CODE_SIGN_IDENTITY="Developer ID Application" \
+            CODE_SIGNING_ALLOWED=NO \
             archive
 
-          app_path="${archive_path}/Products/Applications/Surls Share.app"
+          export_options="${RUNNER_TEMP}/surls-share-export-options.plist"
+          export_path="${RUNNER_TEMP}/surls-share-export"
+          python3 - <<'PY'
+          import os
+          import plistlib
+
+          options = {
+              "method": "developer-id",
+              "destination": "export",
+              "signingStyle": "manual",
+              "signingCertificate": "Developer ID Application",
+              "teamID": os.environ["APPLE_TEAM_ID"],
+              "provisioningProfiles": {
+                  "cc.aarn.SurlsShare": os.environ["SURLS_SHARE_APP_PROFILE_UUID"],
+                  "cc.aarn.SurlsShare.Extension": os.environ["SURLS_SHARE_EXTENSION_PROFILE_UUID"],
+              },
+          }
+          with open(os.environ["RUNNER_TEMP"] + "/surls-share-export-options.plist", "wb") as output:
+              plistlib.dump(options, output)
+          PY
+          xcodebuild -exportArchive \
+            -archivePath "${archive_path}" \
+            -exportOptionsPlist "${export_options}" \
+            -exportPath "${export_path}"
+
+          app_path="${export_path}/Surls Share.app"
           test -d "${app_path}"
           codesign --verify --deep --strict --verbose=2 "${app_path}"
           codesign -dv --verbose=4 "${app_path}" 2>&1 | grep -F "Authority=Developer ID Application:"
           codesign -dv --verbose=4 "${app_path}" 2>&1 | grep -F "runtime"
           echo "SURLS_SHARE_APP_PATH=${app_path}" >> "${GITHUB_ENV}"
+
+      - name: Notarize and staple app
+        env:
+          NOTARY_KEY_BASE64: ${{ secrets.SURLS_SHARE_NOTARY_KEY_BASE64 }}
+          NOTARY_KEY_ID: ${{ secrets.SURLS_SHARE_NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.SURLS_SHARE_NOTARY_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          notary_key_path="${RUNNER_TEMP}/AuthKey_${NOTARY_KEY_ID}.p8"
+          echo "SURLS_SHARE_NOTARY_KEY_PATH=${notary_key_path}" >> "${GITHUB_ENV}"
+          umask 077
+          printf '%s' "${NOTARY_KEY_BASE64}" | base64 -D > "${notary_key_path}"
+          app_zip="${RUNNER_TEMP}/SurlsShare-app.zip"
+          ditto -c -k --keepParent "${SURLS_SHARE_APP_PATH}" "${app_zip}"
+          xcrun notarytool submit "${app_zip}" \
+            --key "${notary_key_path}" \
+            --key-id "${NOTARY_KEY_ID}" \
+            --issuer "${NOTARY_ISSUER_ID}" \
+            --wait \
+            --timeout 30m
+          xcrun stapler staple "${SURLS_SHARE_APP_PATH}"
+          xcrun stapler validate "${SURLS_SHARE_APP_PATH}"
+          syspolicy_check distribution "${SURLS_SHARE_APP_PATH}"
 
       - name: Package DMG
         run: |
@@ -246,19 +294,24 @@ jobs:
           hdiutil verify "${output_path}"
           echo "SURLS_SHARE_DMG_PATH=${output_path}" >> "${GITHUB_ENV}"
 
+      - name: Sign DMG
+        run: |
+          set -euo pipefail
+          codesign \
+            --sign "Developer ID Application" \
+            --timestamp \
+            --identifier "cc.aarn.SurlsShare.dmg" \
+            "${SURLS_SHARE_DMG_PATH}"
+          codesign --verify --verbose=2 "${SURLS_SHARE_DMG_PATH}"
+
       - name: Notarize and staple DMG
         env:
-          NOTARY_KEY_BASE64: ${{ secrets.SURLS_SHARE_NOTARY_KEY_BASE64 }}
           NOTARY_KEY_ID: ${{ secrets.SURLS_SHARE_NOTARY_KEY_ID }}
           NOTARY_ISSUER_ID: ${{ secrets.SURLS_SHARE_NOTARY_ISSUER_ID }}
         run: |
           set -euo pipefail
-          notary_key_path="${RUNNER_TEMP}/AuthKey_${NOTARY_KEY_ID}.p8"
-          echo "SURLS_SHARE_NOTARY_KEY_PATH=${notary_key_path}" >> "${GITHUB_ENV}"
-          umask 077
-          printf '%s' "${NOTARY_KEY_BASE64}" | base64 -D > "${notary_key_path}"
           xcrun notarytool submit "${SURLS_SHARE_DMG_PATH}" \
-            --key "${notary_key_path}" \
+            --key "${SURLS_SHARE_NOTARY_KEY_PATH}" \
             --key-id "${NOTARY_KEY_ID}" \
             --issuer "${NOTARY_ISSUER_ID}" \
             --wait \
@@ -266,6 +319,11 @@ jobs:
           xcrun stapler staple "${SURLS_SHARE_DMG_PATH}"
           xcrun stapler validate "${SURLS_SHARE_DMG_PATH}"
           spctl --assess --type open --context context:primary-signature --verbose=2 "${SURLS_SHARE_DMG_PATH}"
+          mount_path="${RUNNER_TEMP}/surls-share-verification"
+          mkdir -p "${mount_path}"
+          hdiutil attach -readonly -nobrowse -mountpoint "${mount_path}" "${SURLS_SHARE_DMG_PATH}"
+          syspolicy_check distribution "${mount_path}/Surls Share.app"
+          hdiutil detach "${mount_path}"
 
       - name: Remove signing materials
         if: always()
