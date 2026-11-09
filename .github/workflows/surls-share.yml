@@ -362,6 +362,7 @@ jobs:
               "${checksum_path}" \
               --target "${GITHUB_SHA}" \
               --title "${release_title}" \
+              --latest=false \
               --generate-notes
           fi
 
