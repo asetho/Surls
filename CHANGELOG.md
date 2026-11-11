@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.2.7 - 2026-11-11
+
+### Security
+
+* Use patched minimatch 11.0.1 in the TypeScript ESLint development toolchain.
+
+### Changed
+
+* Update Nodemailer to 10.3.1, the passkey server to 14.1.0, otplib to 13.6.0, and Argon2 to 0.45.2.
+* Update Vitest coverage, Node.js types, and the container registry login action.
+
+### Upgrade Notes
+
+No database migration or configuration changes are required. Verify SMTP and the enabled sign-in methods after deployment.
+
 ## 3.2.6 - 2026-11-03
 
 ### Security
