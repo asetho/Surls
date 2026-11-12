@@ -171,6 +171,19 @@ export async function uploadedFileDownloadName(storageKey: string) {
   return uploadedFile?.downloadName ?? null;
 }
 
+export async function withExistingUploadedFileReference<T>(
+  storageKey: string,
+  operation: (transaction: Prisma.TransactionClient) => Promise<T>,
+  transaction?: Prisma.TransactionClient
+) {
+  const createReference = async (tx: Prisma.TransactionClient) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${UPLOAD_QUOTA_LOCK_ID})`;
+    if (await uploadedFileSize(storageKey) === null) throw new Error("The uploaded file no longer exists.");
+    return operation(tx);
+  };
+  return transaction ? createReference(transaction) : prisma.$transaction(createReference);
+}
+
 export async function deleteUploadedFileWithRecord(storageKey: string, options: { onlyIfUnreferenced?: boolean } = {}) {
   await prisma.$transaction(async (transaction) => {
     await transaction.$executeRaw`SELECT pg_advisory_xact_lock(${UPLOAD_QUOTA_LOCK_ID})`;

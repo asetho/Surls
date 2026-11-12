@@ -3,7 +3,7 @@
 The **Share with Surls** extension uploads one shared file to a selected Surls site and copies its short URL to the clipboard. It can generate a random short keyword or check a custom keyword before uploading. The companion **Surls Share** app stores multiple sites, the default-site choice, and each site's API token.
 
 > [!WARNING]
-> **Unsigned development builds:** CI builds are unsigned, and there is currently no published Developer ID signed, notarized installer. macOS may block an unsigned copy or refuse to load its share extension. Build locally with your own Apple Development signing and provisioning profiles for development use. A locally development-signed app is not a notarized public distribution; do not assume the release workflow below means a signed download is available.
+> **Unsigned development builds:** CI builds are unsigned. macOS may block an unsigned copy or refuse to load its share extension. Use the signed, notarized installer from the [Surls Share releases](https://github.com/asetho/Surls/releases?q=surls-share) for general distribution, or build locally with your own Apple Development signing and provisioning profiles for development use.
 
 ## Requirements
 
@@ -40,7 +40,7 @@ The Mac app lives in the main Surls repository but has its own `MARKETING_VERSIO
 
 The app depends on the Surls upload API in `src/app/api/uploads/route.ts` and `src/lib/upload-and-shorten.ts`. Changes to that contract should be reviewed and released with the corresponding app changes.
 
-The workflow supports a future signed public release **only when the required Developer ID and notarization credentials are configured**. It is started manually with the **Surls Share** workflow's `workflow_dispatch` trigger on `main`. The workflow derives a tag in the form `surls-share-vX.Y.Z` from `CFBundleShortVersionString`, signs with Developer ID, packages a DMG, submits it with `notarytool`, staples and verifies it, and then attaches it to a dedicated GitHub release. An ordinary server release does not publish a Mac installer.
+The workflow supports a signed public release **only when the required Developer ID and notarization credentials are configured**. It is started manually with the **Surls Share** workflow's `workflow_dispatch` trigger on `main`. The workflow derives a tag in the form `surls-share-vX.Y.Z` from `CFBundleShortVersionString`, signs with Developer ID, packages a DMG, submits it with `notarytool`, staples and verifies it, and then attaches it to a dedicated GitHub release. An ordinary server release does not publish a Mac installer.
 
 After each successful publication, the workflow retains DMG and checksum assets for the newest three Surls Share versions. Older release records and tags remain available without their installer assets.
 

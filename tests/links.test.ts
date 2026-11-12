@@ -10,6 +10,7 @@ const pageTitle = vi.hoisted(() => ({
 }));
 
 const rateLimit = vi.hoisted(() => ({ checkRateLimit: vi.fn() }));
+const uploadedFileRecords = vi.hoisted(() => ({ withExistingUploadedFileReference: vi.fn() }));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: { shortLink }
@@ -17,6 +18,7 @@ vi.mock("@/lib/prisma", () => ({
 
 vi.mock("@/lib/page-title", () => pageTitle);
 vi.mock("@/lib/rate-limit", () => rateLimit);
+vi.mock("@/lib/uploaded-file-records", () => uploadedFileRecords);
 
 import { createShortLink, normalizeOptionalDate, normalizeOptionalPositiveInt, normalizeShortLinkTags, normalizeShortLinkTextFields } from "@/lib/links";
 
@@ -27,7 +29,49 @@ describe("short link creation", () => {
     pageTitle.fetchPageTitle.mockReset();
     rateLimit.checkRateLimit.mockReset();
     rateLimit.checkRateLimit.mockResolvedValue({ allowed: true });
+    uploadedFileRecords.withExistingUploadedFileReference.mockReset();
+    uploadedFileRecords.withExistingUploadedFileReference.mockImplementation((_storageKey, operation) => operation({ shortLink }));
     shortLink.create.mockImplementation(async ({ data }) => ({ id: "link_1", ...data, tags: [] }));
+  });
+
+  it("checks a copied local upload while holding the reference lock", async () => {
+    await createShortLink({
+      destinationUrl: "http://localhost:3000/uploads/%72eport.pdf?download=1",
+      code: "copy",
+      fetchTitle: false
+    }, undefined, { allowPrivateDestination: true, assertSafeResolution: vi.fn() });
+
+    expect(uploadedFileRecords.withExistingUploadedFileReference).toHaveBeenCalledWith(
+      "report.pdf", expect.any(Function), undefined
+    );
+    expect(shortLink.create).toHaveBeenCalledOnce();
+  });
+
+  it("uses the upload reservation to create a new file link before promotion", async () => {
+    await createShortLink({
+      destinationUrl: "http://localhost:3000/uploads/new.pdf",
+      code: "new",
+      fetchTitle: false
+    }, { shortLink } as unknown as Parameters<typeof createShortLink>[1], {
+      allowPrivateDestination: true,
+      assertSafeResolution: vi.fn(),
+      pendingUploadReservation: true
+    });
+
+    expect(uploadedFileRecords.withExistingUploadedFileReference).not.toHaveBeenCalled();
+    expect(shortLink.create).toHaveBeenCalledOnce();
+  });
+
+  it("does not permit a pending upload outside a reservation transaction", async () => {
+    await expect(createShortLink({
+      destinationUrl: "http://localhost:3000/uploads/new.pdf",
+      fetchTitle: false
+    }, undefined, {
+      allowPrivateDestination: true,
+      pendingUploadReservation: true
+    })).rejects.toThrow(/reservation transaction/i);
+
+    expect(shortLink.create).not.toHaveBeenCalled();
   });
 
   it("fills a blank title from the destination page", async () => {

@@ -4,6 +4,8 @@ import { fetchPageTitle } from "./page-title";
 import { assertNoPrivateResolution, parseSafeHttpUrl } from "./url-safety";
 import { prisma } from "./prisma";
 import { checkRateLimit } from "./rate-limit";
+import { uploadedFilenameFromDestination } from "./uploads";
+import { withExistingUploadedFileReference } from "./uploaded-file-records";
 
 const DESTINATION_URL_MAX_LENGTH = 4_096;
 const SHORT_LINK_TITLE_MAX_LENGTH = 240;
@@ -33,6 +35,8 @@ type ShortLinkClient = Pick<Prisma.TransactionClient, "shortLink">;
 type CreateShortLinkOptions = {
   allowPrivateDestination?: boolean;
   assertSafeResolution?: typeof assertNoPrivateResolution;
+  // Only the new-upload reservation may use a file before it is promoted.
+  pendingUploadReservation?: boolean;
 };
 
 export function shortUrl(baseUrl: string, code: string) {
@@ -120,6 +124,9 @@ export async function createShortLink(
   db: ShortLinkClient = prisma,
   options: CreateShortLinkOptions = {}
 ) {
+  if (options.pendingUploadReservation && db === prisma) {
+    throw new Error("A pending upload requires its reservation transaction.");
+  }
   const destinationUrl = normalizeShortLinkDestinationUrl(input.destinationUrl);
   const safeUrl = parseSafeHttpUrl(destinationUrl, options.allowPrivateDestination);
   if (!safeUrl.ok) {
@@ -154,7 +161,7 @@ export async function createShortLink(
   }
 
   try {
-    const link = await db.shortLink.create({
+    const createLink = (client: ShortLinkClient) => client.shortLink.create({
       data: {
         code,
         destinationUrl: safeUrl.url,
@@ -184,6 +191,14 @@ export async function createShortLink(
       },
       include: { tags: { include: { tag: true } } }
     });
+    const storageKey = uploadedFilenameFromDestination(safeUrl.url);
+    const link = storageKey && !options.pendingUploadReservation
+      ? await withExistingUploadedFileReference(
+          storageKey,
+          createLink,
+          db === prisma ? undefined : db as Prisma.TransactionClient
+        )
+      : await createLink(db);
     return link;
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {

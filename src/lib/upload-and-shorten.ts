@@ -80,7 +80,8 @@ export async function uploadAndShortenFile(input: UploadAndShortenInput) {
           transaction,
           {
             allowPrivateDestination: true,
-            assertSafeResolution: trustedSafeResolution
+            assertSafeResolution: trustedSafeResolution,
+            pendingUploadReservation: true
           }
         );
         await transaction.auditLog.create({
