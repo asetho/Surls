@@ -10,12 +10,12 @@ import { requireSiteAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
 import { sendSmtpTestEmail, verifySmtpConnection } from "@/lib/profile-email";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { createSmtpCheckProof } from "@/lib/smtp-check-proof";
 import { getSetting, setSetting } from "@/lib/settings";
 import {
-  restoreEnvironmentSmtpSettings,
-  saveSmtpSettings,
+  restoreEnvironmentSmtpSettings, saveCheckedSmtpSettings,
   getSmtpTransportConfig,
-  getSmtpConnectionTestConfig,
+  getSmtpSettingsCheckConfig,
   SmtpSettingsError
 } from "@/lib/smtp-settings";
 
@@ -63,9 +63,9 @@ export async function savePasswordResetSettingAction(formData: FormData) {
 
 export async function saveSmtpSettingsAction(formData: FormData) {
   const admin = await authorizedAdmin(formData);
-  let result: Awaited<ReturnType<typeof saveSmtpSettings>>;
+  let result: Awaited<ReturnType<typeof saveCheckedSmtpSettings>>;
   try {
-    result = await saveSmtpSettings(formData);
+    result = await saveCheckedSmtpSettings(formData, admin.id, formData.get("smtpCheckProof"));
   } catch (error) {
     emailSettingsToast("error", error instanceof SmtpSettingsError ? error.message : "Could not save email settings.");
   }
@@ -105,22 +105,29 @@ export async function sendSmtpTestAction(formData: FormData) {
   emailSettingsToast("success", "Test email accepted by the SMTP server. Check the recipient inbox.");
 }
 
-export async function checkSmtpConnectionAction(formData: FormData): Promise<{ ok: boolean; message: string }> {
+export async function checkSmtpConnectionAction(formData: FormData): Promise<{
+  ok: boolean; message: string; proof?: string; expiresAt?: number;
+}> {
   const admin = await authorizedAdmin(formData);
-  let config: Awaited<ReturnType<typeof getSmtpConnectionTestConfig>>;
+  let config: Awaited<ReturnType<typeof getSmtpSettingsCheckConfig>>;
   try {
-    config = await getSmtpConnectionTestConfig(formData);
+    config = await getSmtpSettingsCheckConfig(formData);
   } catch (error) {
     return { ok: false, message: error instanceof SmtpSettingsError ? error.message : "Could not check the SMTP settings." };
   }
-  const rate = await checkRateLimit(`smtp:connection:${admin.id}`, 3, 15 * 60 * 1000);
-  if (!rate.allowed) return { ok: false, message: "Too many connection checks. Please wait and try again." };
-  try {
-    await verifySmtpConnection(config);
-  } catch {
-    return { ok: false, message: "Could not connect or sign in. Check the host, port, username, and password." };
+  if (config.host) {
+    const rate = await checkRateLimit(`smtp:connection:${admin.id}`, 3, 15 * 60 * 1000);
+    if (!rate.allowed) return { ok: false, message: "Too many connection checks. Please wait and try again." };
+    try {
+      await verifySmtpConnection(config);
+    } catch {
+      return { ok: false, message: "Could not connect or sign in. Check the host, port, username, and password." };
+    }
   }
-  return { ok: true, message: config.username
-    ? "Secure SMTP connection and login succeeded. No email was sent or settings saved."
-    : "Secure SMTP connection succeeded without login. No email was sent or settings saved." };
+  const { proof, expiresAt } = createSmtpCheckProof(admin.id, config);
+  return { ok: true, proof, expiresAt, message: !config.host
+    ? "No SMTP server to contact. Saving will disable email delivery."
+    : config.username
+      ? "Secure SMTP connection and login succeeded. No email was sent. You can now save these settings."
+      : "Secure SMTP connection succeeded. No email was sent. You can now save these settings." };
 }

@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.4.0 - 2026-11-11
+
+### Added
+
+* Customize the subject, plain-text message, and HTML message for all six system emails from Email settings.
+* Send a preview of an unsaved template to a chosen mailbox using an inactive sample code or reset link.
+
+### Changed
+
+* Include an HTML version alongside the plain-text version of system emails.
+* Require a recent successful check of the exact SMTP settings before saving. Editing a field locks Save until the settings are checked again.
+
+### Upgrade Notes
+
+No database migration or new environment variables are required. Existing email wording stays in place until a template is customized. SMTP connection checks do not send email; clearing and checking the configuration still allows email delivery to be disabled.
+
 ## 3.3.0 - 2026-11-11
 
 ### Added

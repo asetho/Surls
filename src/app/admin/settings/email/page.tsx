@@ -32,6 +32,14 @@ export default async function EmailSettingsPage() {
         </div>
       </div>
 
+      <section className="surface surface-panel email-template-link-card">
+        <div>
+          <h2>Email templates</h2>
+          <p className="muted small">Edit the plain-text and HTML versions of system emails and send previews.</p>
+        </div>
+        <Link className="button secondary" href="/admin/settings/email/templates">Open Email templates</Link>
+      </section>
+
       <section className="surface settings-primary-card">
         <div className="settings-card-header">
           <h2>SMTP server</h2>
@@ -43,7 +51,7 @@ export default async function EmailSettingsPage() {
           {settings.source === "environment"
             ? "Using server environment settings. Saving this form creates a dashboard managed override."
             : settings.source === "settings"
-              ? "Using settings saved in the dashboard. Clear all fields and save to disable email delivery."
+              ? "Using settings saved in the dashboard. To disable delivery, clear the host, sender email, and From name, turn off SMTP login, then check and save."
               : "Add an SMTP server to send verification codes to a user’s current email address."}
         </p>
         <SmtpSettingsForm csrf={csrf} settings={settings} />

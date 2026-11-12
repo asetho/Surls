@@ -4,6 +4,7 @@ import { z } from "zod";
 import { decryptSecret, encryptSecret } from "./crypto";
 import { env } from "./env";
 import { prisma } from "./prisma";
+import { verifySmtpCheckProof } from "./smtp-check-proof";
 
 const SMTP_SETTING_KEY = "smtp";
 type SmtpClient = Pick<Prisma.TransactionClient, "appSetting">;
@@ -161,14 +162,22 @@ async function resolveSmtpForm(formData: FormData, client: SmtpClient) {
   return { host, port, from, fromName, username, password, passwordEncrypted };
 }
 
-export async function getSmtpConnectionTestConfig(formData: FormData, client: SmtpClient = prisma): Promise<SmtpTransportConfig> {
+export async function getSmtpSettingsCheckConfig(formData: FormData, client: SmtpClient = prisma): Promise<SmtpTransportConfig> {
   const { host, port, from, fromName, username, password } = await resolveSmtpForm(formData, client);
-  if (!host) throw new SmtpSettingsError("Enter an SMTP host to check the connection.");
   return { host, port, from, fromName, username, password };
 }
 
-export async function saveSmtpSettings(formData: FormData, client: SmtpClient = prisma) {
-  const { host, port, from, fromName, username, passwordEncrypted } = await resolveSmtpForm(formData, client);
+export async function getSmtpConnectionTestConfig(formData: FormData, client: SmtpClient = prisma): Promise<SmtpTransportConfig> {
+  const config = await getSmtpSettingsCheckConfig(formData, client);
+  const { host } = config;
+  if (!host) throw new SmtpSettingsError("Enter an SMTP host to check the connection.");
+  return config;
+}
+
+async function persistSmtpSettings(
+  { host, port, from, fromName, username, passwordEncrypted }: Awaited<ReturnType<typeof resolveSmtpForm>>,
+  client: SmtpClient
+) {
   const value: StoredSmtpSettings = { host, port, from, fromName, username, passwordEncrypted };
   await client.appSetting.upsert({
     where: { key: SMTP_SETTING_KEY },
@@ -176,6 +185,19 @@ export async function saveSmtpSettings(formData: FormData, client: SmtpClient = 
     update: { value: value as Prisma.InputJsonValue }
   });
   return { enabled: Boolean(host), authenticated: Boolean(username) };
+}
+
+export async function saveSmtpSettings(formData: FormData, client: SmtpClient = prisma) {
+  return persistSmtpSettings(await resolveSmtpForm(formData, client), client);
+}
+
+export async function saveCheckedSmtpSettings(formData: FormData, adminId: string, proof: unknown, client: SmtpClient = prisma) {
+  const resolved = await resolveSmtpForm(formData, client);
+  const { host, port, from, fromName, username, password } = resolved;
+  if (!verifySmtpCheckProof(proof, adminId, { host, port, from, fromName, username, password })) {
+    throw new SmtpSettingsError("Check these SMTP settings before saving. Checks expire after five minutes.");
+  }
+  return persistSmtpSettings(resolved, client);
 }
 
 export async function restoreEnvironmentSmtpSettings(client: SmtpClient = prisma) {
