@@ -1,13 +1,25 @@
 import { randomBytes } from "node:crypto";
+import { createReadStream } from "node:fs";
 import { link, mkdir, open, readdir, rm, stat } from "node:fs/promises";
+import { Readable } from "node:stream";
 import path from "node:path";
 import { appBaseUrl, env } from "./env";
-import { UPLOAD_PROCESS_MAX_BYTES } from "./upload-limits";
 
 export const UPLOAD_ROUTE_SEGMENT = "uploads";
 export const UPLOAD_FILENAME_MODES = ["original", "safe", "random"] as const;
 
 export type UploadFilenameMode = (typeof UPLOAD_FILENAME_MODES)[number];
+
+export type UploadFile = Pick<File, "name" | "size" | "stream"> & { sourcePath?: string };
+
+export function uploadFileFromPath(filePath: string, name: string, size: number): UploadFile {
+  return {
+    name,
+    size,
+    sourcePath: filePath,
+    stream: () => Readable.toWeb(createReadStream(filePath)) as unknown as ReturnType<File["stream"]>
+  };
+}
 
 type StoreUploadedFileOptions = {
   dropExtension?: boolean;
@@ -152,7 +164,7 @@ export function uploadedFilenameFromDestination(destinationUrl: string) {
   }
 }
 
-async function writeUniqueFile(root: string, filename: string, file: File) {
+async function writeUniqueFile(root: string, filename: string, file: UploadFile) {
   const extension = path.extname(filename);
   const baseName = filename.slice(0, extension ? -extension.length : undefined);
 
@@ -161,6 +173,10 @@ async function writeUniqueFile(root: string, filename: string, file: File) {
     const filePath = filePathInside(root, candidate);
     let handle;
     try {
+      if (file.sourcePath) {
+        await link(file.sourcePath, filePath);
+        return { filename: candidate, filePath };
+      }
       handle = await open(filePath, "wx");
       await handle.writeFile(file.stream());
       return { filename: candidate, filePath };
@@ -175,15 +191,12 @@ async function writeUniqueFile(root: string, filename: string, file: File) {
   throw new Error("Could not find an unused upload filename.");
 }
 
-export async function storeUploadedFile(file: File, options: StoreUploadedFileOptions = {}): Promise<StoredUpload> {
+export async function storeUploadedFile(file: UploadFile, options: StoreUploadedFileOptions = {}): Promise<StoredUpload> {
   if (!file.name.trim()) throw new Error("Choose a file to upload.");
   if (file.size < 1) throw new Error("Choose a non-empty file to upload.");
   const configuredMaxBytes = options.maxBytes === undefined ? uploadMaxBytes() : options.maxBytes;
-  const maxBytes = configuredMaxBytes === null
-    ? UPLOAD_PROCESS_MAX_BYTES
-    : Math.min(configuredMaxBytes, UPLOAD_PROCESS_MAX_BYTES);
-  if (file.size > maxBytes) {
-    throw new Error(`Upload files up to ${uploadMaxBytesLabel(maxBytes)} at a time.`);
+  if (configuredMaxBytes !== null && file.size > configuredMaxBytes) {
+    throw new Error(`Upload files up to ${uploadMaxBytesLabel(configuredMaxBytes)} at a time.`);
   }
 
   const root = uploadsRoot();

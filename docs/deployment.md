@@ -151,7 +151,7 @@ Restore into a separate, empty PostgreSQL database first, using a compatible Pos
 
 ## Storage and retention
 
-- Upload request ceiling: **25 MiB**. `UPLOAD_MAX_BYTES` can lower it.
+- Default per-file upload limit: **25 MiB**. `UPLOAD_MAX_BYTES` sets the default before site or user overrides; the dashboard can remove the per-file limit. The per-user and site storage quotas still apply.
 - Default storage quotas: **1 GiB per user**, **10 GiB per site**; configure `UPLOAD_USER_STORAGE_QUOTA_BYTES` and `UPLOAD_SITE_STORAGE_QUOTA_BYTES`.
 - Raw click IPs: purged after **30 days**.
 - Click events and audit logs: **365 days** by default via `CLICK_EVENT_RETENTION_DAYS` and `AUDIT_LOG_RETENTION_DAYS`.

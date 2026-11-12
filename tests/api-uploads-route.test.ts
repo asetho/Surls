@@ -15,7 +15,8 @@ const rateLimit = vi.hoisted(() => ({
 
 const uploads = vi.hoisted(() => ({
   normalizeUploadFilenameMode: vi.fn(() => "safe"),
-  uploadMaxBytesLabel: vi.fn((bytes: number | null) => bytes === null ? "No limit" : `${bytes} bytes`)
+  uploadMaxBytesLabel: vi.fn((bytes: number | null) => bytes === null ? "No limit" : `${bytes} bytes`),
+  uploadFileFromPath: vi.fn((_path: string, name: string, size: number) => ({ name, size, stream: vi.fn() }))
 }));
 
 const uploadLimits = vi.hoisted(() => ({
@@ -187,11 +188,31 @@ describe("POST /api/uploads", () => {
       createdByApiTokenName: "Mac Share",
       createdByApiTokenPrefix: "surls_abc123",
       createdById: "user_123",
-      file: expect.any(File),
+      file: expect.objectContaining({ name: "hello world.txt", size: 5 }),
       filenameMode: "safe",
       title: "Shared document",
       uploadMaxBytes: 25 * 1024 * 1024,
       via: "api-upload"
+    }));
+  });
+
+  it("accepts a file above 25 MB when the token owner has no per-file limit", async () => {
+    uploadLimits.getEffectiveUploadMaxBytes.mockResolvedValue(null);
+    const formData = new FormData();
+    formData.set("file", new File([new Uint8Array(26 * 1024 * 1024)], "large.bin"));
+    const request = new NextRequest("http://localhost:3000/api/uploads", {
+      body: formData,
+      headers: { authorization: "Bearer surls_valid" },
+      method: "POST"
+    });
+    const { POST } = await import("@/app/api/uploads/route");
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(201);
+    expect(uploadAndShorten.uploadAndShortenFile).toHaveBeenCalledWith(expect.objectContaining({
+      file: expect.objectContaining({ name: "large.bin", size: 26 * 1024 * 1024 }),
+      uploadMaxBytes: null
     }));
   });
 
@@ -268,6 +289,23 @@ describe("POST /api/uploads", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({ error: "Title must be 240 characters or fewer." });
+    expect(uploadAndShorten.uploadAndShortenFile).not.toHaveBeenCalled();
+  });
+
+  it("rejects unexpected multipart fields before creating a link", async () => {
+    const formData = new FormData();
+    formData.set("file", new File(["hello"], "hello.txt"));
+    formData.set("unexpected", "value");
+    const { POST } = await import("@/app/api/uploads/route");
+    const request = new NextRequest("http://localhost:3000/api/uploads", {
+      body: formData,
+      headers: { authorization: "Bearer surls_valid" },
+      method: "POST"
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
     expect(uploadAndShorten.uploadAndShortenFile).not.toHaveBeenCalled();
   });
 

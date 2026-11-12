@@ -14,4 +14,4 @@ Surls skips detailed click analytics for requests with `DNT: 1` or `Sec-GPC: 1`,
 
 ## Other link tools
 
-The Tools page includes a bookmarklet, API tokens, CSV import preview/import, exports, an SSRF-aware link checker, and a UTM builder. File uploads from **Tools → Upload & Shorten** use opaque storage names and are available through their short links. The request ceiling is 25 MiB and can be lowered; per-user and site storage quotas also apply.
+The Tools page includes a bookmarklet, API tokens, CSV import preview/import, exports, an SSRF-aware link checker, and a UTM builder. File uploads from **Tools → Upload & Shorten** use opaque storage names and are available through their short links. The default per-file limit is 25 MiB and can be changed or removed; per-user and site storage quotas still apply.

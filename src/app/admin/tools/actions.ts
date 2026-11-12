@@ -4,7 +4,12 @@ import { Buffer } from "node:buffer";
 import { AuditAction } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { auditLog } from "@/lib/audit";
-import { createApiToken, normalizeApiTokenName } from "@/lib/api-tokens";
+import {
+  API_TOKEN_SCOPE_LINKS_CREATE,
+  API_TOKEN_SCOPE_UPLOADS_CREATE,
+  createApiToken,
+  normalizeApiTokenName
+} from "@/lib/api-tokens";
 import { requireAdmin } from "@/lib/auth";
 import { parseCsvRows } from "@/lib/csv";
 import { validateCsrf } from "@/lib/csrf";
@@ -26,6 +31,7 @@ const CSV_DNS_MAX_CONCURRENT = 4;
 const CSV_DNS_DEADLINE_MS = 15_000;
 const TOOL_CHECK_WINDOW_MS = 60_000;
 const API_TOKEN_EXPIRATION_CHOICES = new Set([30, 90, 180, 365]);
+const API_TOKEN_PERMISSION_CHOICES = new Set([API_TOKEN_SCOPE_LINKS_CREATE, API_TOKEN_SCOPE_UPLOADS_CREATE]);
 
 export type UploadShortenState = {
   code?: string;
@@ -62,7 +68,13 @@ export async function createTokenAction(_state: { token?: string; error?: string
     return { error: error instanceof Error ? error.message : "Enter a valid API token name." };
   }
   const expiresAt = tokenExpiresAt(formData.get("expiresInDays"));
-  const { row, token } = await createApiToken(admin.id, name, { expiresAt });
+  const selectedScopes = formData.getAll("scopes");
+  if (!selectedScopes.length) return { error: "Select at least one API token permission." };
+  if (selectedScopes.some((scope) => typeof scope !== "string" || !API_TOKEN_PERMISSION_CHOICES.has(scope))) {
+    return { error: "Choose valid API token permissions." };
+  }
+  const scopes = Array.from(new Set(selectedScopes as string[]));
+  const { row, token } = await createApiToken(admin.id, name, { expiresAt, scopes });
   await auditLog({
     userId: admin.id,
     action: AuditAction.API_TOKEN_CREATED,

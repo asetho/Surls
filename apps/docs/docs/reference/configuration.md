@@ -16,7 +16,7 @@ Set values in the repository's `.env` before starting Compose. This is a focused
 | `INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_NAME`, `INITIAL_ADMIN_PASSWORD` | First admin; remove the password after first login. |
 | `TRUST_PROXY` | Leave `false` unless you control and sanitize every proxy hop. |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Optional pair; set both or neither. |
-| `UPLOAD_MAX_BYTES` | Lower the 25 MiB request ceiling. |
+| `UPLOAD_MAX_BYTES` | Default per-file upload limit (25 MiB), used until a site or user policy overrides it. |
 | `UPLOAD_USER_STORAGE_QUOTA_BYTES`, `UPLOAD_SITE_STORAGE_QUOTA_BYTES` | Upload quota controls. |
 | `CLICK_EVENT_RETENTION_DAYS`, `AUDIT_LOG_RETENTION_DAYS` | Retention windows, 365 days by default. |
 

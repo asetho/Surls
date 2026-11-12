@@ -73,6 +73,11 @@ describe("API token hardening", () => {
     expect(tokenHasScope("links:read", API_TOKEN_SCOPE_LINKS_CREATE)).toBe(false);
   });
 
+  it("does not turn an explicitly empty permission list into full access", async () => {
+    await expect(createApiToken("user-1", "Automation", { scopes: [] })).rejects.toThrow(/at least one/i);
+    expect(apiTokenModel.create).not.toHaveBeenCalled();
+  });
+
   it("rejects expired tokens without updating last-used time", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-11T12:00:00.000Z"));

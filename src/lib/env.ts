@@ -59,7 +59,7 @@ const envSchema = z
     CUSTOM_PAGES_DIR: emptyToUndefined(z.string().default("/app/www")),
     PUBLIC_WEBROOT_DIR: emptyToUndefined(z.string().optional()),
     UPLOADS_DIR: emptyToUndefined(z.string().optional()),
-    UPLOAD_MAX_BYTES: emptyToUndefined(z.coerce.number().int().positive().max(25 * 1024 * 1024).default(25 * 1024 * 1024)),
+    UPLOAD_MAX_BYTES: emptyToUndefined(z.coerce.number().int().positive().max(1024 * 1024 * 1024).default(25 * 1024 * 1024)),
     UPLOAD_USER_STORAGE_QUOTA_BYTES: emptyToUndefined(
       z.coerce.number().int().positive().max(100 * 1024 * 1024 * 1024).default(1024 * 1024 * 1024)
     ),

@@ -133,7 +133,7 @@ Keep backups, credentials, and other private files outside the public webroot. R
 
 ## Uploaded Files
 
-Admins can upload files from Tools -> Upload & Shorten. Files are stored under opaque names in `UPLOADS_DIR` and are available only through their short links. `UPLOADS_DIR` defaults to `uploads` under the app working directory. Docker Compose bind-mounts the host directory configured by `SURLS_UPLOADS_PATH` at `/app/uploads`. Uploads have a process-safe 25 MB request ceiling; `UPLOAD_MAX_BYTES` can lower that limit. Uploads also default to a 1 GiB per-user storage quota and a 10 GiB site storage quota, configurable with `UPLOAD_USER_STORAGE_QUOTA_BYTES` and `UPLOAD_SITE_STORAGE_QUOTA_BYTES`; existing files are reconciled into quota metadata before a new upload is reserved.
+Admins can upload files from Tools -> Upload & Shorten. Files are stored under opaque names in `UPLOADS_DIR` and are available only through their short links. `UPLOADS_DIR` defaults to `uploads` under the app working directory. Docker Compose bind-mounts the host directory configured by `SURLS_UPLOADS_PATH` at `/app/uploads`. The default per-file limit is 25 MB; admins can change the site or user limit, or remove the per-file limit. Uploads stream to disk and remain subject to the per-user and site storage quotas, which default to 1 GiB and 10 GiB and are configurable with `UPLOAD_USER_STORAGE_QUOTA_BYTES` and `UPLOAD_SITE_STORAGE_QUOTA_BYTES`. Existing files are reconciled into quota metadata before a new upload is reserved.
 
 ```env
 SURLS_UPLOADS_PATH="./uploads"
@@ -212,7 +212,7 @@ curl -X POST http://localhost:3000/api/uploads \
 ```
 
 API token hashes are stored in the database. The plain token is shown once.
-New tokens are limited to link and upload creation. **Tools → Tokens** offers 30, 90, 180, or 365 days, or **Forever**, with 90 days selected initially. `API_TOKEN_DAYS` is the server fallback when no supported selection is supplied. Tokens can be rolled, revoked, or deleted. Rolling replaces the token and invalidates the old value, so update each client using it. Existing tokens keep their original scopes; generate a new token for the macOS Share extension.
+New tokens can allow link creation, file uploads, or both; both are selected initially. **Tools → Tokens** offers 30, 90, 180, or 365 days, or **Forever**, with 90 days selected initially. `API_TOKEN_DAYS` is the server fallback when no supported selection is supplied. Tokens can be rolled, revoked, or deleted. Rolling replaces the token and invalidates the old value, so update each client using it. Existing tokens keep their original scopes; generate a new token for the macOS Share extension.
 
 ## Import And Export
 

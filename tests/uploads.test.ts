@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -60,7 +60,7 @@ describe("uploaded files", () => {
     });
   });
 
-  it("supports a lower explicit per-upload limit while retaining the hard process ceiling", async () => {
+  it("supports an explicit per-upload limit and a user policy with no file-size limit", async () => {
     await withUploadModule(async ({ storeUploadedFile }) => {
       const file = new File(["this is larger than sixteen bytes"], "large.txt", { type: "text/plain" });
 
@@ -76,6 +76,20 @@ describe("uploaded files", () => {
 
       await expect(storeUploadedFile(file)).resolves.toMatchObject({ size: 5 });
       expect(file.arrayBuffer).not.toHaveBeenCalled();
+    });
+  });
+
+  it("stores a disk-backed file above 25 MB when the configured limit permits it", async () => {
+    await withUploadModule(async ({ promoteUploadedFile, storeUploadedFile, uploadFileFromPath }, dir) => {
+      const source = path.join(dir, "source.bin");
+      await writeFile(source, new Uint8Array(26 * 1024 * 1024));
+      const file = uploadFileFromPath(source, "large.bin", 26 * 1024 * 1024);
+
+      const stored = await storeUploadedFile(file, { maxBytes: 50 * 1024 * 1024 });
+      expect((await stat(stored.pendingFilePath)).ino).toBe((await stat(source)).ino);
+      await promoteUploadedFile(stored);
+
+      await expect(stat(path.join(dir, stored.filename))).resolves.toMatchObject({ size: 26 * 1024 * 1024 });
     });
   });
 

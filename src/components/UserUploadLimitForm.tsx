@@ -41,18 +41,19 @@ export function UserUploadLimitForm({
         <option value="custom">Custom limit</option>
         <option value="unlimited">No limit</option>
       </select>
-      <div className="user-upload-limit-value">
-        <input
-          aria-label="Custom upload limit in megabytes"
-          disabled={mode !== "custom"}
-          max="1024"
-          min="1"
-          name="uploadMaxMegabytes"
-          type="number"
-          defaultValue={initialMegabytes ?? 25}
-        />
-        <span className="muted small">MB</span>
-      </div>
+      {mode === "custom" && (
+        <div className="user-upload-limit-value">
+          <input
+            aria-label="Custom upload limit in megabytes"
+            max="1024"
+            min="1"
+            name="uploadMaxMegabytes"
+            type="number"
+            defaultValue={initialMegabytes ?? 25}
+          />
+          <span className="muted small">MB</span>
+        </div>
+      )}
       <button className="secondary" type="submit" disabled={pending} aria-label="Save upload limit">
         <Save size={16} aria-hidden />
         Save

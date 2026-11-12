@@ -2,9 +2,9 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { hashToken, randomToken } from "./crypto";
 import { env } from "./env";
+import { API_TOKEN_SCOPE_LINKS_CREATE, API_TOKEN_SCOPE_UPLOADS_CREATE } from "./api-token-scopes";
 
-export const API_TOKEN_SCOPE_LINKS_CREATE = "links:create";
-export const API_TOKEN_SCOPE_UPLOADS_CREATE = "uploads:create";
+export { API_TOKEN_SCOPE_LINKS_CREATE, API_TOKEN_SCOPE_UPLOADS_CREATE } from "./api-token-scopes";
 
 const DEFAULT_API_TOKEN_SCOPES = [API_TOKEN_SCOPE_LINKS_CREATE, API_TOKEN_SCOPE_UPLOADS_CREATE];
 const API_TOKEN_NAME_MAX_LENGTH = 120;
@@ -15,9 +15,11 @@ function defaultApiTokenExpiresAt(now = new Date()) {
 }
 
 function normalizeScopes(scopes: string[] | undefined) {
-  return Array.from(
-    new Set((scopes?.length ? scopes : DEFAULT_API_TOKEN_SCOPES).map((scope) => scope.trim()).filter(Boolean))
+  const normalized = Array.from(
+    new Set((scopes ?? DEFAULT_API_TOKEN_SCOPES).map((scope) => scope.trim()).filter(Boolean))
   );
+  if (!normalized.length) throw new Error("Select at least one API token permission.");
+  return normalized;
 }
 
 export function tokenHasScope(scopes: string | null | undefined, requiredScope: string) {
