@@ -5,6 +5,8 @@ const auth = vi.hoisted(() => ({
 }));
 
 const apiTokens = vi.hoisted(() => ({
+  API_TOKEN_SCOPE_LINKS_CREATE: "links:create",
+  API_TOKEN_SCOPE_UPLOADS_CREATE: "uploads:create",
   createApiToken: vi.fn(),
   normalizeApiTokenName: vi.fn((value: unknown) => {
     const name = String(value ?? "").trim();
@@ -109,6 +111,8 @@ function tokenForm(expiresInDays: string) {
   const formData = new FormData();
   formData.set("name", "Automation token");
   formData.set("expiresInDays", expiresInDays);
+  formData.append("scopes", "links:create");
+  formData.append("scopes", "uploads:create");
   return formData;
 }
 
@@ -189,7 +193,8 @@ describe("tools actions hardening", () => {
     await expect(createTokenAction(null, tokenForm("30"))).resolves.toEqual({ token: "surls_plain" });
 
     expect(apiTokens.createApiToken).toHaveBeenCalledWith("user_123", "Automation token", {
-      expiresAt: new Date("2026-07-11T12:00:00.000Z")
+      expiresAt: new Date("2026-07-11T12:00:00.000Z"),
+      scopes: ["links:create", "uploads:create"]
     });
     expect(audit.auditLog).toHaveBeenCalledWith(expect.objectContaining({
       details: expect.objectContaining({ scopes: "links:create", tokenPrefix: "surls_abc123" })
@@ -204,7 +209,8 @@ describe("tools actions hardening", () => {
     await createTokenAction(null, tokenForm("999"));
 
     expect(apiTokens.createApiToken).toHaveBeenCalledWith("user_123", "Automation token", {
-      expiresAt: new Date("2026-09-09T12:00:00.000Z")
+      expiresAt: new Date("2026-09-09T12:00:00.000Z"),
+      scopes: ["links:create", "uploads:create"]
     });
   });
 
@@ -214,8 +220,31 @@ describe("tools actions hardening", () => {
     await createTokenAction(null, tokenForm("forever"));
 
     expect(apiTokens.createApiToken).toHaveBeenCalledWith("user_123", "Automation token", {
-      expiresAt: null
+      expiresAt: null,
+      scopes: ["links:create", "uploads:create"]
     });
+  });
+
+  it("creates a token with only the selected permission", async () => {
+    const { createTokenAction } = await import("@/app/admin/tools/actions");
+    const formData = tokenForm("90");
+    formData.delete("scopes");
+    formData.append("scopes", "uploads:create");
+
+    await expect(createTokenAction(null, formData)).resolves.toEqual({ token: "surls_plain" });
+    expect(apiTokens.createApiToken).toHaveBeenCalledWith("user_123", "Automation token", expect.objectContaining({
+      scopes: ["uploads:create"]
+    }));
+  });
+
+  it("rejects empty or forged token permissions", async () => {
+    const { createTokenAction } = await import("@/app/admin/tools/actions");
+    const formData = tokenForm("90");
+    formData.delete("scopes");
+    await expect(createTokenAction(null, formData)).resolves.toEqual({ error: "Select at least one API token permission." });
+    formData.append("scopes", "users:admin");
+    await expect(createTokenAction(null, formData)).resolves.toEqual({ error: "Choose valid API token permissions." });
+    expect(apiTokens.createApiToken).not.toHaveBeenCalled();
   });
 
   it("revokes an API token owned by the current user", async () => {

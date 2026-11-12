@@ -7,6 +7,7 @@ import { withUploadedFileReservation } from "./uploaded-file-records";
 import {
   discardUploadedFile,
   promoteUploadedFile,
+  type UploadFile,
   type UploadFilenameMode,
   storeUploadedFile
 } from "./uploads";
@@ -17,7 +18,7 @@ type UploadAndShortenInput = {
   createdByApiTokenPrefix?: string | null;
   createdById: string;
   dropExtension?: boolean;
-  file: File;
+  file: UploadFile;
   filenameMode: UploadFilenameMode;
   uploadMaxBytes?: number | null;
   title?: string | null;

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   effectiveUploadMaxBytes,
-  UPLOAD_PROCESS_MAX_BYTES,
   siteUploadLimitFromFormData,
   uploadBytesToMegabytes,
   userUploadLimitFromFormData,
@@ -18,10 +17,10 @@ function limitForm(mode: string, megabytes = "25") {
 describe("upload limit policies", () => {
   it("resolves custom, unlimited, and site-default user limits", () => {
     expect(effectiveUploadMaxBytes({ uploadMaxBytes: 10n * 1024n * 1024n }, 25 * 1024 * 1024)).toBe(10 * 1024 * 1024);
-    expect(effectiveUploadMaxBytes({ uploadLimitUnlimited: true }, 25 * 1024 * 1024)).toBe(UPLOAD_PROCESS_MAX_BYTES);
+    expect(effectiveUploadMaxBytes({ uploadLimitUnlimited: true }, 25 * 1024 * 1024)).toBeNull();
     expect(effectiveUploadMaxBytes({}, 25 * 1024 * 1024)).toBe(25 * 1024 * 1024);
-    expect(effectiveUploadMaxBytes({}, null)).toBe(UPLOAD_PROCESS_MAX_BYTES);
-    expect(effectiveUploadMaxBytes({ uploadMaxBytes: 100n * 1024n * 1024n }, null)).toBe(UPLOAD_PROCESS_MAX_BYTES);
+    expect(effectiveUploadMaxBytes({}, null)).toBeNull();
+    expect(effectiveUploadMaxBytes({ uploadMaxBytes: 100n * 1024n * 1024n }, null)).toBe(100 * 1024 * 1024);
   });
 
   it("normalizes user form choices", () => {

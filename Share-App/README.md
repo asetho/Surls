@@ -9,7 +9,7 @@ The **Share with Surls** extension uploads one shared file to a selected Surls s
 
 - macOS 14 or later and Xcode with the macOS SDK to build the app.
 - An Apple development team and provisioning profiles supporting the matching App Group and Keychain Sharing capabilities for **both** targets.
-- A reachable Surls HTTPS site and an API token that permits link/upload creation.
+- A reachable Surls HTTPS site and an API token with the `uploads:create` permission.
 
 ## Build and install locally
 
@@ -28,7 +28,7 @@ Local development provisioning profiles expire. If the app or extension stops la
 
 ## Usage and troubleshooting
 
-The extension shares one file or image at a time. The server enforces file-size and storage limits: the request ceiling is 25 MiB, and the site or user can have a smaller allowance. Uploads are available through their short links.
+The extension shares one file or image at a time. It reads the upload policy for the API token’s owner from the server. The default per-file limit is 25 MiB; an administrator can set a larger or unlimited per-file policy. Per-user and site storage quotas still apply. Uploads are available through their short links.
 
 If a request is unauthorized, check that the token is still active and has creation scopes. After rolling a token in Surls, replace it in the companion app. If the extension cannot see configured sites, confirm both targets use the same App Group and shared Keychain access group. Keep tokens out of screenshots, logs, and bug reports.
 

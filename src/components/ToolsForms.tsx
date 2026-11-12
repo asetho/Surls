@@ -4,6 +4,7 @@ import { Check, Copy, RefreshCw, Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createTokenAction, checkDestinationAction, importCsvAction, rollTokenAction } from "@/app/admin/tools/actions";
+import { API_TOKEN_SCOPE_LINKS_CREATE, API_TOKEN_SCOPE_UPLOADS_CREATE } from "@/lib/api-token-scopes";
 import { dispatchAdminToast } from "@/lib/admin-toast-event";
 import { AliasAvailabilityInput } from "./AliasAvailabilityInput";
 import { ConfirmButton } from "./ConfirmButton";
@@ -131,8 +132,19 @@ export function ApiTokenForm({ csrf, siteName }: { csrf: string; siteName: strin
             <option value="365">1 year</option>
             <option value="forever">Forever</option>
           </select>
-          <span className="muted small">Tokens are limited to creating links and file uploads, and can be revoked or deleted anytime.</span>
         </label>
+        <fieldset className="upload-options">
+          <legend>Permissions</legend>
+          <label className="choice-row">
+            <input name="scopes" type="checkbox" value={API_TOKEN_SCOPE_LINKS_CREATE} defaultChecked />
+            <span>Create short links</span>
+          </label>
+          <label className="choice-row">
+            <input name="scopes" type="checkbox" value={API_TOKEN_SCOPE_UPLOADS_CREATE} defaultChecked />
+            <span>Upload files and create their short links</span>
+          </label>
+        </fieldset>
+        <span className="muted small">Choose one or both. To change an existing token&apos;s permissions, create a replacement and revoke the old token.</span>
         <button type="submit" disabled={pending}>Generate API token</button>
       </form>
       <ApiTokenSecretModal
