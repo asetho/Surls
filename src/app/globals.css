@@ -425,6 +425,16 @@ button.danger-outline:hover {
   width: fit-content;
 }
 
+.smtp-test-delivery-form {
+  flex: 1 1 20rem;
+  max-width: 28rem;
+  min-width: 0;
+}
+
+.smtp-auth-toggle {
+  grid-column: 1 / -1;
+}
+
 .sign-in-methods-card .form-stack {
   gap: 0.65rem;
 }

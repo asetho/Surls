@@ -97,4 +97,40 @@ describe("SMTP settings", () => {
     await saveSmtpSettings(form(original));
     expect(await getSmtpTransportConfig()).toMatchObject({ host: original.host, from: original.from, password: "env-password" });
   });
+
+  it("uses an email username as the sender address and saves an optional From name", async () => {
+    const { getSmtpSettingsSummary, getSmtpTransportConfig, saveSmtpSettings } = await import("@/lib/smtp-settings");
+    await saveSmtpSettings(form({ host: "mail.example.com", port: "587", from: "", fromName: "Surls Share", username: "sender@example.com", password: "secret" }));
+    expect(await getSmtpSettingsSummary()).toMatchObject({ from: "sender@example.com", fromName: "Surls Share" });
+    expect(await getSmtpTransportConfig()).toMatchObject({ from: "sender@example.com", fromName: "Surls Share" });
+  });
+
+  it("checks entered settings without saving and reuses only a matching saved password", async () => {
+    const { getSmtpConnectionTestConfig, saveSmtpSettings, SmtpSettingsError } = await import("@/lib/smtp-settings");
+    const values = { host: "mail.example.com", port: "587", from: "", username: "sender@example.com", password: "secret" };
+    expect(await getSmtpConnectionTestConfig(form(values))).toMatchObject({ from: "sender@example.com", password: "secret" });
+    expect(appSetting.upsert).not.toHaveBeenCalled();
+
+    await saveSmtpSettings(form(values));
+    vi.mocked(appSetting.upsert).mockClear();
+    expect(await getSmtpConnectionTestConfig(form({ ...values, password: "" }))).toMatchObject({ password: "secret" });
+    await expect(getSmtpConnectionTestConfig(form({ ...values, host: "other.example.com", password: "" })))
+      .rejects.toBeInstanceOf(SmtpSettingsError);
+    expect(appSetting.upsert).not.toHaveBeenCalled();
+  });
+
+  it("accepts an unauthenticated relay while requiring paired login credentials and an addressable sender", async () => {
+    const { getSmtpConnectionTestConfig, saveSmtpSettings, SmtpSettingsError } = await import("@/lib/smtp-settings");
+    await saveSmtpSettings(form({ host: "mail.example.com", port: "587", from: "sender@example.com", username: "", password: "" }));
+    expect(await getSmtpConnectionTestConfig(form({ host: "mail.example.com", port: "587", from: "sender@example.com" })))
+      .toMatchObject({ username: "", password: "" });
+    vi.mocked(appSetting.upsert).mockClear();
+    await expect(saveSmtpSettings(form({ host: "mail.example.com", port: "587", from: "sender@example.com", username: "", password: "secret" })))
+      .rejects.toThrow("Enter an SMTP username with the password.");
+    await expect(getSmtpConnectionTestConfig(form({ host: "mail.example.com", port: "587", from: "", username: "mailer", password: "secret" })))
+      .rejects.toThrow("Enter a sender email address or use an email address as the username.");
+    await expect(getSmtpConnectionTestConfig(form({ host: "mail.example.com", port: "587", from: "", username: "sender@example.com", password: "" })))
+      .rejects.toBeInstanceOf(SmtpSettingsError);
+    expect(appSetting.upsert).not.toHaveBeenCalled();
+  });
 });

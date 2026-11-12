@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.3.0 - 2026-11-11
+
+### Added
+
+* Check SMTP connection and login before saving settings, without sending a message.
+* Set an optional From name and choose the recipient for SMTP test delivery.
+
+### Changed
+
+* Use an email address entered as the SMTP username when the sender address is left blank.
+* Allow 10 test messages per site admin every 15 minutes and explain recipient rejections.
+
+### Upgrade Notes
+
+No database migration or new environment variables are required. Existing SMTP relay settings continue to work. Enter a receiving mailbox or alias when testing email delivery.
+
 ## 3.2.7 - 2026-11-11
 
 ### Security

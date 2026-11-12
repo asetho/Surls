@@ -3,17 +3,19 @@
 import { AuditAction } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import { adminToastPath } from "@/lib/admin-toast";
 import { auditLog } from "@/lib/audit";
 import { requireSiteAdmin } from "@/lib/auth";
 import { validateCsrf } from "@/lib/csrf";
-import { sendSmtpTestEmail } from "@/lib/profile-email";
+import { sendSmtpTestEmail, verifySmtpConnection } from "@/lib/profile-email";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getSetting, setSetting } from "@/lib/settings";
 import {
   restoreEnvironmentSmtpSettings,
   saveSmtpSettings,
   getSmtpTransportConfig,
+  getSmtpConnectionTestConfig,
   SmtpSettingsError
 } from "@/lib/smtp-settings";
 
@@ -84,12 +86,41 @@ export async function restoreEnvironmentSmtpAction(formData: FormData) {
 
 export async function sendSmtpTestAction(formData: FormData) {
   const admin = await authorizedAdmin(formData);
-  const rate = await checkRateLimit(`smtp:test:${admin.id}`, 3, 15 * 60 * 1000);
+  const recipientValue = formData.get("recipient");
+  const recipient = typeof recipientValue === "string" ? recipientValue.trim() : "";
+  if (recipient.length > 320 || /[\r\n\0]/.test(recipient) || !z.email().safeParse(recipient).success) {
+    emailSettingsToast("error", "Enter a valid test recipient email address.");
+  }
+  const rate = await checkRateLimit(`smtp:test:${admin.id}`, 10, 15 * 60 * 1000);
   if (!rate.allowed) emailSettingsToast("error", "Too many test emails. Please wait and try again.");
   try {
-    await sendSmtpTestEmail(admin.email);
-  } catch {
+    await sendSmtpTestEmail(recipient);
+  } catch (error) {
+    const smtpError = error && typeof error === "object" ? error as { command?: unknown; responseCode?: unknown } : null;
+    if (smtpError?.command === "RCPT TO" && smtpError.responseCode === 550) {
+      emailSettingsToast("error", "The SMTP server rejected that recipient (550). Use a mailbox or alias that can receive mail.");
+    }
     emailSettingsToast("error", "Could not send the test email. Check the SMTP settings and server logs.");
   }
-  emailSettingsToast("success", `Test email sent to ${admin.email}.`);
+  emailSettingsToast("success", "Test email accepted by the SMTP server. Check the recipient inbox.");
+}
+
+export async function checkSmtpConnectionAction(formData: FormData): Promise<{ ok: boolean; message: string }> {
+  const admin = await authorizedAdmin(formData);
+  let config: Awaited<ReturnType<typeof getSmtpConnectionTestConfig>>;
+  try {
+    config = await getSmtpConnectionTestConfig(formData);
+  } catch (error) {
+    return { ok: false, message: error instanceof SmtpSettingsError ? error.message : "Could not check the SMTP settings." };
+  }
+  const rate = await checkRateLimit(`smtp:connection:${admin.id}`, 3, 15 * 60 * 1000);
+  if (!rate.allowed) return { ok: false, message: "Too many connection checks. Please wait and try again." };
+  try {
+    await verifySmtpConnection(config);
+  } catch {
+    return { ok: false, message: "Could not connect or sign in. Check the host, port, username, and password." };
+  }
+  return { ok: true, message: config.username
+    ? "Secure SMTP connection and login succeeded. No email was sent or settings saved."
+    : "Secure SMTP connection succeeded without login. No email was sent or settings saved." };
 }
