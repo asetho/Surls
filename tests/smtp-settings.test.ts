@@ -119,6 +119,29 @@ describe("SMTP settings", () => {
     expect(appSetting.upsert).not.toHaveBeenCalled();
   });
 
+  it("requires a matching successful check before saving, including when disabling delivery", async () => {
+    const { getSmtpSettingsCheckConfig, getSmtpTransportConfig, saveCheckedSmtpSettings } = await import("@/lib/smtp-settings");
+    const { createSmtpCheckProof } = await import("@/lib/smtp-check-proof");
+    const values = { host: "mail.example.com", port: "587", from: "sender@example.com", fromName: "Surls",
+      username: "sender@example.com", password: "secret" };
+    const input = form(values);
+    const config = await getSmtpSettingsCheckConfig(input);
+    const { proof } = createSmtpCheckProof("admin_1", config);
+    await expect(saveCheckedSmtpSettings(input, "admin_1", "")).rejects.toThrow("Check these SMTP settings");
+    await expect(saveCheckedSmtpSettings(form({ ...values, fromName: "Changed" }), "admin_1", proof))
+      .rejects.toThrow("Check these SMTP settings");
+    expect(appSetting.upsert).not.toHaveBeenCalled();
+    await saveCheckedSmtpSettings(input, "admin_1", proof);
+    expect(await getSmtpTransportConfig()).toMatchObject({ host: values.host, fromName: values.fromName });
+
+    const disabled = form({ host: "", port: "587", from: "", fromName: "", username: "", password: "" });
+    const emptyConfig = await getSmtpSettingsCheckConfig(disabled);
+    expect(emptyConfig.host).toBe("");
+    const emptyProof = createSmtpCheckProof("admin_1", emptyConfig).proof;
+    await saveCheckedSmtpSettings(disabled, "admin_1", emptyProof);
+    expect(await getSmtpTransportConfig()).toBeNull();
+  });
+
   it("accepts an unauthenticated relay while requiring paired login credentials and an addressable sender", async () => {
     const { getSmtpConnectionTestConfig, saveSmtpSettings, SmtpSettingsError } = await import("@/lib/smtp-settings");
     await saveSmtpSettings(form({ host: "mail.example.com", port: "587", from: "sender@example.com", username: "", password: "" }));

@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { getEmailTemplate, renderEmailTemplate, type EmailTemplateContent, type EmailTemplateId } from "./email-templates";
 import { getSmtpTransportConfig, type SmtpTransportConfig } from "./smtp-settings";
 
 export async function profileEmailAvailable() {
@@ -28,7 +29,7 @@ export async function verifySmtpConnection(config: SmtpTransportConfig) {
   }
 }
 
-async function sendEmail(to: string, subject: string, message: string) {
+async function sendEmail(to: string, content: { subject: string; text: string; html: string }) {
   const config = await getSmtpTransportConfig();
   if (!config) throw new Error("SMTP is not configured.");
   const transport = createSmtpTransport(config);
@@ -36,39 +37,50 @@ async function sendEmail(to: string, subject: string, message: string) {
     await transport.sendMail({
       from: config.fromName ? { name: config.fromName, address: config.from } : config.from,
       to,
-      subject,
-      text: message
+      ...content
     });
   } finally {
     transport.close();
   }
 }
 
+async function sendTemplate(to: string, id: EmailTemplateId, variables: Record<string, string> = {}) {
+  const { content } = await getEmailTemplate(id);
+  await sendEmail(to, renderEmailTemplate(id, content, variables));
+}
+
 export async function sendProfileEmailCode(to: string, code: string) {
-  await sendEmail(to, "Surls email change verification code",
-    `Your Surls email change verification code is ${code}. It expires in 10 minutes. If you did not request this change, you can ignore this email.`);
+  await sendTemplate(to, "emailChange", { code });
 }
 
 export async function sendExternalConnectCode(to: string, code: string) {
-  await sendEmail(to, "Surls sign-in provider connection verification code",
-    `Your Surls sign-in provider connection verification code is ${code}. It expires in 10 minutes. If you did not request this connection, you can ignore this email.`);
+  await sendTemplate(to, "providerConnection", { code });
 }
 
 export async function sendTotpSetupEmailCode(to: string, code: string) {
-  await sendEmail(to, "Surls authenticator setup verification code",
-    `Your Surls authenticator setup verification code is ${code}. It expires in 10 minutes. If you did not request this, you can ignore this email.`);
+  await sendTemplate(to, "authenticatorSetup", { code });
 }
 
 export async function sendSmtpTestEmail(to: string) {
-  await sendEmail(to, "Surls SMTP test", "Your Surls email settings are working.");
+  await sendTemplate(to, "smtpTest");
 }
 
 export async function sendPasswordResetEmail(to: string, resetUrl: string) {
-  await sendEmail(to, "Reset your Surls password",
-    `A password reset was requested for your Surls account. Open this link within 15 minutes:\n\n${resetUrl}\n\nIf you did not request this, ignore this email. Your password has not changed.`);
+  await sendTemplate(to, "passwordReset", { resetUrl });
 }
 
 export async function sendPasswordChangedEmail(to: string) {
-  await sendEmail(to, "Your Surls password was changed",
-    "Your Surls password was changed and existing sessions were signed out. If you did not make this change, contact your site administrator immediately.");
+  await sendTemplate(to, "passwordChanged");
+}
+
+export async function sendEmailTemplatePreview(to: string, id: EmailTemplateId, draft: EmailTemplateContent) {
+  const rendered = renderEmailTemplate(id, draft, {
+    code: "000000",
+    resetUrl: "https://example.invalid/preview-reset"
+  });
+  await sendEmail(to, {
+    subject: `[Preview] ${rendered.subject}`,
+    text: `Preview only — codes and links in this message do not work.\n\n${rendered.text}`,
+    html: `<p><strong>Preview only:</strong> codes and links in this message do not work.</p>${rendered.html}`
+  });
 }

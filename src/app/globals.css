@@ -435,6 +435,39 @@ button.danger-outline:hover {
   grid-column: 1 / -1;
 }
 
+.email-template-link-card {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.email-template-link-card h2,
+.email-template-link-card p,
+.email-template-intro > p {
+  margin: 0;
+}
+
+.email-template-intro > label {
+  max-width: 28rem;
+}
+
+.email-template-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.email-template-form textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.email-template-card .settings-card-header h2 {
+  font-size: 1.1rem;
+}
+
 .sign-in-methods-card .form-stack {
   gap: 0.65rem;
 }
