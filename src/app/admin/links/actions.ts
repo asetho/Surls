@@ -1,6 +1,6 @@
 "use server";
 
-import { AuditAction } from "@prisma/client";
+import { AuditAction, type Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auditLog } from "@/lib/audit";
@@ -24,6 +24,8 @@ import {
   normalizeShortLinkTextFields
 } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
+import { uploadedFilenameFromDestination } from "@/lib/uploads";
+import { withExistingUploadedFileReference } from "@/lib/uploaded-file-records";
 import { LINK_CREATE_RATE_LIMIT_MESSAGE } from "@/lib/link-create-limits";
 import { safeRedirectPath } from "@/lib/redirect-path";
 import { assertNoPrivateResolution, parseSafeHttpUrl } from "@/lib/url-safety";
@@ -108,7 +110,7 @@ export async function updateLinkAction(formData: FormData) {
     notes: formData.get("notes")
   });
 
-  const link = await prisma.shortLink.update({
+  const updateLink = (client: Pick<Prisma.TransactionClient, "shortLink">) => client.shortLink.update({
     // Keep the owner predicate in the database update so a guessed link ID cannot cross accounts.
     where: isAdminUser(admin) ? { id } : { id, createdById: admin.id },
     data: {
@@ -136,6 +138,10 @@ export async function updateLinkAction(formData: FormData) {
       }
     }
   });
+  const storageKey = uploadedFilenameFromDestination(safe.url);
+  const link = storageKey
+    ? await withExistingUploadedFileReference(storageKey, updateLink)
+    : await updateLink(prisma);
 
   await auditLog({
     userId: admin.id,

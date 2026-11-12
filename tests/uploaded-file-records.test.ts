@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Prisma } from "@prisma/client";
 
 const transaction = vi.hoisted(() => ({
   $executeRaw: vi.fn(),
@@ -45,6 +46,7 @@ vi.mock("@/lib/uploads", async (importOriginal) => ({
 import {
   deleteUploadedFileWithRecord,
   ensureUploadedFileRecord,
+  withExistingUploadedFileReference,
   withUploadedFileReservation
 } from "@/lib/uploaded-file-records";
 
@@ -171,6 +173,36 @@ describe("uploaded file quota reservations", () => {
     expect(transaction.$executeRaw.mock.invocationCallOrder[0]).toBeLessThan(
       uploads.deleteUploadedFile.mock.invocationCallOrder[0]
     );
+  });
+
+  it("holds the upload lock while checking and creating another link reference", async () => {
+    const create = vi.fn().mockResolvedValue("copied_link");
+
+    await expect(withExistingUploadedFileReference("report.pdf", create)).resolves.toBe("copied_link");
+
+    expect(prisma.$transaction).toHaveBeenCalledOnce();
+    expect(transaction.$executeRaw).toHaveBeenCalledOnce();
+    expect(uploads.uploadedFileSize).toHaveBeenCalledWith("report.pdf");
+    expect(create).toHaveBeenCalledWith(transaction);
+    expect(transaction.$executeRaw.mock.invocationCallOrder[0]).toBeLessThan(create.mock.invocationCallOrder[0]);
+  });
+
+  it("rejects a copied reference when cleanup removed the upload first", async () => {
+    uploads.uploadedFileSize.mockResolvedValue(null);
+    const create = vi.fn();
+
+    await expect(withExistingUploadedFileReference("report.pdf", create)).rejects.toThrow(/no longer exists/i);
+
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("uses the caller transaction when importing copied upload links", async () => {
+    const create = vi.fn().mockResolvedValue("imported_link");
+
+    await expect(withExistingUploadedFileReference("report.pdf", create, transaction as unknown as Prisma.TransactionClient)).resolves.toBe("imported_link");
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(create).toHaveBeenCalledWith(transaction);
   });
 
   it.each(["report.pdf", "%72eport.pdf", "report%2Epdf", "report%2epdf?download=1", "report.pdf#page=2"])("retains a file referenced using %s", async (filename) => {

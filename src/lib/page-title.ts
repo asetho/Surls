@@ -55,22 +55,20 @@ export function fetchWithPinnedAddress(input: string | URL, init: PinnedRequestI
         signal: init.signal ?? undefined
       },
       (response) => {
-        const headers = new Headers();
-        for (const [name, value] of Object.entries(response.headers)) {
-          if (value !== undefined) headers.set(name, Array.isArray(value) ? value.join(", ") : value);
-        }
-
-        const status = response.statusCode ?? 500;
-        if (!Number.isSafeInteger(status) || status < 200 || status > 599) {
-          response.destroy();
-          reject(new Error("Upstream returned an invalid HTTP status."));
-          return;
-        }
-        const hasNullBody = init.method?.toUpperCase() === "HEAD" || status === 204 || status === 205 || status === 304;
-        const body = hasNullBody ? null : Readable.toWeb(response) as ReadableStream<Uint8Array>;
-        if (hasNullBody) response.destroy();
-
         try {
+          const headers = new Headers();
+          for (const [name, value] of Object.entries(response.headers)) {
+            if (value !== undefined) headers.set(name, Array.isArray(value) ? value.join(", ") : value);
+          }
+
+          const status = response.statusCode ?? 500;
+          if (!Number.isSafeInteger(status) || status < 200 || status > 599) {
+            throw new Error("Upstream returned an invalid HTTP status.");
+          }
+          const hasNullBody = init.method?.toUpperCase() === "HEAD" || status === 204 || status === 205 || status === 304;
+          const body = hasNullBody ? null : Readable.toWeb(response) as ReadableStream<Uint8Array>;
+          if (hasNullBody) response.destroy();
+
           resolve(
             new Response(body, {
               headers,
@@ -116,18 +114,22 @@ async function readTextPrefix(response: Response, maxBytes: number) {
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
+  let complete = false;
 
   try {
     while (total < maxBytes) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        complete = true;
+        break;
+      }
       const remaining = maxBytes - total;
       const chunk = value.byteLength > remaining ? value.slice(0, remaining) : value;
       chunks.push(chunk);
       total += chunk.byteLength;
-      if (total >= maxBytes) await reader.cancel().catch(() => null);
     }
   } finally {
+    if (!complete) await reader.cancel().catch(() => null);
     reader.releaseLock();
   }
 

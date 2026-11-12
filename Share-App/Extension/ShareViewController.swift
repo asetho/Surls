@@ -2,6 +2,7 @@ import AppKit
 import UniformTypeIdentifiers
 
 final class ShareViewController: NSViewController, URLSessionTaskDelegate, NSTextFieldDelegate {
+    private static let maximumSharedFileURLBytes = 4 * 1024
     private let statusLabel = NSTextField(labelWithString: "Preparing upload…")
     private let detailLabel = NSTextField(wrappingLabelWithString: "")
     private let progress = NSProgressIndicator()
@@ -319,9 +320,10 @@ final class ShareViewController: NSViewController, URLSessionTaskDelegate, NSTex
     ) -> Progress? {
         if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
             let progress = Progress(totalUnitCount: maximumBytes)
-            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, error in
+            let providerProgress = provider.loadObject(ofClass: URL.self) { url, error in
                 if let error { return DispatchQueue.main.async { completion(.failure(error)) } }
-                guard let url = Self.fileURL(from: item) else {
+                guard let url, url.isFileURL,
+                      url.absoluteString.utf8.count <= Self.maximumSharedFileURLBytes else {
                     return DispatchQueue.main.async { completion(.failure(ShareError("Couldn’t read the shared file."))) }
                 }
                 DispatchQueue.global(qos: .userInitiated).async {
@@ -329,6 +331,7 @@ final class ShareViewController: NSViewController, URLSessionTaskDelegate, NSTex
                     DispatchQueue.main.async { completion(result) }
                 }
             }
+            progress.cancellationHandler = { providerProgress.cancel() }
             return progress
         }
 
@@ -338,7 +341,8 @@ final class ShareViewController: NSViewController, URLSessionTaskDelegate, NSTex
             completion(.failure(ShareError("This shared item isn’t a file.")))
             return nil
         }
-        return provider.loadFileRepresentation(forTypeIdentifier: typeIdentifier) { url, error in
+        let progress = Progress(totalUnitCount: maximumBytes)
+        let providerProgress = provider.loadFileRepresentation(forTypeIdentifier: typeIdentifier) { url, error in
             if let error { return DispatchQueue.main.async { completion(.failure(error)) } }
             guard let url else {
                 return DispatchQueue.main.async { completion(.failure(ShareError("Couldn’t load the shared file."))) }
@@ -348,28 +352,14 @@ final class ShareViewController: NSViewController, URLSessionTaskDelegate, NSTex
                     url: url,
                     suggestedName: provider.suggestedName,
                     typeIdentifier: typeIdentifier,
-                    maximumBytes: maximumBytes
+                    maximumBytes: maximumBytes,
+                    progress: progress
                 )
             }
             DispatchQueue.main.async { completion(result) }
         }
-    }
-
-    private static func fileURL(from item: Any?) -> URL? {
-        let url: URL?
-        switch item {
-        case let value as URL:
-            url = value
-        case let value as NSURL:
-            url = value as URL
-        case let value as Data:
-            url = URL(dataRepresentation: value, relativeTo: nil, isAbsolute: true)
-        case let value as String:
-            url = URL(string: value)
-        default:
-            url = nil
-        }
-        return url?.isFileURL == true ? url : nil
+        progress.cancellationHandler = { providerProgress.cancel() }
+        return progress
     }
 
     func controlTextDidChange(_ notification: Notification) {

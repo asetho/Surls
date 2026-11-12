@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const shortLink = vi.hoisted(() => ({
   delete: vi.fn(),
-  findFirst: vi.fn(),
   findUnique: vi.fn(),
   update: vi.fn()
 }));
@@ -11,9 +10,14 @@ const uploadedFileRecords = vi.hoisted(() => ({
   deleteUploadedFileWithRecord: vi.fn(),
   ensureUploadedFileRecord: vi.fn()
 }));
+const uploadedFile = vi.hoisted(() => ({ updateMany: vi.fn() }));
 
 vi.mock("@/lib/prisma", () => ({
-  prisma: { shortLink }
+  prisma: {
+    shortLink,
+    $transaction: (operation: (transaction: { shortLink: typeof shortLink; uploadedFile: typeof uploadedFile }) => Promise<unknown>) =>
+      operation({ shortLink, uploadedFile })
+  }
 }));
 
 vi.mock("@/lib/uploaded-file-records", () => uploadedFileRecords);
@@ -35,13 +39,12 @@ import {
 describe("link lifecycle helpers", () => {
   beforeEach(() => {
     shortLink.delete.mockReset();
-    shortLink.findFirst.mockReset();
-    shortLink.findFirst.mockResolvedValue(null);
     shortLink.findUnique.mockReset();
     shortLink.update.mockReset();
     uploadedFileRecords.deleteUploadedFileWithRecord.mockReset();
     uploadedFileRecords.ensureUploadedFileRecord.mockReset();
     uploadedFileRecords.ensureUploadedFileRecord.mockResolvedValue(null);
+    uploadedFile.updateMany.mockReset();
   });
 
   it("uses active and archived list filters", () => {
@@ -198,20 +201,22 @@ describe("link lifecycle helpers", () => {
       code: "demo",
       destinationUrl: "http://localhost:3000/uploads/report.pdf"
     });
-    shortLink.findFirst.mockResolvedValue({ id: "link_2" });
+    uploadedFileRecords.ensureUploadedFileRecord.mockResolvedValue({
+      downloadName: "report.pdf", ownerId: null, shortLinkId: "link_2"
+    });
 
     await deleteShortLink("link_1", "/demo");
 
+    expect(uploadedFile.updateMany).not.toHaveBeenCalled();
     expect(uploadedFileRecords.deleteUploadedFileWithRecord).toHaveBeenCalledWith("report.pdf", { onlyIfUnreferenced: true });
   });
 
-  it("deletes a primary uploaded file even when an unrelated link copied its raw destination", async () => {
+  it("detaches primary upload metadata before deleting a query-string variant and checking references", async () => {
     shortLink.findUnique.mockResolvedValue({
       id: "link_1",
       code: "demo",
-      destinationUrl: "http://localhost:3000/uploads/report.pdf"
+      destinationUrl: "http://localhost:3000/uploads/%72eport.pdf?download=1"
     });
-    shortLink.findFirst.mockResolvedValue({ id: "copied_link" });
     uploadedFileRecords.ensureUploadedFileRecord.mockResolvedValue({
       downloadName: "report.pdf",
       ownerId: null,
@@ -220,8 +225,12 @@ describe("link lifecycle helpers", () => {
 
     await deleteShortLink("link_1", "/demo");
 
-    expect(shortLink.findFirst).not.toHaveBeenCalled();
-    expect(uploadedFileRecords.deleteUploadedFileWithRecord).toHaveBeenCalledWith("report.pdf");
+    expect(uploadedFile.updateMany).toHaveBeenCalledWith({
+      where: { storageKey: "report.pdf", shortLinkId: "link_1" },
+      data: { shortLinkId: null }
+    });
+    expect(uploadedFile.updateMany.mock.invocationCallOrder[0]).toBeLessThan(shortLink.delete.mock.invocationCallOrder[0]);
+    expect(uploadedFileRecords.deleteUploadedFileWithRecord).toHaveBeenCalledWith("report.pdf", { onlyIfUnreferenced: true });
   });
 
   it("does not delete local files for upload-looking URLs on another origin", async () => {
@@ -233,7 +242,7 @@ describe("link lifecycle helpers", () => {
 
     await deleteShortLink("link_1", "/demo");
 
-    expect(shortLink.findFirst).not.toHaveBeenCalled();
+    expect(uploadedFile.updateMany).not.toHaveBeenCalled();
     expect(uploadedFileRecords.deleteUploadedFileWithRecord).not.toHaveBeenCalled();
   });
 });

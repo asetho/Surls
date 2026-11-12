@@ -14,12 +14,14 @@ const prisma = vi.hoisted(() => ({
   shortLink: { update: vi.fn() },
   user: { update: vi.fn() }
 }));
-const urlSafety = vi.hoisted(() => ({ assertNoPrivateResolution: vi.fn() }));
+const urlSafety = vi.hoisted(() => ({ assertNoPrivateResolution: vi.fn(), parseSafeHttpUrl: vi.fn() }));
+const uploadedFileRecords = vi.hoisted(() => ({ withExistingUploadedFileReference: vi.fn() }));
 
 vi.mock("@/lib/auth", () => auth);
 vi.mock("@/lib/audit", () => audit);
 vi.mock("@/lib/csrf", () => csrf);
 vi.mock("@/lib/prisma", () => ({ prisma }));
+vi.mock("@/lib/uploaded-file-records", () => uploadedFileRecords);
 vi.mock("@/lib/link-lifecycle", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/link-lifecycle")>(),
   archiveShortLink: vi.fn(),
@@ -31,7 +33,8 @@ vi.mock("next/cache", () => nextCache);
 vi.mock("next/navigation", () => navigation);
 vi.mock("@/lib/url-safety", async () => {
   const actual = await vi.importActual<typeof import("@/lib/url-safety")>("@/lib/url-safety");
-  return { ...actual, assertNoPrivateResolution: urlSafety.assertNoPrivateResolution };
+  urlSafety.parseSafeHttpUrl.mockImplementation(actual.parseSafeHttpUrl);
+  return { ...actual, assertNoPrivateResolution: urlSafety.assertNoPrivateResolution, parseSafeHttpUrl: urlSafety.parseSafeHttpUrl };
 });
 
 function updateForm(id: string) {
@@ -50,7 +53,24 @@ describe("link update authorization", () => {
     vi.clearAllMocks();
     auth.requireAdmin.mockResolvedValue({ id: "user_123", role: "USER" });
     urlSafety.assertNoPrivateResolution.mockResolvedValue(undefined);
+    uploadedFileRecords.withExistingUploadedFileReference.mockImplementation((_storageKey, operation) => operation(prisma));
     prisma.shortLink.update.mockResolvedValue({ code: "owned-link", id: "link_123" });
+  });
+
+  it("checks an edited upload destination under the reference lock", async () => {
+    const { updateLinkAction } = await import("@/app/admin/links/actions");
+    const formData = updateForm("link_123");
+    formData.set("destinationUrl", "http://localhost:3000/uploads/%72eport.pdf?download=1");
+    urlSafety.parseSafeHttpUrl.mockReturnValueOnce({ ok: true, url: "http://localhost:3000/uploads/%72eport.pdf?download=1" });
+
+    await updateLinkAction(formData);
+
+    expect(uploadedFileRecords.withExistingUploadedFileReference).toHaveBeenCalledWith(
+      "report.pdf", expect.any(Function)
+    );
+    expect(prisma.shortLink.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "link_123", createdById: "user_123" }
+    }));
   });
 
   it("scopes a non-admin update to the signed-in link owner", async () => {

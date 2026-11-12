@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.4.1 - 2026-11-12
+
+### Security
+
+* Keep copied upload links and their stored files consistent during concurrent link creation and deletion.
+* Close page-title response streams when the read limit is reached.
+* Bound file URL handling and preserve cancellation in the macOS Share extension.
+
+### Upgrade Notes
+
+No database migration or configuration changes are required. The Share extension update is released separately as Surls Share 1.0.4.
+
 ## 3.4.0 - 2026-11-11
 
 ### Added

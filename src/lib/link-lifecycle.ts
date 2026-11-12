@@ -158,15 +158,20 @@ export async function deleteShortLink(id: string, confirmation: FormDataEntryVal
   const uploadedFileRecord = uploadedFilename
     ? await ensureUploadedFileRecord(uploadedFilename)
     : null;
-  await prisma.shortLink.delete({ where: { id } });
-
-  if (uploadedFilename) {
-    if (uploadedFileRecord?.shortLinkId === id) {
-      await deleteUploadedFileWithRecord(uploadedFilename);
-      return link;
-    }
-    await deleteUploadedFileWithRecord(uploadedFilename, { onlyIfUnreferenced: true });
+  if (uploadedFilename && uploadedFileRecord?.shortLinkId === id) {
+    await prisma.$transaction(async (transaction) => {
+      // Keep quota metadata when another link still points to this upload.
+      await transaction.uploadedFile.updateMany({
+        where: { storageKey: uploadedFilename, shortLinkId: id },
+        data: { shortLinkId: null }
+      });
+      await transaction.shortLink.delete({ where: { id } });
+    });
+  } else {
+    await prisma.shortLink.delete({ where: { id } });
   }
+
+  if (uploadedFilename) await deleteUploadedFileWithRecord(uploadedFilename, { onlyIfUnreferenced: true });
 
   return link;
 }

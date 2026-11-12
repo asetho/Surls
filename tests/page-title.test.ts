@@ -45,6 +45,23 @@ describe("page title fetching", () => {
     expect(cancelled).toHaveBeenCalledOnce();
   });
 
+  it("closes an HTML response after reading the title byte limit", async () => {
+    const cancelled = vi.fn();
+    const fetchImpl = vi.fn(async () => new Response(new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode("<title>Bounded title</title>"));
+      },
+      cancel: cancelled
+    }), { headers: { "content-type": "text/html" } }));
+
+    await expect(fetchPageTitle("https://example.com/long", {
+      resolveSafeAddress: async () => ({ address: "203.0.113.10", family: 4 }),
+      fetchImpl,
+      maxBytes: 28
+    })).resolves.toBe("Bounded title");
+    expect(cancelled).toHaveBeenCalledOnce();
+  });
+
   it("follows safe redirects and reads the destination title", async () => {
     const fetchImpl = vi
       .fn()
