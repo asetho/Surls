@@ -6,7 +6,8 @@ import { requireSiteAdmin } from "@/lib/auth";
 import { getCsrfToken } from "@/lib/csrf";
 import { getSmtpSettingsSummary, getSmtpTransportConfig } from "@/lib/smtp-settings";
 import { getSetting } from "@/lib/settings";
-import { restoreEnvironmentSmtpAction, savePasswordResetSettingAction, saveSmtpSettingsAction, sendSmtpTestAction } from "./actions";
+import { restoreEnvironmentSmtpAction, savePasswordResetSettingAction, sendSmtpTestAction } from "./actions";
+import { SmtpSettingsForm } from "./SmtpSettingsForm";
 
 export const metadata: Metadata = { title: "Email settings" };
 
@@ -45,20 +46,7 @@ export default async function EmailSettingsPage() {
               ? "Using settings saved in the dashboard. Clear all fields and save to disable email delivery."
               : "Add an SMTP server to send verification codes to a user’s current email address."}
         </p>
-        <form className="form-stack" action={saveSmtpSettingsAction}>
-          <input type="hidden" name="csrf" value={csrf} />
-          <div className="form-grid">
-            <label>SMTP host<input name="host" defaultValue={settings.host} placeholder="smtp.example.com" maxLength={253} autoComplete="off" /></label>
-            <label>Port<input name="port" type="number" required min="1" max="65535" defaultValue={settings.port} /></label>
-            <label>Sender email<input name="from" type="email" defaultValue={settings.from} placeholder="no-reply@example.com" maxLength={320} autoComplete="off" /></label>
-            <label>Username (optional)<input name="username" defaultValue={settings.username} maxLength={320} autoComplete="off" /></label>
-            <label>Password (optional)
-              <input name="password" type="password" placeholder={settings.hasPassword ? "Saved — leave blank to keep" : "Enter SMTP password"} maxLength={4096} autoComplete="new-password" />
-            </label>
-          </div>
-          <p className="muted small">Port 465 uses implicit TLS. Other ports require STARTTLS. A username requires a password. Leave a saved password blank only when the host, port, and username are unchanged. Saved passwords are encrypted and never shown again.</p>
-          <button className="settings-save-button" type="submit">Save email settings</button>
-        </form>
+        <SmtpSettingsForm csrf={csrf} settings={settings} />
       </section>
 
       <section className="surface surface-panel">
@@ -76,10 +64,11 @@ export default async function EmailSettingsPage() {
 
       <section className="surface surface-panel">
         <h2>Test delivery</h2>
-        <p className="muted">Send a test message to your current account address: {admin.email}</p>
+        <p className="muted">Send a test message to a mailbox or alias that can receive mail. This can differ from your Surls account address. You can send up to 10 test messages every 15 minutes.</p>
         <div className="row-actions">
-          <form action={sendSmtpTestAction}>
+          <form className="form-stack smtp-test-delivery-form" action={sendSmtpTestAction}>
             <input type="hidden" name="csrf" value={csrf} />
+            <label>Test recipient email<input name="recipient" type="email" required maxLength={320} placeholder="mailbox@example.com" autoComplete="email" /></label>
             <button type="submit" disabled={!configured}>Send test email</button>
           </form>
           {settings.source === "settings" ? (

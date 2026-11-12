@@ -1,6 +1,6 @@
 # Surls Versioning Policy
 
-Current Version: 3.2.7
+Current Version: 3.3.0
 
 Surls follows Semantic Versioning (SemVer):
 

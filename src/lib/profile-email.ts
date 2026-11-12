@@ -1,14 +1,12 @@
 import nodemailer from "nodemailer";
-import { getSmtpTransportConfig } from "./smtp-settings";
+import { getSmtpTransportConfig, type SmtpTransportConfig } from "./smtp-settings";
 
 export async function profileEmailAvailable() {
   return Boolean(await getSmtpTransportConfig());
 }
 
-async function sendEmail(to: string, subject: string, message: string) {
-  const config = await getSmtpTransportConfig();
-  if (!config) throw new Error("SMTP is not configured.");
-  const transport = nodemailer.createTransport({
+function createSmtpTransport(config: SmtpTransportConfig) {
+  return nodemailer.createTransport({
     host: config.host,
     port: config.port,
     secure: config.port === 465,
@@ -19,9 +17,24 @@ async function sendEmail(to: string, subject: string, message: string) {
     socketTimeout: 15000,
     tls: { minVersion: "TLSv1.2" }
   });
+}
+
+export async function verifySmtpConnection(config: SmtpTransportConfig) {
+  const transport = createSmtpTransport(config);
+  try {
+    await transport.verify();
+  } finally {
+    transport.close();
+  }
+}
+
+async function sendEmail(to: string, subject: string, message: string) {
+  const config = await getSmtpTransportConfig();
+  if (!config) throw new Error("SMTP is not configured.");
+  const transport = createSmtpTransport(config);
   try {
     await transport.sendMail({
-      from: config.from,
+      from: config.fromName ? { name: config.fromName, address: config.from } : config.from,
       to,
       subject,
       text: message
