@@ -26,9 +26,10 @@ Configure your own palettes under **Settings → Dashboard theme → Open Theme 
 
 ## Documentation
 
+- [Surls documentation website](https://docs.surls.dev/)
 - [Docker Compose installation, configuration, upgrades, and backups](docs/deployment.md)
 - [External sign-in, account linking, Keycloak, and MFA](docs/external-sign-in.md)
-- [Surls Share for macOS — unsigned builds and local signing](Share-App/README.md)
+- [Surls Share for macOS — signed download and local builds](Share-App/README.md)
 - [WordPress link-creation plugin](wordpress/surls-link-creator/README.md)
 - [Versioning and release-note format](VERSIONING.md) · [Changelog](CHANGELOG.md)
 
@@ -39,13 +40,14 @@ Configure your own palettes under **Settings → Dashboard theme → Open Theme 
 - TOTP 2FA setup with QR/manual key verification.
 - One-time backup codes stored only as hashes.
 - Admin dashboard with totals, recent activity, top links, and attention states.
-- Link management with generated or custom aliases, safe destination validation, destination warnings, tags, notes, expiration, max-click limits, enable/disable, archive, QR codes, copy/share buttons, and CSV stats export.
+- Link management with five-character mixed-case generated codes or custom aliases, safe destination validation, destination warnings, tags, notes, expiration, max-click limits, enable/disable, archive, QR codes, copy/share buttons, and CSV stats export.
 - Redirects at `/:code` and `/s/:code`.
 - Admin clicks excluded from statistics by default, controlled by the Settings page switch “Track admin clicks”.
 - Detailed redirect analytics skip privacy opt-out requests and high-volume click bursts while still sending visitors to the destination.
 - Privacy-respecting click stats: timestamp, referrer, user-agent-derived browser/device, hashed IP-derived values, raw IP retention limited to 30 days, and configurable click-event retention.
 - Optional owner-provided public pages from the mounted webroot.
 - Tools page with bookmarklet, API token generation/revocation, CSV import preview/import, exports, SSRF-aware link checker, UTM builder, cleanup summaries, API docs, and system info.
+- Dashboard-managed SMTP settings, connection checks, test delivery, password recovery, and editable plain-text and HTML system email templates.
 - Light, Dark, and Auto theme modes. Auto follows the operating system preference.
 - Prisma PostgreSQL schema and versioned migrations.
 - Dockerfile, production entrypoint, and a standard Docker Compose deployment.
@@ -133,7 +135,7 @@ Keep backups, credentials, and other private files outside the public webroot. R
 
 ## Uploaded Files
 
-Admins can upload files from Tools -> Upload & Shorten. Files are stored under opaque names in `UPLOADS_DIR` and are available only through their short links. `UPLOADS_DIR` defaults to `uploads` under the app working directory. Docker Compose bind-mounts the host directory configured by `SURLS_UPLOADS_PATH` at `/app/uploads`. The default per-file limit is 25 MB; admins can change the site or user limit, or remove the per-file limit. Uploads stream to disk and remain subject to the per-user and site storage quotas, which default to 1 GiB and 10 GiB and are configurable with `UPLOAD_USER_STORAGE_QUOTA_BYTES` and `UPLOAD_SITE_STORAGE_QUOTA_BYTES`. Existing files are reconciled into quota metadata before a new upload is reserved.
+Admins can upload files from Tools -> Upload & Shorten. Files are stored under opaque names in `UPLOADS_DIR` and are available only through their short links. `UPLOADS_DIR` defaults to `uploads` under the app working directory. Docker Compose bind-mounts the host directory configured by `SURLS_UPLOADS_PATH` at `/app/uploads`. The default per-file limit is 25 MiB; admins can change the site or user limit, or remove the per-file limit. Uploads stream to disk and remain subject to the per-user and site storage quotas, which default to 1 GiB and 10 GiB and are configurable with `UPLOAD_USER_STORAGE_QUOTA_BYTES` and `UPLOAD_SITE_STORAGE_QUOTA_BYTES`. Existing files are reconciled into quota metadata before a new upload is reserved. New automatic upload links use five-character, case-sensitive codes; a paperclip marks uploaded files in Link management. Permanently deleting the last link to an upload deletes its stored file, while archiving or disabling a link keeps the file.
 
 ```env
 SURLS_UPLOADS_PATH="./uploads"
