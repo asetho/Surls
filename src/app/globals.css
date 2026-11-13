@@ -4972,7 +4972,22 @@ textarea {
 }
 
 .link-destination-title {
+  align-items: center;
+  display: flex;
+  gap: 0.25rem;
   margin-bottom: 0.15rem;
+}
+
+.link-upload-icon {
+  display: inline-flex;
+  flex: none;
+}
+
+.link-destination-title-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .link-destination-cell {

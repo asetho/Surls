@@ -23,10 +23,11 @@ describe("alias validation", () => {
     expect(validateAlias("hetrixtools")).toBeNull();
   });
 
-  it("generates high-entropy aliases by default", () => {
+  it("generates five-character aliases by default", () => {
     const alias = generateAlias();
 
-    expect(alias).toHaveLength(16);
-    expect(alias).toMatch(/^[abcdefghjkmnpqrstuvwxyz23456789]+$/);
+    expect(alias).toHaveLength(5);
+    expect(alias).toMatch(/^[abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789]+$/);
+    expect(generateAlias(256)).toMatch(/[A-Z]/);
   });
 });

@@ -46,8 +46,9 @@ export function validateAlias(alias: string) {
   return null;
 }
 
-export function generateAlias(length = 16) {
-  const alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
+export function generateAlias(length = 5) {
+  const lowercase = "abcdefghjkmnpqrstuvwxyz";
+  const alphabet = `${lowercase}${lowercase.toUpperCase()}23456789`;
   const unbiasedLimit = 256 - (256 % alphabet.length);
   let alias = "";
   while (alias.length < length) {
