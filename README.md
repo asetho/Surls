@@ -1,8 +1,12 @@
 # Surls
 
-Surls is a short URL system for managing short links, redirects, and click statistics.
+Surls is a self-hosted URL shortener with file sharing, QR codes, and privacy-aware analytics.
 
 It is inspired by the product shape of URL shorteners such as YOURLS and Tiny.cc, but the code, branding, UI, and implementation are original to this project.
+
+## Install with Docker Compose
+
+Follow the [deployment guide](docs/deployment.md) for the supported Compose setup. It covers the required secrets, writable uploads directory, read-only public webroot, first admin, HTTPS proxy, health checks, upgrades, and backups. Published images are available at `ghcr.io/asetho/surls`; pin a release tag for predictable upgrades.
 
 ## Screenshots
 
@@ -63,10 +67,6 @@ Configure your own palettes under **Settings → Dashboard theme → Open Theme 
 - Prisma 7
 - Vitest
 - Docker Compose
-
-## Install with Docker Compose
-
-Follow the [deployment guide](docs/deployment.md) for the supported Compose setup. It covers the required secrets, writable uploads directory, read-only public webroot, first admin, HTTPS proxy, health checks, upgrades, and backups. Published images are available at `ghcr.io/asetho/surls`; pin a release tag for predictable upgrades.
 
 ## Local development
 

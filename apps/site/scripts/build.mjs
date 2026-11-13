@@ -9,7 +9,7 @@ await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
 await cp(resolve(root, "src"), output, { recursive: true });
 await cp(resolve(root, "public"), output, { recursive: true });
-const assets = ["fonts/fonts.css", "style.css", "brand/brand.css", "theme.js"];
+const assets = ["fonts/fonts.css", "style.css", "brand/brand.css", "theme.js", "github.js"];
 const revisions = await Promise.all(assets.map(async (asset) => {
   const content = await readFile(resolve(output, asset));
   return [asset, createHash("sha256").update(content).digest("hex").slice(0, 12)];
