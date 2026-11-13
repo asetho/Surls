@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.6.0 - 2026-11-12
+
+### Changed
+
+* Use five-character, case-sensitive codes with mixed-case letters and digits for newly generated short links, including file uploads.
+* Mark uploaded file links with a paperclip and tooltip in link management.
+
+### Upgrade Notes
+
+Existing links keep their codes. No database migration or new environment variables are required. New automatic upload links are easier to guess; use a longer custom keyword when access to the file should be harder to discover.
+
 ## 3.5.1 - 2026-11-12
 
 ### Fixed

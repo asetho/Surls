@@ -34,6 +34,18 @@ describe("short link creation", () => {
     shortLink.create.mockImplementation(async ({ data }) => ({ id: "link_1", ...data, tags: [] }));
   });
 
+  it("uses five-character codes for new links and uploads without an alias", async () => {
+    for (const destinationUrl of ["https://example.com/article", "http://localhost:3000/uploads/file.bin"]) {
+      const link = await createShortLink(
+        { destinationUrl, fetchTitle: false },
+        undefined,
+        { allowPrivateDestination: true, assertSafeResolution: vi.fn().mockResolvedValue(true) }
+      );
+
+      expect(link.code).toMatch(/^[abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789]{5}$/);
+    }
+  });
+
   it("checks a copied local upload while holding the reference lock", async () => {
     await createShortLink({
       destinationUrl: "http://localhost:3000/uploads/%72eport.pdf?download=1",

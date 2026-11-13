@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ExternalLink, RotateCcw, Tags } from "lucide-react";
+import { ExternalLink, Paperclip, RotateCcw, Tags } from "lucide-react";
 import { AutoSubmitSelect } from "@/components/AutoSubmitSelect";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { CopyShortUrlButton, ShareButton } from "@/components/CopyShareButtons";
@@ -27,6 +27,7 @@ import {
 import { shortUrl } from "@/lib/links";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
+import { uploadedFilenameFromDestination } from "@/lib/uploads";
 import { filterLinksAction, restoreLinkAction } from "./actions";
 
 export const metadata: Metadata = {
@@ -282,7 +283,14 @@ export default async function LinksPage({ searchParams }: { searchParams: Search
                         ) : null}
                       </td>
                       <td className="small link-destination-cell" data-label="Destination">
-                        <div className="muted small link-destination-title" title={link.title || "Untitled"}>{link.title || "Untitled"}</div>
+                        <div className="muted small link-destination-title">
+                          {uploadedFilenameFromDestination(link.destinationUrl) ? (
+                            <span className="link-upload-icon" role="img" aria-label="Uploaded file" title="Uploaded file">
+                              <Paperclip size={14} aria-hidden />
+                            </span>
+                          ) : null}
+                          <span className="link-destination-title-text" title={link.title || "Untitled"}>{link.title || "Untitled"}</span>
+                        </div>
                         <a className="link-destination-url" href={link.destinationUrl} target="_blank" rel="noreferrer" title={link.destinationUrl}>
                           <ExternalLink size={13} aria-hidden /> <span className="link-destination-url-text">{link.destinationUrl}</span>
                         </a>

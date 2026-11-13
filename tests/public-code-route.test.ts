@@ -57,6 +57,17 @@ describe("single-segment public route", () => {
     );
   });
 
+  it("preserves mixed-case short codes for case-sensitive lookup", async () => {
+    await GET(requestFor("/Ab3dE"), paramsFor("Ab3dE"));
+
+    expect(routeMocks.handleShortRedirect).toHaveBeenCalledWith(
+      expect.any(Request),
+      "Ab3dE",
+      false,
+      expect.any(Object)
+    );
+  });
+
   it("serves public webroot files when no short link exists", async () => {
     routeMocks.handleShortRedirect.mockImplementation((_request, _code, _isHead, options) => options.missingLinkResponse());
     routeMocks.publicWebrootResponse.mockResolvedValue(new Response("file", { status: 200 }));
