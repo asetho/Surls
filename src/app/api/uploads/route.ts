@@ -6,7 +6,7 @@ import { appBaseUrl } from "@/lib/env";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getEffectiveUploadMaxBytes } from "@/lib/upload-limits";
 import { acquireUploadRequest, checkUploadRateLimit } from "@/lib/upload-request-limits";
-import { UploadParseError, parseStreamedUpload } from "@/lib/streamed-upload";
+import { UploadParseError, UploadStorageError, parseStreamedUpload } from "@/lib/streamed-upload";
 import { normalizeUploadFilenameMode } from "@/lib/uploads";
 import { checkUploadShortCodeAvailability, uploadAndShortenFile } from "@/lib/upload-and-shorten";
 
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Could not upload and shorten the file." },
       { headers: error instanceof UploadParseError && error.status === 413 ? uploadLimitHeaders(uploadMaxBytes) : {},
-        status: error instanceof UploadParseError ? error.status : 400 }
+        status: error instanceof UploadParseError ? error.status : error instanceof UploadStorageError ? 500 : 400 }
     );
   } finally {
     releaseUploadRequest();

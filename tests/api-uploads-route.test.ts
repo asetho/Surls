@@ -1,4 +1,7 @@
 import { NextRequest } from "next/server";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const apiTokens = vi.hoisted(() => ({
@@ -194,6 +197,26 @@ describe("POST /api/uploads", () => {
       uploadMaxBytes: 25 * 1024 * 1024,
       via: "api-upload"
     }));
+  });
+
+  it("reports an unavailable upload directory as a server error", async () => {
+    const { env } = await import("@/lib/env");
+    const { POST } = await import("@/app/api/uploads/route");
+    const originalRoot = env.UPLOADS_DIR;
+    const temporaryRoot = await mkdtemp(path.join(tmpdir(), "surls-upload-storage-"));
+    const blockedRoot = path.join(temporaryRoot, "file-instead-of-directory");
+    await writeFile(blockedRoot, "blocked");
+    env.UPLOADS_DIR = blockedRoot;
+
+    try {
+      const response = await POST(uploadRequest());
+      expect(response.status).toBe(500);
+      await expect(response.json()).resolves.toEqual({ error: "Could not save upload." });
+      expect(uploadAndShorten.uploadAndShortenFile).not.toHaveBeenCalled();
+    } finally {
+      env.UPLOADS_DIR = originalRoot;
+      await rm(temporaryRoot, { recursive: true, force: true });
+    }
   });
 
   it("accepts a file above 25 MB when the token owner has no per-file limit", async () => {
