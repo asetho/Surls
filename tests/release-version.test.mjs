@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isNewReleaseVersion } from "../scripts/check-release-version.mjs";
-import { releaseNotes } from "../scripts/release-notes.mjs";
+import { previousChangelogVersion, releaseNotes } from "../scripts/release-notes.mjs";
 
 describe("explicit release versions", () => {
   it("accepts an intentional minor bump and ignores other app tags", () => {
@@ -19,5 +19,9 @@ describe("explicit release versions", () => {
     expect(notes).toContain("Run the included database migrations");
     expect(() => releaseNotes(changelog, "9.0.0", "1.15.0")).toThrow("Missing CHANGELOG.md entry");
     expect(() => releaseNotes("## 1.15.0 - 2026-09-24\n### Added\n* Example", "1.15.0", "1.14.39")).toThrow("Missing upgrade notes");
+  });
+  it("uses the previous published changelog entry when an unused tag exists", () => {
+    const changelog = "## 3.5.0 - 2026-11-12\n### Upgrade Notes\nNone.\n\n## 3.4.1 - 2026-11-11\n### Upgrade Notes\nNone.\n";
+    expect(previousChangelogVersion(changelog, "3.5.0")).toBe("3.4.1");
   });
 });
