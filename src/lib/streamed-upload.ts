@@ -29,6 +29,12 @@ export class UploadParseError extends Error {
   }
 }
 
+export class UploadStorageError extends Error {
+  constructor() {
+    super("Could not save upload.");
+  }
+}
+
 export type StreamedUpload = {
   fields: Map<string, string>;
   file: UploadFile;
@@ -130,7 +136,7 @@ export async function parseStreamedUpload(request: Request, uploadMaxBytes: numb
   };
   resetIdleTimer();
   try {
-    await mkdir(incomingRoot, { recursive: true });
+    await mkdir(incomingRoot, { recursive: true }).catch(() => { throw new UploadStorageError(); });
     await removeStaleIncomingFiles(incomingRoot).catch(() => undefined);
     await pipeline(source, new Transform({
       transform(chunk: Buffer, _encoding, callback) {
@@ -149,7 +155,8 @@ export async function parseStreamedUpload(request: Request, uploadMaxBytes: numb
     await Promise.allSettled(fileWrites);
     await cleanup().catch(() => undefined);
     if (timedOut) throw new UploadParseError("Upload request timed out. Please try again.", 408);
-    if (error instanceof UploadParseError) throw error;
+    if (error instanceof UploadParseError || error instanceof UploadStorageError) throw error;
+    if (writeError) throw new UploadStorageError();
     throw new UploadParseError("Invalid multipart form data", 400);
   } finally {
     clearTimeout(idleTimer);

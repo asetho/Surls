@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.5.1 - 2026-11-12
+
+### Fixed
+
+* Let browser uploads complete by sending the CSRF token in the request header only.
+* Report unavailable upload storage as a server error instead of invalid multipart data.
+
+### Upgrade Notes
+
+No database migration or new environment variables are required. Upload directories must be writable by the app user.
+
 ## 3.5.0 - 2026-11-12
 
 ### Added

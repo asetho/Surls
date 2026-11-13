@@ -52,7 +52,6 @@ export function UploadShortenForm({ csrf, maxUploadLabel }: { csrf: string; maxU
 
   return (
     <form className="form-stack" onSubmit={upload} encType="multipart/form-data">
-      <input type="hidden" name="csrf" value={csrf} />
       <label>
         File
         <input className="upload-file-input" name="file" type="file" required />
