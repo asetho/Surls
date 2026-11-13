@@ -13,6 +13,7 @@ Set values in the repository's `.env` before starting Compose. This is a focused
 | `SURLS_PORT` | Published app port; use `127.0.0.1:3000` for a local reverse proxy. |
 | `SURLS_PUBLIC_WEBROOT_PATH` | Existing read-only public-page directory, default `./www`. |
 | `SURLS_UPLOADS_PATH` | Existing writable upload directory, default `./uploads`. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM`, `SMTP_USER`, `SMTP_PASSWORD` | Optional environment SMTP configuration. Site admins can save a dashboard-managed override under **Settings → Email**. |
 | `INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_NAME`, `INITIAL_ADMIN_PASSWORD` | First admin; remove the password after first login. |
 | `TRUST_PROXY` | Leave `false` unless you control and sanitize every proxy hop. |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Optional pair; set both or neither. |
@@ -20,4 +21,4 @@ Set values in the repository's `.env` before starting Compose. This is a focused
 | `UPLOAD_USER_STORAGE_QUOTA_BYTES`, `UPLOAD_SITE_STORAGE_QUOTA_BYTES` | Upload quota controls. |
 | `CLICK_EVENT_RETENTION_DAYS`, `AUDIT_LOG_RETENTION_DAYS` | Retention windows, 365 days by default. |
 
-`DATABASE_URL` in `.env` is for host-run development. Compose builds the app's container connection URL from `POSTGRES_*` values and the internal database hostname. Optional SMTP and external-provider settings are listed in the [deployment](https://github.com/asetho/Surls/blob/main/docs/deployment.md) and [external sign-in](https://github.com/asetho/Surls/blob/main/docs/external-sign-in.md) guides.
+`DATABASE_URL` in `.env` is for host-run development. Compose builds the app's container connection URL from `POSTGRES_*` values and the internal database hostname. See [email delivery](../guides/email-delivery.md) for connection checks, tests, and templates. Optional SMTP and external-provider environment settings are listed in the [deployment](https://github.com/asetho/Surls/blob/main/docs/deployment.md) and [external sign-in](https://github.com/asetho/Surls/blob/main/docs/external-sign-in.md) guides.

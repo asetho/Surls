@@ -23,11 +23,11 @@ Use a hex database password because Compose inserts it into a connection URL. Ke
 
 | Setting | Value or purpose |
 | --- | --- |
-| `SURLS_IMAGE` | A published tag, for example `ghcr.io/asetho/surls:2.0.0`. `latest` tracks new releases. |
+| `SURLS_IMAGE` | A published tag, for example `ghcr.io/asetho/surls:3.6.0`. `latest` tracks new releases. |
 | `POSTGRES_USER`, `POSTGRES_DB` | Defaults are `surls`. |
 | `POSTGRES_PASSWORD` | Generated hex password from above. |
 | `AUTH_SECRET` | Generated random value; production rejects empty or placeholder values. |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM` | Optional SMTP server, port (default `587`), and sender address for email-change codes when a user has no TOTP. Use port `465` for implicit TLS; other ports require STARTTLS. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM` | Optional SMTP server, port (default `587`), and sender address for account verification, password recovery, and test messages. Use port `465` for implicit TLS; other ports require STARTTLS. |
 | `SMTP_USER`, `SMTP_PASSWORD` | Optional SMTP credentials; set both when the server requires authentication. |
 | `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` | Generated base64 key required at runtime in production. Compose supplies it as a secret; source builds also use it at build time. |
 | `BASE_URL` | Exact public origin, for example `https://links.example.com`, with no trailing slash. |
@@ -99,6 +99,7 @@ Then configure:
 - **Settings → Sign-in methods:** optional [external providers and account linking](external-sign-in.md). Test an admin connection before disabling password/passkey login.
 - **Settings:** site name, theme, favicons, custom pages, upload limits, and click-tracking preferences.
 - **Tools → Tokens:** separate API tokens for each integration; each new token is displayed only once.
+- **Settings → Email:** check the SMTP connection and login before saving dashboard-managed settings, send a test message, and manage password recovery and system email templates. Dashboard SMTP settings override the environment values until restored.
 
 Keep `SURLS_LOGIN_DEV_ENABLED=false` on public deployments. The `/login-dev` comparison page is an admin-only development preview.
 

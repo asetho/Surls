@@ -44,6 +44,7 @@ nav:
   - Guides:
       - Links and analytics: guides/links-and-analytics.md
       - Authentication: guides/authentication.md
+      - Email delivery: guides/email-delivery.md
       - Integrations: guides/integrations.md
       - Surls Share for macOS: guides/macos-share.md
       - Public pages: guides/public-pages.md

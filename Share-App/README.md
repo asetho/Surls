@@ -1,9 +1,11 @@
 # Surls Share for macOS
 
-The **Share with Surls** extension uploads one shared file to a selected Surls site and copies its short URL to the clipboard. It can generate a random short keyword or check a custom keyword before uploading. The companion **Surls Share** app stores multiple sites, the default-site choice, and each site's API token.
+The **Share with Surls** extension uploads one shared file to a selected Surls site and copies its short URL to the clipboard. Leave the keyword blank for a server-generated code, or check a custom keyword before uploading. The companion **Surls Share** app stores multiple sites, the default-site choice, and each site's API token.
 
 > [!WARNING]
 > **Unsigned development builds:** CI builds are unsigned. macOS may block an unsigned copy or refuse to load its share extension. Use the signed, notarized installer from the [Surls Share releases](https://github.com/asetho/Surls/releases?q=surls-share) for general distribution, or build locally with your own Apple Development signing and provisioning profiles for development use.
+
+The current signed release is [Surls Share v1.0.5](https://github.com/asetho/Surls/releases/tag/surls-share-v1.0.5). Download its DMG and checksum from that release, open the DMG, and copy **Surls Share.app** to `/Applications`. The app and Share extension are signed and notarized together.
 
 ## Requirements
 
@@ -30,7 +32,7 @@ Local development provisioning profiles expire. If the app or extension stops la
 
 The extension shares one file or image at a time. It reads the upload policy for the API token’s owner from the server. The default per-file limit is 25 MiB; an administrator can set a larger or unlimited per-file policy. Per-user and site storage quotas still apply. Uploads are available through their short links.
 
-If a request is unauthorized, check that the token is still active and has creation scopes. After rolling a token in Surls, replace it in the companion app. If the extension cannot see configured sites, confirm both targets use the same App Group and shared Keychain access group. Keep tokens out of screenshots, logs, and bug reports.
+If a request is unauthorized, check that the token is still active and has the `uploads:create` permission. To change an existing token's permissions, create a replacement and revoke the old one; after rolling a token in Surls, replace it in the companion app. If the extension cannot see configured sites, confirm both targets use the same App Group and shared Keychain access group. Keep tokens out of screenshots, logs, and bug reports.
 
 ## CI and releases
 

@@ -2,6 +2,8 @@
 
 Surls supports local password sign-in, passkeys, TOTP, one-time backup codes, and optional external identity providers. Passwords use Argon2id. Admin forms use CSRF protection and authenticated sessions use HttpOnly cookies.
 
+Site admins can enable [email password recovery](email-delivery.md#password-recovery) for accounts with an existing local password after configuring SMTP.
+
 ## Strengthen an account
 
 Open **Profile → Security** (`/admin/profile`) to register a passkey or start TOTP setup. Scan the QR code or enter the manual key, then verify a current code. Generate backup codes and store them privately; they are shown only when generated and Surls stores hashes rather than the original codes.

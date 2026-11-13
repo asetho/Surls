@@ -5,6 +5,8 @@
 | Proxy returns 502 | Run `docker compose ps` and `docker compose logs --tail=100 app`; verify proxy target and port binding. |
 | App is unhealthy | Check `/api/health/ready`, database migrations, and webroot permissions. |
 | Files cannot be uploaded | Verify `SURLS_UPLOADS_PATH` exists and UID/GID `1000:1000` can write to it; check quota and size limits. |
+| SMTP settings will not save | Select **Check SMTP settings** after the last edit; a successful connection check unlocks Save for five minutes. |
+| SMTP test recipient is rejected | Send the test to a mailbox or alias that can receive mail. A successful connection check verifies the server and login, not recipient delivery. |
 | Passkey sign-in fails | Confirm HTTPS, `BASE_URL`, `WEBAUTHN_RP_ID`, and `WEBAUTHN_ORIGIN` match the public site. |
 | External provider callback fails | Copy the exact callback from Surls Settings and check the registered URI, issuer, client credentials, and container connectivity. |
 | Public page is missing | Confirm its file exists beneath the mounted webroot and can be read by the container user. |
