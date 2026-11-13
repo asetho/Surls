@@ -1,5 +1,10 @@
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+
+export function previousChangelogVersion(changelog, version) {
+  const versions = Array.from(changelog.matchAll(/^## (\d+\.\d+\.\d+) - /gm), (match) => match[1]);
+  const currentIndex = versions.indexOf(version);
+  return currentIndex < 0 ? "0.0.0" : versions[currentIndex + 1] ?? "0.0.0";
+}
 
 export function releaseNotes(changelog, version, previous) {
   const entry = changelog.split(/^## /m).find((section) => section.startsWith(`${version} - `));
@@ -29,7 +34,6 @@ export function releaseNotes(changelog, version, previous) {
 if (import.meta.main) {
   const version = process.argv[2];
   if (!/^\d+\.\d+\.\d+$/.test(version ?? "")) throw new Error("Provide a release version.");
-  const tags = execFileSync("git", ["tag", "--list", "--sort=-version:refname"], { encoding: "utf8" }).trim().split("\n");
-  const previous = tags.find((tag) => /^v\d+\.\d+\.\d+$/.test(tag) && tag !== `v${version}`)?.slice(1) ?? "0.0.0";
-  process.stdout.write(releaseNotes(readFileSync("CHANGELOG.md", "utf8"), version, previous));
+  const changelog = readFileSync("CHANGELOG.md", "utf8");
+  process.stdout.write(releaseNotes(changelog, version, previousChangelogVersion(changelog, version)));
 }

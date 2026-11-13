@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.5.0 - 2026-11-12
+
+### Added
+
+* Choose link creation, file uploads, or both when creating an API token.
+
+### Changed
+
+* Stream uploads to disk so a user's unlimited per-file setting no longer falls back to 25 MiB. Per-user and site storage quotas still apply.
+* Let Surls Share 1.0.5 read the token owner's upload limit and stream larger files without loading them fully into memory.
+
+### Upgrade Notes
+
+No database migration or new environment variables are required. Existing API tokens keep their permissions. Install the separately signed Surls Share update for the Mac extension. Reverse proxies and hosting providers may impose their own request-size limits.
+
 ## 3.4.1 - 2026-11-12
 
 ### Security
