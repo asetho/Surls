@@ -12,7 +12,7 @@ Follow the [deployment guide](docs/deployment.md) for the supported Compose setu
 
 The included Surls UI uses the default branding and palettes. These dashboard examples use synthetic data; a fresh installation starts with an empty dashboard.
 
-The included dashboard uses the [Surls SVG app icon](assets/branding/surls-app-icon.svg); an [SVG wordmark](assets/branding/surls-logo-horizontal.svg) is also available.
+The included dashboard uses the [Surls SVG app icon](assets/branding/surls-s-links-mark.svg); an [SVG wordmark](assets/branding/surls-s-url-links.svg) is also available.
 
 ![Default Surls dashboard in light mode](docs/screenshots/default-dashboard-light.jpg)
 
