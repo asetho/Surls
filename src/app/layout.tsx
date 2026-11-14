@@ -4,6 +4,7 @@ import Link from "next/link";
 import Script from "next/script";
 import { cookies } from "next/headers";
 import "./globals.css";
+import "../../public/annotations.css";
 import "../../public/fonts/fonts.css";
 import "../../public/brand/brand.css";
 import "./admin-data.css";
@@ -67,6 +68,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       </head>
       <body>
         {children}
+        <Script id="surls-annotations" src="/annotations.js" strategy="afterInteractive" />
         <Script id="surls-theme-script" src="/surls-theme.js" strategy="afterInteractive" />
       </body>
     </html>
